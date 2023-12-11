@@ -1,0 +1,13 @@
+/asset\ dev
+*~
+.
+.DS_Store
+/old_src
+/.cache
+/build/**
+/cMakeFiles
+/printable
+compile_commands.json
+Makefile
+/Trash/*
+*.~
