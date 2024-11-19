@@ -1,12 +1,10 @@
 #include "fc_input.hpp"
 
-
 #include "SDL2/SDL_keyboard.h"
 #include "SDL2/SDL_keycode.h"
 #include "SDL2/SDL_scancode.h"
 #include "SDL2/SDL_stdinc.h"
 #include <cstring>
-
 
 namespace fc
 {
@@ -18,7 +16,7 @@ namespace fc
      // set the pointer variable to point to one of the key states array
     currKeyStates = keyStates1;
     prevKeyStates = keyStates2;
-  
+
     mouseState = SDL_GetMouseState(&mouseX, &mouseY);
     for (int i = 0; i < 3; i++)
     {
@@ -46,10 +44,10 @@ namespace fc
                 , sizeof(updatedKeyStates[0]) * SDL_NUM_SCANCODES);
 
 
-     // get the x and y position of the mouse 
+     // get the x and y position of the mouse
     mouseState = SDL_GetMouseState(&mouseX, &mouseY);
 
-     // get the key states of the mouse 
+     // get the key states of the mouse
     for (int i = 0; i < 3; i++)
     {
       prevMouseKeys[i] = mouseKeys[i];
@@ -60,7 +58,7 @@ namespace fc
 
   void FcInput::receiveEvent(SDL_Event &event)
   {
-     // make sure we have established a string to write to 
+     // make sure we have established a string to write to
     if (p_text != NULL)
     {
        // handle backspace while text editing
@@ -69,7 +67,7 @@ namespace fc
         p_text->pop_back();
         m_hasTextUpdated = true;
       }
-       // allow return button to end the text editing events 
+       // allow return button to end the text editing events
       else if (event.key.keysym.sym == SDLK_RETURN)
       {
         p_text = NULL;
@@ -88,13 +86,13 @@ namespace fc
   {
      // point the text update to the string we need to alter
     p_text = text;
-    SDL_StartTextInput();  
+    SDL_StartTextInput();
   }
 
 
   int FcInput::textInputStatus()
   {
-     // if no more text to render 
+     // if no more text to render
     if (p_text == NULL)
     {
        // -1 to signify that we are no longer needing to keep text input updating
@@ -109,7 +107,7 @@ namespace fc
     }
      // 0 to signify that the text input is still active but does not need to update
     else
-    { 
+    {
       return 0;
     }
   }
@@ -125,14 +123,14 @@ namespace fc
 
   //TODO change all safety checks to asserts
 
-  
+
   bool FcInput::keyDown(int key)
   {
     if (key < 0 || key > SDL_NUM_SCANCODES)
     {
       return false;
     }
-  
+
     return currKeyStates[key];
   }
 
@@ -177,7 +175,7 @@ namespace fc
     {
       return false;
     }
-  
+
     return (mouseKeys[key] && !prevMouseKeys[key]);
   }
 
@@ -187,7 +185,7 @@ namespace fc
     {
       return false;
     }
-  
+
     return (prevMouseKeys[key] && !mouseKeys[key]);
   }
 

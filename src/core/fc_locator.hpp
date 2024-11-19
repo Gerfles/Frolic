@@ -1,11 +1,9 @@
-//
 #pragma once
 
 #include "core/fc_billboard_render_system.hpp"
 #include "core/fc_descriptors.hpp"
 #include "core/fc_gpu.hpp"
 #include "core/fc_game_object.hpp"
-
 //#include "core/fc_light.hpp"
 #include "vulkan/vulkan_core.h"
 
@@ -26,10 +24,10 @@ namespace fc
 
 //   class NullDescriptor: public FcDescriptor
 //   {
-//    public: 
+//    public:
 //   };
-  
-  
+
+
   class FcLocator
   {
    private:
@@ -49,17 +47,17 @@ namespace fc
       // NULL DEFAULTS
      // static NullGpu mNullGpu;
      // static NullDescriptor mNullDescriptorClerk;
-       
+
 
    public:
       //static void initialize() { pAudioService = & nullAudioService; }
       //static Audio& getAudio() { return *pAudioService; }
      static void initialize();
      static void provide(FcGpu* gpu);
-     static void provide(FcDescriptor* descriptorClerk);       
+     static void provide(FcDescriptor* descriptorClerk);
      static void provide(VkExtent2D screenDimensions);
       // - GETTERS -
-      // TODO think about making some of these const 
+      // TODO think about making some of these const
      static FcGpu& Gpu() { return *pGpu; }
      static VkDevice Device() { return pDevice; }
      static FcDescriptor& DescriptorClerk() { return *pDescriptorClerk; }

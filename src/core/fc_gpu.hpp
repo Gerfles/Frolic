@@ -1,6 +1,5 @@
 #pragma once
 
-
 // Frolic Engine
 #include "fc_window.hpp"
 #include "fc_swapChain.hpp"
@@ -23,7 +22,7 @@ namespace fc
   };
 
    // TODO seems carying around a screenSize would be ideal->instead of calling functions in window
-   // then refactor all code to use that 
+   // then refactor all code to use that
   class FcGpu
     {
      private:
@@ -34,14 +33,14 @@ namespace fc
        VkQueue mPresentationQueue;
        FcWindow* pWindow;
        VkCommandPool mCommandPool = VK_NULL_HANDLE;
-        // used to setup graphics capabilities, sampler attributes, etc. 
+        // used to setup graphics capabilities, sampler attributes, etc.
        PerformanceProperties mGpuPerformanceProperties;
         //VkSurfaceKHR mSurface;
         // - support functions
        void createCommandPool();
-       
 
-        // -- checker functions     
+
+        // -- checker functions
        bool isDeviceSuitable(const VkPhysicalDevice& device);
        bool isDeviceExtensionSupported(const VkPhysicalDevice& device) const;
        QueueFamilyIndices getQueueFamilies(const VkPhysicalDevice& device) const;
@@ -52,7 +51,7 @@ namespace fc
         // - INITIALIZATION -
        bool init(const VkInstance& instance, FcWindow& window);
        bool createLogicalDevice();
-        // 
+        //
        VkCommandBuffer beginCommandBuffer() const;
        void submitCommandBuffer(VkCommandBuffer commandBuffer) const;
         // TODO establish convention that all getter functions are capitalized (since they "are" a type)
@@ -71,4 +70,3 @@ namespace fc
        void release(VkInstance& instance);
     };
 } // namespace fc END
-

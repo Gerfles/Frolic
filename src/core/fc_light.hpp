@@ -3,7 +3,6 @@
 #include "core/fc_image.hpp"
 #include "fc_billboard_render_system.hpp"
 #include "core/fc_game_object.hpp"
-#include <_types/_uint32_t.h>
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "glm/vector_relational.hpp"
@@ -11,7 +10,7 @@
 
 namespace fc
 {
-  
+
   struct PointLight
   {
       // TODO w used for point light or directional
@@ -19,7 +18,7 @@ namespace fc
      glm::vec4 color {1.f}; // w is intensity
   };
 
-  
+
     class FcLight
     {
      private:
@@ -38,7 +37,7 @@ namespace fc
        static void loadDefaultTexture(std::string filename);
        static void destroyDefaultTexture() { mPointLightTexture.destroy(); }
         //void createLight(float intensity, float radius, glm::vec3 color);
-       
+
        void setPosition(glm::vec3 position);
        glm::vec4& getPosition();
 

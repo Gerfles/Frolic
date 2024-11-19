@@ -1,8 +1,7 @@
 #include "fc_player.hpp"
+
 #include "core/fc_camera.hpp"
 #include "core/fc_game_object.hpp"
-
-
 // LIBRARIES
 #include <limits>
 #include <glm/vec3.hpp>
@@ -54,7 +53,7 @@ namespace fc
       mTransform.translation += moveSpeed * dt *glm::normalize(moveDir);
     }
 
-     // TODO re-formulate this fucntion to efficiently change the camera parameters 
+     // TODO re-formulate this fucntion to efficiently change the camera parameters
     camera.setViewYXZ(mTransform.translation, mTransform.rotation);
   }
 
@@ -63,5 +62,5 @@ namespace fc
   {
     mTransform.translation = position;
   }
-  
+
 } /// NAMESPACE lve ///

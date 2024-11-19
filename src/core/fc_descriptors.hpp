@@ -1,18 +1,15 @@
-
 #pragma once
 
-
-// Frolic Engine
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 // TODO change to #include "fc_mesh.hpp"
 // #include "core/fc_font.hpp"
 #include "fc_light.hpp"
 #include "fc_mesh.hpp"
 #include "fc_buffer.hpp"
-// external libraries
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "glm/mat4x4.hpp"
 #include "vulkan/vulkan_core.h"
-// std libraries
-#include <_types/_uint32_t.h>
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <vector>
 #include <array>
 
@@ -27,9 +24,9 @@ namespace fc
   // struct PointLight
   // {
   //    glm::vec4 position{}; // ignore w
-  //    glm::vec4 color{}; // w is intensity 
+  //    glm::vec4 color{}; // w is intensity
   // };
-  
+
   // struct GlobalUbo
   // {
   //    alignas(16) glm::mat4 projection {1.f};
@@ -53,17 +50,17 @@ namespace fc
 
 
   class FcMesh;
-  
+
    // TODO ?? could change this to FcDescriptorSet or FcDescriptorBank...
   class FcDescriptor
   {
    private:
      const FcGpu* pGpu;
 //     VkDevice pDevice;
-     
+
      VkDescriptorSetLayout mUboDescriptorSetLayout;
      VkDescriptorSetLayout mSamplerDescriptorSetLayout;
-      // TODO this is DUMB!! get rid of the idea below 
+      // TODO this is DUMB!! get rid of the idea below
       //std::array<VkDescriptorSetLayout, 2> mDescriptorSetLayouts;
       //VkPushConstantRange mPushConstantRange;
       // - TEXTURES -
@@ -103,5 +100,5 @@ namespace fc
   };
 
 
-  
+
 }//namespace lve _END_

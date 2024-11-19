@@ -2,7 +2,6 @@
 
 #include "SDL2/SDL.h"
 #include "SDL2/SDL_timer.h"
-#include <_types/_uint64_t.h>
 
 class FcTimer
 {
@@ -14,11 +13,11 @@ class FcTimer
 
     // stores the ticks if timer gets paused
    uint64_t mPausedTicks;
-  
+
     // timer state
    bool mIsPaused;
    bool mHasStarted;
-  
+
  public:
     // initialize variables
    FcTimer();
@@ -35,6 +34,3 @@ class FcTimer
    bool isPaused() { return (mIsPaused && mHasStarted); }
    bool hasStarted() { return mHasStarted; }
 };
-
-
-  

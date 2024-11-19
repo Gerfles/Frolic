@@ -7,9 +7,8 @@
 // EXTERNAL
 #include "vulkan/vulkan_core.h"
 // STD
-#include <_types/_uint32_t.h>
 #include <memory>
-#include <sys/_types/_size_t.h>
+
 
 namespace fc
 {
@@ -24,7 +23,7 @@ namespace fc
   };
 
   class FcText;
-  
+
   class FcUIrenderSystem
   {
    private:

@@ -1,17 +1,15 @@
 #include "core/fc_light.hpp"
+
 #include "core/fc_billboard_render_system.hpp"
 #include "core/fc_descriptors.hpp"
 #include "core/fc_image.hpp"
 #include "core/fc_locator.hpp"
 #include "core/utilities.hpp"
-#include <_types/_uint32_t.h>
-
-
 
 
 namespace fc
 {
-  
+
    // ?? this is not working for some reason
   FcImage FcLight::mPointLightTexture{};//{"plain.png"};
   //FcImage FcLight::mPointLightTexture{"point_light.png"};
@@ -20,12 +18,12 @@ namespace fc
   void FcLight::loadDefaultTexture(std::string filename)
   {
     mTextureId = mPointLightTexture.loadTexture(filename);
-    
+
 //  mBillboard.setTextureId(texID);
 //  mPointLightTexture.loadTexture("point_light.png");
   }
 
-   //?? what 
+   //?? what
   FcLight::FcLight(float intensity, float radius, glm::vec3 color)
     : mBillboard{radius, radius, glm::vec4(color, intensity)}
   {
@@ -37,7 +35,7 @@ namespace fc
     mBillboard.placeInHandleTable();
   }
 
-  
+
   // void FcLight::createLight(float intensity, float radius, glm::vec3 color)
   // {
   //   mBillboard.PushComponent().color = glm::vec4(color, intensity);
@@ -53,7 +51,7 @@ namespace fc
   //   mBillboard.placeInHandleTable();
   //  }
 
-  
+
   FcLight::FcLight()
   {
      // TODO implement defaults if need be
@@ -71,7 +69,7 @@ namespace fc
   {
     return mBillboard.PushComponent().position;
   }
-  
+
 
   PointLight FcLight::generatePointLight()
   {
@@ -81,16 +79,16 @@ namespace fc
     light.position = mBillboard.PushComponent().position;
     light.color = mBillboard.PushComponent().color;
     return light;
-    
+
      //return {mBillboard.PushComponent().position, mBillboard.PushComponent().color};
   }
 
-  
+
 
   void FcLight::placeInHandleTable()
   {
     std::vector<FcLight*>& lightsList = FcLocator::Lights();
-    
+
      // first check to see if there's already a slot available that's just been set to nullptr
     for(size_t i = 0; i < lightsList.size(); i++)
     {
@@ -98,8 +96,8 @@ namespace fc
       {
         lightsList[i] = this;
         mHandleIndex = i;
-         // don't think we need uniqueId in this handle system since all will be lights 
-        
+         // don't think we need uniqueId in this handle system since all will be lights
+
         return;
       }
     }
@@ -119,6 +117,6 @@ namespace fc
        // BUG dangling pointers and such!!!
        // TODO make sure to delete the light since
     }
-  
+
   }
 }

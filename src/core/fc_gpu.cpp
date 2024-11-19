@@ -1,11 +1,10 @@
 #include "fc_gpu.hpp"
 
-
-// Frolic Engine
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "utilities.hpp"
-// external libraries
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
-// std libraries
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <stdexcept>
 #include <vector>
 #include <iostream>
@@ -17,13 +16,13 @@
 
 namespace fc
 {
-  
+
   bool FcGpu::init(const VkInstance& instance, FcWindow& window)
   {
      // first couple the window instance to the GPU (needed for surface stuff)
     pWindow = &window;
 
-    
+
 
     //  // enumerate all the physical devices the vkInstance can access
     // uint32_t deviceCount = 0;
@@ -32,7 +31,7 @@ namespace fc
     // vkEnumeratePhysicalDevices(instance, &deviceCount, deviceList.data());
 
     //  // right now, just pick the first available device
-    //  // TODO pick the best device 
+    //  // TODO pick the best device
     // for (const auto& device : deviceList)
     // {
     //   if (isDeviceSuitable(device))
@@ -58,7 +57,7 @@ namespace fc
       }
     }
 
-     // we either failed to select a GPU or we were unable to create a logical device to interface with it 
+     // we either failed to select a GPU or we were unable to create a logical device to interface with it
     return false;
   }
 
@@ -84,7 +83,7 @@ namespace fc
    // check if any of the graphics cards meet the requirements we need
   for (VkPhysicalDevice potentialDevice : deviceOptions)
   {
-     // check that device extension is suppported 
+     // check that device extension is suppported
     uint32_t extensionCount;
     vkEnumerateDeviceExtensionProperties(potentialDevice, nullptr, &extensionCount, nullptr);
     std::vector<VkExtensionProperties> availableExtensions(extensionCount);
@@ -118,13 +117,13 @@ namespace fc
         std::cout << "GPU: " << deviceProperties.deviceName
                   << "\nPush Constant Max: " << deviceProperties.limits.maxPushConstantsSize << " (Bytes)"
                   << std::endl;
-        
+
         mPhysicalGPU = potentialDevice;
         break;
-      }      
+      }
 
     }
-  
+
   } // End for(cycle through potential devices);
 
     // if no available device was selected, terminate
@@ -134,9 +133,9 @@ namespace fc
   }
 }
 
-  
-  
-  
+
+
+
     bool FcGpu::createLogicalDevice()
   {
      //TODO Consider changing the queue situation to make a little more logical sense - maybe creating a queue struct that has a queue member and an index member
@@ -158,28 +157,28 @@ namespace fc
        // ufortunately we still haven't addressed the possibility of multiple queues
        // this is because it's often the case that the graphics and presentat queues are the the same
        // but not always.
-      float priority = 1.0f; // 1 is highest, 0 is the lowest 
+      float priority = 1.0f; // 1 is highest, 0 is the lowest
       queueInfo.pQueuePriorities = &priority;
 
-      queueCreateInfos.push_back(queueInfo); 
+      queueCreateInfos.push_back(queueInfo);
     }
 
-    
+
     VkDeviceCreateInfo deviceInfo{};
     deviceInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     deviceInfo.queueCreateInfoCount = static_cast<uint32_t>(queueFamilyIndices.size());
     deviceInfo.pQueueCreateInfos = queueCreateInfos.data();
     deviceInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
-    deviceInfo.ppEnabledExtensionNames = deviceExtensions.data(); 
+    deviceInfo.ppEnabledExtensionNames = deviceExtensions.data();
      // deprecated as of Vulkan 1.1 since instance layers cover everything now
     deviceInfo.enabledLayerCount = 0;
     deviceInfo.ppEnabledLayerNames = nullptr;
 
-     // features the logical device will be using 
+     // features the logical device will be using
     VkPhysicalDeviceFeatures deviceFeatures{};
     deviceInfo.pEnabledFeatures = &deviceFeatures;
     deviceFeatures.samplerAnisotropy = VK_TRUE; // enable Anisotropy
-    
+
     if (vkCreateDevice(mPhysicalGPU, &deviceInfo, nullptr, &mLogicalGPU) != VK_SUCCESS)
     {
       throw std::runtime_error("Failed to create vulkan logical device!");
@@ -190,11 +189,11 @@ namespace fc
      //TRY using a pointer to VkQueue in the GPU class declaration
     vkGetDeviceQueue(mLogicalGPU, indices.graphicsFamily, 0, &mGraphicsQueue);
     vkGetDeviceQueue(mLogicalGPU, indices.presentationFamily, 0, &mPresentationQueue);
-    
+
     return true;
   }
 
-  
+
 
   bool FcGpu::isDeviceSuitable(const VkPhysicalDevice& device)
   {
@@ -213,7 +212,7 @@ namespace fc
     {
       return false;
     }
-    
+
      // info about the device
     VkPhysicalDeviceProperties deviceProperties;
     vkGetPhysicalDeviceProperties(device, &deviceProperties);
@@ -237,7 +236,7 @@ namespace fc
     //   }
     //   counts <<= 1;
     // }
-    
+
      // find the highest order MSAA samples bit and set maxMsaaSamples to that
     if (counts & VK_SAMPLE_COUNT_64_BIT) {
       mGpuPerformanceProperties.maxMsaaSamples = VK_SAMPLE_COUNT_64_BIT;
@@ -260,12 +259,12 @@ namespace fc
     else {
       mGpuPerformanceProperties.maxMsaaSamples = VK_SAMPLE_COUNT_1_BIT;
     }
-    
+
      // info about what features the gpu supports
     VkPhysicalDeviceFeatures deviceFeatures;
     vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
-    
-     // get the graphics and presentation queues 
+
+     // get the graphics and presentation queues
     QueueFamilyIndices indices = getQueueFamilies(device);
 
 
@@ -277,8 +276,8 @@ namespace fc
    // TODO pass list of required extensions to let us get rid of stored global deviceExtensions
   bool FcGpu::isDeviceExtensionSupported(const VkPhysicalDevice& device) const
   {
-    
-     // get number of extensions supported 
+
+     // get number of extensions supported
     uint32_t extensionCount = 0;
     vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
 
@@ -304,7 +303,7 @@ namespace fc
     return requiredExtensions.empty();
   }
 
-  
+
 
   QueueFamilyIndices FcGpu::getQueueFamilies(const VkPhysicalDevice& device) const
   {
@@ -329,18 +328,18 @@ namespace fc
       VkBool32 presentationSupport = false;
       vkGetPhysicalDeviceSurfaceSupportKHR(device, i, pWindow->surface(), &presentationSupport);
 
-       // 
+       //
       if (queueFamily.queueCount > 0 && presentationSupport)
       {
         indices.presentationFamily = i;
       }
-      
+
        //?? this may be necessary later but right now we could just break from above if statement
-      if (indices.isValid()) 
+      if (indices.isValid())
       {
         break;
       }
-      
+
       i++;
     }
 
@@ -354,7 +353,7 @@ namespace fc
      // create a new struct to hold all the details of the available swapchain
     SwapChainDetails swapChainDetails;
     const VkSurfaceKHR& surface = pWindow->surface();
-    
+
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &swapChainDetails.surfaceCapabilities);
 
     uint32_t formatCount = 0;
@@ -387,7 +386,7 @@ namespace fc
   {
      // get indices of queue families from device
     QueueFamilyIndices queueFamilyIndices = GpuQueueFamilies();
-    
+
     VkCommandPoolCreateInfo commandPoolInfo{};
     commandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     commandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
@@ -400,8 +399,8 @@ namespace fc
   }
 
 
-  
-  VkCommandBuffer FcGpu::beginCommandBuffer() const 
+
+  VkCommandBuffer FcGpu::beginCommandBuffer() const
   {
      // command buffer to hold transfer commands
     VkCommandBuffer commandBuffer;
@@ -415,7 +414,7 @@ namespace fc
 
      // allocate command buffer from pool
     vkAllocateCommandBuffers(mLogicalGPU, &allocInfo, &commandBuffer);
- 
+
      // information to be the command buffer record
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -430,12 +429,12 @@ namespace fc
   }
 
 
-  
+
   void FcGpu::submitCommandBuffer(VkCommandBuffer commandBuffer) const
   {
-     // End commands 
+     // End commands
     vkEndCommandBuffer(commandBuffer);
-    
+
      // Queue submission information
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -453,12 +452,12 @@ namespace fc
     vkFreeCommandBuffers(mLogicalGPU, mCommandPool, 1, &commandBuffer);
   }
 
-  
-  
-  
+
+
+
   void FcGpu::release(VkInstance& instance)
   {
-     // TODO test that these conditionals are working as intended 
+     // TODO test that these conditionals are working as intended
     if (mCommandPool != VK_NULL_HANDLE)
     {
       vkDestroyCommandPool(mLogicalGPU, mCommandPool, nullptr);
@@ -467,9 +466,9 @@ namespace fc
 
     if (mLogicalGPU != VK_NULL_HANDLE)
     {
-      vkDestroyDevice(mLogicalGPU, nullptr); 
+      vkDestroyDevice(mLogicalGPU, nullptr);
     }
   }
 
-  
+
 } // namespace fc END

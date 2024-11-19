@@ -1,11 +1,11 @@
 #pragma once
 
-// - FROLIC ENGINE -
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "core/fc_input.hpp"
 #include "core/fc_renderer.hpp"
 #include "core/fc_text.hpp"
 #include "core/fc_timer.hpp"
-#include <_types/_uint64_t.h>
+
 #include <vector>
 // - EXTERNAL LIBRARIES -
 // ?? NOT SURE why this compiles without SDL
@@ -27,12 +27,12 @@ namespace fc
      float mFrameTimeSum = 0;
      int mFrameTimeIndex = 0;
      float mFrameTimeList[MAX_FRAME_SAMPLES];
-     
+
       // note: order of declaration matters (member variables are allocated top to bottom and destroyed in the reverse order)
 
      GlobalUbo mUbo;
-     
-     // - SYSTEMS - 
+
+     // - SYSTEMS -
      FcRenderer mRenderer;
      FcInput mInput;
      bool mShouldClose = false;
@@ -40,14 +40,14 @@ namespace fc
 
       // TODO for now hold point lights but later place in locator
 //     std::vector<FcLight> mLights;
-     
+
       // UI
      std::vector<FcText> mUItextList;
      FcFont mUIfont;
-     
+
      FcImage mFallbackTexture;
       // ideally, here it would be nice to
-     
+
    public:
      Frolic();
      void run();
@@ -57,5 +57,5 @@ namespace fc
      int calcFPS(float lastFrameTime);
      void close();
   };
-  
+
 }

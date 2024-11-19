@@ -1,12 +1,10 @@
 #include "fc_text.hpp"
 
-
 // - CORE -
 #include "fc_locator.hpp"
 #include "fc_font.hpp"
 #include "vulkan/vulkan_core.h"
 #include <vector>
-
 
 namespace fc
 {
@@ -27,9 +25,9 @@ namespace fc
     mTextBoxSpecs.position.x =  -1.0f + 2.0f * (float)xPos / screenDimensions.width + mTextBoxSpecs.width;
     mTextBoxSpecs.position.y =  -1.0f + 2.0f * (float)yPos / screenDimensions.height + mTextBoxSpecs.height;
 
-     //TODO remove 
+     //TODO remove
     mTextBoxSpecs.color = glm::vec4(1.0f, 0.30f, 1.0f, 1.0f);
-    
+
     // TODO get rid of, TEMPORARILY CREATE A BLACK TEXTURE
      // create an array of "pixels" that will be used to create the underlying texture
     size_t imageSize = width * height;
@@ -42,7 +40,7 @@ namespace fc
      // create the default texture that will be used to fill the text box
     mTextureId = mTextImage.createTexture(width, height, pixels);
 
-     // create the actual billboard that text will get rendered to 
+     // create the actual billboard that text will get rendered to
      //mTextBoxMesh.createMesh(pGpu, vertices, indices, 0);
   }
 
@@ -63,18 +61,18 @@ namespace fc
      // createTextBox(xPos, yPos - boxOffset, penPos, boxHeight + boxOffset);
     createTextBox(xPos, yPos, boxDims.width, boxDims.height);
 
-  
+
     VkCommandBuffer blitCommandBuffer = FcLocator::Gpu().beginCommandBuffer();
-  
+
      // submit all the image blits at the same time
     vkCmdBlitImage(blitCommandBuffer, pFont->mRasterTexture.Image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
                    , mTextImage.Image(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
                    , blitsList.size(), blitsList.data(), VK_FILTER_LINEAR);
-  
+
     FcLocator::Gpu().submitCommandBuffer(blitCommandBuffer);
 
     mTextImage.transitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1);
-        
+
      // TODO - could later add mipmaps if being used a texture far away potentially (allow parameter option at least)
      // mOutputTexture.createImageView(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 
@@ -96,16 +94,16 @@ namespace fc
 
      // BUG may have to transition image initially to something else to erase/write to it
     mTextImage.transitionImageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1);
-    
+
      // first clear out the old texture
     VkClearColorValue clearColor{0, 0, 0, 0};
     mTextImage.clear(&clearColor);
-    
+
      // submit all the image blits at the same time
     vkCmdBlitImage(blitCommandBuffer, pFont->mRasterTexture.Image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
                    , mTextImage.Image(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
                    , blitsList.size(), blitsList.data(), VK_FILTER_LINEAR);
-  
+
     FcLocator::Gpu().submitCommandBuffer(blitCommandBuffer);
 
     mTextImage.transitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1);
@@ -122,7 +120,7 @@ namespace fc
     int32_t penPos =  0 - glyph.bearing.x + 2;
     uint32_t boxHeight = glyph.size.y + glyph.bearing.y + 2;
     uint32_t boxOffset = glyph.bearing.y - 2;
-  
+
     for (std::string::const_iterator ch = text.begin(); ch != text.end(); ch++)
     {
        // extract each glyph within the string
@@ -168,11 +166,11 @@ namespace fc
 
        //advace the position of where to draw the next glyph
       penPos += glyph.advance;
-    
+
     } // end for('each character')
     return VkExtent2D{static_cast<uint32_t>(penPos), boxHeight};
   }
-  
+
 
   void FcText::free()
   {
@@ -180,6 +178,6 @@ namespace fc
   }
 
 
-  
+
 
 } // _END_ namespace fc

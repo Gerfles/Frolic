@@ -1,14 +1,11 @@
-
 #include "fc_descriptors.hpp"
 
-
-// Frolic Engine
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_gpu.hpp"
 //#include "fc_mesh.hpp"
-// external libraries
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
-// std libraries
-#include <_types/_uint32_t.h>
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <array>
 #include <iostream>
 #include <stdexcept>
@@ -16,13 +13,13 @@
 
 
 namespace fc
-{  
+{
    // TODO change ubo_Buffer size to UboSize etc.
   void FcDescriptor::create(const FcGpu* gpu, int uniformBufferCount)
   {
     pGpu = gpu;
 
-    // left for reference to allocate dynamic uniformbuffer 
+    // left for reference to allocate dynamic uniformbuffer
      //allocateDynamicBufferTransferSpace(gpu);
     createUniformBuffers(uniformBufferCount);
     createDescriptorSetLayout();
@@ -57,13 +54,13 @@ namespace fc
      //   }
   }
 
-  
+
 
 
     void FcDescriptor::createDescriptorSetLayout()
   {
      // UNIFORM BUFFER OBJECT VALUES DESCRIPTOR SET LAYOUT
-    
+
      // view projection binding info
     VkDescriptorSetLayoutBinding globalUboLayoutBinding{};
     globalUboLayoutBinding.binding = 0;                                        // binding point in shader (designated by binding number specified in shader)
@@ -82,7 +79,7 @@ namespace fc
      //std::array<VkDescriptorSetLayoutBinding, 2> layoutBindings = {viewProjectionLayoutBinding, modelLayoutBinding};
 
     std::array<VkDescriptorSetLayoutBinding, 1> layoutBindings = {globalUboLayoutBinding}; // , modelLayoutBinding};
-    
+
      // create descriptor set layout with given bindings
     VkDescriptorSetLayoutCreateInfo layoutCreateInfo{};
     layoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -105,7 +102,7 @@ namespace fc
     samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
     samplerLayoutBinding.pImmutableSamplers = nullptr; //TRY above
 
-     // Create a descriptor set layout with given bindings for texture 
+     // Create a descriptor set layout with given bindings for texture
     VkDescriptorSetLayoutCreateInfo textureLayoutInfo{};
     textureLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     textureLayoutInfo.bindingCount = 1;
@@ -120,7 +117,7 @@ namespace fc
 
 
 
-  
+
   void FcDescriptor::createDescriptorPool(int uniformBufferCount)
   {
      // Type of decriptors + how many DESCRIPTORS, not descriptor Sets (combined makes the pool size)
@@ -135,16 +132,16 @@ namespace fc
      // modelPoolSize.descriptorCount = static_cast<uint32_t>(mModelDynUniformBuffers.size());
      // modelPoolSize.descriptorCount = static_cast<uint32_t>(uniformBufferCount);
      //std::array<VkDescriptorPoolSize, 2> descriptorPoolSizes = {viewProjPoolSize, modelPoolSize};
-    
+
     std::array<VkDescriptorPoolSize, 1> descriptorPoolSizes = {viewProjPoolSize}; //, modelPoolSize};
-        
+
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.maxSets = static_cast<uint32_t>(uniformBufferCount);
     poolInfo.poolSizeCount = static_cast<uint32_t>(descriptorPoolSizes.size());
     poolInfo.pPoolSizes = descriptorPoolSizes.data();
 
-     // 
+     //
     if (vkCreateDescriptorPool(pGpu->VkDevice(), &poolInfo, nullptr, &mDescriptorPool) != VK_SUCCESS)
     {
       throw std::runtime_error("Failed to create a Vulkan Descriptor Pool!");
@@ -164,23 +161,23 @@ namespace fc
     samplerPoolInfo.poolSizeCount = 1;
     samplerPoolInfo.pPoolSizes = &samplerPoolSize;
 
-    
+
     if (vkCreateDescriptorPool(pGpu->VkDevice(), &samplerPoolInfo, nullptr, &mSamplerDescriptorPool) != VK_SUCCESS)
     {
       throw std::runtime_error("Failed to create a Vulkan Descriptor Pool!");
     }
   }
-  
 
-  
+
+
 
   void FcDescriptor::createDescriptorSets(int uniformBufferCount)
   {
      // resize descriptor set list so we have one for every buffer
     mUboDescriptorSets.resize(uniformBufferCount);
-    
+
     std::vector<VkDescriptorSetLayout> setLayouts(uniformBufferCount, mUboDescriptorSetLayout);
-    
+
      // Descriptor set allocation info
     VkDescriptorSetAllocateInfo setAllocInfo{};
     setAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -203,7 +200,7 @@ namespace fc
       globalUniformBufferInfo.offset = 0; // position of start of data
       globalUniformBufferInfo.range = sizeof(GlobalUbo); // size of data
 
-       // data about connection between binding and buffer 
+       // data about connection between binding and buffer
       VkWriteDescriptorSet globalUboSetWrite{};
       globalUboSetWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
       globalUboSetWrite.dstSet = mUboDescriptorSets[i]; // descriptor set to update
@@ -229,13 +226,13 @@ namespace fc
        // modelSetWrite.descriptorCount = 1;
        // modelSetWrite.pBufferInfo = &modelBufferInfo;
 
-       // list of descriptor set writes  
+       // list of descriptor set writes
       std::array<VkWriteDescriptorSet, 1> setWrites = {globalUboSetWrite}; // , modelSetWrite};
        // update the descriptor sets with new buffer/binding infor
-       //TODO probably better to update all the descriptor sets at once 
+       //TODO probably better to update all the descriptor sets at once
       vkUpdateDescriptorSets(pGpu->VkDevice(), static_cast<uint32_t>(setWrites.size()), setWrites.data(), 0, nullptr);
     }
-    
+
   }
 
 
@@ -244,13 +241,13 @@ namespace fc
   // void FcDescriptor::setUpPipelineLayout(VkPipelineLayoutCreateInfo& pipelineLayoutInfo)
   // {
     // mPushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; // shader stage push constant will go to
-    // mPushConstantRange.offset = 0;                              // offset into given data to pass to push constant 
+    // mPushConstantRange.offset = 0;                              // offset into given data to pass to push constant
     // mPushConstantRange.size = sizeof(ModelMatrix);                    // size of data being passed
 
     //  //std::array<VkDescriptorSetLayout, 2> descriptorSetLayouts = {mDescriptorSetLayout, mSamplerSetLayout};
     // mDescriptorSetLayouts[0] = mDescriptorSetLayout;
     // mDescriptorSetLayouts[1] = mSamplerSetLayout;
-    
+
     // pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     // pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(mDescriptorSetLayouts.size());
     // pipelineLayoutInfo.pSetLayouts = mDescriptorSetLayouts.data();
@@ -261,14 +258,14 @@ namespace fc
 
 
 
-  
+
   void FcDescriptor::allocateDynamicBufferTransferSpace()
   {
      // collect specifications of our physical deviece to determine how to align(space out) our dynamic UBOs
     VkPhysicalDeviceProperties deviceProperties;
     vkGetPhysicalDeviceProperties(pGpu->physicalDevice(), &deviceProperties);
 
-     // return the memory allignment minimum for our UBOs 
+     // return the memory allignment minimum for our UBOs
     VkDeviceSize uniformBufferOffsetMinimum = deviceProperties.limits.minUniformBufferOffsetAlignment;
 
      // Calculate the proper alignment of model data
@@ -280,7 +277,7 @@ namespace fc
      //pModelTransferSpace = (Model *)aligned_alloc(mModelUniformAlignment, MAX_OBJECTS * mModelUniformAlignment);
   }
 
-  
+
 
 
 
@@ -328,18 +325,18 @@ namespace fc
     return mSamplerDescriptorSets.size() - 1;
   }
 
-  
-  
-  
 
-  
- 
+
+
+
+
+
 
 
   void FcDescriptor::update(uint32_t imgIndex, void* data)
   {
      // TODO notice that this function updates the static UBO AND dynamic UBO... this would be better done
-     // with separate update functions since we don't always need to update them at the same time 
+     // with separate update functions since we don't always need to update them at the same time
      // copy view projection data
      // TODO think about storing the sizeof results as a global number so the following is no longer a function call
     mGlobalUniformBuffers[imgIndex].storeData(data, sizeof(GlobalUbo));
@@ -359,7 +356,7 @@ namespace fc
   }
 
 
-  
+
   void FcDescriptor::destroy()
   {
     std::cout << "calling: FcDescriptor::destroy" << std::endl;
@@ -373,15 +370,15 @@ namespace fc
      // TODO  should also check all this stuff to see if it's VK_NULL_HANDLE
 
      //vkDestroySampler(pGpu->VkDevice(), mTextureSampler, nullptr);
-    
+
     vkDestroyDescriptorPool(pGpu->VkDevice(), mDescriptorPool, nullptr);
-    
+
      // delete all the buffers (1 per swap chain image)
 
     for (auto& buffer : mGlobalUniformBuffers)
     {
        buffer.destroy();
-    } 
+    }
 
      // for (auto& buffer : mModelDynUniformBuffers)
      // {
@@ -390,5 +387,5 @@ namespace fc
 
     vkDestroyDescriptorSetLayout(pGpu->VkDevice(), mUboDescriptorSetLayout, nullptr);
   }
-    
+
 }//namespace lve _END_

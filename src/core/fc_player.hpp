@@ -1,4 +1,3 @@
-
 #pragma once
 
 // core
@@ -28,10 +27,10 @@ namespace fc
         int lookDown = SDL_SCANCODE_DOWN;
      };
 
-      // TODO add buttons for game controller 
+      // TODO add buttons for game controller
      struct ButtonBindings
      {
-        int moveLeft = SDL_SCANCODE_LEFT; 
+        int moveLeft = SDL_SCANCODE_LEFT;
      };
 
      KeyBindings keys{};
@@ -42,12 +41,11 @@ namespace fc
 
 public:
      FcPlayer(FcInput& input) : mInput{input} {}
-      // 
+      //
      void move(float dt, FcCamera& camera);
      void setPosition(const glm::vec3& position);
-     
+
   };
 
 
 } /// NAMESPACE lve ///
-

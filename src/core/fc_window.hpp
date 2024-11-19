@@ -1,6 +1,5 @@
 #pragma once
 
-
 // - FROLIC ENGINE -
 //
 // - EXTERNAL LIBRARIES -
@@ -10,7 +9,6 @@
 #include <string>
 #include <vector>
 #include <algorithm>
-
 
 
 namespace fc {
@@ -33,7 +31,7 @@ namespace fc {
       // delete assignment operator and copy constructor
      FcWindow(const FcWindow&) = delete;
      FcWindow& operator=(const FcWindow) = delete;
-     
+
      const VkExtent2D ScreenSize();
      bool wasWindowResized() {return mFrameBufferResized;}
      void resetWindowResizedFlag() {mFrameBufferResized = false;}
@@ -42,6 +40,6 @@ namespace fc {
      SDL_Window* SDLwindow() const { return mWindow; }
      const VkSurfaceKHR& surface() const { return mSurface; }
      void close(VkInstance& instance);
-  };	
-  
+  };
+
 } // NAMESPACE fc

@@ -10,7 +10,6 @@
 // - EXTERNAL LIBRARIES -
 #include "vulkan/vulkan_core.h"
 // - STD LIBRARIES -
-// #include <_types/_uint32_t.h>
 #include <vector>
 
 

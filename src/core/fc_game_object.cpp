@@ -1,15 +1,12 @@
 #include "fc_game_object.hpp"
+
 #include "core/fc_locator.hpp"
 #include "core/utilities.hpp"
-#include <_types/_uint32_t.h>
 #include <memory>
-#include <sys/_types/_size_t.h>
 #include <vector>
-
 
 namespace fc
 {
-
   FcGameObject::FcGameObject(FcModel* model, int type) : pModel(model)
   {
      //pModel = nullptr;
@@ -21,7 +18,7 @@ namespace fc
      // the handle index is assigned by finding the first free slot in the handle table
     placeInHandleTable();
   }
-  
+
 
   // FcGameObject::FcGameObject()
   // {
@@ -36,7 +33,6 @@ namespace fc
   // }
 
 
-
   FcGameObject::FcGameObject(FcModel* model, uint32_t type) : pModel(model)
   {
   }
@@ -49,14 +45,14 @@ namespace fc
   {
     // if (type == TERRAIN)
     // {
-      
+
     // }
     // else if (type == UNKNOWN)
   }
 
 
 
-  
+
   void FcGameObject::placeInHandleTable()
   {
     std::vector<FcGameObject*>& gameObjectsList = FcLocator::GameObjects();
@@ -125,8 +121,8 @@ namespace fc
         {translation.x, translation.y, translation.z, 1.0f}};
   }
 
-  
-  
+
+
   glm::mat3 TransformComponent::normalMatrix()
   {
     const float c3 = glm::cos(rotation.z);
@@ -156,7 +152,7 @@ namespace fc
     };
   } /// ::normalMatrix()
 
-  
+
 
   // FcGameObject FcGameObject::createGameObject()
   // {
@@ -177,5 +173,5 @@ namespace fc
 
     return nullptr;
   }
-  
+
 } /// NAMESPACE lve ///

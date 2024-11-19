@@ -1,6 +1,5 @@
 #pragma once
 
-
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "core/fc_billboard_render_system.hpp"
 #include "core/fc_camera.hpp"
@@ -17,7 +16,6 @@
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-// #include <_types/_uint32_t.h>
 #include <stdexcept>
 #include <vector>
 

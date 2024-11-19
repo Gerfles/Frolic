@@ -8,7 +8,6 @@
 #include "vulkan/vulkan_core.h"
 // STD
 #include <memory>
-#include <sys/_types/_size_t.h>
 
 namespace fc
 {

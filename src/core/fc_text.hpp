@@ -8,7 +8,6 @@
 //#include "fc_pipeline.hpp"
 // - EXTERNAL LIBRARIES -
 #include "glm/glm.hpp"
-#include <_types/_uint32_t.h>
 #include <ft2build.h>
 #include <unordered_map>
 //?? what's up with the following includes
@@ -22,25 +21,25 @@
 namespace fc
 {
   class FcFont;
-  
+
   class FcText
   {
    private:
      FcFont* pFont;
      BillboardPushComponent mTextBoxSpecs;
 
-      // TODO delete one of 
+      // TODO delete one of
      uint32_t mTextureId;
      id_t mId;
      FcImage mTextImage;
-     
+
       // -
      VkExtent2D writeTextTexture(const std::string& text, float scale, std::vector<VkImageBlit>& blitsList);
    public:
      using id_t = uint32_t;
      using Map = std::unordered_map<id_t, FcText>;
       // - CTORS -
-     FcText(FcFont* font) : pFont{font} {}; 
+     FcText(FcFont* font) : pFont{font} {};
      FcText(const FcText&) = delete;
      FcText& operator=(const FcText&) = delete;
      FcText(FcText&&) = default;
@@ -49,7 +48,7 @@ namespace fc
      // - GETTERS -
      uint32_t TextureId() const { return mTextureId; }
 
-     // - 
+     // -
      BillboardPushComponent& Push() { return mTextBoxSpecs; }
      void createTextBox(int x, int y, int width, int height);
      void createText(const std::string& text, int xPos, int yPos, float scale);
@@ -58,4 +57,3 @@ namespace fc
   };
 
 } // namespace fc _END_
-

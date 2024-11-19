@@ -1,10 +1,8 @@
 #pragma once
 
-
 // libraries
 #include "SDL2/SDL_stdinc.h"
 #include "core/fc_model.hpp"
-#include <_types/_uint32_t.h>
 #include <cstddef>
 #include <glm/gtc/matrix_transform.hpp>
 // std
@@ -13,11 +11,11 @@
 
 namespace fc
 {
-  
+
   struct TransformComponent
   {
      glm::vec3 translation{}; // position offset
-     glm::vec3 scale{1.f, 1.f, 1.f};  
+     glm::vec3 scale{1.f, 1.f, 1.f};
      glm::vec3 rotation{};
 
      glm::mat4 mat4();
@@ -26,22 +24,22 @@ namespace fc
 
   // TODO determine if there's a better way to not pollute global (fc)
     using GameObjectId = uint32_t;
-  
-  
+
+
   class FcGameObject
   {
    private:
    // TODO format corectly
 
-     
+
      GameObjectId mUniqueId; // object's unique Id to prevent stale handle table lookups
      uint32_t mHandleIndex; // facilitates faster handle creation
 
      void assignUniqueObjectId();
      void placeInHandleTable();
-     
+
      friend class FcGameObjectHandle; // access to id and index
-     
+
    public:
      typedef enum
      {
@@ -60,7 +58,7 @@ namespace fc
      FcGameObject& operator=(const FcGameObject&) = delete;
      FcGameObject(FcGameObject&&) = default;
      FcGameObject &operator=(FcGameObject&&) = default;
-     
+
      uint32_t const Handle() { return mHandleIndex; }
      GameObjectId const Id() { return mUniqueId; }
      glm::vec3 color;
@@ -72,7 +70,7 @@ namespace fc
 
   }; // CLASS FcGameObject
 
-   // ?? not sure I need the handle object for anything TODO - delete maybe 
+   // ?? not sure I need the handle object for anything TODO - delete maybe
    // define the size of the handle table and hence the maximum number of game objects that can exist simultaneously
   static const Uint32 MAX_GAME_OBJECTS = 2048;
 
@@ -91,5 +89,5 @@ namespace fc
      FcGameObject* toObject() const;
   };
 
-  
+
 } // NAMESPACE lve

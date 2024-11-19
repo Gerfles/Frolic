@@ -5,17 +5,18 @@
 //#include<SDL2/SDL.h>
 #include <string>
 
+
 namespace fc
 {
   class FcInput
   {
    private:
-      // internal storage of all the keyboard key states 
+      // internal storage of all the keyboard key states
      bool keyStates1[SDL_NUM_SCANCODES];
      bool keyStates2[SDL_NUM_SCANCODES];
      bool* currKeyStates;
      bool* prevKeyStates;
-  
+
      bool mouseKeys[3];
      bool prevMouseKeys[3];
 

@@ -1,7 +1,6 @@
-
 #include "fc_timer.hpp"
+
 #include "SDL2/SDL_timer.h"
-#include <_types/_uint64_t.h>
 
 
 const float FcTimer::TICK_PERIOD = 1.0 / (double)SDL_GetPerformanceFrequency();
@@ -29,7 +28,7 @@ void FcTimer::start()
   // save the current clock time to startTicks
   mStartTicks = SDL_GetPerformanceCounter();
 
-  // reset paused time 
+  // reset paused time
   mPausedTicks = 0;
 }
 
@@ -90,9 +89,9 @@ float FcTimer::elapsedTime()
 
 uint64_t FcTimer::getTicks()
 {
-  // set the default return time 
+  // set the default return time
   Uint32 time = 0;
-  
+
   // if the timer has been started, return the internally stored time
   if (mHasStarted)
     {
@@ -106,7 +105,6 @@ uint64_t FcTimer::getTicks()
           time = (SDL_GetTicks() - mStartTicks);
         }
     }
-  
+
   return time;
 }
-

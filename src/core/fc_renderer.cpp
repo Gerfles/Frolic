@@ -1,6 +1,4 @@
-
 #include "fc_renderer.hpp"
-
 
 // - FROLIC ENGINE -
 #include "SDL2/SDL_stdinc.h"
@@ -20,7 +18,6 @@
 // - EXTERNAL LIBRARIES -
 // TODO #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <_types/_uint32_t.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include "vulkan/vulkan_core.h"
@@ -65,7 +62,7 @@ namespace fc
 
        // TODO get rid of this
       FcLocator::initialize();
-      
+
       mWindow.initWindow(screenSize.width, screenSize.height);
        // now we need a vulkan instance to do anything else
       createInstance(appInfo);
@@ -78,7 +75,7 @@ namespace fc
       }
 
       FcLocator::provide(&mGpu);
-      
+
        // create the swapchain & renderpass & frambuffers & depth buffer
       mBufferCount = mSwapchain.init(mGpu);
       createCommandBuffers();
@@ -90,7 +87,7 @@ namespace fc
       mDynamicViewport.maxDepth = 1.0f;
        //
       mDynamicScissors.offset = {0, 0};
-      
+
        // create the graphics pipeline && create/attach descriptors
        // create the uniform buffers & initialize the descriptor sets that tell the pipeline about our uniform buffers
        // here we want to create a descriptor set for each swapchain image we have
@@ -100,14 +97,14 @@ namespace fc
       descriptorClerk->create(&mGpu, mBufferCount);
        // register the descriptor with the locator
       FcLocator::provide(descriptorClerk);
-      
+
        // create all of the standard pipelines that the renderer relies on
        // TODO not sure if we actually need a member modedlRenderer or if we can delete after creation
-       // TODO standardize all pipelines and draw calls 
+       // TODO standardize all pipelines and draw calls
       mModelRenderer.createPipeline(mGpu, mModelPipeline, *descriptorClerk, mSwapchain.getRenderPass());
       mBillboardRenderer.createPipeline(mBillboardPipeline, mSwapchain.getRenderPass());
       mUiRenderer.createPipeline(mUiPipeline, mSwapchain.getRenderPass());
-      
+
        // create the command buffers& command Pool
        //mPipeline.createUniformBuffers(&mGpu, mSwapchain, sizeof(UboViewProjection));
        // setup draw
@@ -128,13 +125,13 @@ namespace fc
 
       // UIcamera.setOrthographicProjection(-1, 1, -1, 1, .1f, 100.f);
       // mBillboardUbo.view = UIcamera.Projection();       // TODO combine this into one function
-      
+
 
        // FcModel model;
        // model.createModel("models/smooth_vase.obj", mPipeline, mGpu);
        // mModelList.push_back(model);
 
-      
+
 
     }
     catch (const std::runtime_error& err) {
@@ -147,18 +144,18 @@ namespace fc
 
 
 
-  
+
   void FcRenderer::createInstance(VkApplicationInfo& appInfo)
   {
-     // First determine all the extensions needed for SDL to run Vulkan instance 
+     // First determine all the extensions needed for SDL to run Vulkan instance
     uint32_t sdlExtensionCount = 0;
     SDL_Vulkan_GetInstanceExtensions(mWindow.SDLwindow(), &sdlExtensionCount, nullptr);
     std::vector<const char*> extensions(sdlExtensionCount);
     SDL_Vulkan_GetInstanceExtensions(mWindow.SDLwindow(), &sdlExtensionCount, extensions.data());
-    
+
      // finally, define a Create struct to initialize the vulkan instance
     VkInstanceCreateInfo instanceInfo{};
-    
+
      //TODO change to platform dependent evaluation
      // Only seems to be required for macOS implementation and only when validation layers added
     extensions.push_back("VK_KHR_get_physical_device_properties2");
@@ -172,7 +169,7 @@ namespace fc
 
      // Next, determine the what validation layers we need
     std::vector<const char *> validationLayers;
-    
+
     if (enableValidationLayers)
     {
       validationLayers.push_back("VK_LAYER_KHRONOS_validation");
@@ -190,15 +187,15 @@ namespace fc
       features.pEnabledValidationFeatures = featureEnables.data();
       instanceInfo.pNext = &features;
     }
-    
+
     instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    instanceInfo.pApplicationInfo = &appInfo;    
+    instanceInfo.pApplicationInfo = &appInfo;
     instanceInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
     instanceInfo.ppEnabledExtensionNames = extensions.data();
     instanceInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
      // ?? Make sure this still works when validationlayers is empty!
     instanceInfo.ppEnabledLayerNames = validationLayers.data();
-    
+
      // now just call the vulkan function to create an instance
     VkResult result = vkCreateInstance(&instanceInfo, nullptr, &mInstance);
 
@@ -213,7 +210,7 @@ namespace fc
 
   bool FcRenderer::areInstanceExtensionsSupported(const std::vector<const char*>& instanceExtensions)
   {
-     // populate list of all available vulkan instance extensions 
+     // populate list of all available vulkan instance extensions
     uint32_t extensionCount = 0;
     vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
     std::vector<VkExtensionProperties> availableExtensions(extensionCount);
@@ -221,7 +218,7 @@ namespace fc
 
      // add all the required extentions to an unordered set for easy search
     std::unordered_set<std::string> requiredExtensions(instanceExtensions.begin(), instanceExtensions.end());
-    
+
      // now go through and delete all the extensions that we know are available from the required list
     for (const auto& extension : availableExtensions)
     {
@@ -237,7 +234,7 @@ namespace fc
 
   void FcRenderer::createCommandBuffers()
   {
-     // resize commmand buffer count to have one for each framebuffer 
+     // resize commmand buffer count to have one for each framebuffer
     mCommandBuffers.resize(mSwapchain.imageCount());
 
     VkCommandBufferAllocateInfo commandBufferAllocInfo{};
@@ -251,12 +248,12 @@ namespace fc
       throw std::runtime_error("Failed to allocate Vulkan Command Buffers!");
     }
   }
-  
-    
+
+
    //TODO change current frame to currentFrameBuffer
   void FcRenderer::drawModels(uint32_t swapchainImageIndex, GlobalUbo& ubo)
   {
-     // 
+     //
     auto gameObjects = FcLocator::GameObjects();
 
      // bind pipeline to be used in render pass
@@ -282,7 +279,7 @@ namespace fc
         for (size_t j = 0; j < currModel->MeshCount(); ++j)
         {
           FcMesh& currMesh = currModel->Mesh(j);
-        
+
            //VkBuffer vertexBuffers[] = { currMesh.VertexBuffer() };// buffers to bind
           VkDeviceSize offsets[] = { 0 }; // offsets into buffers being bound
 
@@ -290,8 +287,8 @@ namespace fc
            //SDL_Log("%d times ", currMesh.VertexCount());
           vkCmdBindVertexBuffers(mCommandBuffers[swapchainImageIndex], 0, 1, &currModel->Mesh(j).VertexBuffer(), offsets); // command to bind vertex buffer before drawing
           vkCmdBindIndexBuffer(mCommandBuffers[swapchainImageIndex], currMesh.IndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
-      
-           // dynamic offset ammount (SAVED FOR REFERENCE) 
+
+           // dynamic offset ammount (SAVED FOR REFERENCE)
            // uint32_t dynamicOffset = static_cast<uint32_t>(mPipeline.ModelUniformAlignment()) * j;
            // vkCmdBindDescriptorSets(mCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS
            //                         , mPipeline.Layout(), 0, 1, mPipeline.DescriptorSet(currentFrame), 1, &dynamicOffset);
@@ -305,16 +302,16 @@ namespace fc
           std::array<VkDescriptorSet, 2> descriptorSets = {
             descriptorClerk.UboDescriptorSet(swapchainImageIndex)
           , descriptorClerk.SamplerDescriptorSet(currMesh.DescriptorId()) };
-      
+
           vkCmdBindDescriptorSets(mCommandBuffers[swapchainImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS
                                   , mModelPipeline.Layout(), 0, static_cast<uint32_t>(descriptorSets.size())
                                   , descriptorSets.data() , 0, nullptr);
 
            // execute pipeline
           vkCmdDrawIndexed(mCommandBuffers[swapchainImageIndex], currMesh.IndexCount(), 1, 0, 0, 0);
-        }        
+        }
       }
-      
+
     } // _END_ FOR draw models in model list
   }
 
@@ -335,24 +332,24 @@ namespace fc
       auto distance = glm::vec4(cameraPosition, 1.f) - billboards[i]->PushComponent().position;
       float distanceSquared = glm::dot(distance, distance);
       sorted.insert(std::pair(distanceSquared, i));
-       //billboards[i]->Push().color = 
+       //billboards[i]->Push().color =
     }
 
     VkCommandBuffer currCommandBuffer = mCommandBuffers[swapchainImageIndex];
-    
+
      // bind pipeline to be used in render pass
     mBillboardPipeline.bind(currCommandBuffer);
      // DRAW ALL UI COMPONENTS (LAST)
      // draw text box
-    
+
      // iterate through billboards in reverse order (to draw them back to front)
-//    std::cout << "sorted size : " << sorted.size() << std::endl;    
+//    std::cout << "sorted size : " << sorted.size() << std::endl;
     for (auto it = sorted.rbegin(); it != sorted.rend(); ++it )
     {
       // glm::vec4 col = billboards[it->second]->Push().color;
       // printVec(col, "color");
 
-      
+
       vkCmdPushConstants(currCommandBuffer, mBillboardPipeline.Layout()
                          , VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(BillboardPushComponent)
                          , &billboards[it->second]->PushComponent());
@@ -367,7 +364,7 @@ namespace fc
 
        // TODO  update the global Ubo only once per frame, not each draw call
       descriptors.update(swapchainImageIndex, &ubo);
-      
+
       std::array<VkDescriptorSet, 2> descriptorSets = { descriptors.UboDescriptorSet(swapchainImageIndex)
                                                       , descriptors.SamplerDescriptorSet(billboards[it->second]->TextureId()) };
        //, descriptors.SamplerDescriptorSet(loopCount) };
@@ -375,7 +372,7 @@ namespace fc
       vkCmdBindDescriptorSets(currCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS
                               , mBillboardPipeline.Layout(), 0, static_cast<uint32_t>(descriptorSets.size())
                               , descriptorSets.data() , 0, nullptr);
-    
+
        //vkCmdDrawIndexed(mCommandBuffers[swapChainImageIndex], font.IndexCount(), 1, 0, 0, 0);
        //TODO find out if there's a better way to dispatch all draws simultaneously
       vkCmdDraw(currCommandBuffer, 6, 1, 0, 0);
@@ -397,19 +394,19 @@ namespace fc
 
      //      // TODO don't update UBO unless changed
      // mDescriptorManager.update(swapchainImageIndex, &mBillboardUbo);
-    
+
      // std::array<VkDescriptorSet, 2> descriptorSets = { mDescriptorManager.UboDescriptorSet(swapchainImageIndex)
      //                                                 , mDescriptorManager.SamplerDescriptorSet(font.TextureId()) };
-          
+
      // vkCmdBindDescriptorSets(mCommandBuffers[swapchainImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS
      //                         , mBillboardPipeline.Layout(), 0, static_cast<uint32_t>(descriptorSets.size())
      //                         , descriptorSets.data() , 0, nullptr);
-    
+
      //  //vkCmdDrawIndexed(mCommandBuffers[swapChainImageIndex], font.IndexCount(), 1, 0, 0, 0);
      // vkCmdDraw(mCommandBuffers[swapchainImageIndex], 6, 1, 0, 0);
 
-    
-    
+
+
 //    mBillboardRenderer.draw(cameraPosition, mCommandBuffers[swapchainImageIndex], swapchainImageIndex);
   }
 
@@ -417,7 +414,7 @@ namespace fc
   void FcRenderer::drawUI(std::vector<FcText>& UIelements, uint32_t swapchainImageIndex)
   {
      // mUIrenderer.draw(UIelements, mCommandBuffers[swapchainImageIndex], swapchainImageIndex);
-    
+
     VkCommandBuffer currCommandBuffer = mCommandBuffers[swapchainImageIndex];
      // bind pipeline to be used in render pass
     mUiPipeline.bind(currCommandBuffer);
@@ -434,16 +431,16 @@ namespace fc
 
        // TODO don't update UBO unless changed
       FcDescriptor& descriptors = FcLocator::DescriptorClerk();
-    
+
        //descriptors.update(swapchainImageIndex, &mBillboardUbo);
-    
+
       std::array<VkDescriptorSet, 2> descriptorSets = { descriptors.UboDescriptorSet(swapchainImageIndex)
                                                       , descriptors.SamplerDescriptorSet(UIelements[i].TextureId()) };
-          
+
       vkCmdBindDescriptorSets(currCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS
                               , mUiPipeline.Layout(), 0, static_cast<uint32_t>(descriptorSets.size())
                               , descriptorSets.data() , 0, nullptr);
-    
+
        //vkCmdDrawIndexed(mCommandBuffers[swapChainImageIndex], font.IndexCount(), 1, 0, 0, 0);
       vkCmdDraw(currCommandBuffer, 6, 1, 0, 0);
     }
@@ -454,16 +451,16 @@ namespace fc
 
 
 
-    
+
   }
-  
+
 
   void FcRenderer::createSynchronization()
   {
     mImageReadySemaphores.resize(MAX_FRAME_DRAWS);
     mRenderFinishedSemaphores.resize(MAX_FRAME_DRAWS);
     mDrawFences.resize(MAX_FRAME_DRAWS);
-    
+
      // semaphore creation information
     VkSemaphoreCreateInfo semaphoreInfo{};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -471,7 +468,7 @@ namespace fc
      // fence creation information
     VkFenceCreateInfo fenceInfo{};
     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;  // we want this fence to start off signaled (open) so that it can go through the first draw function. 
+    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;  // we want this fence to start off signaled (open) so that it can go through the first draw function.
 
     for (size_t i = 0; i < MAX_FRAME_DRAWS; ++i)
     {
@@ -486,15 +483,15 @@ namespace fc
   }
 
 
-  
+
   uint32_t FcRenderer::beginFrame()
   {
-     // 
+     //
     uint64_t maxWaitTime = std::numeric_limits<uint64_t>::max();
 
      // don't keep adding images to the queue or submitting commands to the buffer until this frame has signalled that it's ready (last draw has finished)
     vkWaitForFences(mGpu.VkDevice(), 1, &mDrawFences[mCurrentFrame], VK_TRUE, maxWaitTime);
- 
+
      // 1. get the next available image to draw to and set to signal when we're finished with the image (a semaphore)
     uint32_t nextSwapchainImage;
     VkResult result = vkAcquireNextImageKHR(mGpu.VkDevice(), mSwapchain.vkSwapchain(), maxWaitTime
@@ -512,10 +509,10 @@ namespace fc
 
      // manully un-signal (close) the fence ONLY when we are sure we're submitting work (result == VK_SUCESS)
     vkResetFences(mGpu.VkDevice(), 1, &mDrawFences[mCurrentFrame]);
-    
+
      // ?? don't think we need this assert since we use semaphores and fences
      // assert(!mIsFrameStarted && "Can't call recordCommands() while frame is already in progress!");
-    
+
      // information about how to begin each command
     VkCommandBufferBeginInfo bufferBeginInfo{};
     bufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -528,7 +525,7 @@ namespace fc
     renderPassBeginInfo.renderArea.extent = mSwapchain.getSurfaceExtent();
 
     std::array<VkClearValue, 3> clearValues{};
-    clearValues[0].color = {0.6f, 0.65f, 0.4f, 1.0f}; 
+    clearValues[0].color = {0.6f, 0.65f, 0.4f, 1.0f};
     clearValues[1].color = {0.0f, 0.0f, 0.0f}; // ?? why are there 2 color attachmentes and not 1?
     clearValues[2].depthStencil.depth = 1.0f;
 
@@ -538,7 +535,7 @@ namespace fc
 
      // assign the framebuffer of the corresponding command buffer to assign to the render pass
     renderPassBeginInfo.framebuffer = mSwapchain.getFrameBuffer(nextSwapchainImage);
-      
+
      // start recording commands to command buffer
     if (vkBeginCommandBuffer(mCommandBuffers[nextSwapchainImage], &bufferBeginInfo) != VK_SUCCESS)
     {
@@ -557,7 +554,7 @@ namespace fc
      //
     vkCmdSetViewport(mCommandBuffers[nextSwapchainImage], 0, 1, &mDynamicViewport);
     vkCmdSetScissor(mCommandBuffers[nextSwapchainImage], 0, 1, &mDynamicScissors);
-    
+
 
 
     return nextSwapchainImage;
@@ -570,7 +567,7 @@ namespace fc
   {
      // end render pass
     vkCmdEndRenderPass(mCommandBuffers[swapChainImageIndex]);
-      
+
      // stop recording to command buffer
     if (vkEndCommandBuffer(mCommandBuffers[swapChainImageIndex]) != VK_SUCCESS)
     {
@@ -579,16 +576,16 @@ namespace fc
 
 
 
-    
+
      // 2. submit command buffer to queue for rendering, making sure it waits for the image to be signalled as
      // available before drawing and signals when it has finished rendering
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.waitSemaphoreCount = 1;                         // number of semaphores to wait on 
+    submitInfo.waitSemaphoreCount = 1;                         // number of semaphores to wait on
     submitInfo.pWaitSemaphores = &mImageReadySemaphores[mCurrentFrame];             // list of semaphores to wait on
-    VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT }; 
+    VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
     submitInfo.pWaitDstStageMask = waitStages;                 // stages to check semaphores at
-    submitInfo.commandBufferCount = 1;                         // number of command buffers to submit 
+    submitInfo.commandBufferCount = 1;                         // number of command buffers to submit
     submitInfo.pCommandBuffers = &mCommandBuffers[swapChainImageIndex]; // command buffer to submit
     submitInfo.signalSemaphoreCount = 1;                       // number of semaphores to signal
     submitInfo.pSignalSemaphores = &mRenderFinishedSemaphores[mCurrentFrame];           // semaphores to signal when command buffer finishes
@@ -602,7 +599,7 @@ namespace fc
      // 3. present image to screen when it has signalled finished rendering
     VkPresentInfoKHR presentInfo{};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    presentInfo.waitSemaphoreCount = 1;                  // Number of semaphores to wait on 
+    presentInfo.waitSemaphoreCount = 1;                  // Number of semaphores to wait on
     presentInfo.pWaitSemaphores = &mRenderFinishedSemaphores[mCurrentFrame];      // semaphore to wait on
     presentInfo.swapchainCount = 1;                      // number of swapchains to present to
     presentInfo.pSwapchains = &mSwapchain.vkSwapchain(); // swapchain to present images to
@@ -619,11 +616,11 @@ namespace fc
     {
       throw std::runtime_error("Faled to submit image to Vulkan Present Queue!");
     }
- 
+
      // get next frame (use % MAX_FRAME_DRAWS to keep value below the number of frames we have in flight
     mCurrentFrame = (mCurrentFrame + 1) % MAX_FRAME_DRAWS;
   }
-  
+
 
   void FcRenderer::handleWindowResize()
   {
@@ -643,22 +640,22 @@ namespace fc
     vkDeviceWaitIdle(mGpu.VkDevice());
     VkExtent2D winExtent{static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
 
-     // 
+     //
     mSwapchain.reCreateSwapChain();
   }
 
 
-  
+
   void FcRenderer::shutDown()
   {
     std::cout << "calling: FcRenderer::shutDown" << std::endl;
-     // wait until no actions being run on device before destroying 
+     // wait until no actions being run on device before destroying
     vkDeviceWaitIdle(mGpu.VkDevice());
 
      //mUiRenderer.destroy();
-    
+
     FcLocator::DescriptorClerk().destroy();
-    
+
     for (size_t i = 0; i < MAX_FRAME_DRAWS; ++i)
     {
       vkDestroySemaphore(mGpu.VkDevice(), mRenderFinishedSemaphores[i], nullptr);
@@ -671,7 +668,7 @@ namespace fc
     mModelPipeline.destroy();
     mBillboardPipeline.destroy();
     mUiPipeline.destroy();
-    
+
     mSwapchain.destroy();
 
     mGpu.release(mInstance);
@@ -688,5 +685,5 @@ namespace fc
     }
   }
 
-  
+
 } // END namespace fc

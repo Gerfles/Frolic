@@ -1,6 +1,5 @@
 #include "fc_pipeline.hpp"
 
-
 // - FROLIC ENGINE -
 #include "core/fc_descriptors.hpp"
 #include "core/fc_locator.hpp"
@@ -8,8 +7,7 @@
 #include "utilities.hpp"
 // - EXTERNAL LIBRARIES -
 #include "vulkan/vulkan_core.h"
-// - STD LIBRARIES - 
-#include <_types/_uint32_t.h>
+// - STD LIBRARIES -
 #include <stdexcept>
 #include <vector>
 // #include <cstddef>
@@ -25,7 +23,7 @@ namespace fc
     inputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     inputAssemblyInfo.primitiveRestartEnable = VK_FALSE; // really only useful when using "strip" topology
 
-     // VIEWPORT 
+     // VIEWPORT
     viewportInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
     viewportInfo.viewportCount = 1;
     viewportInfo.pViewports = nullptr;//&viewport;
@@ -38,7 +36,7 @@ namespace fc
     rasterizationInfo.rasterizerDiscardEnable = VK_FALSE; // whether to discard data and skip rasterizer. never creates fragments--only suitable for pipeline without framebuffer output
     rasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL; // how to handle filling the points between vertices
     rasterizationInfo.lineWidth = 1.0f; // how thick lines should be when drawn
-    rasterizationInfo.cullMode = VK_CULL_MODE_BACK_BIT; 
+    rasterizationInfo.cullMode = VK_CULL_MODE_BACK_BIT;
     rasterizationInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     rasterizationInfo.depthBiasEnable = VK_FALSE; // whether to add depth bias to fragments (to reduce shadow acne)
     rasterizationInfo.depthBiasConstantFactor = 0.0f;
@@ -46,10 +44,10 @@ namespace fc
     rasterizationInfo.depthBiasSlopeFactor = 0.0f;
 
      // -- MULTISAMPLING --
-    
-     // multisampling is not for textures - it really only works on the edges of shapes 
+
+     // multisampling is not for textures - it really only works on the edges of shapes
     multiSamplingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    multiSamplingInfo.sampleShadingEnable = VK_FALSE; 
+    multiSamplingInfo.sampleShadingEnable = VK_FALSE;
     multiSamplingInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT; // number of samples to use per fragment
     multiSamplingInfo.minSampleShading = 1.0f;
     multiSamplingInfo.pSampleMask = nullptr;
@@ -69,7 +67,7 @@ namespace fc
     colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
     colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
     colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
-    
+
      // blending decides how to blend a new color being written to a fragment, with the old value
     colorBlendInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
      //configInfo.colorBlendInfo.logicOp = VK_LOGIC_OP_NAND; // not used since we will be using math instead of logic
@@ -88,7 +86,7 @@ namespace fc
     depthStencilInfo.depthTestEnable = VK_TRUE; // enable checking depth to determine fragment write
     depthStencilInfo.depthWriteEnable = VK_TRUE; // enable writing to depth buffer to replace old values
     depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS; // comparison operation that allows an overwrite (is in front)
-    depthStencilInfo.depthBoundsTestEnable = VK_FALSE; // Depth Bounds Test: Does the depth value exist between the two user definable bounds 
+    depthStencilInfo.depthBoundsTestEnable = VK_FALSE; // Depth Bounds Test: Does the depth value exist between the two user definable bounds
     depthStencilInfo.minDepthBounds = 0.0f;
     depthStencilInfo.maxDepthBounds = 1.0f;
     depthStencilInfo.stencilTestEnable = VK_FALSE;
@@ -122,10 +120,10 @@ namespace fc
      //  // create a scissor info struct
      // VkRect2D scissor{};
      // scissor.offset = {0,0};           // offset to use region from
-     // scissor.extent = surfaceExtent; // extent to describe region to use, starting at offset 
+     // scissor.extent = surfaceExtent; // extent to describe region to use, starting at offset
 
      //-- VERTEX INPUT --
-    
+
      // how the data for a single vertex (including info such as position, color, texture coords, normals, etc) is as a whole
     bindingDescriptions.resize(1);
     bindingDescriptions[0].binding = 0;                             // can bind multiple streams of data, this defines which one
@@ -142,7 +140,7 @@ namespace fc
     attributeDescriptions[0].location = 0;                        // location in shader where data will be read from
     attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT; // format the data will take (also helps define the size of the data)
     attributeDescriptions[0].offset = offsetof(Vertex, position);      // where this attribute is defined in the data for a single vertex
-    
+
      // color attribute
     attributeDescriptions[1].binding = 0;
     attributeDescriptions[1].location = 1;
@@ -154,7 +152,7 @@ namespace fc
     attributeDescriptions[2].location = 2;
     attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
     attributeDescriptions[2].offset = offsetof(Vertex, normal);
-    
+
      // texture attribute
     attributeDescriptions[3].binding = 0;
     attributeDescriptions[3].location = 3;
@@ -169,34 +167,34 @@ namespace fc
   }
 
 
-  
+
   void FcPipeline::create(const std::string& vertShaderFilename, const std::string& fragShaderFilename
                           , const PipelineConfigInfo& pipelineInfo)//, const FcSwapChain& swapchain)
   {
-    
+
     assert(pipelineInfo.pipelineLayout != VK_NULL_HANDLE &&
            "Cannot create graphics pipeline:: no pipiplineLayout provided in configInfo");
     assert(pipelineInfo.renderPass != VK_NULL_HANDLE &&
            "Cannot create graphics pipeline:: no renderPass provided in configInfo");
 
      //-- CREATE SHADERS -- //
-        
+
      // read in SPIR-V code of shaders
      //TODO add ability to specify filename as relative path and load the absolute path
     auto vertexShaderCode = readFile("shaders/" + vertShaderFilename);
     auto fragmentShaderCode = readFile("shaders/" + fragShaderFilename);
 
-     // create the shader modules from our SPIR-V code 
+     // create the shader modules from our SPIR-V code
     VkShaderModule vertexShaderModule = createShaderModule(vertexShaderCode);
     VkShaderModule fragmentShaderModule = createShaderModule(fragmentShaderCode);
 
-     // vertex stage create info 
+     // vertex stage create info
     VkPipelineShaderStageCreateInfo vertexShaderInfo{};
     vertexShaderInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     vertexShaderInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
     vertexShaderInfo.module = vertexShaderModule;
     vertexShaderInfo.pName = "main";
-    
+
     VkPipelineShaderStageCreateInfo fragmentShaderInfo{};
     fragmentShaderInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     fragmentShaderInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -209,7 +207,7 @@ namespace fc
     // TODO check to see if this is necessary to accomplish that an empty binding/attribute vector uses null for vertexInputInfo
     auto& bindingDescriptions = pipelineInfo.bindingDescriptions;
     auto& attributeDescriptions = pipelineInfo.attributeDescriptions;
-    
+
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescriptions.size());
@@ -218,12 +216,12 @@ namespace fc
     vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
      // -- GRAPHICS PIPELINE CREATION --
-    
+
     VkGraphicsPipelineCreateInfo graphicsPipelineInfo{};
     graphicsPipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     graphicsPipelineInfo.stageCount = 2;                         // number of shader stages
     graphicsPipelineInfo.pStages = shaderStages;                 // list of shader stages
-    graphicsPipelineInfo.pVertexInputState = &vertexInputInfo; 
+    graphicsPipelineInfo.pVertexInputState = &vertexInputInfo;
     graphicsPipelineInfo.pInputAssemblyState = &pipelineInfo.inputAssemblyInfo;
     graphicsPipelineInfo.pViewportState = &pipelineInfo.viewportInfo;
     graphicsPipelineInfo.pDynamicState = &pipelineInfo.dynamicStateInfo;
@@ -232,7 +230,7 @@ namespace fc
     graphicsPipelineInfo.pColorBlendState = &pipelineInfo.colorBlendInfo;
     graphicsPipelineInfo.pDepthStencilState = &pipelineInfo.depthStencilInfo;
     graphicsPipelineInfo.layout = pipelineInfo.pipelineLayout;   // pipeline layout pipeline will use
-    graphicsPipelineInfo.renderPass = pipelineInfo.renderPass; // render pass description the pipeline is compatible with 
+    graphicsPipelineInfo.renderPass = pipelineInfo.renderPass; // render pass description the pipeline is compatible with
     graphicsPipelineInfo.subpass = pipelineInfo.subpass;                            // subpass of render pass to use with pipeline
     graphicsPipelineInfo.basePipelineHandle = VK_NULL_HANDLE;    // Can create multiple pipelines that derive from one another for optimisation
      // index of pipeline being created to derive from (for optimisation of creating multiple pipelines)
@@ -240,12 +238,12 @@ namespace fc
 
     // save a pointer to the device instance
     VkDevice pDevice = FcLocator::Device();
-    
+
     if (vkCreateGraphicsPipelines(pDevice, VK_NULL_HANDLE, 1, &graphicsPipelineInfo, nullptr, &mPipeline) != VK_SUCCESS)
     {
       throw std::runtime_error("Failed to create Vulkan Graphics Pipeline!");
     }
-    
+
      // Destroy shader modules, no longer needed after pipeline created
     vkDestroyShaderModule(pDevice, vertexShaderModule, nullptr);
     vkDestroyShaderModule(pDevice, fragmentShaderModule, nullptr);
@@ -256,19 +254,19 @@ namespace fc
   void FcPipeline::destroy()
   {
     std::cout << "calling: FcPipeline::destroy" << std::endl;
-    
+
     if (mPipelineLayout != nullptr)
     {
       vkDestroyPipelineLayout(FcLocator::Device(), mPipelineLayout, nullptr);
     }
-    
+
     if (mPipeline != nullptr)
     {
       vkDestroyPipeline(FcLocator::Device(), mPipeline, nullptr);
     }
-  }  
+  }
 
-  
+
 
   VkShaderModule FcPipeline::createShaderModule(const std::vector<char>& code)
   {
@@ -277,7 +275,7 @@ namespace fc
     shaderInfo.codeSize = code.size();
     shaderInfo.pCode = reinterpret_cast<const uint32_t* >(code.data());
 
-    
+
     VkShaderModule shaderModule;
     if (vkCreateShaderModule(FcLocator::Device(), &shaderInfo, nullptr, &shaderModule) != VK_SUCCESS)
     {
@@ -286,7 +284,7 @@ namespace fc
 
     return shaderModule;
   }// END  createShaderModule(...)
-  
 
-  
+
+
 } //  namespace fc -END-

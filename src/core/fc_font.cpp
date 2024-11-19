@@ -1,7 +1,6 @@
 #include "fc_font.hpp"
 
-
-// CORE
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "SDL2/SDL_log.h"
 #include "core/fc_descriptors.hpp"
 #include "core/fc_locator.hpp"
@@ -10,11 +9,9 @@
 #include "vulkan/vulkan_core.h"
 #include "stb_image.h"
 #include "core/fc_gpu.hpp"
-// STD
-#include <_types/_uint32_t.h>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <cstdint>
 #include <cstring>
-#include <sys/_types/_size_t.h>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -37,16 +34,16 @@ namespace fc
      // load the font and get metrics
     result = FT_Init_FreeType(&fontLibrary);
     DBG_ASSERT_FT(result, "Could not init FreeType Library");
-  
+
     FT_Face face;
     result = FT_New_Face(fontLibrary, fontName.c_str(), 0, &face);
     DBG_ASSERT_FT(result, "Failed to load font");
 
-     // set up the boundaries of the glyphs to render to an image 
+     // set up the boundaries of the glyphs to render to an image
     mFirstGlyph = firstGlyph;
     mLastGlyph = lastGlyph;
 
-     // 
+     //
     if (lastGlyph <= firstGlyph || lastGlyph > face->num_glyphs)
     {
       mLastGlyph = face->num_glyphs;
@@ -63,7 +60,7 @@ namespace fc
      // hold onto all the glyphs for now until we can figure out the total pixel width for rasterImg
     std::vector<FT_Glyph> glyphs;
     FT_GlyphSlot curGlyph = face->glyph; // shorthand
-  
+
     for (unsigned char ch = mFirstGlyph; ch < mLastGlyph; ch++)
     {
        // load each glyph and save it to the glyph vector
@@ -77,19 +74,19 @@ namespace fc
        // {
        //   continue;
        // }
-    
+
        // if the glyph has an image add it to our vector
       FT_Glyph loadedGlyph;
       result = FT_Get_Glyph(curGlyph, &loadedGlyph);
       DBG_ASSERT_FT(result, "Failed to retrieve currently loaded glyph");
 
       glyphs.push_back(loadedGlyph);
-    
+
        // extract the pertinent glyph metrics
       uint32_t charHeight = curGlyph->bitmap.rows;
       uint32_t charWidth = curGlyph->bitmap.width;
       uint32_t charLowering = charHeight - (curGlyph->metrics.horiBearingY >> 6);
-    
+
       Character character;
       character.size = glm::ivec2(charWidth, charHeight);
       character.bearing = glm::ivec2(curGlyph->bitmap_left, charLowering);
@@ -101,15 +98,15 @@ namespace fc
 
        // tabulate the image size needed to store all characters
       imageWidth += charWidth;
-   
+
        // since final raster image should just be one long row of letters, find max image height
       if (charHeight > tallestChar)
       {
-        tallestChar = charHeight; 
+        tallestChar = charHeight;
       }
-    
+
     } // END for(...)
-  
+
      // TODO check speed difference when using array instead, also might be faster to just go through
      // glyphs twice
 
@@ -126,7 +123,7 @@ namespace fc
        // adjust the y-axis offset (bearing) of the characters based on difference to tallestchar
       unsigned char ch = glyphIndex + firstGlyph;
       mCharacters.at(ch).bearing.y += tallestChar - mCharacters.at(ch).size.y;
-    
+
       result = FT_Glyph_To_Bitmap(&glyphs[glyphIndex], FT_RENDER_MODE_NORMAL, nullptr, true);
       DBG_ASSERT_FT(result, "failed to render glyph to bitmap");
 

@@ -1,6 +1,5 @@
 #include "fc_image.hpp"
 
-
 // Frolic Engine
 #include "core/fc_buffer.hpp"
 #include "core/fc_descriptors.hpp"
@@ -8,11 +7,9 @@
 #include "core/fc_renderer.hpp"
 #include "fc_gpu.hpp"
 #include "fc_pipeline.hpp"
-#include <_types/_uint32_t.h>
 #include <cmath>
 #include <cstddef>
 #include <ratio>
-#include <sys/_types/_int32_t.h>
 // external libraries
 // TODO place all implementation header defines into one header file??
 #define STB_IMAGE_IMPLEMENTATION
@@ -38,7 +35,7 @@ namespace fc
                        , uint32_t mipLevels, VkMemoryPropertyFlags properties, VkImageAspectFlags aspectFlags)
   {
     VkDevice device = FcLocator::Device();
-    
+
     mWidth = width;
     mHeight = height;
 
@@ -75,7 +72,7 @@ namespace fc
      // TODO since this section of code is duplicated in FcBuffer, should create a higher level
      // function and extract it out or even consider having a heirarchy for buffer->image such
      // that buffer and image both derive from the same base class.
-    
+
      // cycle through all the memory types available and choose the one that has our required properties
     uint32_t memoryTypeIndex = -1;
     for (uint32_t i = 0; i < memProperties.memoryTypeCount; ++i)
@@ -83,7 +80,7 @@ namespace fc
       if ((memRequirments.memoryTypeBits & (1 << i)) // first, only pick each allowed type of memory passed in (skip evaluation when that type is not bit-enabled by our allowedType parameter)
           && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) // then make sure that the allowed types also contains the property flags that we request by passing the vkmemorypropertyflags
       {
-         // this memory type is an allowed type and it has the properties we want (flags) return 
+         // this memory type is an allowed type and it has the properties we want (flags) return
         memoryTypeIndex = i;
         break;
       }
@@ -93,7 +90,7 @@ namespace fc
      // ?? Tutorial doesn't contain this check so maybe Vulkan is required to return something...
     if (memoryTypeIndex == -1)
     {
-       //throw std::runtime_error("Failed to find a suitable memory type!");      
+       //throw std::runtime_error("Failed to find a suitable memory type!");
     }
 
      // create memory for image
@@ -101,7 +98,7 @@ namespace fc
     memAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     memAllocInfo.allocationSize = memRequirments.size;
     memAllocInfo.memoryTypeIndex = memoryTypeIndex;
-    
+
      // allocate memory to VkDeviceMemory
     if (vkAllocateMemory(device, &memAllocInfo, nullptr, &mImageMemory) != VK_SUCCESS)
     {
@@ -148,14 +145,14 @@ namespace fc
   {
     FcGpu& gpu = FcLocator::Gpu();
      // create command buffer
-     // TODO try and eliminate this creation of command buffer if it's already happening inside create texture 
+     // TODO try and eliminate this creation of command buffer if it's already happening inside create texture
     VkCommandBuffer commandBuffer = gpu.beginCommandBuffer();
 
     VkImageMemoryBarrier imageMemoryBarrier{};
     imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    imageMemoryBarrier.oldLayout = oldLayout;                                   // layout to transition from 
-    imageMemoryBarrier.newLayout = newLayout;                                   // layout to transition to 
-    imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;           // Queue family to transition from - IGNORED means don't bother transferring to a different queue 
+    imageMemoryBarrier.oldLayout = oldLayout;                                   // layout to transition from
+    imageMemoryBarrier.newLayout = newLayout;                                   // layout to transition to
+    imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;           // Queue family to transition from - IGNORED means don't bother transferring to a different queue
     imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;           // Queue family to transition to - ""
     imageMemoryBarrier.image = mImage;                                          // image being accessed and modifies as part of barrier
     imageMemoryBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; // aspect of image being altered
@@ -178,7 +175,7 @@ namespace fc
     }
      //  - DEFAULT TRANSITION -  i.e. (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
      // if transitioning from new image to image ready to receive data or transitioning from Destination optimal to source optimal
-    else 
+    else
     {
       srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
       dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
@@ -188,18 +185,18 @@ namespace fc
     }
 
     vkCmdPipelineBarrier(commandBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
-     
+
     gpu.submitCommandBuffer(commandBuffer);
   }
 
-  
 
-  
+
+
   uint32_t FcImage::loadTexture(std::string filename)
   {
      // load image file
     int width, height;
-     // number of channels image uses --Not using but tutorial has for future 
+     // number of channels image uses --Not using but tutorial has for future
     int channels;
 
      //TODO make an Install path variable that is used for file finding
@@ -219,7 +216,7 @@ namespace fc
 
      // using the image data from the loaded file, create the hardware texture used by the GPU
     uint32_t textureId = createTexture(width, height, imageData, mipLevels);
-    
+
      // free original image data
     stbi_image_free(imageData);
 
@@ -248,10 +245,10 @@ namespace fc
        // like stb_image_resize to generate mipmaps before hand--for now, just throw an error
       throw std::runtime_error("Failed to generate mipmaps - graphics device not capable of linear blitting for this texture format!");
     }
-    
+
     VkCommandBuffer blitCommandBuffer = gpu.beginCommandBuffer();
 
-     // this part will remain the same for all barriers - the rest will change depending on the mip level we're on 
+     // this part will remain the same for all barriers - the rest will change depending on the mip level we're on
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     barrier.image = mImage;
@@ -261,7 +258,7 @@ namespace fc
     barrier.subresourceRange.baseArrayLayer = 0;
     barrier.subresourceRange.layerCount = 1;
     barrier.subresourceRange.levelCount = 1;
-    
+
     int32_t mipWidth = mWidth;
     int32_t mipHeight = mHeight;
      //
@@ -320,16 +317,16 @@ namespace fc
      //
     vkCmdPipelineBarrier(blitCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT
                          , VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
-        
+
      // finally, submit all commands the the graphics queue
     gpu.submitCommandBuffer(blitCommandBuffer);
   }
 
-  
+
   void FcImage::createTextureSampler(uint32_t mipLevels)
   {
     FcGpu& gpu = FcLocator::Gpu();
-    
+
     VkSamplerCreateInfo samplerInfo{};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     samplerInfo.magFilter = VK_FILTER_LINEAR;                            // How to render when image is magnified on the screen
@@ -360,7 +357,7 @@ namespace fc
      // allocate and begin the command buffer to transfer an image
     FcGpu& gpu = FcLocator::Gpu();
     VkCommandBuffer transferCommandBuffer = gpu.beginCommandBuffer();
-    
+
      // region of image to copy from and to
     VkBufferImageCopy imageCopyRegion{};
     imageCopyRegion.bufferOffset = 0;                                                 // offset into data
@@ -372,7 +369,7 @@ namespace fc
     imageCopyRegion.imageSubresource.layerCount = 1;                                  // number of layers to copy starting at basearraylayer
     imageCopyRegion.imageOffset = {0, 0, 0};                                // offset into image (as ooposed to raw data in bufferOffset)
     imageCopyRegion.imageExtent = {mWidth, mHeight, 1};                     // size of region to copy as (x,y,z) values
-    
+
      // create the command to copy a buffer to the image
     vkCmdCopyBufferToImage(transferCommandBuffer, srcBuffer.VkBuffer(), mImage
                            , VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageCopyRegion);
@@ -394,14 +391,14 @@ namespace fc
     range.baseMipLevel = 0;
     range.levelCount = mMipLevels;
     range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    
+
     vkCmdClearColorImage(clearCommandBuffer, mImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, pColor, 1, &range);
 
     FcLocator::Gpu().submitCommandBuffer(clearCommandBuffer);
   }
-  
-  
-  
+
+
+
    // This is just provided to allow destruction of image view when image and memory
    // destruction is provided elsewhere, such as in the swapchain function
    // TODO combine with null checks perhaps
@@ -418,14 +415,14 @@ namespace fc
     // {
       vkDestroySampler(device, mTextureSampler, nullptr);
        //}
-    
+
      // Destroy image and free the associated memory
-    vkDestroyImageView(device, mImageView, nullptr); 
+    vkDestroyImageView(device, mImageView, nullptr);
     vkDestroyImage(device, mImage, nullptr);
     vkFreeMemory(device, mImageMemory, nullptr);
   }
 
-  
+
    // TODO All of the helper functions that submit commands so far have been set up to execute synchronously
 // by waiting for the queue to become idle. For practical applications it is recommended to combine
 // these operations in a single command buffer and execute them asynchronously for higher
@@ -434,7 +431,7 @@ namespace fc
 // into, and add a flushSetupCommands to execute the commands that have been recorded so far. It's
 // best to do this after the texture mapping works to check if the texture resources are still set
 // up correctly.
-  
+
    // TODO require an init function or remove the pGpu parameter... this function doesn't use it and
    // I think other functions doen't need it either--but it's confusing and errore prone to keep an
    // unitialized pointer around
@@ -443,10 +440,10 @@ namespace fc
      // TODO determine if having member dimensions is useful
     mWidth = width;
     mHeight = height;
-    
+
     writeToTexture(pixelData, mipLevels);
 
-     // create the texture sampler 
+     // create the texture sampler
     createTextureSampler(mipLevels);
 
      // transitioned to SHADER_READ_ONLY_OPTIMAL during mip map generation ?? might not be the most efficient to transition one level at a time
@@ -456,14 +453,14 @@ namespace fc
     {
       generateMipMaps(mipLevels);
     }
-    
+
      // return the descriptor index returned by createTextureDescriptor();
     return FcLocator::DescriptorClerk().createTextureDescriptor(mImageView, mTextureSampler);
   }
 
 
-  
-  
+
+
   void FcImage::overwriteTexture(void* pixelData, uint32_t mipLevels)
   {
     VkDeviceSize imageSize = mWidth * mHeight * 4;
@@ -480,14 +477,14 @@ namespace fc
     copyImage(stagingBuffer, imageSize);
 
     transitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, mipLevels);
-    
+
     stagingBuffer.destroy();
-    
+
 //    writeToTexture(width, height, pixelData, mipLevels);
   }
 
 
-  
+
 
   void FcImage::writeToTexture(void* pixelData, uint32_t mipLevels)
   {
@@ -498,9 +495,9 @@ namespace fc
      // create staging buffer to hold loaded data, ready to copy to device
     FcBuffer stagingBuffer;
     stagingBuffer.create(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT
-                         , VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT); 
+                         , VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-     // copy the actual image data into the staging buffer.    
+     // copy the actual image data into the staging buffer.
     stagingBuffer.storeData(pixelData, imageSize);
 
      // TODO use vkGetImageSubresourceLayout, rather than assuming contiguous memory and using memcpy. It's
@@ -532,10 +529,10 @@ namespace fc
      // copy data to image
     copyImage(stagingBuffer, imageSize);
 
-     // no longer need staging buffer so get rid of 
+     // no longer need staging buffer so get rid of
     stagingBuffer.destroy();
   }
 
 
-  
+
 }                                                                                     // namespace fc _END_

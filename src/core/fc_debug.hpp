@@ -2,6 +2,7 @@
 
 #include "SDL2/SDL_log.h"
 #include "vulkan/vulkan_core.h"
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <cstring>
 #include <iostream>
 #include <ostream>
@@ -59,7 +60,7 @@ inline void dprintf(const char* fmt, ...)
    // #endif
 
    // output to the visual studio window
-   // OutputDebugStringA( buf ); 
+   // OutputDebugStringA( buf );
 } // ende dprintf(..)
 
 
@@ -146,7 +147,7 @@ inline void dprintf(const char* fmt, ...)
 
 namespace fc
 {
-  
+
    //TODO try removing static...etc.
    // ?? doesn't declaring this static here cause a new local func to be used in each TU
    // local callback functions
@@ -165,5 +166,5 @@ namespace fc
   bool areValidationLayersSupported(std::vector<const char*>& validationLayers);
 
   void displayFrameRate();
-  
+
 } // namespace fc _END_

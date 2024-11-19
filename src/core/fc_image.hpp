@@ -7,7 +7,6 @@
 // external libraries
 #include "vulkan/vulkan_core.h"
 // std libraries
-// #include <_types/_uint32_t.h>
 #include<string>
 
 namespace fc

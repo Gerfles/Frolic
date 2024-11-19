@@ -11,20 +11,19 @@
 #include "SDL2/SDL_vulkan.h"
 #include "vulkan/vulkan_core.h"
 // - STD LIBRARIES -
-#include <_types/_uint32_t.h>
 #include <algorithm>
 #include <limits>
 #include <sstream>
 #include <stdexcept>
 
 namespace fc {
-  
-  
+
+
   bool FcWindow::initWindow(uint32_t width, uint32_t height, bool isFullscreen, std::string name)
   {
      //TODO not sure this is even necessary to store the window extent?
      //mScreenSize = {width, height};
-    
+
      // SDL_Init() initializes assertions and crash protection
      // and then calls SDL_InitSubSystem(). TODO bypass those protections
      // by calling SDL_InitSubSystem() directly for release.
@@ -33,7 +32,7 @@ namespace fc {
       std::ostringstream errorMsg;
       errorMsg << "Failed to initialize SDL! SDL Error: " << SDL_GetError();
       SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "SDL", errorMsg.str().c_str(), nullptr);
-      
+
       return false;
     }
 
@@ -65,7 +64,7 @@ namespace fc {
 
 
 
-  
+
   const VkExtent2D FcWindow::ScreenSize()
   {
     int width, height;
@@ -83,7 +82,7 @@ namespace fc {
   //   //  mFcWindow->framebufferResized = true;
   //   //  mFcWindow->width = width;
   //   //  mFcWindow->height = height;
- 
+
   //   // auto mFcWindow = reinterpret_cast<FcWindow*>(window);
   //   //  mFcWindow->mFrameBufferResized = true;
   //   //  mFcWindow->width = width;
@@ -115,6 +114,5 @@ namespace fc {
     mWindow = nullptr;
     SDL_Quit();
   }
-  
-} // NAMESPACE fc
 
+} // NAMESPACE fc

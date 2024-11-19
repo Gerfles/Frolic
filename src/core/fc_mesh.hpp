@@ -8,7 +8,6 @@
 #include "glm/mat4x4.hpp"
 #include "vulkan/vulkan_core.h"
 // - STD LIBRARIES -
-#include <_types/_uint32_t.h>
 #include <iostream>
 #include <vector>
 
@@ -17,7 +16,7 @@
 
 namespace fc
 {
-  
+
    // Vertex data representation
   struct Vertex
   {
@@ -25,7 +24,7 @@ namespace fc
      glm::vec3 color; // vertex color (r, g, b)
      glm::vec3 normal;
      glm::vec2 texCoord; // texel coordinates(u, v)
-     
+
      // void print()
      //  {
      //    std::cout << "Vertex: Position(" << pos.x << ", " << pos.y << ", " << pos.z << ")"
@@ -45,7 +44,7 @@ namespace fc
   //    glm::mat4 model;
   // };
 
-  
+
   class FcMesh
   {
    private:

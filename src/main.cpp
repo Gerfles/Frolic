@@ -1,8 +1,8 @@
-// - FROLIC ENGINE -
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "frolic.hpp"
-// - EXTERNAL LIBRARIES -
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
-// - STD LIBRARIES -
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <iostream>
 //#include <exception>
 // vs. ??
@@ -18,7 +18,7 @@ int main(int argc, char* argv[])
   #else
    std::cout << "-Debug Build-" << std::endl;
   #endif
- 
+
    int type;
    type = 1;
 
@@ -35,7 +35,7 @@ int main(int argc, char* argv[])
   }
 
   frolic.close();
-  
+
   return EXIT_SUCCESS;
 }
 

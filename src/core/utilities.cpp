@@ -1,6 +1,5 @@
 #include "utilities.hpp"
 
-
 // - FROLIC ENGINE -
 
 // - EXTERNAL LIBRARIES -
@@ -14,7 +13,6 @@
 #include <unordered_set>
 #include <vector>
 #include <iostream>
-
 
 
 namespace fc
@@ -44,7 +42,7 @@ namespace fc
    //   {
    //     return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
    //   }
-    
+
    //   return VK_ERROR_EXTENSION_NOT_PRESENT;
    // }
 
@@ -75,7 +73,7 @@ namespace fc
    //   {
    //     requiredLayers.erase(layer.layerName);
    //   }
-    
+
    //    // return true if all the all the required layers were found in vulkans available layers
    //   return requiredLayers.empty();
    // }
@@ -99,7 +97,7 @@ namespace fc
 
     for (int i = 0; i < 4; i++)
     {
-      std::cout << "\n| "; 
+      std::cout << "\n| ";
       for (int j = 0; j < 4; j++)
       {
         std::cout << mat[j][i] << " ";
@@ -115,7 +113,7 @@ namespace fc
 
     for (int i = 0; i < 3; i++)
     {
-      std::cout << "\n| "; 
+      std::cout << "\n| ";
       for (int j = 0; j < 3; j++)
       {
         std::cout << mat[j][i] << " ";
@@ -158,16 +156,16 @@ void printVec(glm::vec4 vector, const char* title)
   }
   std::cout << std::endl;
 }
-  
 
-  
+
+
 
   std::vector<char> readFile(const std::string& filename)
   {
      // open stream from given file ('ate' tells stream to start reading from end (AT End))
     std::ifstream file(filename, std::ios::binary | std::ios::ate);
 
-    
+
      // make sure file stream sucsessfully opened
     if (!file.is_open())
     {
@@ -184,7 +182,7 @@ void printVec(glm::vec4 vector, const char* title)
      // C+23
      //std::println("Last Update: {}", fileTime);
 
-     // get current read position (since this is at the end of file) to get file size 
+     // get current read position (since this is at the end of file) to get file size
     size_t fileSize = static_cast<size_t>(file.tellg());
     std::vector<char> fileBuffer(fileSize);
 
@@ -211,6 +209,6 @@ void printVec(glm::vec4 vector, const char* title)
 
     return system_clock::to_time_t(sctp);
   }
-  
-  
+
+
 } // namespace fc - END

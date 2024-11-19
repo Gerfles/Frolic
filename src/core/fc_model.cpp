@@ -1,6 +1,5 @@
 #include "fc_model.hpp"
 
-
 // - FROLIC ENGINE -
 #include "SDL2/SDL_stdinc.h"
 #include "core/fc_descriptors.hpp"
@@ -9,7 +8,6 @@
 #include "core/fc_locator.hpp"
 #include "fc_mesh.hpp"
 // - EXTERNAL LIBRARIES -
-#include <_types/_uint32_t.h>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <cstddef>
@@ -17,11 +15,11 @@
 #include <string>
 #include <vector>
 // - STD LIBRARIES -
-//
+
 
 namespace fc {
-  
-  
+
+
    // TODO rename most of these function to what they actually do - ie generateTextureList();
   std::vector<std::string> FcModel::LoadMaterials(const aiScene* scene)
   {
@@ -36,7 +34,7 @@ namespace fc {
        // initialze the texture to empty string (will be replaced if texture exists)
       textureList[i] = "";
 
-       // check for at least one diffuse texture (standard detail texture)  
+       // check for at least one diffuse texture (standard detail texture)
       if (material->GetTextureCount(aiTextureType_DIFFUSE))
       {
          // get the path of the teture file
@@ -58,12 +56,12 @@ namespace fc {
   }
 
 
-  
+
   FcModel::FcModel(std::string modelFile)
   {
      // first initialze model matrix to identity, to clear out any garbage
     mModelMatrix = glm::mat4(1.0f);
-    
+
      // import model "scene"
     Assimp::Importer importer;
 
@@ -102,7 +100,7 @@ namespace fc {
 
      // load in all our meshes
     loadNodes(FcLocator::Gpu(), scene->mRootNode, scene, materialNumToTexID);
-  } 
+  }
 
 
 
@@ -148,7 +146,7 @@ namespace fc {
        // set the vertex normal
        // ?? not sure if this is right
       vertices[i].normal = {mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z};
-      
+
        // set texture coordinats (ONLY if they exist) (note that [0] here refers to the first SET )
       if (mesh->mTextureCoords[0])
       {
@@ -161,12 +159,12 @@ namespace fc {
     }
 
      // iterate over indices through faces and copy across
-     // TODO might be better to iterate over this for loop once to resize indices() first, then fill it 
+     // TODO might be better to iterate over this for loop once to resize indices() first, then fill it
     for (size_t i = 0; i < mesh->mNumFaces; ++i)
     {
        // get a face
       aiFace face = mesh->mFaces[i];
-       // go through face's indices and add to list 
+       // go through face's indices and add to list
       for (size_t j = 0; j < face.mNumIndices; ++j)
       {
         indices.push_back(face.mIndices[j]);
@@ -179,13 +177,13 @@ namespace fc {
      //mMeshList.push_back(newMesh);
     mMeshList.emplace_back(&gpu, vertices, indices, textureID);
   }
-  
 
-   // TODO make efficient 
+
+   // TODO make efficient
   uint32_t FcModel::loadTexture(std::string filename)
   {
     FcImage texture;
-    
+
     uint32_t mDescriptorId = texture.loadTexture(filename);
 
     mTextures.emplace_back(std::move(texture));
@@ -196,7 +194,7 @@ namespace fc {
 
 
 
-  
+
   void FcModel::destroy()
   {
 
@@ -211,9 +209,6 @@ namespace fc {
     }
   }
 
-  
-  
+
+
 } // namespace fc _END_
-
-
-

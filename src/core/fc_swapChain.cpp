@@ -9,7 +9,6 @@
 #include "SDL2/SDL_vulkan.h"
 #include "vulkan/vulkan_core.h"
 // - STD LIBRARIES -
-#include <_types/_uint32_t.h>
 #include <array>
 #include <cstddef>
 #include <iostream>
@@ -32,7 +31,7 @@ namespace fc
     return swapchainImageCount;
   }
 
-  
+
 
   void FcSwapChain::reCreateSwapChain()
   {
@@ -47,9 +46,9 @@ namespace fc
     createDepthBufferImage();
     createFrameBuffers();
   }
-  
 
-  
+
+
   uint32_t FcSwapChain::createSwapChain(bool shouldReUseOldSwapchain)
   {
     SwapChainDetails swapChainDetails = getSwapChainDetails();
@@ -66,7 +65,7 @@ namespace fc
      // But notice that VkSwapchainCreateInfoKHR uses minImageCount instead of imageCount
     uint32_t imageCount = swapChainDetails.surfaceCapabilities.minImageCount + 1;
     std::cout << "Swapchain image count (buffers): " << imageCount << std::endl;
-     // check to make sure 
+     // check to make sure
     if (swapChainDetails.surfaceCapabilities.maxImageCount > 0 &&
         swapChainDetails.surfaceCapabilities.maxImageCount < imageCount)
     {
@@ -83,27 +82,27 @@ namespace fc
     swapChainInfo.imageExtent =  extent;
     swapChainInfo.minImageCount = imageCount;
     swapChainInfo.imageArrayLayers = 1;                               // Number of layers for each image in chain
-    swapChainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;   // what attachment images will be used as 
+    swapChainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;   // what attachment images will be used as
     swapChainInfo.preTransform = swapChainDetails.surfaceCapabilities.currentTransform;
     swapChainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR; // how to handle blending images with external grapics (e.g. other windows)
     swapChainInfo.clipped = VK_TRUE;                                  // whether to clip parts of image not in view (e.g. behind another window, off screen, etc)
     swapChainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;       // graphics queue and present queue are the same (often the case)
-    
+
      // Get queue family indices
     QueueFamilyIndices indices = pGpu->GpuQueueFamilies();
-    
+
      // if graphics and presentation families are different, then swapchain must let images be shared between families
     if (indices.graphicsFamily != indices.presentationFamily)
     {
        // TODO should probably make indices uint32_t
       uint32_t queueFamilyIndices[] = {static_cast<uint32_t>(indices.graphicsFamily)
                                      , static_cast<uint32_t>(indices.presentationFamily) };
-      
+
       swapChainInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
       swapChainInfo.queueFamilyIndexCount = 2;
       swapChainInfo.pQueueFamilyIndices = queueFamilyIndices;
     }
-    
+
      // set oldswapchain to the previous swapchain if recreating, otherwise defaults to VK_NULL_HANDLE
      // this MAY help reuse existing resources to allow new swapchain to create faster / smoother resize
     VkSwapchainKHR oldSwapchain = (shouldReUseOldSwapchain) ? mSwapchain : VK_NULL_HANDLE;
@@ -120,13 +119,13 @@ namespace fc
     {
       vkDestroySwapchainKHR(pGpu->VkDevice(), oldSwapchain, nullptr);
     }
-    // 
+    //
 
      // Store for later reference
     mSwapchainFormat = surfaceFormat.format;
     mSurfaceExtent = extent;
 
-     // 
+     //
     uint32_t swapchainImageCount;
     vkGetSwapchainImagesKHR(pGpu->VkDevice(), mSwapchain, &swapchainImageCount, nullptr);
     std::cout << "Actual Swap chain Image count: " << swapchainImageCount << std::endl;
@@ -156,7 +155,7 @@ namespace fc
     return swapchainImageCount;
   }
 
-  
+
 
    // Best format is subjective but ours will be:
    // format : VK_FORMAT_R8G8B8A8_UNORM
@@ -211,7 +210,7 @@ namespace fc
      // as per vulkan spec--this mode must always be available
     return VK_PRESENT_MODE_FIFO_KHR;
   }
-  
+
   SwapChainDetails FcSwapChain::getSwapChainDetails()
   {
      // create a new struct to hold all the details of the available swapchain
@@ -219,7 +218,7 @@ namespace fc
 
     const VkPhysicalDevice& device = pGpu->physicalDevice();
     const VkSurfaceKHR& surface = pGpu->surface();
-    
+
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &swapChainDetails.surfaceCapabilities);
 
     uint32_t formatCount = 0;
@@ -257,7 +256,7 @@ namespace fc
 
        // TODO use the clamp methods instead
        // Surface also defines max and min, so make sure within boundaries by clamping values
-      actualExtent.width = std::max(surfaceCapabilities.minImageExtent.width 
+      actualExtent.width = std::max(surfaceCapabilities.minImageExtent.width
                                     ,std::min(surfaceCapabilities.minImageExtent.width, actualExtent.width));
       actualExtent.height = std::max(surfaceCapabilities.minImageExtent.height
                                      ,std::min(surfaceCapabilities.minImageExtent.height, actualExtent.height));
@@ -294,7 +293,7 @@ namespace fc
       }
     }
 
-     // failed to find an acceptable format 
+     // failed to find an acceptable format
     return VK_FORMAT_UNDEFINED;
   }
 
@@ -333,7 +332,7 @@ namespace fc
 
      // attachment reference uses an attachment index that refers to index in the attachment list passed to renderPassCreateInfo
     VkAttachmentReference colorAttachmentReference{};
-    colorAttachmentReference.attachment = 0; 
+    colorAttachmentReference.attachment = 0;
     colorAttachmentReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; // Image format to convert to for the subpass
 
      // since we are using a multisampled image as the color attachment, and this cannot be
@@ -352,7 +351,7 @@ namespace fc
     VkAttachmentReference colorAttachmentResolveReference{};
     colorAttachmentResolveReference.attachment = 1;
     colorAttachmentResolveReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    
+
      // create an ordered list of formats with higher prioritization at the front of list
      //TODO since format has alread been found in the above createdepthbufferimage() we could just
      // pass or store it so we don't have to repeat the following code...
@@ -361,7 +360,7 @@ namespace fc
 
     VkFormat depthFormat = chooseSupportedFormat(formats, VK_IMAGE_TILING_OPTIMAL
                                                  , VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
-    
+
      // depth attachment of render pass (not necessarily how it will be used in a subpass)
     VkAttachmentDescription depthAttachment{};
     depthAttachment.format = depthFormat;
@@ -372,13 +371,13 @@ namespace fc
     depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-    
+
     VkAttachmentReference depthAttachmentsReference{};
     depthAttachmentsReference.attachment = 2;
      // TODO if we follow vulkan tutorial, we could optimize this slightly but note that Ben Cook says this is
      // pretty uneccessary since this layout will be transitions on the first pass
     depthAttachmentsReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-        
+
      // information about a particular subpass the render pass is using
     VkSubpassDescription subpass{};
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
@@ -386,7 +385,7 @@ namespace fc
     subpass.pColorAttachments = &colorAttachmentReference;
     subpass.pResolveAttachments = &colorAttachmentResolveReference;
     subpass.pDepthStencilAttachment = &depthAttachmentsReference;
-    
+
      // need to determine when layout transitions occur using subpass dependencies
     std::array<VkSubpassDependency, 2> subpassDependencies;
      // conversion from VK_IMAGE_LAYOUT_UNDEFINED to VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
@@ -411,7 +410,7 @@ namespace fc
     subpassDependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
     subpassDependencies[1].dependencyFlags = 0;
 
-    
+
      // -- CREATE RENDERPASS -- //
     std::array<VkAttachmentDescription, 3> renderPassAttachments = {colorAttachment, colorAttchmentResolve, depthAttachment};
      //
@@ -431,19 +430,19 @@ namespace fc
   }
 
 
-  
-// A framebuffer accepts the output of the renderpass 
+
+// A framebuffer accepts the output of the renderpass
   void FcSwapChain::createFrameBuffers()
   {
      // resize framebuffer count to equal swap chain image count
     mSwapChainFramebuffers.resize(mSwapchainImages.size());
 
-     // create a frame buffer for each swap chain image 
+     // create a frame buffer for each swap chain image
     for (size_t i = 0; i < mSwapChainFramebuffers.size(); i++)
     {
       std::array<VkImageView, 3> attachments = { mMultiSampledImage.ImageView()
                                                , mSwapchainImages[i].ImageView(), mDepthBufferImage.ImageView() };
-      
+
       VkFramebufferCreateInfo frameBufferInfo{};
       frameBufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
       frameBufferInfo.renderPass = mRenderPass;                                    // layout pass the framebuffer will be used with
@@ -452,7 +451,7 @@ namespace fc
       frameBufferInfo.width = mSurfaceExtent.width;                                // framebuffer width
       frameBufferInfo.height = mSurfaceExtent.height;                              // framebuffer height
       frameBufferInfo.layers = 1;                                                  // framebuffer layers
-      
+
       if (vkCreateFramebuffer(pGpu->VkDevice(), &frameBufferInfo, nullptr, &mSwapChainFramebuffers[i]) != VK_SUCCESS)
       {
         throw std::runtime_error("Failed to create Vulkan Frame Buffer!");
@@ -461,18 +460,18 @@ namespace fc
   }
 
 
-  
-  
+
+
    // Partially free of swapchain resources -- used when resizing the window and recreating swapchain
   void FcSwapChain::clearSwapChain()
   {
      // free up our depth buffer image
      mDepthBufferImage.destroy();
-    
-     // destroy all the frame buffers 
+
+     // destroy all the frame buffers
     for (auto& frameBuffer : mSwapChainFramebuffers)
     {
-      vkDestroyFramebuffer(pGpu->VkDevice(), frameBuffer, nullptr);      
+      vkDestroyFramebuffer(pGpu->VkDevice(), frameBuffer, nullptr);
     }
 
      // destroy all the images views in our swapchain--the actual images and memory are freed by actual swapchain
@@ -485,21 +484,21 @@ namespace fc
 
     mMultiSampledImage.destroy();
   }
-  
+
    // full destruction of swapchain, note: includes call to partial destruction of swapchain
   void FcSwapChain::destroy()
   {
     std::cout << "calling: FcSwapChain::destroy" << std::endl;
-    
+
     clearSwapChain();
 
-     // destroy the render pass 
+     // destroy the render pass
     vkDestroyRenderPass(pGpu->VkDevice(), mRenderPass, nullptr);
 
      // finally destroy the swapchain itself
     vkDestroySwapchainKHR(pGpu->VkDevice(), mSwapchain, nullptr);
   }
 
-  
+
 
 } //END - namespace fc - END

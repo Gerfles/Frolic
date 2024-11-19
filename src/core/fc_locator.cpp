@@ -1,5 +1,5 @@
-//
 #include "fc_locator.hpp"
+
 #include "core/fc_billboard_render_system.hpp"
 #include "core/fc_game_object.hpp"
 #include "core/fc_light.hpp"
@@ -13,10 +13,10 @@ namespace fc
   FcDescriptor* FcLocator::pDescriptorClerk;
   VkExtent2D FcLocator::mScreenDimensions;
 
-   // initialze game object list to maximum size allowed 
+   // initialze game object list to maximum size allowed
 //  std::vector<FcGameObject*> FcLocator::mGameObjectsList(MAX_GAME_OBJECTS, nullptr);
   std::vector<FcGameObject*> FcLocator::mGameObjectsList;//(100, nullptr);
-   // 
+   //
   std::vector<FcLight*> FcLocator::mLightsList;
    //
   std::vector<FcBillboard* > FcLocator::mBillboardsList;
@@ -28,7 +28,7 @@ namespace fc
     pDescriptorClerk = nullptr;
   }
 
-  
+
    void FcLocator::provide(FcGpu* gpu)
         {
           if (gpu == nullptr)
@@ -69,7 +69,7 @@ namespace fc
     {
       mScreenDimensions = screenDimensions;
     }
-    
+
   }
 
 } // _END_ namespace fc

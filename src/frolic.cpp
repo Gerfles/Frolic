@@ -1,29 +1,24 @@
 #include "frolic.hpp"
 
-
-// - FROLIC ENGINE -
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "core/fc_descriptors.hpp"
 #include "core/fc_game_object.hpp"
 #include "core/fc_font.hpp"
 #include "core/fc_light.hpp"
 #include "core/fc_locator.hpp"
 #include "core/fc_model.hpp"
-// - EXTERNAL LIBRARIES -
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "SDL2/SDL_version.h"
 #include "SDL2/SDL_video.h"
 #include "core/fc_player.hpp"
 #include "core/fc_text.hpp"
 #include "core/utilities.hpp"
 #include "vulkan/vulkan_core.h"
-// - STD LIBRARIES -
-#include <_types/_uint32_t.h>
-#include <_types/_uint64_t.h>
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <string>
-#include <sys/_types/_size_t.h>
-
 
 
 namespace fc
@@ -46,14 +41,14 @@ namespace fc
      //TODO should do this in a builder class that goes out of scope when no longer needed
     SDL_version compiled;
     SDL_VERSION(&compiled);
-    
+
     SDL_version linked;
     SDL_GetVersion(&linked);
 
     SDL_Log("SDL version(s): %u.%u.%u (compiled),  %u.%u.%u. (linked)\n",
             compiled.major, compiled.minor, compiled.patch, linked.major, linked.minor, linked.patch);
 
-     //TODO should maybe define our own exit_success and failure codes for debugging later 
+     //TODO should maybe define our own exit_success and failure codes for debugging later
     if (mRenderer.init(appInfo, screenDims) != EXIT_SUCCESS)
     {
       mShouldClose = true;
@@ -96,8 +91,8 @@ namespace fc
     backpack->transform.rotation = {glm::pi<float>(), 0.f, 0.f};
     backpack->transform.translation = {-1.f, 0.f, 0.f};
     backpack->transform.scale = {0.5f, 0.5f, 0.5f};
-    
-     // load the vase object 
+
+     // load the vase object
     model = new FcModel{"models/smooth_vase.obj"};
     FcGameObject* vase = new FcGameObject(model, FcGameObject::POWER_UP);
     vase->transform.translation = { 1.2f, 0.8f, 0.f };
@@ -122,17 +117,17 @@ namespace fc
     {
 
       FcLight* light = new FcLight(0.5f, 0.044f, lightColors[i]);
-      
-      
+
+
 //      FcLight light; // = mLights[i];
        //    light.createLight(0.5f, 0.05f, lightColors[i]);
 
        //mLights.push_back(FcLight{0.5f, 0.05f, lightColors[i]});
-      
+
 //      mUbo.pointLights[i].createLight(0.5f, 0.05f, lightColors[i]);
-      
+
        // FcLight* light = new FcLight(0.5f, 0.1f, lightColors[i]);
-      
+
       auto rotateLight = glm::rotate( glm::mat4(1.f), i * glm::two_pi<float>() / lightColors.size()
                                       , {0.f, -1.f, 0.f});
 
@@ -140,7 +135,7 @@ namespace fc
 
       light->setPosition(glm::vec3(rotateLight * glm::vec4(-1.f, -1.f, -1.f, 1.f)));
        //mLights.back().setPosition(glm::vec3(rotateLight * glm::vec4(-1.f, -1.f, -1.f, 1.f)));
-      
+
       mUbo.pointLights[i] = light->generatePointLight();
 //      mUbo.pointLights[i] = mLights.back().generatePointLight();
 
@@ -150,12 +145,12 @@ namespace fc
     mUbo.numLights = lightColors.size();
   }
 
-  
+
 
   void Frolic::run()
   {
     pLog("run()");
-    
+
     float deltaTime = 0.0f;
 
     mTimer.start();
@@ -175,13 +170,13 @@ namespace fc
      // load everything we need for the scene
     loadUIobjects();
     loadGameObjects();
-    
+
      // TODO this should be abstracted into engine
     while (!mShouldClose)
     {
        // Check for events every cycle of the game loop
       while (SDL_PollEvent(&mEvent))
-      {        
+      {
         if (mEvent.type == SDL_WINDOWEVENT)
         {
           switch (mEvent.window.event)
@@ -224,11 +219,11 @@ namespace fc
       update(deltaTime);
 
       uint32_t frame = mRenderer.beginFrame();
-      
+
       mUbo.view = camera.View();
       mUbo.projection = camera.Projection();
       mUbo.invView = camera.InverseView();
-      
+
       mRenderer.drawModels(frame, mUbo);
 
        // pLog("before drawBillboards()");
@@ -241,7 +236,7 @@ namespace fc
 
        // TODO implement better way to wait for queues to finish
       vkDeviceWaitIdle(FcLocator::Device());
-      
+
     } // _END_ while(!shouldClose);
   }
 
@@ -258,13 +253,13 @@ namespace fc
       angle -= 360.0f;
     }
 
-   
+
     glm::mat4 rotateMat = glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3(0.0f, 1.0f, 0.0f));
 
      //TODO get rid of and just rotate camera
     rotateMat = glm::rotate(rotateMat, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
-    
+
      // for (int modelId = 0; modelId < mModelList.size(); ++modelId)
      // {
      //   mModelList[modelId].setModelMatrix(testMat);
@@ -290,24 +285,24 @@ namespace fc
      //                       , {0.f, -1.f, 0.f});
 
      //    mUbo.pointLights[i].setPosition(glm::vec3(rotateLight * glm::vec4(-1.f, -1.f, -1.f, 1.f)));
-      
-      
+
+
      //light->setPosition(glm::vec3(rotateLight * glm::vec4(-1.f, -1.f, -1.f, 1.f)));
      //mLights.back().setPosition(glm::vec3(rotateLight * glm::vec4(-1.f, -1.f, -1.f, 1.f)));
 
      //
     rotateMat = glm::rotate(glm::mat4(1.f), glm::radians(50 * deltaTime), {0.f, -1.f, 0.f});
 
-    
+
     auto lights = FcLocator::Lights();
      //
     for (size_t i = 0; i < lights.size(); ++i)
     {
 
        //light->Transform().translation = glm::vec3(rotateMat * glm::vec4(light->Transform().translation, 1.f));
-      
+
       lights[i]->setPosition(rotateMat * lights[i]->getPosition());
-      
+
        // copy light to ubo
       mUbo.pointLights[i] = lights[i]->generatePointLight();
     }
@@ -319,7 +314,7 @@ namespace fc
     std::string fpsNum{std::to_string(avgFPS)};
 
      // TODO editing this text costs about 30-40 fps for some reason, fix
-     mUItextList[1].editText(fpsNum, 70, 16, 1.0f);    
+     mUItextList[1].editText(fpsNum, 70, 16, 1.0f);
 
      if (mFrameTimeIndex == 0)
      {
@@ -347,27 +342,27 @@ namespace fc
     if (mFrameTimeIndex == MAX_FRAME_SAMPLES - 1)
     {
       float avgFrameTime = 0.0f;
-      
+
       for (int i = 0; i < MAX_FRAME_SAMPLES; ++i)
       {
         avgFrameTime += mFrameTimeList[i];
       }
 
       avgFrameTime = MAX_FRAME_SAMPLES/avgFrameTime;
-      
+
       std::cout << "average frames per second: " << avgFrameTime << std::endl;
     }
 
-     // make sure we wrap around on the MAX_FRAME_SAMPLE'th sample 
+     // make sure we wrap around on the MAX_FRAME_SAMPLE'th sample
     mFrameTimeIndex = (mFrameTimeIndex + 1) % MAX_FRAME_SAMPLES;
 
      // calculate and return the average famesPerSec
     return MAX_FRAME_SAMPLES / mFrameTimeSum;
   }
-  
-  
-  
-  
+
+
+
+
   void Frolic::close()
   {
     mInput.kill();
@@ -400,12 +395,8 @@ namespace fc
      // {
      //   model.destroy();
      // }
-    
+
     mRenderer.shutDown();
   }
 
 } // namespace fc END
-
-
-
-
