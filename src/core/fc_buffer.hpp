@@ -2,7 +2,7 @@
 
 // - FROLIC ENGINE -
 //#include "fc_gpu.hpp"
-// - EXTERNAL LIBRARIES -
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
 // - STD LIBRARIES -
 
@@ -33,7 +33,7 @@ namespace fc
      FcBuffer& operator=(const FcBuffer&) = delete;
       // ?? This must be included to allow vector.pushBack(Fcbuffer) ?? not sure if there's a better way... maybe unique_ptr
       // FcBuffer(const FcBuffer&) = delete;
-     
+
      void create(VkDeviceSize bufferSize, VkBufferUsageFlags useFlags, VkMemoryPropertyFlags properties);
      void storeData(void * srcData, size_t dataSize);
      void copyBuffer(const FcBuffer& srcBuffer, VkDeviceSize bufferSize);

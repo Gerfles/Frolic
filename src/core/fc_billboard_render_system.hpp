@@ -1,14 +1,12 @@
 #pragma once
 
-// CORE
-// #include "core/fc_descriptors.hpp"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_pipeline.hpp"
-// EXTERNAL
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
-// STD
-#include <_types/_uint32_t.h>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <memory>
-#include <sys/_types/_size_t.h>
+
 
 namespace fc
 {
@@ -46,7 +44,7 @@ namespace fc
      void setTextureId(uint32_t textureId) { mTextureId = textureId; }
   };
 
-  
+
   class FcBillboardRenderSystem
   {
    private:

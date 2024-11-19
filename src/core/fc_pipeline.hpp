@@ -10,7 +10,7 @@
 // - EXTERNAL LIBRARIES -
 #include "vulkan/vulkan_core.h"
 // - STD LIBRARIES -
-#include <_types/_uint32_t.h>
+// #include <_types/_uint32_t.h>
 #include <vector>
 
 
@@ -47,7 +47,7 @@ namespace fc
     {
      private:
         //TODO see if this can be eliminated and passed as init instead()
-        //TODO if this device is necessary, should make all ref pointers const 
+        //TODO if this device is necessary, should make all ref pointers const
        VkPipeline mPipeline = nullptr;
        VkPipelineLayout mPipelineLayout = nullptr;
         //
@@ -79,7 +79,7 @@ namespace fc
        void destroy();
     };
 
-  
+
 
 
 }

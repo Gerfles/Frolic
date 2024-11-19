@@ -7,7 +7,7 @@
 // external libraries
 #include "vulkan/vulkan_core.h"
 // std libraries
-#include <_types/_uint32_t.h>
+// #include <_types/_uint32_t.h>
 #include<string>
 
 namespace fc
@@ -16,7 +16,7 @@ namespace fc
    // FORWARD DECLARATIONS
 //  class FcPipeline;
 
-  
+
   class FcImage
   {
    private:
@@ -44,7 +44,7 @@ namespace fc
      FcImage(const FcImage&) = delete;
      FcImage& operator=(FcImage&&) = default;
      FcImage(FcImage&&) = default;
-     
+
       // ?? This must be included to allow vector.pushBack(Fcbuffer) ?? not sure if there's a better
       // way... maybe unique_ptr
       //FcImage(const FcImage&) = delete;
@@ -60,7 +60,7 @@ namespace fc
       // TEXTURE FUNCTIONS
      uint32_t loadTexture(std::string filename);
      uint32_t createTexture(int width, int height, void* pixelData, uint32_t mipLevels = 1);
-     
+
      void overwriteTexture(void* pixelData, uint32_t mipLevel = 1);
       // GETTERS
      VkImageView& ImageView() { return mImageView; }
@@ -68,9 +68,9 @@ namespace fc
      VkImage Image() { return mImage; }
       // cleanup
      ~FcImage() = default;
-     void destroyImageView(); 
+     void destroyImageView();
      void destroy();
   };
 
-  
+
 } // namespace fc _END_

@@ -1,12 +1,11 @@
+
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_buffer.hpp"
-
-
-// Frolic Engine
 #include "core/fc_locator.hpp"
 #include "fc_gpu.hpp"
-// external libraries
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
-// std libraries
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <cstring>
 
 
@@ -27,7 +26,7 @@ namespace  fc
     {
       throw std::runtime_error("Failed to create a Vulkan Buffer!");
     }
-    
+
      // GET BUFFER MEMORY REQUIREMENTS
     VkMemoryRequirements memRequirments;
     vkGetBufferMemoryRequirements(device, mBuffer, &memRequirments);
@@ -49,7 +48,7 @@ namespace  fc
       if ((memRequirments.memoryTypeBits & (1 << i)) // first, only pick each allowed type of memory passed in (skip evaluation when that type is not bit-enabled by our allowedType parameter)
           && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) // then make sure that the allowed types also contains the property flags that we request by passing the vkmemorypropertyflags
       {
-         // this memory type is an allowed type and it has the properties we want (flags) return 
+         // this memory type is an allowed type and it has the properties we want (flags) return
         memoryTypeIndex = i;
         break;
       }
@@ -59,11 +58,11 @@ namespace  fc
      // ?? Tutorial doesn't contain this check so maybe Vulkan is required to return something...
     if (memoryTypeIndex == -1)
     {
-      throw std::runtime_error("Failed to find a suitable memory type!");      
+      throw std::runtime_error("Failed to find a suitable memory type!");
     }
 
     memoryAllocInfo.memoryTypeIndex = memoryTypeIndex;
-    
+
      // allocate memory to VkDeviceMemory
     if (vkAllocateMemory(device, &memoryAllocInfo, nullptr, &mBufferMemory) != VK_SUCCESS)
     {
@@ -75,7 +74,7 @@ namespace  fc
   }
 
 
-  
+
 
   void FcBuffer::storeData(void* sourceData, size_t dataSize)
   {
@@ -91,29 +90,29 @@ namespace  fc
   {
      // allocate and begin the command buffer to transfer a buffer
     VkCommandBuffer transferCommandBuffer = FcLocator::Gpu().beginCommandBuffer();
-    
+
      // region of data to copy from and to
     VkBufferCopy bufferCopyRegion{};
     bufferCopyRegion.srcOffset = 0;
     bufferCopyRegion.dstOffset = 0;
     bufferCopyRegion.size = bufferSize;
-    
+
      // command to copy src buffer to dst buffer
     vkCmdCopyBuffer(transferCommandBuffer, srcBuffer.mBuffer, mBuffer, 1, &bufferCopyRegion);
 
     FcLocator::Gpu().submitCommandBuffer(transferCommandBuffer);
   }
 
-    
+
   void FcBuffer::destroy()
   {
      // Destroy buffer and deallocate memory
     if (mBuffer != VK_NULL_HANDLE)
     {
       vkDestroyBuffer(FcLocator::Device(), mBuffer, nullptr);
-      vkFreeMemory(FcLocator::Device(), mBufferMemory, nullptr);      
+      vkFreeMemory(FcLocator::Device(), mBufferMemory, nullptr);
     }
 
   }
-  
+
 } // namespace  fc _END_

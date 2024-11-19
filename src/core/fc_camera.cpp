@@ -1,5 +1,5 @@
-
 #include "fc_camera.hpp"
+
 #include "core/utilities.hpp"
 #include <limits>
 #include "glm/glm.hpp"
@@ -20,7 +20,7 @@ namespace fc
     mProjectionMatrix[3][0] = -(right + left) / (right - left);
     mProjectionMatrix[3][1] = -(bottom + top) / (bottom - top);
     mProjectionMatrix[3][2] = -near / (far - near);
-    
+
   }
 
 
@@ -34,11 +34,11 @@ namespace fc
     mProjectionMatrix = glm::mat4(g / aspect,  0.0f,   0.0f,   0.0f,
                                   0.0f,  g,      0.0f,   0.0f,
                                   0.0f,  0.0f,   k,     1.0f,
-                                  0.0f,  0.0f,    -near * k,   0.0f);    
+                                  0.0f,  0.0f,    -near * k,   0.0f);
   }
 
 
-// TODO set and return camera matrices in once function call 
+// TODO set and return camera matrices in once function call
   void FcCamera::setViewDirection(glm::vec3 position, glm::vec3 target, glm::vec3 up)
   {
      // NOTE1: this originally had--const glm::vec3 w{glm::normalize(target)};
@@ -46,7 +46,7 @@ namespace fc
     const glm::vec3 u{glm::normalize(glm::cross(w, up))};
     const glm::vec3 v{glm::cross(w, u)};
 
-     // TODO initialize view matrix in single call 
+     // TODO initialize view matrix in single call
     mViewMatrix = glm::mat4{1.f};
     mViewMatrix[0][0] = u.x;
     mViewMatrix[1][0] = u.y;
@@ -84,7 +84,7 @@ namespace fc
     setViewDirection(position, target - position, up);
   }
 
-  
+
   void FcCamera::setViewYXZ(glm::vec3 position, glm::vec3 rotation)
   {
     const float c3 = glm::cos(rotation.z);
@@ -127,8 +127,5 @@ namespace fc
     mInverseViewMatrix[3][1] = position.y;
     mInverseViewMatrix[3][2] = position.z;
   }
-  
+
 }
-
-
-

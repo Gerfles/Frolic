@@ -1,21 +1,21 @@
 #pragma once
 
 
-// - FROLIC ENGINE -
-//
-// - EXTERNAL LIBRARIES -
-#include <_types/_uint64_t.h>
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// #include <_types/_uint64_t.h>
 #include <cstddef>
 #include <vulkan/vulkan.hpp>
 #include <glm/vec3.hpp>
 #include <glm/mat4x4.hpp>
-// - STD LIBRARIES -
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <fstream>
 #include <vector>
 
 
 
-// TODO don't forget the glm defines 
+// TODO don't forget the glm defines
 
 namespace fc
 {
@@ -70,7 +70,8 @@ namespace fc
   void printVec(glm::vec3 vector, const char* title);
   void printVec(glm::vec4 vector, const char* title);
   std::vector<char> readFile(const std::string& filname);
-  
+
   template <typename TP>
-  std::time_t to_time_t(TP tp);
+  // std::time_t to_time_t(TP tp);
+  time_t to_time_t(TP tp);
 }

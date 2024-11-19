@@ -1,22 +1,20 @@
 #include "fc_billboard_render_system.hpp"
 
 
-// CORE
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "core/fc_descriptors.hpp"
 #include "core/fc_game_object.hpp"
 #include "core/fc_gpu.hpp"
 #include "core/fc_text.hpp"
 #include "core/fc_locator.hpp"
 #include "core/fc_pipeline.hpp"
-// EXTERNAL
-//#include "core/fc_mesh.hpp"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "core/utilities.hpp"
 #include "vulkan/vulkan_core.h"
-#include <_types/_uint32_t.h>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <algorithm>
 #include <array>
 #include <map>
-#include <sys/_types/_size_t.h>
 #include <utility>
 #include <vector>
 
@@ -34,7 +32,7 @@ namespace fc
   }
 
 
-  
+
 
   void FcBillboard::placeInHandleTable()
   {
@@ -47,9 +45,9 @@ namespace fc
       {
         billboardList[i] = this;
         mHandleIndex = i;
-        
-        // don't think we need uniqueId in this handle system since all will be lights 
-        
+
+        // don't think we need uniqueId in this handle system since all will be lights
+
         return;
       }
     }
@@ -100,7 +98,7 @@ namespace fc
 
      // -- CREATE PIPELINE -- //
     assert(pipeline.Layout() != nullptr && "Cannot create pipeline before pipeline layout");
-    
+
     PipelineConfigInfo pipelineConfig;                         // TODO try with = {}; just to make it more clear that this auto populates with defaults
     pipelineConfig.renderPass = renderPass;
      // ?? check that the below is okay and good practice
@@ -111,7 +109,7 @@ namespace fc
      // make sure to clear these out since we won't be reading any vertex data and MUST signal vulkan as such
     pipelineConfig.bindingDescriptions.clear();
     pipelineConfig.attributeDescriptions.clear();
-    
+
     pipeline.create("billboard.vert.spv", "billboard.frag.spv", pipelineConfig);
   }
 
@@ -122,7 +120,7 @@ namespace fc
 
     // for (size_t i = 0; i < billboards.size(); ++i)
     // {
-      
+
     // }
 
     // std::sort(std::begin(billboards), std::end(billboards)
@@ -136,5 +134,5 @@ namespace fc
     //                }
     //           );
   }
-  
+
 } // _END_ namespace fc

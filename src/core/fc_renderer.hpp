@@ -1,8 +1,7 @@
 #pragma once
 
 
-// - FROLIC ENGINE -
-//#include "core/fc_font.hpp"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "core/fc_billboard_render_system.hpp"
 #include "core/fc_camera.hpp"
 #include "core/fc_model_render_system.hpp"
@@ -15,11 +14,10 @@
 #include "fc_gpu.hpp"
 #include "fc_window.hpp"
 #include "fc_pipeline.hpp"
-//#include "fc_mesh.hpp"
-// - EXTERNAL LIBRARIES -
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
-// - STD LIBRARIES -
-#include <_types/_uint32_t.h>
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// #include <_types/_uint32_t.h>
 #include <stdexcept>
 #include <vector>
 
@@ -30,7 +28,7 @@ namespace fc
    //static constexpr int MAX_FRAMES_IN_FLIGHT = 3; // used in swap chain
   const int MAX_FRAME_DRAWS = 2;
 
-  
+
   class FcRenderer
   {
    private:
@@ -38,7 +36,7 @@ namespace fc
      int mCurrentFrame = 0;
       // TODO determine if buffer count is necessary since we can just call mSwapchain.imageCount();
      int mBufferCount = 0;
-     
+
       //?? try seeing if we can conditionally declare variables when in debug
      VkDebugUtilsMessengerEXT debugMessenger;
      FcWindow mWindow;
@@ -48,7 +46,7 @@ namespace fc
      FcSwapChain mSwapchain;
      std::vector<VkSemaphore> mImageReadySemaphores;
      std::vector<VkSemaphore> mRenderFinishedSemaphores;
-     
+
      VkViewport mDynamicViewport;
      VkRect2D mDynamicScissors;
 
@@ -60,23 +58,23 @@ namespace fc
 
       // PERFORMANCE tracking
 
-     
+
       // camera
 
       // - MODEL RENDERING SYSTEM -
 //     FcCamera mCamera;
      FcModelRenderSystem mModelRenderer;
      FcPipeline mModelPipeline;
-     
+
       // - UI RENDERING SYSTEM -
      FcUIrenderSystem mUiRenderer;
      FcPipeline mUiPipeline;
-     
+
      FcBillboardRenderSystem mBillboardRenderer;
      FcPipeline mBillboardPipeline;
-     
+
      // Allocate Functions
-     
+
      // Debugging validation layers
 #ifdef NDEBUG
        const bool enableValidationLayers = false;
@@ -123,4 +121,3 @@ namespace fc
 // create the instance first and figure out what kind of bufferring we can have
 // (double, tripple, etc) then initialize all following objects to have that
 // size so we don't need to resize anything
-

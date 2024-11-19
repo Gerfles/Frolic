@@ -1,14 +1,12 @@
 #pragma once
 
 
-// - FROLIC ENGINE -
-
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_image.hpp"
-// - EXTERNAL LIBRARIES -
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
 #include "SDL2/SDL_video.h"
-// - STD LIBRARIES -
-#include <_types/_uint32_t.h>
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <vector>
 
 
@@ -17,8 +15,8 @@ namespace fc
 {
    // FORWARD DECLARATIONS
   class FcGpu;
-  
-// ?? could maybe get rid of this 
+
+// ?? could maybe get rid of this
   struct SwapChainDetails
   {
      VkSurfaceCapabilitiesKHR surfaceCapabilities; // surface properties, eg image extent
@@ -28,7 +26,7 @@ namespace fc
 
   class FcSwapChain
   {
-     
+
    private:
       // BUG is there any issues with declaring the following pointer const?
      const FcGpu* pGpu;
@@ -41,18 +39,18 @@ namespace fc
      std::vector<FcImage> mSwapchainImages;
      FcImage mMultiSampledImage;
      FcImage mDepthBufferImage;
-     
+
      std::vector<VkFramebuffer> mSwapChainFramebuffers;
-          
+
      // Prevent Move, copy, assignment
      FcSwapChain(const FcSwapChain&) = delete;
      FcSwapChain(FcSwapChain&&) = delete;
      FcSwapChain& operator=(const FcSwapChain&) = delete;
      FcSwapChain& operator=(FcSwapChain&&) = delete;
-     
+
 
      uint32_t createSwapChain(bool shouldReUseOldSwapchain = false);
-      // Helper functions     
+      // Helper functions
      SwapChainDetails getSwapChainDetails();
      VkSurfaceFormatKHR chooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
      VkPresentModeKHR choosePresentMode(const std::vector<VkPresentModeKHR>& presentModes);
@@ -87,5 +85,5 @@ namespace fc
 
 
 
-  
+
 } //END - namespace fc - END

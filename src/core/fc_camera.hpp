@@ -1,5 +1,3 @@
-//
-
 #pragma once
 
 #include "core/fc_game_object.hpp"
@@ -7,7 +5,7 @@
 
 namespace fc
 {
-  
+
   class FcCamera
   {
    private:
@@ -33,5 +31,5 @@ namespace fc
 
 
 
-  
+
 } // _END_ namespace fc
