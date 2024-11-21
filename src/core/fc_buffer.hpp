@@ -37,7 +37,7 @@ namespace fc
      void create(VkDeviceSize bufferSize, VkBufferUsageFlags useFlags, VkMemoryPropertyFlags properties);
      void storeData(void * srcData, size_t dataSize);
      void copyBuffer(const FcBuffer& srcBuffer, VkDeviceSize bufferSize);
-     VkBuffer& VkBuffer() { return mBuffer; }
+     VkBuffer& getVkBuffer() { return mBuffer; }
      void destroy();
   };
 

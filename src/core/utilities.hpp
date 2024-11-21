@@ -36,11 +36,9 @@ namespace fc
 
 // TODO see if we can eliminate this from the utilities header
   const std::vector<const char*> deviceExtensions = {
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME};
   // More MacOS dependent stuff (I think)
-  VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-  "VK_KHR_portability_subset"
-  };
+  // "VK_KHR_portability_subset"};
 
   //  //TODO try removing static...etc.
   //  // ?? doesn't declaring this static here cause a new local func to be used in each TU

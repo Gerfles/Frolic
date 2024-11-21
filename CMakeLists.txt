@@ -6,13 +6,13 @@
 # #_____________________________________________________________________
 # #configure file to version number into source code
 # #----------------------------------------------------------------------
+# specify the C++ standard
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-# #specify the C++ standard
-# set(CMAKE_CXX_STANDARD 17)
-#  set(CMAKE_CXX_STANDARD_REQUIRED true)
 
-# #output the compile commands
-# set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+
 
 # #configuration types
 #set_directory_properties(PROPERTIES COMPILE_DEFINITIONS_DEBUG "_DEBUG")
@@ -24,7 +24,6 @@ ENDIF()
 
 SET(CMAKE_DEBUG_POSTFIX "d")
 
-
 # # Add compiler errors/warnings flags
 # # target_compile_options(${PROJECT_NAME} PRIVATE $<$<C_COMPILER_ID:MSVC>:/W4 /WX>)
 # # target_compile_options(${PROJECT_NAME} PRIVATE $<$<NOT:$<C_COMPILER_ID:MSVC>>:-Wall -Wextra -pedantic -Werror>)
@@ -32,29 +31,10 @@ SET(CMAKE_DEBUG_POSTFIX "d")
 # # add the core (engine) library
 # add_subdirectory("${PROJECT_SOURCE_DIR}/src/core")
 
-
-
-
 # #add_subdirectory("${PROJECT_SOURCE_DIR}/libs")
-
-
-
-
-
-
 
 # # needed by CMake to find the SDL2 headers on OSX
 # include_directories(/usr/local/include)
-
-
-
-
-
-
-
-
-
-
 
 # # FreeType
 # #include_directories (/usr/local/Cellar/freetype/2.11.1/include/freetype2)
@@ -64,8 +44,6 @@ SET(CMAKE_DEBUG_POSTFIX "d")
 # # not reccommended to do it the way below (make and other programs won't be able to refactor)
 # file(GLOB SOURCES "src/*.cpp")
 # set(SOURCE_FILES ${SOURCES})# src/vulkan_extern.cpp src/vulkan_function.cpp)
-
-
 
 # # add the executable
 # add_executable(${PROJECT_NAME} ${SOURCE_FILES})
@@ -149,7 +127,7 @@ SET(CMAKE_DEBUG_POSTFIX "d")
 
 # # add libraries, including from our game engine
 # TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${SDL2_LIBRARIES} ${SDL2_MIXER_LIBRARIES}
-#   #${SDL2_IMAGE_LIBRARIES} ${SDL2_TTF_LIBRARIES} 
+#   #${SDL2_IMAGE_LIBRARIES} ${SDL2_TTF_LIBRARIES}
 #   ${Vulkan_LIBRARIES} ${FREETYPE_LIBRARIES} Core)# "${PROJECT_SOURCE_DIR}/src/core")
 
 
@@ -163,27 +141,26 @@ SET(CMAKE_DEBUG_POSTFIX "d")
 # #file(COPY audio DESTINATION ${CMAKE_BINARY_DIR})
 # file(COPY maps DESTINATION ${CMAKE_BINARY_DIR})
 # file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/shaders)
-# file(COPY models DESTINATION ${CMAKE_BINARY_DIR}) 
+# file(COPY models DESTINATION ${CMAKE_BINARY_DIR})
 # file(COPY textures DESTINATION ${CMAKE_BINARY_DIR})
 # file(COPY shaders/compile_shaders.sh DESTINATION ${CMAKE_BINARY_DIR})
 
- 
+
 # # compile shaders
 # set(SHADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shaders)
 # file(GLOB SHADERS ${SHADER_DIR}/*.vert ${SHADER_DIR}/*.frag)
 
 # foreach(SHADER ${SHADERS})
 #   get_filename_component(FILENAME ${SHADER} NAME)
-#   message("Shader: ${SHADER_DIR}") 
+#   message("Shader: ${SHADER_DIR}")
 #   add_custom_command(OUTPUT ${SHADER_DIR}/shaders/${FILENAME}.spv
 #     COMMAND ${Vulkan_GLSLC_EXECUTABLE} ${SHADER} -o ${SHADER_DIR}/../build/shaders/${FILENAME}.spv
 #     DEPENDS ${SHADER}
 #     COMMENT "Compiling ${FILENAME}")
 #   list(APPEND SPV_SHADERS ${SHADER_DIR}/shaders/${FILENAME}.spv)
 # endForeach()
-    
-# add_custom_target(shaders ALL DEPENDS ${SPV_SHADERS})
 
+# add_custom_target(shaders ALL DEPENDS ${SPV_SHADERS})
 
 
 ################################################################################################################
@@ -199,12 +176,15 @@ set(NAME frolic)
 #output the compile commands
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# always compile for debugging 
-#set(CMAKE_BUILD_TYPE DEBUG)
+#Choose the build program
+ set(CMAKE_GENERATOR ninja)
 
-message(STATUS "using ${CMAKE_GENERATOR}")
+# always compile for debugging
+set(CMAKE_BUILD_TYPE RELEASE)
+
+message(STATUS "using Cmake Generator: ${CMAKE_GENERATOR}")
 if (CMAKE_GENERATOR STREQUAL "MinGW Makefiles")
-    if (NOT MINGW_PATH) 
+    if (NOT MINGW_PATH)
       message(FATAL_ERROR "MINGW_PATH not set in .env.cmake")
     endif()
     set(USE_MINGW "True")
@@ -230,12 +210,10 @@ else()
 endif()
 
 # # needed by CMake to find the SDL2 headers on OSX
-include_directories(/usr/local/include)
+#include_directories(/usr/local/include)
 
 
 
-
- 
 #_____________________________________________________________________
 # find all the required external libraries
 #--------------------------------------------------------------------
@@ -253,7 +231,7 @@ find_package(SDL2 REQUIRED)
 #find_package(SDL2_ttf REQUIRED)
 
 # Add SDL2_mixer library
-find_package(SDL2_mixer REQUIRED)
+#find_package(SDL2_mixer REQUIRED)
 
 # Add SDL2_net library
 #find_package(SDL2_net REQUIRED)
@@ -301,14 +279,13 @@ endif()
 
 if (assimp_FOUND)
   find_library(ASSIMP_LIBRARY NAMES ${ASSIMP_LIBRARIES} PATH ${ASSIMP_LIBRARY_DIRS})
-   # find_library(ASSIMP_LIBRARY NAMES ${ASSIMP_LIBRARIES} PATH "usr/local/lib") 
+   # find_library(ASSIMP_LIBRARY NAMES ${ASSIMP_LIBRARIES} PATH "usr/local/lib")
    # set(ASSIMP_LIBRARY "assimp")
    # add_library(${ASSIMP_LIBRARY} SHARED IMPORTED)
    # set_target_properties(${ASSIMP_LIBRARY} PROPERTIES IMPORTED_LOCATION "${ASSIMP_LIBRARY_DIRS}/libassimp.dylib")
    message(STATUS "Using Assimp lib at: ${ASSIMP_LIBRARIES}")
-  
- endif(assimp_FOUND)
 
+ endif(assimp_FOUND)
 
 
  message("freetype_FOUND: ${FREETYPE_INCLUDE_DIRS}")
@@ -319,7 +296,19 @@ file(GLOB_RECURSE SOURCES ${PROJECT_SOURCE_DIR}/src/[a-z]*.cpp)
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 
-target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
+
+# #specify the C++ standard
+ # set(CMAKE_CXX_STANDARD 20)
+ # set(CMAKE_CXX_STANDARD_REQUIRED true)
+# set(CMAKE_CXX_COMPILER  $/usr/bin/c++)
+ set(CMAKE_CXX_COMPILER  clang++)
+ target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
+
+
+
+# ?? in tutorial as:
+#add_library(frolic_compiler_flags INTERFACE)
+#target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
 
 #set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/build")
 
@@ -350,10 +339,10 @@ if (WIN32)
     ${ASSIMP_LIBRARY}
    # ${GLFW_LIB}
   )
-  
+
   target_link_libraries(${PROJECT_NAME} vulkan-1)
 elseif (UNIX)
-    message(STATUS "CREATING BUILD FOR UNIX")
+    message(STATUS "CREATING BUILD FOR LINUX")
     target_include_directories(${PROJECT_NAME} PUBLIC
       ${PROJECT_SOURCE_DIR}/src
       ${TINYOBJ_PATH}
@@ -362,15 +351,7 @@ elseif (UNIX)
     target_link_libraries(${PROJECT_NAME} ${Vulkan_LIBRARIES} ${SDL2_LIBRARIES} ${SDL2_MIXER_LIBRARIES} ${ASSIMP_LIBRARIES} ${FREETYPE_LIBRARIES})
   endif()
 
-
-
-
-
-  
-
-  message(STATUS "Cmake C flags: ${CMAKE_C_FLAGS}")
-  
-
+  message(STATUS "Cmake C++ flags: ${CMAKE_CXX_FLAGS}")
 
 
 # ############## Build SHADERS #######################
@@ -378,13 +359,13 @@ elseif (UNIX)
 # # Find all vertex and fragment sources within shaders directory
 # # taken from VBlancos vulkan tutorial
 # # https://github.com/vblanco20-1/vulkan-guide/blob/all-chapters/CMakeLists.txt
-# find_program(GLSL_VALIDATOR glslangValidator HINTS 
-#   ${Vulkan_GLSLANG_VALIDATOR_EXECUTABLE} 
-#   /usr/bin 
-#   /usr/local/bin 
+# find_program(GLSL_VALIDATOR glslangValidator HINTS
+#   ${Vulkan_GLSLANG_VALIDATOR_EXECUTABLE}
+#   /usr/bin
+#   /usr/local/bin
 #   ${VULKAN_SDK_PATH}/Bin
 #   ${VULKAN_SDK_PATH}/Bin32
-#   $ENV{VULKAN_SDK}/Bin/ 
+#   $ENV{VULKAN_SDK}/Bin/
 #   $ENV{VULKAN_SDK}/Bin32/
 # )
 
@@ -421,7 +402,7 @@ file(COPY fonts DESTINATION ${CMAKE_BINARY_DIR})
 #file(COPY audio DESTINATION ${CMAKE_BINARY_DIR})
 file(COPY maps DESTINATION ${CMAKE_BINARY_DIR})
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/shaders)
-file(COPY models DESTINATION ${CMAKE_BINARY_DIR}) 
+file(COPY models DESTINATION ${CMAKE_BINARY_DIR})
 file(COPY textures DESTINATION ${CMAKE_BINARY_DIR})
 file(COPY shaders/compile_shaders.sh DESTINATION ${CMAKE_BINARY_DIR})
 
@@ -432,12 +413,12 @@ file(GLOB SHADERS ${SHADER_DIR}/*.vert ${SHADER_DIR}/*.frag)
 
 foreach(SHADER ${SHADERS})
   get_filename_component(FILENAME ${SHADER} NAME)
-  message("Shader: ${SHADER_DIR}") 
+  message("Shader: ${SHADER_DIR}")
   add_custom_command(OUTPUT ${SHADER_DIR}/shaders/${FILENAME}.spv
     COMMAND ${Vulkan_GLSLANG_VALIDATOR_EXECUTABLE} ${SHADER} -V -o ${SHADER_DIR}/../build/shaders/${FILENAME}.spv
     DEPENDS ${SHADER}
     COMMENT "Compiling ${FILENAME}")
   list(APPEND SPV_SHADERS ${SHADER_DIR}/shaders/${FILENAME}.spv)
 endForeach()
-    
+
 add_custom_target(shaders ALL DEPENDS ${SPV_SHADERS})

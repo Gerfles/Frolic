@@ -86,7 +86,7 @@ namespace fc
     layoutCreateInfo.bindingCount = static_cast<uint32_t>(layoutBindings.size());
     layoutCreateInfo.pBindings = layoutBindings.data();
 
-    if (vkCreateDescriptorSetLayout(pGpu->VkDevice(), &layoutCreateInfo, nullptr, &mUboDescriptorSetLayout)
+    if (vkCreateDescriptorSetLayout(pGpu->getVkDevice(), &layoutCreateInfo, nullptr, &mUboDescriptorSetLayout)
         != VK_SUCCESS)
     {
       throw std::runtime_error("Failed to create a Vulkan Descriptor Set Layout!");
@@ -109,7 +109,7 @@ namespace fc
     textureLayoutInfo.pBindings = &samplerLayoutBinding;
 
      // create sampler descriptor set layout
-    if (vkCreateDescriptorSetLayout(pGpu->VkDevice(), &textureLayoutInfo, nullptr, &mSamplerDescriptorSetLayout) != VK_SUCCESS)
+    if (vkCreateDescriptorSetLayout(pGpu->getVkDevice(), &textureLayoutInfo, nullptr, &mSamplerDescriptorSetLayout) != VK_SUCCESS)
     {
       throw std::runtime_error("Failed to create a Vulkan Descriptor Set Layout!");
     }
@@ -142,7 +142,7 @@ namespace fc
     poolInfo.pPoolSizes = descriptorPoolSizes.data();
 
      //
-    if (vkCreateDescriptorPool(pGpu->VkDevice(), &poolInfo, nullptr, &mDescriptorPool) != VK_SUCCESS)
+    if (vkCreateDescriptorPool(pGpu->getVkDevice(), &poolInfo, nullptr, &mDescriptorPool) != VK_SUCCESS)
     {
       throw std::runtime_error("Failed to create a Vulkan Descriptor Pool!");
     }
@@ -162,7 +162,7 @@ namespace fc
     samplerPoolInfo.pPoolSizes = &samplerPoolSize;
 
 
-    if (vkCreateDescriptorPool(pGpu->VkDevice(), &samplerPoolInfo, nullptr, &mSamplerDescriptorPool) != VK_SUCCESS)
+    if (vkCreateDescriptorPool(pGpu->getVkDevice(), &samplerPoolInfo, nullptr, &mSamplerDescriptorPool) != VK_SUCCESS)
     {
       throw std::runtime_error("Failed to create a Vulkan Descriptor Pool!");
     }
@@ -186,7 +186,7 @@ namespace fc
     setAllocInfo.pSetLayouts = setLayouts.data(); // layouts to use to allocate sets (1:1 ratio)
 
      // Allocate descriptor sets (multiple)
-    if (vkAllocateDescriptorSets(pGpu->VkDevice(), &setAllocInfo, mUboDescriptorSets.data()) != VK_SUCCESS)
+    if (vkAllocateDescriptorSets(pGpu->getVkDevice(), &setAllocInfo, mUboDescriptorSets.data()) != VK_SUCCESS)
     {
       throw std::runtime_error("Failed to allocate Vulkan Descriptor Sets!");
     }
@@ -196,7 +196,7 @@ namespace fc
     {
        // buffer info and data offset info
       VkDescriptorBufferInfo globalUniformBufferInfo{};
-      globalUniformBufferInfo.buffer = mGlobalUniformBuffers[i].VkBuffer(); // buffer to get data from
+      globalUniformBufferInfo.buffer = mGlobalUniformBuffers[i].getVkBuffer(); // buffer to get data from
       globalUniformBufferInfo.offset = 0; // position of start of data
       globalUniformBufferInfo.range = sizeof(GlobalUbo); // size of data
 
@@ -230,7 +230,7 @@ namespace fc
       std::array<VkWriteDescriptorSet, 1> setWrites = {globalUboSetWrite}; // , modelSetWrite};
        // update the descriptor sets with new buffer/binding infor
        //TODO probably better to update all the descriptor sets at once
-      vkUpdateDescriptorSets(pGpu->VkDevice(), static_cast<uint32_t>(setWrites.size()), setWrites.data(), 0, nullptr);
+      vkUpdateDescriptorSets(pGpu->getVkDevice(), static_cast<uint32_t>(setWrites.size()), setWrites.data(), 0, nullptr);
     }
 
   }
@@ -294,7 +294,7 @@ namespace fc
     setAllocInfo.pSetLayouts = &mSamplerDescriptorSetLayout;
 
      // Allocate descriptor sets
-    if (vkAllocateDescriptorSets(pGpu->VkDevice(), &setAllocInfo, &descriptorSet) != VK_SUCCESS)
+    if (vkAllocateDescriptorSets(pGpu->getVkDevice(), &setAllocInfo, &descriptorSet) != VK_SUCCESS)
     {
       throw std::runtime_error("Failed to allocate Vulkan Descriptor Set for a texture!");
     }
@@ -317,7 +317,7 @@ namespace fc
     descriptorWrite.pImageInfo = &imageInfo;
 
      // update the new descriptor set
-    vkUpdateDescriptorSets(pGpu->VkDevice(), 1, &descriptorWrite, 0, nullptr);
+    vkUpdateDescriptorSets(pGpu->getVkDevice(), 1, &descriptorWrite, 0, nullptr);
 
      // add descriptor set to list
     mSamplerDescriptorSets.push_back(descriptorSet);
@@ -365,13 +365,13 @@ namespace fc
      // free(pModelTransferSpace);
 
      // TEXTURES
-    vkDestroyDescriptorPool(pGpu->VkDevice(), mSamplerDescriptorPool, nullptr);
-    vkDestroyDescriptorSetLayout(pGpu->VkDevice(), mSamplerDescriptorSetLayout, nullptr);
+    vkDestroyDescriptorPool(pGpu->getVkDevice(), mSamplerDescriptorPool, nullptr);
+    vkDestroyDescriptorSetLayout(pGpu->getVkDevice(), mSamplerDescriptorSetLayout, nullptr);
      // TODO  should also check all this stuff to see if it's VK_NULL_HANDLE
 
      //vkDestroySampler(pGpu->VkDevice(), mTextureSampler, nullptr);
 
-    vkDestroyDescriptorPool(pGpu->VkDevice(), mDescriptorPool, nullptr);
+    vkDestroyDescriptorPool(pGpu->getVkDevice(), mDescriptorPool, nullptr);
 
      // delete all the buffers (1 per swap chain image)
 
@@ -385,7 +385,7 @@ namespace fc
      //   buffer.destroy();
      // }
 
-    vkDestroyDescriptorSetLayout(pGpu->VkDevice(), mUboDescriptorSetLayout, nullptr);
+    vkDestroyDescriptorSetLayout(pGpu->getVkDevice(), mUboDescriptorSetLayout, nullptr);
   }
 
 }//namespace lve _END_

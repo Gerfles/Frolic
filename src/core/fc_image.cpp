@@ -345,7 +345,7 @@ namespace fc
      // TODO should allow this to be user definable or at least profiled at install/runtime
     samplerInfo.maxAnisotropy = gpu.Properties().maxSamplerAnisotropy; // Amount of anisotropic samples being taken
 
-    if (vkCreateSampler(gpu.VkDevice(), &samplerInfo, nullptr, &mTextureSampler) != VK_SUCCESS)
+    if (vkCreateSampler(gpu.getVkDevice(), &samplerInfo, nullptr, &mTextureSampler) != VK_SUCCESS)
     {
       throw std::runtime_error("Failed to create a Vulkan Texture Sampler!");
     }
@@ -371,7 +371,7 @@ namespace fc
     imageCopyRegion.imageExtent = {mWidth, mHeight, 1};                     // size of region to copy as (x,y,z) values
 
      // create the command to copy a buffer to the image
-    vkCmdCopyBufferToImage(transferCommandBuffer, srcBuffer.VkBuffer(), mImage
+    vkCmdCopyBufferToImage(transferCommandBuffer, srcBuffer.getVkBuffer(), mImage
                            , VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageCopyRegion);
 
      //  finally, submit the transfer command to the command buffer and submit

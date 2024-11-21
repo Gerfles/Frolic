@@ -69,7 +69,7 @@ namespace fc
        //  { return mDescriptor.createTextureDescriptor(textureImageView, textureSampler); }
         // GETTERS
         //size_t ModelUniformAlignment() { return mDescriptor.ModelUniformAlignment(); }
-       const VkPipeline& VkPipeline() const { return mPipeline; }
+       const VkPipeline& getVkPipeline() const { return mPipeline; }
        VkPipelineLayout& Layout() { return mPipelineLayout; }
         //VkDescriptorSet DescriptorSet(int index) { return mDescriptor[index]; }
         //VkDescriptorSet TextureDescriptorSet(const FcFont& font) { return mDescriptor[font]; }

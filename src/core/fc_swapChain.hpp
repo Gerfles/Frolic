@@ -41,20 +41,19 @@ namespace fc
      FcImage mDepthBufferImage;
 
      std::vector<VkFramebuffer> mSwapChainFramebuffers;
+     uint32_t createSwapChain(const VkExtent2D& windowSize, bool shouldReUseOldSwapchain = false);
 
-     // Prevent Move, copy, assignment
+// -*-*-*-*-*-*-*-*-*-*-   PREVENT MOVE, COPY, ASSIGNMENT   -*-*-*-*-*-*-*-*-*-*- //
      FcSwapChain(const FcSwapChain&) = delete;
      FcSwapChain(FcSwapChain&&) = delete;
      FcSwapChain& operator=(const FcSwapChain&) = delete;
      FcSwapChain& operator=(FcSwapChain&&) = delete;
 
-
-     uint32_t createSwapChain(bool shouldReUseOldSwapchain = false);
-      // Helper functions
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-   HELPER FUNCTIONS   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      SwapChainDetails getSwapChainDetails();
      VkSurfaceFormatKHR chooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
      VkPresentModeKHR choosePresentMode(const std::vector<VkPresentModeKHR>& presentModes);
-     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& surfaceCapabilities);
+     VkExtent2D chooseSwapExtent(VkSurfaceCapabilitiesKHR& surfaceCapabilities, const VkExtent2D& windowSize);
      VkFormat chooseSupportedFormat(const std::vector<VkFormat>& formats
                                     , VkImageTiling tiling, VkFormatFeatureFlags featureFlags);
      void createRenderPass();
@@ -64,7 +63,7 @@ namespace fc
       // INITIALIZATION
      FcSwapChain() = default;
      FcSwapChain(FcSwapChain* oldSwapChain);
-     uint32_t init(FcGpu& gpu);
+     uint32_t init(FcGpu& gpu, const VkExtent2D& windowSize);
       // TODO see if we can just make this part of create swapChain??
      void reCreateSwapChain();
       // Getter functions

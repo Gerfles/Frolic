@@ -40,7 +40,7 @@ namespace fc
           else
           {
             pGpu = gpu;
-            pDevice = gpu->VkDevice();
+            pDevice = gpu->getVkDevice();
           }
         }
 

@@ -70,8 +70,8 @@ namespace fc
      uint32_t VertexCount() const { return mVertexCount; }
      uint32_t IndexCount() const { return mIndexCount; }
       // TODO should both be const and probably not referenct since VkBuffer is just pointer
-     VkBuffer& VertexBuffer() { return mVertexBuffer.VkBuffer(); }
-     const VkBuffer IndexBuffer() { return mIndexBuffer.VkBuffer(); }
+     VkBuffer& VertexBuffer() { return mVertexBuffer.getVkBuffer(); }
+     const VkBuffer IndexBuffer() { return mIndexBuffer.getVkBuffer(); }
      uint32_t DescriptorId() const { return mTextureID; }
       // CLEANUP
      void destroy();

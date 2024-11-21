@@ -12,6 +12,7 @@
 #include "vulkan/vulkan_core.h"
 // - STD LIBRARIES -
 #include <algorithm>
+#include <iostream>
 #include <limits>
 #include <sstream>
 #include <stdexcept>
@@ -23,7 +24,6 @@ namespace fc {
   {
      //TODO not sure this is even necessary to store the window extent?
      //mScreenSize = {width, height};
-
      // SDL_Init() initializes assertions and crash protection
      // and then calls SDL_InitSubSystem(). TODO bypass those protections
      // by calling SDL_InitSubSystem() directly for release.
@@ -36,7 +36,8 @@ namespace fc {
       return false;
     }
 
-     // create fullscreen window TODO On MacOS NSHighResolutionCapable must be set to true in the
+     // create fullscreen window
+     // TODO On MacOS NSHighResolutionCapable must be set to true in the
      // application Info.plist for SDL_WINDOW_ALLOW_HIGHDPI to have any effect
     if (isFullscreen)
     {
@@ -58,6 +59,10 @@ namespace fc {
       SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "SDL", errorMsg.str().c_str(), mWindow);
       return false;
     }
+
+    VkExtent2D wsize = ScreenSize();
+    std::cout << "mWindow dimensions init window: " << wsize.width
+              << " x " << wsize.height << std::endl;
 
     return true;
   }

@@ -1,19 +1,19 @@
 #pragma once
 
-// - FROLIC ENGINE -
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 //#include "core/fc_descriptors.hpp"
 #include "fc_billboard_render_system.hpp"
 #include "fc_image.hpp"
 //#include "core/mesh.h"
 //#include "fc_pipeline.hpp"
-// - EXTERNAL LIBRARIES -
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "glm/glm.hpp"
 #include <ft2build.h>
 #include <unordered_map>
 //?? what's up with the following includes
 #include FT_FREETYPE_H /* wierd font-lock issue TODO solve issue */
 #include FT_GLYPH_H
-// - STD LIBRARIES -
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <string>
 
 

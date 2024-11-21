@@ -68,6 +68,11 @@ namespace fc
       createInstance(appInfo);
        // create the surface (interface between Vulkan and window (SDL))
       mWindow.createWindowSurface(mInstance);
+
+    std::cout << "window dimensions88: " << mWindow.ScreenSize().width
+                << " x " << mWindow.ScreenSize().height << std::endl;
+
+
        // retrieve the physical device then create the logical device to interface with GPU & command pool
       if ( !mGpu.init(mInstance, mWindow))
       {
@@ -77,7 +82,10 @@ namespace fc
       FcLocator::provide(&mGpu);
 
        // create the swapchain & renderpass & frambuffers & depth buffer
-      mBufferCount = mSwapchain.init(mGpu);
+      mBufferCount = mSwapchain.init(mGpu, mWindow.ScreenSize());
+
+
+
       createCommandBuffers();
 
        // initialze the dynamic viewport and scissors
@@ -172,7 +180,7 @@ namespace fc
 
     if (enableValidationLayers)
     {
-      validationLayers.push_back("VK_LAYER_KHRONOS_validation");
+       validationLayers.push_back("VK_LAYER_KHRONOS_validation");
        // check that Vulkan drivers support these validation layers
       if (!areValidationLayersSupported(validationLayers))
       {
@@ -243,7 +251,7 @@ namespace fc
     commandBufferAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY; // PRIMARY allows this to be directly used by a queue as opposed to SECONDARY which allows it to be used only by another command buffer using vkExecuteCmdBuffer(secondary buffer)
     commandBufferAllocInfo.commandBufferCount = static_cast<uint32_t>(mCommandBuffers.size());
 
-    if (vkAllocateCommandBuffers(mGpu.VkDevice(), &commandBufferAllocInfo, mCommandBuffers.data()))
+    if (vkAllocateCommandBuffers(mGpu.getVkDevice(), &commandBufferAllocInfo, mCommandBuffers.data()))
     {
       throw std::runtime_error("Failed to allocate Vulkan Command Buffers!");
     }
@@ -473,9 +481,9 @@ namespace fc
     for (size_t i = 0; i < MAX_FRAME_DRAWS; ++i)
     {
        // create 2 semaphores (one tells us the image is ready to draw to and one tells us when we're done drawing)
-      if (vkCreateSemaphore(mGpu.VkDevice(), &semaphoreInfo, nullptr, &mImageReadySemaphores[i]) != VK_SUCCESS
-          || vkCreateSemaphore(mGpu.VkDevice(), &semaphoreInfo, nullptr, &mRenderFinishedSemaphores[i]) != VK_SUCCESS
-          || vkCreateFence(mGpu.VkDevice(), &fenceInfo, nullptr, &mDrawFences[i]) != VK_SUCCESS)
+      if (vkCreateSemaphore(mGpu.getVkDevice(), &semaphoreInfo, nullptr, &mImageReadySemaphores[i]) != VK_SUCCESS
+          || vkCreateSemaphore(mGpu.getVkDevice(), &semaphoreInfo, nullptr, &mRenderFinishedSemaphores[i]) != VK_SUCCESS
+          || vkCreateFence(mGpu.getVkDevice(), &fenceInfo, nullptr, &mDrawFences[i]) != VK_SUCCESS)
       {
         throw std::runtime_error("Failed to create a Vulkan sychronization object (Semaphore or Fence)!");
       }
@@ -490,11 +498,11 @@ namespace fc
     uint64_t maxWaitTime = std::numeric_limits<uint64_t>::max();
 
      // don't keep adding images to the queue or submitting commands to the buffer until this frame has signalled that it's ready (last draw has finished)
-    vkWaitForFences(mGpu.VkDevice(), 1, &mDrawFences[mCurrentFrame], VK_TRUE, maxWaitTime);
+    vkWaitForFences(mGpu.getVkDevice(), 1, &mDrawFences[mCurrentFrame], VK_TRUE, maxWaitTime);
 
      // 1. get the next available image to draw to and set to signal when we're finished with the image (a semaphore)
     uint32_t nextSwapchainImage;
-    VkResult result = vkAcquireNextImageKHR(mGpu.VkDevice(), mSwapchain.vkSwapchain(), maxWaitTime
+    VkResult result = vkAcquireNextImageKHR(mGpu.getVkDevice(), mSwapchain.vkSwapchain(), maxWaitTime
                                             , mImageReadySemaphores[mCurrentFrame], VK_NULL_HANDLE, &nextSwapchainImage);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR)
@@ -508,7 +516,7 @@ namespace fc
     }
 
      // manully un-signal (close) the fence ONLY when we are sure we're submitting work (result == VK_SUCESS)
-    vkResetFences(mGpu.VkDevice(), 1, &mDrawFences[mCurrentFrame]);
+    vkResetFences(mGpu.getVkDevice(), 1, &mDrawFences[mCurrentFrame]);
 
      // ?? don't think we need this assert since we use semaphores and fences
      // assert(!mIsFrameStarted && "Can't call recordCommands() while frame is already in progress!");
@@ -637,7 +645,7 @@ namespace fc
       SDL_WaitEvent(nullptr);
     }
 
-    vkDeviceWaitIdle(mGpu.VkDevice());
+    vkDeviceWaitIdle(mGpu.getVkDevice());
     VkExtent2D winExtent{static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
 
      //
@@ -650,7 +658,7 @@ namespace fc
   {
     std::cout << "calling: FcRenderer::shutDown" << std::endl;
      // wait until no actions being run on device before destroying
-    vkDeviceWaitIdle(mGpu.VkDevice());
+    vkDeviceWaitIdle(mGpu.getVkDevice());
 
      //mUiRenderer.destroy();
 
@@ -658,9 +666,9 @@ namespace fc
 
     for (size_t i = 0; i < MAX_FRAME_DRAWS; ++i)
     {
-      vkDestroySemaphore(mGpu.VkDevice(), mRenderFinishedSemaphores[i], nullptr);
-      vkDestroySemaphore(mGpu.VkDevice(), mImageReadySemaphores[i], nullptr);
-      vkDestroyFence(mGpu.VkDevice(), mDrawFences[i], nullptr);
+      vkDestroySemaphore(mGpu.getVkDevice(), mRenderFinishedSemaphores[i], nullptr);
+      vkDestroySemaphore(mGpu.getVkDevice(), mImageReadySemaphores[i], nullptr);
+      vkDestroyFence(mGpu.getVkDevice(), mDrawFences[i], nullptr);
     }
 
      // TODO conditionalize all elements that might not need destroying if outside

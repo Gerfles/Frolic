@@ -1,3 +1,4 @@
+
 #pragma once
 
 // Frolic Engine
@@ -56,7 +57,7 @@ namespace fc
        void submitCommandBuffer(VkCommandBuffer commandBuffer) const;
         // TODO establish convention that all getter functions are capitalized (since they "are" a type)
         // - GETTER FUNCTIONS -
-       const VkDevice& VkDevice() const { return mLogicalGPU; }
+       const VkDevice& getVkDevice() const { return mLogicalGPU; }
        const VkPhysicalDevice& physicalDevice() const { return mPhysicalGPU; }
        const VkSurfaceKHR& surface() const { return pWindow->surface(); }
        VkExtent2D SurfaceExtent() const { return pWindow->ScreenSize(); }

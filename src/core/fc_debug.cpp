@@ -77,14 +77,16 @@ namespace fc
   }
 
 
-
+   // TODO could be faster to only check for the layers we require instead of a for loop over all available layers
+   // since most of the time, we probably only require a few layers
   bool areValidationLayersSupported(std::vector<const char*>& validationLayers)
   {
-     // make a list of all vulkan layers available to us
+     // fill a vector with all the vulkan layers available to us
     uint32_t layerCount;
     vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
     std::vector<VkLayerProperties> availableLayers(layerCount);
     vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
 
     std::unordered_set<std::string> requiredLayers(validationLayers.begin(), validationLayers.end());
 

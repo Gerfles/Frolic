@@ -11,7 +11,6 @@
 
 namespace fc
 {
-
   void FcModelRenderSystem::createPipeline(FcGpu& gpu, FcPipeline& pipeline
                                            , FcDescriptor& descriptors, VkRenderPass& renderPass)
   {
@@ -32,7 +31,7 @@ namespace fc
     pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
      // create pipeline layout
-    if (vkCreatePipelineLayout(gpu.VkDevice(), &pipelineLayoutInfo, nullptr, &pipeline.Layout()) != VK_SUCCESS)
+    if (vkCreatePipelineLayout(gpu.getVkDevice(), &pipelineLayoutInfo, nullptr, &pipeline.Layout()) != VK_SUCCESS)
     {
       throw std::runtime_error("Failed to create Pipeline Layout!");
     }
@@ -41,18 +40,15 @@ namespace fc
 
     assert(pipeline.Layout() != nullptr && "Cannot create pipeline before pipeline layout");
 
-    PipelineConfigInfo pipelineConfig;                         // TODO try with = {}; just to make it more clear that this auto populates with defaults
+    PipelineConfigInfo pipelineConfig {};                         // TODO try with = {}; just to make it more clear that this auto populates with defaults
     pipelineConfig.renderPass = renderPass;
      // ?? check that the below is okay and good practice
     pipelineConfig.pipelineLayout = pipeline.Layout();
-
-    std::cout << "Sample Count: " << gpu.Properties().maxMsaaSamples << std::endl;
 
 //    pipelineConfig.rasterizationSamples = VK_SAMPLE_COUNT_8_BIT; //gpu.Properties().maxMsaaSamples;
     pipelineConfig.multiSamplingInfo.rasterizationSamples = gpu.Properties().maxMsaaSamples;
 
     pipeline.create("tri.vert.spv", "tri.frag.spv", pipelineConfig);
-
   }
 
 

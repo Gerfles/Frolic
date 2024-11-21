@@ -1,29 +1,31 @@
 #include "fc_swapChain.hpp"
 
-// - FROLIC ENGINE -
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "core/fc_window.hpp"
 #include "fc_gpu.hpp"
 #include "utilities.hpp"
-// - EXTERNAL LIBRARIES -
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "SDL2/SDL_events.h"
 #include "SDL2/SDL_video.h"
 #include "SDL2/SDL_vulkan.h"
 #include "vulkan/vulkan_core.h"
-// - STD LIBRARIES -
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <array>
 #include <cstddef>
 #include <iostream>
 #include <stdexcept>
 #include <vector>
+#include <algorithm>
 
 
 namespace fc
 {
 
-  uint32_t FcSwapChain::init(FcGpu& gpu)
+  uint32_t FcSwapChain::init(FcGpu& gpu, const VkExtent2D& windowSize)
   {
     pGpu = &gpu;
 
-    uint32_t swapchainImageCount = createSwapChain();
+    uint32_t swapchainImageCount = createSwapChain(windowSize);
     createDepthBufferImage();
     createRenderPass();
     createFrameBuffers();
@@ -36,20 +38,19 @@ namespace fc
   void FcSwapChain::reCreateSwapChain()
   {
      // make sure nothing is getting written to or read before we re-create our swap chain
-    vkDeviceWaitIdle(pGpu->VkDevice());
+    vkDeviceWaitIdle(pGpu->getVkDevice());
 
      // toss out old swap chain stuff
     clearSwapChain();
 
     // create new swap chain stuff
-    createSwapChain(true);
+    createSwapChain(mSurfaceExtent, true);
     createDepthBufferImage();
     createFrameBuffers();
   }
 
 
-
-  uint32_t FcSwapChain::createSwapChain(bool shouldReUseOldSwapchain)
+  uint32_t FcSwapChain::createSwapChain(const VkExtent2D& windowSize, bool shouldReUseOldSwapchain)
   {
     SwapChainDetails swapChainDetails = getSwapChainDetails();
 
@@ -58,7 +59,10 @@ namespace fc
      // 2. Choose best presentation modes
     VkPresentModeKHR presentMode = choosePresentMode(swapChainDetails.presentModes);
      // 3. Choose swap chain image resolution
-    VkExtent2D extent = chooseSwapExtent(swapChainDetails.surfaceCapabilities);
+    VkExtent2D extent = chooseSwapExtent(swapChainDetails.surfaceCapabilities, windowSize);
+
+    // std::cout << "extent size: " << extent.width
+    //           << " x " << extent.height << std::endl;
 
      // BUG this would NOT give us tripple buffering and instead give us double buffering if minImageCount is 1;
      // How many images are in the swap chain? get 1 more than the minimum to allow tripple buffering
@@ -109,7 +113,7 @@ namespace fc
     swapChainInfo.oldSwapchain = oldSwapchain;
 
      // Finally, create the swapchain
-    if (vkCreateSwapchainKHR(pGpu->VkDevice(), &swapChainInfo, nullptr, &mSwapchain) != VK_SUCCESS)
+    if (vkCreateSwapchainKHR(pGpu->getVkDevice(), &swapChainInfo, nullptr, &mSwapchain) != VK_SUCCESS)
     {
       throw std::runtime_error("Failed to create a swapchain");
     }
@@ -117,7 +121,7 @@ namespace fc
      // if we are reusing resources from old swap chain, make sure to destroy them after new swapchain creation
     if (shouldReUseOldSwapchain)
     {
-      vkDestroySwapchainKHR(pGpu->VkDevice(), oldSwapchain, nullptr);
+      vkDestroySwapchainKHR(pGpu->getVkDevice(), oldSwapchain, nullptr);
     }
     //
 
@@ -127,10 +131,10 @@ namespace fc
 
      //
     uint32_t swapchainImageCount;
-    vkGetSwapchainImagesKHR(pGpu->VkDevice(), mSwapchain, &swapchainImageCount, nullptr);
+    vkGetSwapchainImagesKHR(pGpu->getVkDevice(), mSwapchain, &swapchainImageCount, nullptr);
     std::cout << "Actual Swap chain Image count: " << swapchainImageCount << std::endl;
     std::vector<VkImage> images(swapchainImageCount);
-    vkGetSwapchainImagesKHR(pGpu->VkDevice(), mSwapchain, &swapchainImageCount, images.data());
+    vkGetSwapchainImagesKHR(pGpu->getVkDevice(), mSwapchain, &swapchainImageCount, images.data());
 
     for (VkImage image : images)
     {
@@ -221,6 +225,9 @@ namespace fc
 
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &swapChainDetails.surfaceCapabilities);
 
+    // std::cout << "surface capabilities size: " << swapChainDetails.surfaceCapabilities.maxImageExtent.width
+    //           << " x " << swapChainDetails.surfaceCapabilities.maxImageExtent.height  << std::endl;
+
     uint32_t formatCount = 0;
     vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
 
@@ -246,26 +253,29 @@ namespace fc
   }
 
 
-  VkExtent2D FcSwapChain::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& surfaceCapabilities)
+  VkExtent2D FcSwapChain::chooseSwapExtent(VkSurfaceCapabilitiesKHR& surfaceCapabilities, const VkExtent2D& windowSize)
   {
      // if current extent is at numeric limits, then extent can vary. and we will have to determine it ourselves
+
+     // Figure out what the resolution of the surface is in pixel size (account for high-DPI monitors)
     if (surfaceCapabilities.currentExtent.width == std::numeric_limits<uint32_t>::max())
     {
-       // if the value can vary, we need to set it manually
-      VkExtent2D actualExtent = mSurfaceExtent;
+       // if the value can vary, we need to set it manually so first set it to the actual window size
+      VkExtent2D actualExtent  = windowSize;
 
-       // TODO use the clamp methods instead
        // Surface also defines max and min, so make sure within boundaries by clamping values
-      actualExtent.width = std::max(surfaceCapabilities.minImageExtent.width
-                                    ,std::min(surfaceCapabilities.minImageExtent.width, actualExtent.width));
-      actualExtent.height = std::max(surfaceCapabilities.minImageExtent.height
-                                     ,std::min(surfaceCapabilities.minImageExtent.height, actualExtent.height));
-      std::cout << "swapchain size: " << actualExtent.width << " x " << actualExtent.height << std::endl;
+      actualExtent.width = std::clamp(actualExtent.width, surfaceCapabilities.minImageExtent.width
+                                      , surfaceCapabilities.maxImageExtent.width);
+      actualExtent.height = std::clamp(actualExtent.height, surfaceCapabilities.minImageExtent.height
+                                       , surfaceCapabilities.maxImageExtent.height);
+
       return actualExtent;
     }
 
      // Otherwise, it's just the size of window
-    std::cout << "swapchain size: " << surfaceCapabilities.currentExtent.width << " x " << surfaceCapabilities.currentExtent.height << std::endl;
+    std::cout << "swapchain size: " << surfaceCapabilities.currentExtent.width
+              << " x " << surfaceCapabilities.currentExtent.height << std::endl;
+
     return surfaceCapabilities.currentExtent;
   }
 
@@ -423,7 +433,7 @@ namespace fc
     renderPassInfo.dependencyCount = static_cast<uint32_t>(subpassDependencies.size());
     renderPassInfo.pDependencies = subpassDependencies.data();
 
-    if (vkCreateRenderPass(pGpu->VkDevice(), &renderPassInfo, nullptr, &mRenderPass) != VK_SUCCESS)
+    if (vkCreateRenderPass(pGpu->getVkDevice(), &renderPassInfo, nullptr, &mRenderPass) != VK_SUCCESS)
     {
       throw std::runtime_error("Failed to create a Vulkan Render Pass!");
     }
@@ -452,7 +462,7 @@ namespace fc
       frameBufferInfo.height = mSurfaceExtent.height;                              // framebuffer height
       frameBufferInfo.layers = 1;                                                  // framebuffer layers
 
-      if (vkCreateFramebuffer(pGpu->VkDevice(), &frameBufferInfo, nullptr, &mSwapChainFramebuffers[i]) != VK_SUCCESS)
+      if (vkCreateFramebuffer(pGpu->getVkDevice(), &frameBufferInfo, nullptr, &mSwapChainFramebuffers[i]) != VK_SUCCESS)
       {
         throw std::runtime_error("Failed to create Vulkan Frame Buffer!");
       }
@@ -471,7 +481,7 @@ namespace fc
      // destroy all the frame buffers
     for (auto& frameBuffer : mSwapChainFramebuffers)
     {
-      vkDestroyFramebuffer(pGpu->VkDevice(), frameBuffer, nullptr);
+      vkDestroyFramebuffer(pGpu->getVkDevice(), frameBuffer, nullptr);
     }
 
      // destroy all the images views in our swapchain--the actual images and memory are freed by actual swapchain
@@ -493,10 +503,10 @@ namespace fc
     clearSwapChain();
 
      // destroy the render pass
-    vkDestroyRenderPass(pGpu->VkDevice(), mRenderPass, nullptr);
+    vkDestroyRenderPass(pGpu->getVkDevice(), mRenderPass, nullptr);
 
      // finally destroy the swapchain itself
-    vkDestroySwapchainKHR(pGpu->VkDevice(), mSwapchain, nullptr);
+    vkDestroySwapchainKHR(pGpu->getVkDevice(), mSwapchain, nullptr);
   }
 
 

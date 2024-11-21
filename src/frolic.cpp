@@ -35,7 +35,7 @@ namespace fc
      // the following does affect the program unlike the above
     appInfo.apiVersion         = VK_API_VERSION_1_3;       // the version of Vulkan ()
 
-    VkExtent2D screenDims {800, 600};
+    VkExtent2D screenDims {1200, 900};
     FcLocator::provide(screenDims);
      // Version info
      //TODO should do this in a builder class that goes out of scope when no longer needed
@@ -350,7 +350,7 @@ namespace fc
 
       avgFrameTime = MAX_FRAME_SAMPLES/avgFrameTime;
 
-      std::cout << "average frames per second: " << avgFrameTime << std::endl;
+       //      std::cout << "average frames per second: " << avgFrameTime << std::endl;
     }
 
      // make sure we wrap around on the MAX_FRAME_SAMPLE'th sample

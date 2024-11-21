@@ -22,8 +22,6 @@ namespace fc
      // first couple the window instance to the GPU (needed for surface stuff)
     pWindow = &window;
 
-
-
     //  // enumerate all the physical devices the vkInstance can access
     // uint32_t deviceCount = 0;
     // vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
@@ -41,8 +39,10 @@ namespace fc
     //   }
     // }
 
-    const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME
-                                                     , "VK_KHR_portability_subset"};
+    const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+     // TODO I believe the following is needed by MacOS
+     //                                                     , "VK_KHR_portability_subset"};
+
     pickPhysicalDevice(instance, deviceExtensions);
 
      // now that we have the GPU chosen, interface the logical device to that GPU
@@ -109,19 +109,21 @@ namespace fc
     VkPhysicalDeviceFeatures supportedFeatures;
     vkGetPhysicalDeviceFeatures(potentialDevice, &supportedFeatures);
 
-     // make sure we're using a dedicated graphics card
+     // make sure we're using a dedicated graphics card TODO write provisions to have a fallback GPU
+     // could simply add a stack where we push when a discrete GPU is found
     if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
     {
       if (isDeviceSuitable(potentialDevice))
       {
         std::cout << "GPU: " << deviceProperties.deviceName
-                  << "\nPush Constant Max: " << deviceProperties.limits.maxPushConstantsSize << " (Bytes)"
+                  << "\nPush Constant Max: "
+                  << deviceProperties.limits.maxPushConstantsSize
+                  << " (Bytes)"
                   << std::endl;
 
         mPhysicalGPU = potentialDevice;
         break;
       }
-
     }
 
   } // End for(cycle through potential devices);
@@ -200,6 +202,7 @@ namespace fc
      // first make sure device extensions are supported
     if (!isDeviceExtensionSupported(device))
     {
+      std::cout << "GPU Extensions Unsupported: " << std::endl;
       return false;
     }
 
@@ -207,7 +210,6 @@ namespace fc
      // or some other coupling method. Or just init the GPU by passing a fcWindow...
      // next make sure that our swapchain has the capabilities we need
     SwapChainDetails swapChain = swapChainDetails(device);
-    bool swapChainValid;
     if (swapChain.presentModes.empty() || swapChain.formats.empty())
     {
       return false;
@@ -233,32 +235,40 @@ namespace fc
     //   {
     //     mGpuPerformanceProperties.maxMsaaSamples = static_cast<VkSampleCountFlagBits>(max32 >> i);
     //     break;
-    //   }
+//   }
     //   counts <<= 1;
     // }
 
      // find the highest order MSAA samples bit and set maxMsaaSamples to that
     if (counts & VK_SAMPLE_COUNT_64_BIT) {
       mGpuPerformanceProperties.maxMsaaSamples = VK_SAMPLE_COUNT_64_BIT;
+      std::cout << "maxMSAASamples: 64_BIT" << std::endl;
     }
     else if (counts & VK_SAMPLE_COUNT_32_BIT) {
       mGpuPerformanceProperties.maxMsaaSamples = VK_SAMPLE_COUNT_32_BIT;
+      std::cout << "maxMSAASamples: 32_BIT" << std::endl;
     }
     else if (counts & VK_SAMPLE_COUNT_16_BIT) {
       mGpuPerformanceProperties.maxMsaaSamples = VK_SAMPLE_COUNT_16_BIT;
+      std::cout << "maxMSAASamples: 16_BIT" << std::endl;
     }
     else if (counts & VK_SAMPLE_COUNT_8_BIT) {
       mGpuPerformanceProperties.maxMsaaSamples = VK_SAMPLE_COUNT_8_BIT;
+      std::cout << "maxMSAASamples: 8_BIT" << std::endl;
     }
     else if (counts & VK_SAMPLE_COUNT_4_BIT) {
       mGpuPerformanceProperties.maxMsaaSamples = VK_SAMPLE_COUNT_4_BIT;
+      std::cout << "maxMSAASamples: 4_BIT" << std::endl;
     }
     else if (counts & VK_SAMPLE_COUNT_2_BIT) {
       mGpuPerformanceProperties.maxMsaaSamples = VK_SAMPLE_COUNT_2_BIT;
+      std::cout << "maxMSAASamples: 2_BIT" << std::endl;
     }
     else {
       mGpuPerformanceProperties.maxMsaaSamples = VK_SAMPLE_COUNT_1_BIT;
+      std::cout << "maxMSAASamples: 1_BIT" << std::endl;
     }
+
 
      // info about what features the gpu supports
     VkPhysicalDeviceFeatures deviceFeatures;
