@@ -85,18 +85,18 @@ namespace fc
 
   void Frolic::loadGameObjects()
   {
-     // Load the backpack object
-    FcModel* model = new FcModel{"models/backpack.obj"};
-    FcGameObject* backpack =  new FcGameObject(model, FcGameObject::POWER_UP);
-    backpack->transform.rotation = {glm::pi<float>(), 0.f, 0.f};
-    backpack->transform.translation = {-1.f, 0.f, 0.f};
-    backpack->transform.scale = {0.5f, 0.5f, 0.5f};
+     // Load the castle object
+    FcModel* model = new FcModel{"models/castle.obj"};
+    FcGameObject* castle =  new FcGameObject(model, FcGameObject::POWER_UP);
+    castle->transform.rotation = {glm::pi<float>(), 0.f, 0.f};
+    castle->transform.translation = {0.f, 1.f, 0.f};
+    castle->transform.scale = {0.5f, 0.5f, 0.5f};
 
      // load the vase object
-    model = new FcModel{"models/smooth_vase.obj"};
-    FcGameObject* vase = new FcGameObject(model, FcGameObject::POWER_UP);
-    vase->transform.translation = { 1.2f, 0.8f, 0.f };
-    vase->transform.scale = { 3.f, 3.f, 3.f };
+    // model = new FcModel{"models/smooth_vase.obj"};
+    // FcGameObject* vase = new FcGameObject(model, FcGameObject::POWER_UP);
+    // vase->transform.translation = { 1.2f, 0.8f, 0.f };
+    // vase->transform.scale = { 3.f, 3.f, 3.f };
 
      // load the floor
     model = new FcModel{"models/quad.obj"};
@@ -112,37 +112,27 @@ namespace fc
                                         {1.f, 1.f, 1.f},
                                         {0.f, 1.f, 1.f}};
 
-//    mLights.resize(lightColors.size());
     for (int i = 0; i < lightColors.size(); i++)
     {
 
-      FcLight* light = new FcLight(0.5f, 0.044f, lightColors[i]);
-
-
-//      FcLight light; // = mLights[i];
-       //    light.createLight(0.5f, 0.05f, lightColors[i]);
-
-       //mLights.push_back(FcLight{0.5f, 0.05f, lightColors[i]});
-
-//      mUbo.pointLights[i].createLight(0.5f, 0.05f, lightColors[i]);
-
-       // FcLight* light = new FcLight(0.5f, 0.1f, lightColors[i]);
+      FcLight* light = new FcLight(1.0f, 0.044f, lightColors[i]);
 
       auto rotateLight = glm::rotate( glm::mat4(1.f), i * glm::two_pi<float>() / lightColors.size()
                                       , {0.f, -1.f, 0.f});
 
-       //    mUbo.pointLights[i].setPosition(glm::vec3(rotateLight * glm::vec4(-1.f, -1.f, -1.f, 1.f)));
-
-      light->setPosition(glm::vec3(rotateLight * glm::vec4(-1.f, -1.f, -1.f, 1.f)));
-       //mLights.back().setPosition(glm::vec3(rotateLight * glm::vec4(-1.f, -1.f, -1.f, 1.f)));
+      light->setPosition(glm::vec3(rotateLight * glm::vec4(-1.f, -1.3f, 2.3f, 0.f)));
 
       mUbo.pointLights[i] = light->generatePointLight();
-//      mUbo.pointLights[i] = mLights.back().generatePointLight();
-
-
     }
 
     mUbo.numLights = lightColors.size();
+
+
+     // add the sun
+    FcLight* sun = new FcLight(7.0f, 0.4f, {1.0f, 1.0f, 1.0f});
+    sun->setPosition({0.0f, -4.5f, 0.0f});
+    mUbo.pointLights[mUbo.numLights] = sun->generatePointLight();
+    mUbo.numLights += 1;
   }
 
 
@@ -226,10 +216,9 @@ namespace fc
 
       mRenderer.drawModels(frame, mUbo);
 
-       // pLog("before drawBillboards()");
       mRenderer.drawBillboards(camera.Position(), frame, mUbo);
-       //      pLog("after drawBillboards()");
-       //  // std::cout << fpsString + fps;
+
+       //  std::cout << fpsString + fps;
 
       mRenderer.drawUI(mUItextList, frame);
       mRenderer.endFrame(frame);
@@ -247,7 +236,7 @@ namespace fc
 
     static float angle = 0.0f;
      // do program specific stuff here
-    angle += 20.0f * deltaTime;
+    angle += 10.0f * deltaTime;
     if (angle > 360.0f)
     {
       angle -= 360.0f;
@@ -257,15 +246,15 @@ namespace fc
     glm::mat4 rotateMat = glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3(0.0f, 1.0f, 0.0f));
 
      //TODO get rid of and just rotate camera
-    rotateMat = glm::rotate(rotateMat, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-
+     rotateMat = glm::rotate(rotateMat, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
      // for (int modelId = 0; modelId < mModelList.size(); ++modelId)
      // {
      //   mModelList[modelId].setModelMatrix(testMat);
      // }
+
     auto gameObjects = FcLocator::GameObjects();
-     //
+
     for (FcGameObject* gameObject : gameObjects)
     {
        // TODO eliminate this check and just iterate over valid pointers
@@ -274,7 +263,7 @@ namespace fc
       {
         glm::vec3 rotate{0.f, -0.5f, 0.f};
          //   mModelList[modelId].setModelMatrix(testMat);
-        gameObject->transform.rotation += deltaTime * rotate;
+         //gameObject->transform.rotation += deltaTime * rotate;
 //        gameObject->pModel->setModelMatrix(testMat);
          //printMat(gameObject->pModel->ModelMatrix());
       }
@@ -291,12 +280,12 @@ namespace fc
      //mLights.back().setPosition(glm::vec3(rotateLight * glm::vec4(-1.f, -1.f, -1.f, 1.f)));
 
      //
-    rotateMat = glm::rotate(glm::mat4(1.f), glm::radians(50 * deltaTime), {0.f, -1.f, 0.f});
+    rotateMat = glm::rotate(glm::mat4(1.f), glm::radians(25 * deltaTime), {0.f, -1.f, 0.f});
 
 
     auto lights = FcLocator::Lights();
      //
-    for (size_t i = 0; i < lights.size(); ++i)
+    for (size_t i = 0; i < lights.size() - 1; ++i)
     {
 
        //light->Transform().translation = glm::vec3(rotateMat * glm::vec4(light->Transform().translation, 1.f));
@@ -316,10 +305,10 @@ namespace fc
      // TODO editing this text costs about 30-40 fps for some reason, fix
      mUItextList[1].editText(fpsNum, 70, 16, 1.0f);
 
-     if (mFrameTimeIndex == 0)
-     {
-       std::cout << "FPS: " << avgFPS << std::endl;
-     }
+     // if (mFrameTimeIndex == 0)
+     // {
+     //   std::cout << "FPS: " << avgFPS << std::endl;
+     // }
 
      // mPipeline.updateUniformBuffer(imgIndex, &mUboViewProjection);
      // font.setModelMatrix(newModelMatrix);

@@ -35,7 +35,7 @@ namespace fc
 
      KeyBindings keys{};
      float moveSpeed{2.f};
-     float lookSpeed{0.5f};
+     float lookSpeed{1.5f};
      FcInput& mInput;
      TransformComponent mTransform{};
 

@@ -13,7 +13,11 @@
 #include <unordered_set>
 #include <vector>
 #include <iostream>
+
+
+// DELETE
 #include <filesystem>
+#include <format>
 
 namespace fc
 {
@@ -124,40 +128,38 @@ namespace fc
   }
 
 
-void printVec(glm::vec3 vector, const char* title)
-{
-  std::cout << title <<" vector:\n[";
-
-  for (int i = 0; i < 3; i++)
+  void printVec(glm::vec3 vector, const char* title)
   {
-    std::cout << vector[i] << ", ";
+    std::cout << title <<" vector:\n[";
 
-    if (i == 2)
+    for (int i = 0; i < 3; i++)
     {
-      std::cout << "\b\b]";
+      std::cout << vector[i] << ", ";
+
+      if (i == 2)
+      {
+        std::cout << "\b\b]";
+      }
     }
+    std::cout << std::endl;
   }
-  std::cout << std::endl;
-}
 
 
-void printVec(glm::vec4 vector, const char* title)
-{
-  std::cout << title <<" vector:\n[";
-
-  for (int i = 0; i < 4; i++)
+  void printVec(glm::vec4 vector, const char* title)
   {
-    std::cout << vector[i] << ", ";
+    std::cout << title <<" vector:\n[";
 
-    if (i == 2)
+    for (int i = 0; i < 4; i++)
     {
-      std::cout << "\b\b]";
+      std::cout << vector[i] << ", ";
+
+      if (i == 2)
+      {
+        std::cout << "\b\b]";
+      }
     }
+    std::cout << std::endl;
   }
-  std::cout << std::endl;
-}
-
-
 
 
   std::vector<char> readFile(const std::string& filename)
@@ -165,22 +167,28 @@ void printVec(glm::vec4 vector, const char* title)
      // open stream from given file ('ate' tells stream to start reading from end (AT End))
     std::ifstream file(filename, std::ios::binary | std::ios::ate);
 
-
      // make sure file stream sucsessfully opened
     if (!file.is_open())
     {
       throw std::runtime_error("Failed to open file: " + filename);
     }
 
-     // sanity check to verify frag and vert files were updated recently, etc.
-    std::filesystem::path fPath{filename};
-    std::filesystem::file_time_type fileTime = std::filesystem::last_write_time(filename);
-    std::time_t lastUpdate = to_time_t(fileTime);
-     //SDL_Log("%s - Last Update: %f", filename.c_str(), fileTime);
-    std::cout << filename << " - Last Updated: " << lastUpdate << std::endl;
+// *-*-*-*-*-   SANITY CHECK TO VERIFY SHADERS WERE COMPILED RECENTLY   *-*-*-*-*- //
+     // TODO probably best to print in cmake instead but keep this template for future
+     // read back from the filesystem
+    std::filesystem::file_time_type last_write = std::filesystem::last_write_time(filename);
 
-     // C+23
+    using namespace std::chrono;
+    auto st = time_point_cast<system_clock::duration>(last_write
+                                                      - std::filesystem::file_time_type::clock::now()
+                                                      + system_clock::now());
+    std::time_t file_time =  system_clock::to_time_t(st);
+
+    std::cout << filename << " - Last Updated: " << std::asctime(std::localtime(&file_time));
+
+     //  Easier than above but requires C+23
      //std::println("Last Update: {}", fileTime);
+
 
      // get current read position (since this is at the end of file) to get file size
     size_t fileSize = static_cast<size_t>(file.tellg());
@@ -197,18 +205,5 @@ void printVec(glm::vec4 vector, const char* title)
 
     return fileBuffer;
   }
-
-
-   //BUG - does not do what it's supposed to do!
-  template <typename TP>
-  std::time_t to_time_t(TP tp)
-  {
-    using namespace std::chrono;
-
-    auto sctp = time_point_cast<system_clock::duration>(tp - TP::clock::now() + system_clock::now());
-
-    return system_clock::to_time_t(sctp);
-  }
-
 
 } // namespace fc - END

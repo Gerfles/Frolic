@@ -17,10 +17,10 @@ namespace fc
     glm::vec3 rotate{0};
      // TODO find a way to make this branchless... maybe fill an array with 0 or 1 and multiply all
      // actions by that factor without if statements
-    if (mInput.keyDown(keys.lookRight)) rotate.y += 1.f;
-    if (mInput.keyDown(keys.lookLeft)) rotate.y -= 1.f;
-    if (mInput.keyDown(keys.lookUp)) rotate.x += 1.f;
-    if (mInput.keyDown(keys.lookDown)) rotate.x -= 1.f;
+    if (mInput.keyDown(keys.lookRight)) rotate.y = 100.5f;
+    if (mInput.keyDown(keys.lookLeft)) rotate.y -= 6.f;
+    if (mInput.keyDown(keys.lookUp)) rotate.x += 4.f;
+    if (mInput.keyDown(keys.lookDown)) rotate.x -= 4.f;
 
      // make sure not to normalize a zero vector
      // epsilon is a better check since comparing a float to zero has its limitations

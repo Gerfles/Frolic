@@ -59,7 +59,7 @@ namespace fc {
 
   FcModel::FcModel(std::string modelFile)
   {
-     // first initialze model matrix to identity, to clear out any garbage
+     // first initialze model matrix to identity
     mModelMatrix = glm::mat4(1.0f);
 
      // import model "scene"
@@ -69,7 +69,7 @@ namespace fc {
      // each is unique but should verify that it's working correctly by using a unordered set (w/
      // hashmap) to store the vertices and make sure we get the same number for both
     const aiScene* scene = importer.ReadFile(modelFile, aiProcess_Triangulate
-                                              //| aiProcess_FlipUVs
+                                             | aiProcess_FlipUVs
                                              | aiProcess_JoinIdenticalVertices);
     if (!scene)
     {
