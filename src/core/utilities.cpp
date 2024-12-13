@@ -161,6 +161,28 @@ namespace fc
     std::cout << std::endl;
   }
 
+   // TODO set all environment variables from here
+  void initEnv()
+  {
+     // transfer and use soln from
+     // https://stackoverflow.com/questions/8591762/ifdef-debug-with-cmake-independent-from-platform
+#ifndef NDEBUG
+    std::printf("\n---- DEBUG ----\n");
+#else
+    std::printf("\n---- RELEASE ----\n");
+#endif
+
+// Good method to differentiate between different compositors in within linux
+    if (strcmp(secure_getenv("XDG_SESSION_TYPE"), "wayland") == 0) {
+      printf("We're on wayland.\n");
+    } else if (strcmp(secure_getenv("XDG_SESSION_TYPE"), "x11") == 0) {
+      printf("We're on X11.\n");
+    } else {
+      printf("NOT IDENTIFIED ?\n");
+    }
+  }
+
+
 
   std::vector<char> readFile(const std::string& filename)
   {

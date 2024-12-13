@@ -67,7 +67,10 @@ namespace fc
   void printMat(glm::mat3& mat);
   void printVec(glm::vec3 vector, const char* title);
   void printVec(glm::vec4 vector, const char* title);
+  void initEnv();
+
   std::vector<char> readFile(const std::string& filname);
+
 
   template <typename TP>
   // std::time_t to_time_t(TP tp);

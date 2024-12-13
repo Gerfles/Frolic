@@ -9,6 +9,8 @@
 /printable
 compile_commands.json
 Makefile
-/Trash/*
+/trash/*
 *.~
 *#*#
+notes.org
+debug.elc

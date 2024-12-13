@@ -23,6 +23,7 @@ namespace fc
      VkImage mImage;
      VkDeviceMemory mImageMemory;
      VkImageView mImageView;
+     VmaAllocation mAllocation = VK_NULL_HANDLE;
      VkSampler mTextureSampler = VK_NULL_HANDLE;
      uint32_t mWidth;
      uint32_t mHeight;

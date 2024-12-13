@@ -1,6 +1,7 @@
 #include "fc_renderer.hpp"
 
-// - FROLIC ENGINE -
+
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "SDL2/SDL_stdinc.h"
 #include "core/fc_billboard_render_system.hpp"
 #include "core/fc_descriptors.hpp"
@@ -15,14 +16,15 @@
 #include "fc_camera.hpp"
 #include <exception>
 #include <mutex>
-// - EXTERNAL LIBRARIES -
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include <SDL_events.h>
 // TODO #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include "vulkan/vulkan_core.h"
 #include <SDL2/SDL_vulkan.h>
-// - STD LIBRARIES -
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <array>
 #include <cstddef>
 #include <cstring>
@@ -152,7 +154,6 @@ namespace fc
 
 
 
-
   void FcRenderer::createInstance(VkApplicationInfo& appInfo)
   {
      // First determine all the extensions needed for SDL to run Vulkan instance
@@ -166,10 +167,11 @@ namespace fc
 
      //TODO change to platform dependent evaluation
      // Only seems to be required for macOS implementation and only when validation layers added
-    extensions.push_back("VK_KHR_get_physical_device_properties2");
-    extensions.push_back("VK_KHR_portability_enumeration");
-    instanceInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+    // extensions.push_back("VK_KHR_get_physical_device_properties2");
+    // extensions.push_back("VK_KHR_portability_enumeration");
+    // instanceInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
 
+    // TODO LOG the required and found extensions
     if (!areInstanceExtensionsSupported(extensions))
     {
       throw std::runtime_error("Missing required SDL extension");

@@ -1,4 +1,5 @@
 #include "fc_mesh.hpp"
+#include <SDL_log.h>
 
 
 // - FROLIC ENGINE -
@@ -7,6 +8,7 @@
 #include "vulkan/vulkan_core.h"
 // - STD LIBRARIES -
 #include <cstddef>
+#include <cstdio>
 #include <cstring>
 #include <iostream>
 #include <stdexcept>
@@ -43,7 +45,8 @@ namespace fc
   // TODO could create a transferToGpu() function in FcBuffer
   void FcMesh::createVertexBuffer(const FcGpu* gpu, std::vector<Vertex>& vertices)
   {
-     //mUboModel.model = glm::mat4(1.0f);
+    SDL_Log("Creating Vertex Buffer");
+    //mUboModel.model = glm::mat4(1.0f);
 
      // initialize the Mesh object
     mVertexCount = vertices.size();
@@ -82,6 +85,7 @@ namespace fc
    // TODO could condense this into one "create() function and just pass both vertices and indices" could also combine with a transferToGpu() function in buffer
   void FcMesh::createIndexBuffer(const FcGpu* gpu, std::vector<uint32_t>& indices)
   {
+    SDL_Log("Creating Index Buffer");
     mIndexCount = static_cast<uint32_t>(indices.size());
      //std::cout << "Number of polygons in Mesh: " << mIndexCount / 3 << std::endl;
 
@@ -105,6 +109,7 @@ namespace fc
 
      // finally, free the resources of the staging buffer since it's no longer needed
     stagingBuffer.destroy();
+    std::printf("Created Index Buffer");
   }
 
 

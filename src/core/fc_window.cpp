@@ -1,13 +1,12 @@
 #include "fc_window.hpp"
 
-
 // - FROLIC ENGINE -
-//
+
 // - EXTERNAL LIBRARIES -
 #include "SDL2/SDL.h"
-#include "SDL2/SDL_error.h"
-#include "SDL2/SDL_messagebox.h"
-#include "SDL2/SDL_video.h"
+//#include "SDL2/SDL_error.h"
+// #include "SDL2/SDL_messagebox.h"
+// #include "SDL2/SDL_video.h"
 #include "SDL2/SDL_vulkan.h"
 #include "vulkan/vulkan_core.h"
 // - STD LIBRARIES -
@@ -27,7 +26,7 @@ namespace fc {
      // SDL_Init() initializes assertions and crash protection
      // and then calls SDL_InitSubSystem(). TODO bypass those protections
      // by calling SDL_InitSubSystem() directly for release.
-    if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
+    if (SDL_Init(SDL_INIT_VIDEO) < 0)
     {
       std::ostringstream errorMsg;
       errorMsg << "Failed to initialize SDL! SDL Error: " << SDL_GetError();
@@ -69,7 +68,6 @@ namespace fc {
 
 
 
-
   const VkExtent2D FcWindow::ScreenSize()
   {
     int width, height;
@@ -108,8 +106,6 @@ namespace fc {
       throw std::runtime_error("failed to create window surface!");
     }
   }
-
-
 
 
   void FcWindow::close(VkInstance& instance)

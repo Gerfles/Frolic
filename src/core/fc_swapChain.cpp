@@ -190,20 +190,22 @@ namespace fc
   }
 
 
-
+   // TODO print the current present mode
   VkPresentModeKHR FcSwapChain::choosePresentMode(const std::vector<VkPresentModeKHR>& presentModes)
   {
     for (const auto& presentMode : presentModes)
     {
-       // we prefer mailbox mode as that reduces tearing and helps performance
+       // TODO  we prefer mailbox mode as that reduces tearing and helps performance
+//      if (presentMode == VK_PRESENT_MODE_MAILBOX_KHR)
       if (presentMode == VK_PRESENT_MODE_IMMEDIATE_KHR)
        {
-         return presentMode;
+         return VK_PRESENT_MODE_IMMEDIATE_KHR;
+          //return presentMode;
       }
     }
 
     // TODO we should try and include a flag for the modes that allow framerate comparison
-     // Present mode: Immediat is good to check for performance via FPS
+     // Present mode: Immediate is good to check for performance via FPS
      // for (const auto &availablePresentMode : availablePresentModes) {
      //   if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
      //     std::cout << "Present mode: Immediate" << std::endl;
@@ -253,6 +255,7 @@ namespace fc
   }
 
 
+
   VkExtent2D FcSwapChain::chooseSwapExtent(VkSurfaceCapabilitiesKHR& surfaceCapabilities, const VkExtent2D& windowSize)
   {
      // if current extent is at numeric limits, then extent can vary. and we will have to determine it ourselves
@@ -294,6 +297,7 @@ namespace fc
       if (tiling == VK_IMAGE_TILING_LINEAR
           && (properties.linearTilingFeatures & featureFlags) == featureFlags)
       {
+        std::cout << "Warning: Using Linear Tiling" << std::endl;
         return format;
       }
       else if (tiling == VK_IMAGE_TILING_OPTIMAL

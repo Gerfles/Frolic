@@ -4,6 +4,7 @@
 //#include "fc_gpu.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
+#include "vk_mem_alloc.h"
 // - STD LIBRARIES -
 
 
@@ -18,14 +19,14 @@
 
 namespace fc
 {
-   class FcGpu;
-
+  class FcGpu;
 
   class FcBuffer
   {
    private:
      VkBuffer mBuffer = VK_NULL_HANDLE;
      VkDeviceMemory mBufferMemory;
+     VmaAllocation mAllocation;
 
    public:
      FcBuffer() = default;

@@ -3,13 +3,15 @@
 // - FROLIC ENGINE -
 //
 // - EXTERNAL LIBRARIES -
-#include "SDL2/SDL.h"
 #include "vulkan/vulkan_core.h"
+
 // - STD LIBRARIES -
 #include <string>
 #include <vector>
 #include <algorithm>
 
+ // forward declarations
+struct SDL_Window;
 
 namespace fc {
 

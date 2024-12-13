@@ -136,10 +136,14 @@ namespace fc
     attributeDescriptions.resize(4);
 
      // position attribute
-    attributeDescriptions[0].binding = 0;                         // which binding the data is at (should be the same as above unless you have multiple streams of data)
-    attributeDescriptions[0].location = 0;                        // location in shader where data will be read from
-    attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT; // format the data will take (also helps define the size of the data)
-    attributeDescriptions[0].offset = offsetof(Vertex, position);      // where this attribute is defined in the data for a single vertex
+     // which binding the data is at (should be the same as above unless you have multiple streams of data)
+    attributeDescriptions[0].binding = 0;
+     // location in shader where data will be read from
+    attributeDescriptions[0].location = 0;
+    // format the data will take (also helps define the size of the data)
+    attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+    // where this attribute is defined in the data for a single vertex
+    attributeDescriptions[0].offset = offsetof(Vertex, position);
 
      // color attribute
     attributeDescriptions[1].binding = 0;

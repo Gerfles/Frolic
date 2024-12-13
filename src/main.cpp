@@ -12,11 +12,11 @@
 
 int main(int argc, char* argv[])
 {
-   //TODO research which NDEBUG or _DEBUG the system actully uses
-  #ifdef NDEBUG
-   std::cout << "-Release Build-" << std::endl;
+   // Cmake injects the NDEBUG symbols by default
+  #ifndef NDEBUG
+   std::cout << "\n-Debug Build-" << std::endl;
   #else
-   std::cout << "-Debug Build-" << std::endl;
+   std::cout << "\n-Release Build-" << std::endl;
   #endif
 
    int type;

@@ -1,4 +1,5 @@
 #include "fc_descriptors.hpp"
+#include <SDL_log.h>
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_gpu.hpp"

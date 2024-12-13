@@ -1,16 +1,16 @@
-
 #pragma once
 
-// Frolic Engine
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_window.hpp"
 #include "fc_swapChain.hpp"
 #include "utilities.hpp"
-//#include "vulkan/vulkan_core.h"
-// external libraries
-#include <vulkan/vulkan.hpp>
-// std libraries
-#include <vector>
 
+//#include "vulkan/vulkan_core.h"
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include <vulkan/vulkan.hpp>
+#include "vk_mem_alloc.h"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include <vector>
 
 
 namespace fc
@@ -29,6 +29,7 @@ namespace fc
      private:
        VkPhysicalDevice mPhysicalGPU = VK_NULL_HANDLE;
        VkDevice mLogicalGPU = VK_NULL_HANDLE;
+       VmaAllocator mAllocator = VK_NULL_HANDLE;
         // handles to Queues (graphics is often the same as presentation)
        VkQueue mGraphicsQueue;
        VkQueue mPresentationQueue;
@@ -57,6 +58,7 @@ namespace fc
        void submitCommandBuffer(VkCommandBuffer commandBuffer) const;
         // TODO establish convention that all getter functions are capitalized (since they "are" a type)
         // - GETTER FUNCTIONS -
+       const VmaAllocator& getAllocator() const { return mAllocator; }
        const VkDevice& getVkDevice() const { return mLogicalGPU; }
        const VkPhysicalDevice& physicalDevice() const { return mPhysicalGPU; }
        const VkSurfaceKHR& surface() const { return pWindow->surface(); }

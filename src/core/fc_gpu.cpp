@@ -2,8 +2,16 @@
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "utilities.hpp"
+// #include "log.hpp"
+#include "assert.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
+
+// must resort to something like this or get thousands of warnings with vk_mem_alloc
+//#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wnullability-completeness"
+#define VMA_IMPLEMENTATION // must declare only once before including vk_mem_alloc.h in CPP file
+#include "vk_mem_alloc.h"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <stdexcept>
 #include <vector>
@@ -13,36 +21,24 @@
 #include <set>
 
 
-
 namespace fc
 {
+// TODO relocate to debug/error check header and maybe define with class, etc.
+  static void check_result(VkResult result);
+#define check(result) FCASSERTM( result == VK_SUCCESS, "Vulkan assert code %d", (int)result)
 
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   INIT   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
   bool FcGpu::init(const VkInstance& instance, FcWindow& window)
   {
      // first couple the window instance to the GPU (needed for surface stuff)
     pWindow = &window;
 
-    //  // enumerate all the physical devices the vkInstance can access
-    // uint32_t deviceCount = 0;
-    // vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
-    // std::vector<VkPhysicalDevice> deviceList(deviceCount);
-    // vkEnumeratePhysicalDevices(instance, &deviceCount, deviceList.data());
-
-    //  // right now, just pick the first available device
-    //  // TODO pick the best device
-    // for (const auto& device : deviceList)
-    // {
-    //   if (isDeviceSuitable(device))
-    //   {
-    //     mPhysicalGPU = device;
-    //     break;
-    //   }
-    // }
-
     const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-     // TODO I believe the following is needed by MacOS
-     //                                                     , "VK_KHR_portability_subset"};
+     // TODO Make sure the extensions and layers are added to specific OSs
+     //I believe the following is needed by MacOS
+     //, "VK_KHR_portability_subset"};
 
+     // First pick the best GPU
     pickPhysicalDevice(instance, deviceExtensions);
 
      // now that we have the GPU chosen, interface the logical device to that GPU
@@ -51,6 +47,18 @@ namespace fc
        // now create the logical device that vulkan actually uses to interface with the GPU
       if (createLogicalDevice())
       {
+         // Create and initialize the VMA allocator
+        VmaAllocatorCreateInfo vmaAllocatorInfo = {};
+        vmaAllocatorInfo.physicalDevice = mPhysicalGPU;
+        vmaAllocatorInfo.device = mLogicalGPU;
+        vmaAllocatorInfo.instance = instance;
+        vmaAllocatorInfo.vulkanApiVersion = VK_API_VERSION_1_3;
+         // ?? check thoroughly if we need to add different flags
+         //vmaAllocatorInfo.flags  = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
+
+        VkResult result = vmaCreateAllocator(&vmaAllocatorInfo, &mAllocator);
+        check(result);
+
          // create the command pool for later allocating command from
         createCommandPool();
         return true;
@@ -391,6 +399,7 @@ namespace fc
   }
 
 
+
    // TODO could consider relocatting this to fcrenderer
   void FcGpu::createCommandPool()
   {
@@ -467,6 +476,8 @@ namespace fc
 
   void FcGpu::release(VkInstance& instance)
   {
+    vmaDestroyAllocator(mAllocator);
+
      // TODO test that these conditionals are working as intended
     if (mCommandPool != VK_NULL_HANDLE)
     {

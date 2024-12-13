@@ -34,7 +34,7 @@ namespace fc
                        , VkSampleCountFlagBits msaaSampleCount, VkImageTiling tiling, VkImageUsageFlags useFlags
                        , uint32_t mipLevels, VkMemoryPropertyFlags properties, VkImageAspectFlags aspectFlags)
   {
-    VkDevice device = FcLocator::Device();
+     //VkDevice device = FcLocator::Device();
 
     mWidth = width;
     mHeight = height;
@@ -55,58 +55,68 @@ namespace fc
     imageInfo.samples = msaaSampleCount;
     imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE; // whether image can be shared between queues
 
+    VmaAllocationCreateInfo allocInfo = {};
+    allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+    allocInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 
-    if (vkCreateImage(device, &imageInfo, nullptr, &mImage) != VK_SUCCESS)
+    if(vmaCreateImage(FcLocator::Gpu().getAllocator(), &imageInfo, &allocInfo, &mImage, &mAllocation, nullptr)
+      != VK_SUCCESS)
     {
       throw std::runtime_error("Failed to create a Vulkan Image!");
     }
 
-     // get memory requirements for a type of image
-    VkMemoryRequirements memRequirments;
-    vkGetImageMemoryRequirements(device, mImage, &memRequirments);
 
-     // get properties of physical device memory
-    VkPhysicalDeviceMemoryProperties memProperties;
-    vkGetPhysicalDeviceMemoryProperties(FcLocator::Gpu().physicalDevice(), &memProperties);
+    // if (vkCreateImage(device, &imageInfo, nullptr, &mImage) != VK_SUCCESS)
+    // {
+    //   throw std::runtime_error("Failed to create a Vulkan Image!");
+    // }
 
-     // TODO since this section of code is duplicated in FcBuffer, should create a higher level
-     // function and extract it out or even consider having a heirarchy for buffer->image such
-     // that buffer and image both derive from the same base class.
+    //  // get memory requirements for a type of image
+    // VkMemoryRequirements memRequirments;
+    // vkGetImageMemoryRequirements(device, mImage, &memRequirments);
 
-     // cycle through all the memory types available and choose the one that has our required properties
-    uint32_t memoryTypeIndex = -1;
-    for (uint32_t i = 0; i < memProperties.memoryTypeCount; ++i)
-    {
-      if ((memRequirments.memoryTypeBits & (1 << i)) // first, only pick each allowed type of memory passed in (skip evaluation when that type is not bit-enabled by our allowedType parameter)
-          && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) // then make sure that the allowed types also contains the property flags that we request by passing the vkmemorypropertyflags
-      {
-         // this memory type is an allowed type and it has the properties we want (flags) return
-        memoryTypeIndex = i;
-        break;
-      }
-    }
+    //  // get properties of physical device memory
+    // VkPhysicalDeviceMemoryProperties memProperties;
+    // vkGetPhysicalDeviceMemoryProperties(FcLocator::Gpu().physicalDevice(), &memProperties);
 
-     // Quit if we can't find the proper memory type
-     // ?? Tutorial doesn't contain this check so maybe Vulkan is required to return something...
-    if (memoryTypeIndex == -1)
-    {
-       //throw std::runtime_error("Failed to find a suitable memory type!");
-    }
+    //  // TODO since this section of code is duplicated in FcBuffer, should create a higher level
+    //  // function and extract it out or even consider having a heirarchy for buffer->image such
+    //  // that buffer and image both derive from the same base class.
 
-     // create memory for image
-    VkMemoryAllocateInfo memAllocInfo{};
-    memAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    memAllocInfo.allocationSize = memRequirments.size;
-    memAllocInfo.memoryTypeIndex = memoryTypeIndex;
+    //  // cycle through all the memory types available and choose the one that has our required properties
+    // uint32_t memoryTypeIndex = -1;
+    // for (uint32_t i = 0; i < memProperties.memoryTypeCount; ++i)
+    // {
+    //   if ((memRequirments.memoryTypeBits & (1 << i)) // first, only pick each allowed type of memory passed in (skip evaluation when that type is not bit-enabled by our allowedType parameter)
+    //       && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) // then make sure that the allowed types also contains the property flags that we request by passing the vkmemorypropertyflags
+    //   {
+    //      // this memory type is an allowed type and it has the properties we want (flags) return
+    //     memoryTypeIndex = i;
+    //     break;
+    //   }
+    // }
 
-     // allocate memory to VkDeviceMemory
-    if (vkAllocateMemory(device, &memAllocInfo, nullptr, &mImageMemory) != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to allocate Vulkan Device Memory for FcImage!");
-    }
+    //  // Quit if we can't find the proper memory type
+    //  // ?? Tutorial doesn't contain this check so maybe Vulkan is required to return something...
+    // if (memoryTypeIndex == -1)
+    // {
+    //    //throw std::runtime_error("Failed to find a suitable memory type!");
+    // }
 
-     // allocate memory to given vertex buffer
-    vkBindImageMemory(device, mImage, mImageMemory, 0);
+    //  // create memory for image
+    // VkMemoryAllocateInfo memAllocInfo{};
+    // memAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    // memAllocInfo.allocationSize = memRequirments.size;
+    // memAllocInfo.memoryTypeIndex = memoryTypeIndex;
+
+    //  // allocate memory to VkDeviceMemory
+    // if (vkAllocateMemory(device, &memAllocInfo, nullptr, &mImageMemory) != VK_SUCCESS)
+    // {
+    //   throw std::runtime_error("Failed to allocate Vulkan Device Memory for FcImage!");
+    // }
+
+    //  // allocate memory to given vertex buffer
+    // vkBindImageMemory(device, mImage, mImageMemory, 0);
 
      // now create an Image view so we can interface with it
     createImageView(format, aspectFlags, mipLevels);
@@ -339,7 +349,8 @@ namespace fc
     samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;              // Mipmap interpolation mode (between two levels of mipmaps)
     samplerInfo.mipLodBias = 0.0f;                                       // used to force vulkan to use lower level of detail and mip level
     samplerInfo.minLod = 0.0f;
-    SDL_Log("miplevels: %d", mipLevels);
+
+
     samplerInfo.maxLod = static_cast<float>(mipLevels);                                           // maximum level of detail to pick mip level
     samplerInfo.anisotropyEnable = VK_TRUE;                              // enable anisotropy
      // TODO should allow this to be user definable or at least profiled at install/runtime
@@ -413,13 +424,16 @@ namespace fc
      // destroy texture image sampler if it exists
     // if (mTextureSampler != VK_NULL_HANDLE)
     // {
-      vkDestroySampler(device, mTextureSampler, nullptr);
-       //}
+    vkDestroySampler(device, mTextureSampler, nullptr);
+     //}
 
      // Destroy image and free the associated memory
     vkDestroyImageView(device, mImageView, nullptr);
-    vkDestroyImage(device, mImage, nullptr);
-    vkFreeMemory(device, mImageMemory, nullptr);
+
+    // BUG destroy only one
+    vmaDestroyImage(FcLocator::Gpu().getAllocator(), mImage, mAllocation);
+     //vkDestroyImage(device, mImage, nullptr);
+     //vkFreeMemory(device, mImageMemory, nullptr);
   }
 
 
@@ -488,7 +502,6 @@ namespace fc
 
   void FcImage::writeToTexture(void* pixelData, uint32_t mipLevels)
   {
-
      // Copy data to a staging buffer first in order to transition the image and send it to the gpu
     VkDeviceSize imageSize = mWidth * mHeight * 4;  // here we have to use 4 and not channels since ?? I think the image has no alpha channel
 
@@ -498,7 +511,7 @@ namespace fc
                          , VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
      // copy the actual image data into the staging buffer.
-    stagingBuffer.storeData(pixelData, imageSize);
+    stagingBuffer.storeData(pixelData, static_cast<size_t>(imageSize));
 
      // TODO use vkGetImageSubresourceLayout, rather than assuming contiguous memory and using memcpy. It's
      // unlikely that it would matter for a 512x512 image, but I think that's the correct approach in
