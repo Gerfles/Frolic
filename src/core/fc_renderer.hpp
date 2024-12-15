@@ -24,7 +24,7 @@
 namespace fc
 {
    //static constexpr int MAX_FRAMES_IN_FLIGHT = 3; // used in swap chain
-  const int MAX_FRAME_DRAWS = 2;
+  constexpr unsigned int MAX_FRAME_DRAWS = 2;
 
 
   class FcRenderer

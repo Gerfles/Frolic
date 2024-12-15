@@ -34,6 +34,7 @@ namespace fc
 
       // RENDERER SERVICES
      static FcGpu* pGpu;
+//     FcGpu* pGpu = nullptr;
      static VkDevice pDevice;
       //static Audio* pAudioService;
      static FcDescriptor* pDescriptorClerk;

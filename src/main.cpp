@@ -38,9 +38,3 @@ int main(int argc, char* argv[])
 
   return EXIT_SUCCESS;
 }
-
-// TODO find out how assert works
-//   #define assert(e)  \
-//     ((void) ((e) ? ((void)0) : __assert (#e, __ASSERT_FILE_NAME, __LINE__)))
-// #define __assert(e, file, line) \
-//     ((void)printf ("%s:%d: failed assertion `%s'\n", file, line, e), abort())

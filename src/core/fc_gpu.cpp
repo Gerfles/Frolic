@@ -1,12 +1,13 @@
 #include "fc_gpu.hpp"
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "core/fc_renderer.hpp"
 #include "utilities.hpp"
 // #include "log.hpp"
 #include "assert.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
-
+#include <SDL_log.h>
 // must resort to something like this or get thousands of warnings with vk_mem_alloc
 //#pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wnullability-completeness"
@@ -72,96 +73,119 @@ namespace fc
 
 
 
-  void FcGpu::pickPhysicalDevice(const VkInstance& instance, const std::vector<const char*> deviceExtensions)
-// PICK THE PHYSICAL DEVICE [GRAPHICS CARD]
-{
-   // query the number of graphics cards
-  uint32_t deviceCount = 0;
-  vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+  void FcGpu::pickPhysicalDevice(const VkInstance& instance
+                                 , const std::vector<const char*> deviceExtensions)
 
-   // don't bother going further if no gfx cards
-  if (deviceCount == 0)
+  // PICK THE PHYSICAL DEVICE [GRAPHICS CARD]
   {
-    throw std::runtime_error("failded to find Graphics cards with Vulkan support!");
-  }
-   // allocate an array to hold all of the VkPhysicalDevice handles
-  std::vector<VkPhysicalDevice> deviceOptions(deviceCount);
-  vkEnumeratePhysicalDevices(instance, &deviceCount, deviceOptions.data());
+     // query the number of graphics cardshttps://vkguide.dev/docs/new_chapter_1/vulkan_init_code/
+    uint32_t deviceCount = 0;
+    vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 
-   // check if any of the graphics cards meet the requirements we need
-  for (VkPhysicalDevice potentialDevice : deviceOptions)
-  {
-     // check that device extension is suppported
-    uint32_t extensionCount;
-    vkEnumerateDeviceExtensionProperties(potentialDevice, nullptr, &extensionCount, nullptr);
-    std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-    vkEnumerateDeviceExtensionProperties(potentialDevice, nullptr
-                                         , &extensionCount, availableExtensions.data());
-
-     // cool method (creation of a std::set introduces overhead, not that it matters here)
-    std::set<std::string> requiredExtensions(deviceExtensions.begin() ,deviceExtensions.end());
-
-    for (const auto& extension : availableExtensions)
+     // don't bother going further if no gfx cards
+    if (deviceCount == 0)
     {
-      requiredExtensions.erase(extension.extensionName);
+      throw std::runtime_error("failed to find Graphics cards with Vulkan support!");
     }
+     // allocate an array to hold all of the VkPhysicalDevice handles
+    std::vector<VkPhysicalDevice> deviceOptions(deviceCount);
+    vkEnumeratePhysicalDevices(instance, &deviceCount, deviceOptions.data());
 
-    if (!requiredExtensions.empty())
-    {  // something in the list wasn't supported so move on to next device
-      continue;
-    }
-
-    VkPhysicalDeviceProperties deviceProperties;
-    vkGetPhysicalDeviceProperties(potentialDevice, &deviceProperties);
-
-    VkPhysicalDeviceFeatures supportedFeatures;
-    vkGetPhysicalDeviceFeatures(potentialDevice, &supportedFeatures);
-
-     // make sure we're using a dedicated graphics card TODO write provisions to have a fallback GPU
-     // could simply add a stack where we push when a discrete GPU is found
-    if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+     // check if any of the graphics cards meet the requirements we need
+    for (VkPhysicalDevice potentialDevice : deviceOptions)
     {
-      if (isDeviceSuitable(potentialDevice))
+       // check that device extension is suppported
+      uint32_t extensionCount;
+      vkEnumerateDeviceExtensionProperties(potentialDevice, nullptr, &extensionCount, nullptr);
+      std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+      vkEnumerateDeviceExtensionProperties(potentialDevice, nullptr
+                                           , &extensionCount, availableExtensions.data());
+
+       // cool method (creation of a std::set introduces overhead, not that it matters here)
+      std::set<std::string> requiredExtensions(deviceExtensions.begin() ,deviceExtensions.end());
+
+      for (const auto& extension : availableExtensions)
       {
-        std::cout << "GPU: " << deviceProperties.deviceName
-                  << "\nPush Constant Max: "
-                  << deviceProperties.limits.maxPushConstantsSize
-                  << " (Bytes)"
-                  << std::endl;
-
-        mPhysicalGPU = potentialDevice;
-        break;
+        requiredExtensions.erase(extension.extensionName);
       }
+
+      if (!requiredExtensions.empty())
+      {  // something in the list wasn't supported so move on to next device
+        continue;
+      }
+
+       // TODO think about makeing this VK...Properties2
+      VkPhysicalDeviceProperties deviceProperties = {};
+      vkGetPhysicalDeviceProperties(potentialDevice, &deviceProperties);
+
+
+       // First populate the supported features, making sure to chain in the vulkan ext features
+      VkPhysicalDeviceVulkan12Features ext_features_1_2 = {};
+      VkPhysicalDeviceVulkan13Features ext_features_1_3 = {};
+      ext_features_1_2.pNext = &ext_features_1_3;
+
+      VkPhysicalDeviceFeatures2 supportedFeatures = {};
+      supportedFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+      supportedFeatures.pNext = &ext_features_1_2;
+      vkGetPhysicalDeviceFeatures2(potentialDevice, &supportedFeatures);
+
+      if (ext_features_1_2.bufferDeviceAddress == false || ext_features_1_2.descriptorIndexing == false
+          || ext_features_1_3.dynamicRendering == false || ext_features_1_3.synchronization2 == false)
+      {
+        std::runtime_error("Required Vulkan Device Features not supported!");
+      }
+
+       // make sure we're using a dedicated graphics card TODO write provisions to have a fallback GPU
+       // could simply add a stack where we push when a discrete GPU is found
+      if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+      {
+        if (isDeviceSuitable(potentialDevice))
+        {
+          std::cout << "GPU: " << deviceProperties.deviceName
+                    << "\nPush Constant Max: "
+                    << deviceProperties.limits.maxPushConstantsSize
+                    << " (Bytes)"
+                    << std::endl;
+
+          mPhysicalGPU = potentialDevice;
+          break;
+        }
+      }
+
+    } // End for(cycle through potential devices);
+
+     // if no available device was selected, terminate
+    if (mPhysicalGPU == VK_NULL_HANDLE)
+    {
+      throw std::runtime_error("failed to find a suitable GPU!");
     }
-
-  } // End for(cycle through potential devices);
-
-    // if no available device was selected, terminate
-  if (mPhysicalGPU == VK_NULL_HANDLE)
-  {
-    throw std::runtime_error("failed to find a suitable GPU!");
   }
-}
 
 
 
 
-    bool FcGpu::createLogicalDevice()
+  bool FcGpu::createLogicalDevice()
   {
      //TODO Consider changing the queue situation to make a little more logical sense - maybe creating a queue struct that has a queue member and an index member
      // Queue that logical device needs to be created
     QueueFamilyIndices indices = getQueueFamilies(mPhysicalGPU);
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+
      // use a set to prevent the same queue from being added more than once
+     // in the case where graphics and present queue are the same
     std::set<int> queueFamilyIndices = {indices.graphicsFamily, indices.presentationFamily};
+
+    SDL_Log("graphics family queue:%i", indices.graphicsFamily);
+    SDL_Log("present family queue:%i", indices.presentationFamily);
 
      // vector for queue creation information, and set for family indices
     for (int queueFamilyIndex : queueFamilyIndices)
     {
       VkDeviceQueueCreateInfo queueInfo{};
       queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-      queueInfo.queueFamilyIndex = indices.graphicsFamily;
+       //queueInfo.queueFamilyIndex = indices.graphicsFamily;
+      queueInfo.queueFamilyIndex = queueFamilyIndex;
       queueInfo.queueCount = 1;
        // vulkan needs to know how to handle multiple queues
        // ufortunately we still haven't addressed the possibility of multiple queues
@@ -185,10 +209,28 @@ namespace fc
     deviceInfo.ppEnabledLayerNames = nullptr;
 
      // features the logical device will be using
-    VkPhysicalDeviceFeatures deviceFeatures{};
-    deviceInfo.pEnabledFeatures = &deviceFeatures;
+    VkPhysicalDeviceFeatures deviceFeatures = {};
     deviceFeatures.samplerAnisotropy = VK_TRUE; // enable Anisotropy
 
+     // TODO abstract this out into a builder structure
+     // vulkan features to request from version 1.2
+    VkPhysicalDeviceVulkan12Features features12 = {};
+    features12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+    features12.bufferDeviceAddress = true;
+    features12.descriptorIndexing = true;
+
+     // vulkan features to request from version 1.3
+    VkPhysicalDeviceVulkan13Features features13 = {};
+    features13.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+    features13.dynamicRendering = true;
+    features13.synchronization2 = true;
+    features13.pNext = &features12;
+
+     // finally attach our required version features
+    deviceInfo.pEnabledFeatures = &deviceFeatures;
+    deviceInfo.pNext = &features13;
+
+     // createt the "logical" device
     if (vkCreateDevice(mPhysicalGPU, &deviceInfo, nullptr, &mLogicalGPU) != VK_SUCCESS)
     {
       throw std::runtime_error("Failed to create vulkan logical device!");
@@ -214,7 +256,7 @@ namespace fc
       return false;
     }
 
-     // TODO refactor so widow is has the swapchain details etc. maybe could use a friend class
+     // TODO refactor so widow has the swapchain details etc. maybe could use a friend class
      // or some other coupling method. Or just init the GPU by passing a fcWindow...
      // next make sure that our swapchain has the capabilities we need
     SwapChainDetails swapChain = swapChainDetails(device);
@@ -236,16 +278,16 @@ namespace fc
                                 & deviceProperties.limits.framebufferDepthSampleCounts;
 
      // TODO find out if the following even works--probably a lot clearer to use multiple if-statements instead
-    //  // find the highest order MSAA samples bit and set maxMsaaSamples to that
-    // for (int i = 0, max32 = 0x80000000; i < 32; i++)
-    // {
-    //   if ((counts & max32) == max32)
-    //   {
-    //     mGpuPerformanceProperties.maxMsaaSamples = static_cast<VkSampleCountFlagBits>(max32 >> i);
-    //     break;
+     //  // find the highest order MSAA samples bit and set maxMsaaSamples to that
+     // for (int i = 0, max32 = 0x80000000; i < 32; i++)
+     // {
+     //   if ((counts & max32) == max32)
+     //   {
+     //     mGpuPerformanceProperties.maxMsaaSamples = static_cast<VkSampleCountFlagBits>(max32 >> i);
+     //     break;
 //   }
-    //   counts <<= 1;
-    // }
+     //   counts <<= 1;
+     // }
 
      // find the highest order MSAA samples bit and set maxMsaaSamples to that
     if (counts & VK_SAMPLE_COUNT_64_BIT) {
@@ -285,11 +327,9 @@ namespace fc
      // get the graphics and presentation queues
     QueueFamilyIndices indices = getQueueFamilies(device);
 
-
      // make sure that both queues are present
     return indices.isValid() && deviceFeatures.samplerAnisotropy;
   }
-
 
    // TODO pass list of required extensions to let us get rid of stored global deviceExtensions
   bool FcGpu::isDeviceExtensionSupported(const VkPhysicalDevice& device) const
@@ -404,35 +444,54 @@ namespace fc
   void FcGpu::createCommandPool()
   {
      // get indices of queue families from device
-    QueueFamilyIndices queueFamilyIndices = GpuQueueFamilies();
-
-    VkCommandPoolCreateInfo commandPoolInfo{};
+    QueueFamilyIndices queueFamilyIndices = getQueueFamilies(mPhysicalGPU);
+    VkCommandPoolCreateInfo commandPoolInfo = {};
     commandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     commandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    commandPoolInfo.pNext = nullptr;
     commandPoolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily;
 
-    if (vkCreateCommandPool(mLogicalGPU, &commandPoolInfo, nullptr, &mCommandPool) != VK_SUCCESS)
+     // To support mult-threading, we need to add multiple command pools
+    for (FrameData frame : mFrames)
     {
-      throw std::runtime_error("Failed to create a Vulkan Command Pool!");
+      if (vkCreateCommandPool(mLogicalGPU, &commandPoolInfo, nullptr, &frame.commandPool) != VK_SUCCESS)
+      {
+        throw std::runtime_error("Failed to create a Vulkan Command Pool!");
+      }
+
+       // Allocate the default command buffer that we will use for rendering
+      VkCommandBufferAllocateInfo allocInfo{};
+      allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+      allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+      allocInfo.pNext = nullptr;
+      allocInfo.commandPool = frame.commandPool;
+      allocInfo.commandBufferCount = 1;
+
+       // allocate command buffer from pool
+      if (vkAllocateCommandBuffers(mLogicalGPU, &allocInfo, &frame.commandBuffer) != VK_SUCCESS)
+      {
+        throw std::runtime_error("Failed to allocate a Vulkan Command Buffer!");
+      }
     }
+
   }
 
 
 
   VkCommandBuffer FcGpu::beginCommandBuffer() const
   {
-     // command buffer to hold transfer commands
-    VkCommandBuffer commandBuffer;
+    //  // command buffer to hold transfer commands
+    // VkCommandBuffer commandBuffer;
 
-     // command buffer details
-    VkCommandBufferAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandPool = mCommandPool;
-    allocInfo.commandBufferCount = 1;
+    //  // command buffer details
+    // VkCommandBufferAllocateInfo allocInfo{};
+    // allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    // allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    // allocInfo.commandPool = mCommandPool;
+    // allocInfo.commandBufferCount = 1;
 
-     // allocate command buffer from pool
-    vkAllocateCommandBuffers(mLogicalGPU, &allocInfo, &commandBuffer);
+    //  // allocate command buffer from pool
+    // vkAllocateCommandBuffers(mLogicalGPU, &allocInfo, &commandBuffer);
 
      // information to be the command buffer record
     VkCommandBufferBeginInfo beginInfo{};
@@ -478,12 +537,10 @@ namespace fc
   {
     vmaDestroyAllocator(mAllocator);
 
-     // TODO test that these conditionals are working as intended
-    if (mCommandPool != VK_NULL_HANDLE)
+    for (FrameData frame : mFrames)
     {
-      vkDestroyCommandPool(mLogicalGPU, mCommandPool, nullptr);
+      vkDestroyCommandPool(mLogicalGPU, frame.commandPool, nullptr);
     }
-
 
     if (mLogicalGPU != VK_NULL_HANDLE)
     {

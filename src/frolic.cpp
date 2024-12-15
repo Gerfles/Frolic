@@ -48,6 +48,19 @@ namespace fc
     SDL_Log("SDL version(s): %u.%u.%u (compiled),  %u.%u.%u. (linked)\n",
             compiled.major, compiled.minor, compiled.patch, linked.major, linked.minor, linked.patch);
 
+     // TODO addd to builder
+    // // vulkan features to request from version 1.2
+    // VkPhysicalDeviceVulkan12Features features12 = {};
+    // features12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+    // features12.bufferDeviceAddress = true;
+    // features12.descriptorIndexing = true;
+
+    //  // vulkan features to request from version 1.3
+    // VkPhysicalDeviceVulkan13Features features13 = {};
+    // features13.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+    // features13.dynamicRendering = true;
+    // features13.synchronization2 = true;
+
      //TODO should maybe define our own exit_success and failure codes for debugging later
     if (mRenderer.init(appInfo, screenDims) != EXIT_SUCCESS)
     {
@@ -171,15 +184,17 @@ namespace fc
         {
           switch (mEvent.window.event)
           {
-             // ?? Not sure what the difference is...
+             // ?? check that this is proper
               case SDL_WINDOWEVENT_MINIMIZED:
+              case SDL_WINDOWEVENT_HIDDEN:
               {
+                 // TODO replace here with mRenderer.pause();
                 SDL_WaitEvent(nullptr);
                 break;
               }
               case SDL_WINDOWEVENT_SIZE_CHANGED:
               {
-                mRenderer.handleWindowResize(); // ?? NOTE: vulkan tutorial uses a bool flag here instead of calling function directly
+                mRenderer.handleWindowResize();
                 break;
               }
               default:

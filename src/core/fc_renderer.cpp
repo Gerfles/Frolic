@@ -71,6 +71,9 @@ namespace fc
        // create the surface (interface between Vulkan and window (SDL))
       mWindow.createWindowSurface(mInstance);
 
+
+
+
     std::cout << "window dimensions88: " << mWindow.ScreenSize().width
                 << " x " << mWindow.ScreenSize().height << std::endl;
 
@@ -165,7 +168,7 @@ namespace fc
      // finally, define a Create struct to initialize the vulkan instance
     VkInstanceCreateInfo instanceInfo{};
 
-     //TODO change to platform dependent evaluation
+     // TODO change to platform dependent evaluation
      // Only seems to be required for macOS implementation and only when validation layers added
     // extensions.push_back("VK_KHR_get_physical_device_properties2");
     // extensions.push_back("VK_KHR_portability_enumeration");
@@ -196,6 +199,7 @@ namespace fc
       features.enabledValidationFeatureCount = static_cast<uint32_t>(featureEnables.size());
       features.pEnabledValidationFeatures = featureEnables.data();
       instanceInfo.pNext = &features;
+      SDL_Log("Validation Layers added!");
     }
 
     instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -213,6 +217,7 @@ namespace fc
     {
       throw std::runtime_error("Failed to create Vulkan Instance!");
     }
+
 
   }  // END void FcRenderer::createInstance(...)
 

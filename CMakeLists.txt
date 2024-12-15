@@ -180,7 +180,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
  set(CMAKE_GENERATOR ninja)
 
 # always compile for debugging
-set(CMAKE_BUILD_TYPE RELEASE)
+set(CMAKE_BUILD_TYPE DEBUG)
 
 message(STATUS "using Cmake Generator: ${CMAKE_GENERATOR}")
 if (CMAKE_GENERATOR STREQUAL "MinGW Makefiles")
