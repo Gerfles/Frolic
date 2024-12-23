@@ -7,13 +7,14 @@
 #include "vulkan/vulkan_core.h"
 #include "SDL2/SDL_video.h"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include <cstdint>
 #include <vector>
-
 
 
 namespace fc
 {
    // FORWARD DECLARATIONS
+   // ?? better to place here or with member variable
   class FcGpu;
 
 // ?? could maybe get rid of this
@@ -29,7 +30,7 @@ namespace fc
 
    private:
       // BUG is there any issues with declaring the following pointer const?
-     const FcGpu* pGpu;
+     FcGpu* pGpu;
      VkSwapchainKHR mSwapchain;
      VkExtent2D mSurfaceExtent;
      VkFormat mSwapchainFormat;
@@ -60,19 +61,23 @@ namespace fc
      void createDepthBufferImage();
      void createFrameBuffers();
    public:
-      // INITIALIZATION
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   INITIALIZATION   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      FcSwapChain() = default;
      FcSwapChain(FcSwapChain* oldSwapChain);
      uint32_t init(FcGpu& gpu, const VkExtent2D& windowSize);
       // TODO see if we can just make this part of create swapChain??
+     void transitionImage(VkCommandBuffer commandBuffer, uint32_t currentFrame
+                          , VkImageLayout oldLayout, VkImageLayout newLayout);
      void reCreateSwapChain();
-      // Getter functions
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-   GETTER FUNCTIONS   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      VkFramebuffer& getFrameBuffer(int index) { return mSwapChainFramebuffers[index]; }
+     FcImage& getFcImage(uint32_t index) { return mSwapchainImages[index]; }
      const size_t imageCount() const { return mSwapChainFramebuffers.size(); }
      const VkExtent2D& getSurfaceExtent() const { return mSurfaceExtent; }
      const VkFormat& getFormat() const { return mSwapchainFormat; }
      VkRenderPass& getRenderPass()  { return mRenderPass; }
      const VkSwapchainKHR& vkSwapchain() const { return mSwapchain; }
+    VkImage vkImage(uint32_t index)  { return mSwapchainImages.at(index).Image();  }
       // CLEANUP
 //     ~FcSwapChain();
      void clearSwapChain();

@@ -8,6 +8,7 @@
 // - EXTERNAL LIBRARIES -
 #include "vulkan/vulkan_core.h"
 // - STD LIBRARIES -
+#include <cstdint>
 #include <stdexcept>
 #include <vector>
 // #include <cstddef>
@@ -170,6 +171,88 @@ namespace fc
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline);
   }
 
+   // TODO combine with bind
+  void FcPipeline::bind2(VkCommandBuffer commandBuffer)
+  {
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, mPipeline);
+  }
+
+
+  void FcPipeline::create2(std::vector<ShaderInfo> shaderInfos)
+  {
+     // -*-*-*-*-*-*-*-*-*-*-*-*-   CREATE PIPELINE LAYOUT   -*-*-*-*-*-*-*-*-*-*-*-*- //
+
+    // VkPushConstantRange pushConstantRange{};
+    // pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    // pushConstantRange.offset = 0;
+    // pushConstantRange.size = sizeof(BillboardPushComponent);
+
+    // std::array<VkDescriptorSetLayout, 2> descriptorSetLayouts = { FcLocator::DescriptorClerk().UboSetLayout()
+    //                                                             , FcLocator::DescriptorClerk().SamplerSetLayout() };
+
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+     //pipelineLayoutInfo.pushConstantRangeCount = 1;
+     //pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
+    pipelineLayoutInfo.setLayoutCount = 1;
+     //pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.size());
+     //pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
+    pipelineLayoutInfo.pSetLayouts = FcLocator::DescriptorClerk().vkDescriptorLayout();
+
+     // create the pipeline layout
+    if (vkCreatePipelineLayout(FcLocator::Device(), &pipelineLayoutInfo, nullptr, &mPipelineLayout) != VK_SUCCESS)
+    {
+      throw std::runtime_error("Failed to create Pipeline Layout!");
+    }
+
+// std::string& vertShaderFilename, const std::string& fragShaderFilename, const PipelineConfigInfo& pipelineInfo)
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE SHADERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
+     // read in SPIR-V code of shaders
+     // TODO add ability to specify filename as relative path and load the absolute path or
+     // perhaps a small loader program that finds file paths for everything
+
+     // allocate and initialize ( = {}) enough shader state create infos for each stage
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStages(shaderInfos.size()
+                                                              , VkPipelineShaderStageCreateInfo{});
+
+    std::vector<VkShaderModule> shaderModules(shaderInfos.size());
+
+    for (uint32_t i = 0; i < shaderStages.size(); i++)
+    {
+       // create the shader modules from our SPIR-V code
+      auto shaderCode = readFile("shaders/" + shaderInfos[i].filename);
+      shaderModules[i] = createShaderModule(shaderCode);
+
+       // populate the shader stage create info
+      shaderStages[i].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+      shaderStages[i].stage = shaderInfos[i].stage;
+      shaderStages[i].module = shaderModules[i];
+      shaderStages[i].pName = "main";
+    }
+
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE PIPELINE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    assert(mPipelineLayout != nullptr && "Cannot create pipeline before pipeline layout");
+
+    VkComputePipelineCreateInfo computePipelineInfo = {};
+    computePipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    computePipelineInfo.layout = mPipelineLayout;
+     // TODO integrate graphics pipeline creation with compute, probably best to just create separate call for compute
+    computePipelineInfo.stage = shaderStages[0];
+
+    if (vkCreateComputePipelines(FcLocator::Device(), VK_NULL_HANDLE, 1,
+                                  &computePipelineInfo, nullptr, &mPipeline) != VK_SUCCESS)
+    {
+      throw std::runtime_error("Failed to create Vulkan Graphics Pipeline!");
+    }
+
+     // Destroy shader modules, no longer needed after pipeline created
+    for (VkShaderModule& shaderModule : shaderModules)
+    {
+      vkDestroyShaderModule(FcLocator::Device(), shaderModule, nullptr);
+    }
+  }
+
 
 
   void FcPipeline::create(const std::string& vertShaderFilename, const std::string& fragShaderFilename
@@ -181,7 +264,7 @@ namespace fc
     assert(pipelineInfo.renderPass != VK_NULL_HANDLE &&
            "Cannot create graphics pipeline:: no renderPass provided in configInfo");
 
-     //-- CREATE SHADERS -- //
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE SHADERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
      // read in SPIR-V code of shaders
      //TODO add ability to specify filename as relative path and load the absolute path
@@ -271,14 +354,16 @@ namespace fc
   }
 
 
-
+   // TODO rewrite to pass shader module in and maybe return a bool for sucess and delete runtime error
   VkShaderModule FcPipeline::createShaderModule(const std::vector<char>& code)
   {
     VkShaderModuleCreateInfo shaderInfo{};
     shaderInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+     // BUG note that in vkguide.dev, they multiply the following by * sizeof(uint32_t)
+     // I think this is wrong on their end but should find out for sure and notify if so.
     shaderInfo.codeSize = code.size();
+     // might be better to see if there's a way to not use reinterpret -> check vkguide.dev
     shaderInfo.pCode = reinterpret_cast<const uint32_t* >(code.data());
-
 
     VkShaderModule shaderModule;
     if (vkCreateShaderModule(FcLocator::Device(), &shaderInfo, nullptr, &shaderModule) != VK_SUCCESS)
@@ -288,7 +373,5 @@ namespace fc
 
     return shaderModule;
   }// END  createShaderModule(...)
-
-
 
 } //  namespace fc -END-

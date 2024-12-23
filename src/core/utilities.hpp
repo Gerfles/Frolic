@@ -60,8 +60,8 @@ namespace fc
 
   // bool areValidationLayersSupported(std::vector<const char*>& validationLayers);
 
-  static int pLogCount = 1;
-  void pLog(std::string header = "");
+  static int logCount = 1;
+  void fcLog(std::string header = "", int resetLogCount = -1);
   void calcFPS(uint64_t latestTick);
   void printMat(glm::mat4& mat);
   void printMat(glm::mat3& mat);

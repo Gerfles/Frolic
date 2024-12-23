@@ -10,6 +10,7 @@
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "glm/glm.hpp"
 #include <ft2build.h>
+#include <vulkan/vulkan_core.h>
 //?? what's up with the following includes
 #include FT_FREETYPE_H /* wierd font-lock issue TODO solve issue */
 #include FT_GLYPH_H
@@ -52,7 +53,8 @@ namespace fc
      BillboardPushComponent& Push() { return mTextBoxSpecs; }
       //   VkBuffer IndexBuffer() { return mTextBoxMesh.IndexBuffer(); }
 //     uint32_t IndexCount() { return mTextBoxMesh.VertexCount(); }
-     void createRasterFont(std::string fontName, int size, int firstGlyph = 0, int lastGlyph = 255);
+     void createRasterFont(std::string fontName
+                           , int size, int firstGlyph = 0, int lastGlyph = 255);
      void free();
       // GETTERS
   };

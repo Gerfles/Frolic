@@ -1,6 +1,7 @@
 #include "fc_swapChain.hpp"
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "core/fc_renderer.hpp"
 #include "core/fc_window.hpp"
 #include "fc_gpu.hpp"
 #include "utilities.hpp"
@@ -12,6 +13,7 @@
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <iostream>
 #include <stdexcept>
 #include <vector>
@@ -61,13 +63,15 @@ namespace fc
      // 3. Choose swap chain image resolution
     VkExtent2D extent = chooseSwapExtent(swapChainDetails.surfaceCapabilities, windowSize);
 
-    // std::cout << "extent size: " << extent.width
-    //           << " x " << extent.height << std::endl;
+     // std::cout << "extent size: " << extent.width
+     //           << " x " << extent.height << std::endl;
 
-     // BUG this would NOT give us tripple buffering and instead give us double buffering if minImageCount is 1;
+     // BUG this would NOT give us tripple buffering but give us double buffering if minImageCount is 1;
      // How many images are in the swap chain? get 1 more than the minimum to allow tripple buffering
      // But notice that VkSwapchainCreateInfoKHR uses minImageCount instead of imageCount
-    uint32_t imageCount = swapChainDetails.surfaceCapabilities.minImageCount + 1;
+    uint32_t imageCount = MAX_FRAME_DRAWS;
+     // BUG should pick one image count and stick with it.
+     //  uint32_t imageCount = swapChainDetails.surfaceCapabilities.minImageCount + 1;
     std::cout << "Swapchain image count (buffers): " << imageCount << std::endl;
      // check to make sure
     if (swapChainDetails.surfaceCapabilities.maxImageCount > 0 &&
@@ -79,21 +83,25 @@ namespace fc
      // creation information for swap chain
     VkSwapchainCreateInfoKHR swapChainInfo{};
     swapChainInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+     // TODO doesnt really make intuitive sense that a gpu should have a notion of surface
     swapChainInfo.surface = pGpu->surface();
     swapChainInfo.imageFormat = surfaceFormat.format;
     swapChainInfo.imageColorSpace = surfaceFormat.colorSpace;
     swapChainInfo.presentMode = presentMode;
     swapChainInfo.imageExtent =  extent;
     swapChainInfo.minImageCount = imageCount;
-    swapChainInfo.imageArrayLayers = 1;                               // Number of layers for each image in chain
-    swapChainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;   // what attachment images will be used as
+    // Number of layers for each image in chain
+    swapChainInfo.imageArrayLayers = 1;
+     // what attachment images will be used as
+    swapChainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     swapChainInfo.preTransform = swapChainDetails.surfaceCapabilities.currentTransform;
-    swapChainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR; // how to handle blending images with external grapics (e.g. other windows)
-    swapChainInfo.clipped = VK_TRUE;                                  // whether to clip parts of image not in view (e.g. behind another window, off screen, etc)
-    swapChainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;       // graphics queue and present queue are the same (often the case)
+     // how to handle blending images with external grapics (e.g. other windows)
+    swapChainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    // whether to clip parts of image not in view (e.g. behind another window, off screen, etc)
+    swapChainInfo.clipped = VK_TRUE;
 
      // Get queue family indices
-    QueueFamilyIndices indices = pGpu->GpuQueueFamilies();
+    QueueFamilyIndices indices = pGpu->getQueueFamilies();
 
      // if graphics and presentation families are different, then swapchain must let images be shared between families
     if (indices.graphicsFamily != indices.presentationFamily)
@@ -105,6 +113,10 @@ namespace fc
       swapChainInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
       swapChainInfo.queueFamilyIndexCount = 2;
       swapChainInfo.pQueueFamilyIndices = queueFamilyIndices;
+    }
+    else // graphics queue and present queue are the same (often the case)
+    {
+      swapChainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
     }
 
      // set oldswapchain to the previous swapchain if recreating, otherwise defaults to VK_NULL_HANDLE
@@ -123,7 +135,7 @@ namespace fc
     {
       vkDestroySwapchainKHR(pGpu->getVkDevice(), oldSwapchain, nullptr);
     }
-    //
+     //
 
      // Store for later reference
     mSwapchainFormat = surfaceFormat.format;
@@ -150,11 +162,18 @@ namespace fc
       mSwapchainImages.emplace_back(std::move(swapChainImage));
     }
 
+     // TODO DELETE
+    VkExtent3D temp = {mSurfaceExtent.width, mSurfaceExtent.height, 1};
+
      // finally create the color image and image view that will be used as multi-sampled color attachment
-    mMultiSampledImage.create(mSurfaceExtent.width, mSurfaceExtent.height, mSwapchainFormat
-                              , pGpu->Properties().maxMsaaSamples, VK_IMAGE_TILING_OPTIMAL
-                              , VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
-                              , 1, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
+    mMultiSampledImage.create(temp, mSwapchainFormat
+                              , pGpu->Properties().maxMsaaSamples
+                              , VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
+                              |   VK_IMAGE_USAGE_TRANSFER_DST_BIT
+                               // ?? Originally set and seems useful according to documentation but maybe
+                               // this is the way it was done pre-vulkan 1.3
+                               // | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT
+                              , VK_IMAGE_ASPECT_COLOR_BIT);
 
     return swapchainImageCount;
   }
@@ -317,6 +336,15 @@ namespace fc
   }
 
 
+  // *-*-*-*-*-*-   MAKE CURRENT SWAPCHAIN FRAME INTO WRITEABLE IMAGE   *-*-*-*-*-*- //
+  void FcSwapChain::transitionImage(VkCommandBuffer commandBuffer, uint32_t currentFrame
+                                    , VkImageLayout oldLayout, VkImageLayout newLayout)
+  {
+    mSwapchainImages[currentFrame].transitionImage(commandBuffer, oldLayout, newLayout, 1);
+  } // --- FcSwapChain::beginRendering (_) --- (END)
+
+
+
   void FcSwapChain::createDepthBufferImage()
   {
      // create an ordered list of formats with higher prioritization at the front of list
@@ -327,10 +355,12 @@ namespace fc
                                                  , VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
      // create depth buffer image
-    mDepthBufferImage.create(mSurfaceExtent.width, mSurfaceExtent.height, depthFormat
-                             , pGpu->Properties().maxMsaaSamples, VK_IMAGE_TILING_OPTIMAL
-                             , VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, 1
-                             , VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
+
+         // TODO DELETE
+    VkExtent3D temp = {mSurfaceExtent.width, mSurfaceExtent.height, 1};
+
+    mDepthBufferImage.create(temp, depthFormat, pGpu->Properties().maxMsaaSamples
+                             , VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
   }
 
 
@@ -477,8 +507,6 @@ namespace fc
       }
     }
   }
-
-
 
 
    // Partially free of swapchain resources -- used when resizing the window and recreating swapchain

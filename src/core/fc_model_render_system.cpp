@@ -14,7 +14,9 @@ namespace fc
   void FcModelRenderSystem::createPipeline(FcGpu& gpu, FcPipeline& pipeline
                                            , FcDescriptor& descriptors, VkRenderPass& renderPass)
   {
-     // -- CREATE PIPELINE LAYOUT -- //
+     // -*-*-*-*-*-*-*-*-*-*-*-*-   CREATE PIPELINE LAYOUT   -*-*-*-*-*-*-*-*-*-*-*-*- //
+     // according to gpu vendors, their best use case is to send some indexes to the shader to be
+     // used to access some bigger data buffers.
     VkPushConstantRange pushConstantRange{};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT; // shader stage push constant will go to
     pushConstantRange.offset = 0;                              // offset into given data to pass to push constant
@@ -36,7 +38,6 @@ namespace fc
       throw std::runtime_error("Failed to create Pipeline Layout!");
     }
 
-     // -- CREATE PIPELINE -- //
 
     assert(pipeline.Layout() != nullptr && "Cannot create pipeline before pipeline layout");
 

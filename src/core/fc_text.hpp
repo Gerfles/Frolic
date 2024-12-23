@@ -9,6 +9,7 @@
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "glm/glm.hpp"
 #include <ft2build.h>
+#include <vulkan/vulkan_core.h>
 #include <unordered_map>
 //?? what's up with the following includes
 #include FT_FREETYPE_H /* wierd font-lock issue TODO solve issue */

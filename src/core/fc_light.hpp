@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vulkan/vulkan_core.h>
 #include "core/fc_image.hpp"
 #include "fc_billboard_render_system.hpp"
 #include "core/fc_game_object.hpp"

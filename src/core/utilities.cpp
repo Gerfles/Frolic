@@ -7,6 +7,7 @@
 // - STD LIBRARIES -
 #include <chrono>
 #include <cstddef>
+#include <cstdint>
 #include <fstream>
 #include <ios>
 #include <stdexcept>
@@ -82,15 +83,23 @@ namespace fc
    //   return requiredLayers.empty();
    // }
 
-
-  void pLog(std::string header)
+  //
+  void fcLog(std::string header, int resetLogCount)
   {
+    if (resetLogCount >= 0)
+    {
+      logCount = resetLogCount;
+    }
     if (header != "")
     {
-      std::cout << "\nLogging Funtion: " << header << "  (Resetting Log count)\n";
-      pLogCount = 1;
+      std::cout << "Logging Funtion: " << header
+                << std::right << ":\tLog Count: "<< logCount++ << std::endl;
     }
-    std::cout << "Got to log # " << pLogCount++ << std::endl;
+    else
+    {
+      std::cout << "\t\t fcLog() called: " << std::right
+                << "\tLog Count:" << logCount++ << std::endl;
+    }
   }
 
 
@@ -195,7 +204,7 @@ namespace fc
       throw std::runtime_error("Failed to open file: " + filename);
     }
 
-// *-*-*-*-*-   SANITY CHECK TO VERIFY SHADERS WERE COMPILED RECENTLY   *-*-*-*-*- //
+     // *-*-*-*-*-   SANITY CHECK TO VERIFY SHADERS WERE COMPILED RECENTLY   *-*-*-*-*- //
      // TODO probably best to print in cmake instead but keep this template for future
      // read back from the filesystem
     std::filesystem::file_time_type last_write = std::filesystem::last_write_time(filename);
@@ -211,7 +220,7 @@ namespace fc
      //  Easier than above but requires C+23
      //std::println("Last Update: {}", fileTime);
 
-
+     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   CONTINUE LOADING   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      // get current read position (since this is at the end of file) to get file size
     size_t fileSize = static_cast<size_t>(file.tellg());
     std::vector<char> fileBuffer(fileSize);
@@ -225,6 +234,7 @@ namespace fc
      // close stream
     file.close();
 
+     // TODO re-write this function to accept a std::vector<char> pointer so nothing is copied
     return fileBuffer;
   }
 

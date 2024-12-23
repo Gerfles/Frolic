@@ -7,15 +7,16 @@
 #include "core/fc_ui_render_system.hpp"
 #include "fc_model.hpp"
 #include "fc_font.hpp"
-#include "fc_descriptors.hpp"
 #include "fc_swapChain.hpp"
 #include "fc_image.hpp"
 #include "fc_gpu.hpp"
 #include "fc_window.hpp"
 #include "fc_pipeline.hpp"
+#include "fc_janitor.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include <cstdint>
 #include <stdexcept>
 #include <vector>
 
@@ -23,7 +24,19 @@
 
 namespace fc
 {
-   //static constexpr int MAX_FRAMES_IN_FLIGHT = 3; // used in swap chain
+
+  struct FrameData
+  {
+      // TODO might be better to make this an entire class with all methods and static ints (numFrame)
+     VkCommandPool commandPool = VK_NULL_HANDLE;
+     VkCommandBuffer commandBuffer;
+     VkSemaphore imageAvailableSemaphore;
+     VkSemaphore renderFinishedSemaphore;
+     VkFence renderFence;
+     fcJanitor janitor;
+  };
+
+//static constexpr int MAX_FRAMES_IN_FLIGHT = 3; // used in swap chain
   constexpr unsigned int MAX_FRAME_DRAWS = 2;
 
 
@@ -31,10 +44,9 @@ namespace fc
   {
    private:
 
-     int mCurrentFrame = 0;
       // TODO determine if buffer count is necessary since we can just call mSwapchain.imageCount();
-     int mBufferCount = 0;
-
+     int mBufferCount {0};
+     FrameData mFrames[MAX_FRAME_DRAWS];
       //?? try seeing if we can conditionally declare variables when in debug
      VkDebugUtilsMessengerEXT debugMessenger;
      FcWindow mWindow;
@@ -42,37 +54,24 @@ namespace fc
      FcGpu mGpu;
 //     FcDescriptor mDescriptorManager;
      FcSwapChain mSwapchain;
-     std::vector<VkSemaphore> mImageReadySemaphores;
-     std::vector<VkSemaphore> mRenderFinishedSemaphores;
-
      VkViewport mDynamicViewport;
      VkRect2D mDynamicScissors;
+      // TODO delete (now in FrameData)
+     // std::vector<VkSemaphore> mImageReadySemaphores;
+     // std::vector<VkSemaphore> mRenderFinishedSemaphores;
+      // std::vector<VkCommandBuffer> mCommandBuffers;
+      //      std::vector<VkFence> mDrawFences;
 
-     std::vector<VkCommandBuffer> mCommandBuffers;
-     std::vector<VkFence> mDrawFences;
-
-      // TODO find a better way for tighter coupling - maybe friend function
-      // Descriptors      // ADDED TO PIPELINE FOR NOW
-
-      // PERFORMANCE tracking
-
-
-      // camera
-
-      // - MODEL RENDERING SYSTEM -
-//     FcCamera mCamera;
+      // - Model Rendering
      FcModelRenderSystem mModelRenderer;
      FcPipeline mModelPipeline;
-
-      // - UI RENDERING SYSTEM -
+      // - UI Rendering
      FcUIrenderSystem mUiRenderer;
      FcPipeline mUiPipeline;
-
+      // - Billboard Rendering
      FcBillboardRenderSystem mBillboardRenderer;
      FcPipeline mBillboardPipeline;
-
      // Allocate Functions
-
      // Debugging validation layers
 #ifdef NDEBUG
        const bool enableValidationLayers = false;
@@ -81,10 +80,31 @@ namespace fc
 #endif
      void createInstance(VkApplicationInfo& appInfo);
      bool areInstanceExtensionsSupported(const std::vector<const char*>& instanceExtensions);
-     void createCommandBuffers();
-     void recordCommands(uint32_t currentFrame);
+     void createCommandPools();
+//     void recordCommands(uint32_t currentFrame);
      void createSynchronization();
+
+      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    // ?? TODO should this be handled by the swapchain
+     FcImage mDrawImage;
+      //Fc[...]renderSystem m[...]Renderer;
+     FcPipeline mBackgroundPipeline;
+     int mFrameNumber {0};
+      // ?? DELETE
+     void initDrawImage();
+     void initImgui();
+     VkFence mImmediateFence;
+     VkCommandPool mImmediateCommandPool;
+     VkCommandBuffer mImmediateCmdBuffer;
+     VkDevice pDevice;
+     VkDescriptorPool mImgGuiDescriptorPool;
    public:
+      // TODO probably best to issue multiple command buffers, one for each task
+     VkCommandBuffer beginCommandBuffer();
+     void submitCommandBuffer();
+
+      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
      // Constructors, etc. - Prevent copying or altering -
      FcRenderer() = default;
      ~FcRenderer() = default;
@@ -96,15 +116,17 @@ namespace fc
      void handleWindowResize();
       //FcDescriptor& DescriptorManager() { return mDescriptorManager; }
      uint32_t beginFrame();
-     void endFrame(uint32_t currentFrame);
-     void drawModels(uint32_t swapChainImageIndex, GlobalUbo& ubo);
-     void drawBillboards(glm::vec3 cameraPosition, uint32_t swapchainImageIndex, GlobalUbo& ubo);
-     void drawUI(std::vector<FcText>& UIelements, uint32_t swapchainImageIndex);
-      // - GETTERS -
+     void endFrame(uint32_t swapchainImgIndex);
 
+     void drawModels(uint32_t swapchainImgIndex, GlobalUbo& ubo);
+     void drawBillboards(glm::vec3 cameraPosition, uint32_t swapchainImgIndex, GlobalUbo& ubo);
+     void drawUI(std::vector<FcText>& UIelements, uint32_t swapchainImgIndex);
+     void drawSimple(uint32_t swapchainImgIndex);
+      // - GETTERS -
+      FrameData& getCurrentFrame() { return mFrames[mFrameNumber % MAX_FRAME_DRAWS]; }
       // ?? is this used often enough to merit a member variable?
      float AspectRatio() { return (float)mSwapchain.getSurfaceExtent().width / (float)mSwapchain.getSurfaceExtent().height; }
-     VkRenderPass& RenderPass() { return mSwapchain.getRenderPass(); }
+     VkRenderPass RenderPass() { return mSwapchain.getRenderPass(); }
      uint32_t BufferCount() const { return mBufferCount; }
      const FcGpu& Gpu() const { return mGpu; }
      const FcSwapChain& Swapchain() { return mSwapchain; }

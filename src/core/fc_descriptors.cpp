@@ -2,16 +2,18 @@
 #include <SDL_log.h>
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "core/fc_locator.hpp"
 #include "fc_gpu.hpp"
 //#include "fc_mesh.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <array>
+#include <cstdint>
 #include <iostream>
 #include <stdexcept>
 #include <vector>
-
+#include <span>
 
 namespace fc
 {
@@ -39,8 +41,7 @@ namespace fc
      // ?? Should the UBO buffer get transfered to DEVICE_LOCAL?
     for (auto& buffer : mGlobalUniformBuffers)
     {
-      buffer.create(sizeof(GlobalUbo), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT
-                    , VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+      buffer.allocateBuffer(sizeof(GlobalUbo), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
     }
 
      // REFERENCE FOR DYNAMIC UBOs
@@ -55,31 +56,173 @@ namespace fc
      //   }
   }
 
+   // TODO think about getting rid of the std::span and just have simple declare of which descriptors
+   // you want and how many... this method may have advantages I'm not aware of yet however.
+  void FcDescriptor::createDescriptorPool2(uint32_t maxSets, std::vector<PoolSizeRatio> poolRatios)
+  {
+     // Type of decriptors + how many DESCRIPTORS, not descriptor Sets (combined makes the pool size)
+    std::vector<VkDescriptorPoolSize> poolSizes{};
+
+    for (PoolSizeRatio ratio : poolRatios)
+    {
+      poolSizes.push_back(VkDescriptorPoolSize{ratio.type
+                                             , static_cast<uint32_t>(ratio.ratio * maxSets)} );
+    }
+
+     // -*-*-*-*-*-*-*-*-*-*-*-   REFERENCE FOR DYNAMIC UBOS   -*-*-*-*-*-*-*-*-*-*-*- //
+     // VkDescriptorPoolSize modelPoolSize{};
+     // modelPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+     // modelPoolSize.descriptorCount = static_cast<uint32_t>(mModelDynUniformBuffers.size());
+     // modelPoolSize.descriptorCount = static_cast<uint32_t>(uniformBufferCount);
+     //std::array<VkDescriptorPoolSize, 2> descriptorPoolSizes = {poolSizes, modelPoolSize};
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
+    VkDescriptorPoolCreateInfo poolInfo = {};
+    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    poolInfo.maxSets = maxSets;
+    poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+    poolInfo.pPoolSizes = poolSizes.data();
+
+     //
+    if (vkCreateDescriptorPool(pGpu->getVkDevice(), &poolInfo, nullptr, &mDescriptorPool2) != VK_SUCCESS)
+    {
+      throw std::runtime_error("Failed to create a Vulkan Descriptor Pool!");
+    }
+
+  }
+
+
+
+   // TODO this should eventuall replace createDescriptorSetLayout()
+  void FcDescriptor::addBinding(uint32_t bindSlot, VkDescriptorType type, VkShaderStageFlags shaderStages)
+  {
+    VkDescriptorSetLayoutBinding newBinding{};
+     // newBinding point in shader (designated by newBinding number specified in shader)
+    newBinding.binding = bindSlot;
+     // type of descriptor (uniform, dynamic uniform, image sampler, etc)
+    newBinding.descriptorType = type;
+    newBinding.descriptorCount = 1;
+     // shader stage to bind to (which pipeline stage is the descriptor set used/defined)
+    newBinding.stageFlags = shaderStages;
+     // for textures: can make sampler immutable (unchangeable)
+    newBinding.pImmutableSamplers = nullptr;
+
+    mLayoutBindings.push_back(newBinding);
+  }
+
+   // TODO do this automatically after create
+  void FcDescriptor::cleanupLayoutBindings()
+  {
+    mLayoutBindings.clear();
+  }
+
+  void FcDescriptor::destroyPool()
+  {
+    vkDestroyDescriptorPool(FcLocator::Device(), mDescriptorPool2, nullptr);
+  }
+
+
+  void FcDescriptor::createDescriptorSetLayout2(VkDescriptorSetLayoutCreateFlags flags)
+  {
+     // "One very important thing to do with pools is that when you reset a pool, it destroys all of
+     // the descriptor sets allocated from it. This is very useful for things like per-frame
+     // descriptors. That way we can have descriptors that are used just for one frame, allocated
+     // dynamically, and then before we start the frame we completely delete all of them in one
+     // go. This is confirmed to be a fast path by GPU vendors, and recommended to use when you need
+     // to handle per-frame descriptor sets."
+     // DYNAMIC UBOs would set the following
+     // modelLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+     // modelLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+     // create descriptor set layout with given bindings
+    VkDescriptorSetLayoutCreateInfo layoutCreateInfo{};
+    layoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layoutCreateInfo.bindingCount = static_cast<uint32_t>(mLayoutBindings.size());
+    layoutCreateInfo.pBindings = mLayoutBindings.data();
+    layoutCreateInfo.flags = flags;
+
+    if (vkCreateDescriptorSetLayout(pGpu->getVkDevice(), &layoutCreateInfo, nullptr, &mLayout)
+        != VK_SUCCESS)
+    {
+      throw std::runtime_error("Failed to create a Vulkan Descriptor Set Layout!");
+    }
+  }
+
+
+  void FcDescriptor::clearDescriptors()
+  {
+    vkResetDescriptorPool(FcLocator::Device(), mDescriptorPool2, 0);
+  }
+
+
+  void FcDescriptor::createDescriptorSets2(FcImage& image)
+  {
+     // resize descriptor set list so we have one for every buffer
+     // mUboDescriptorSets.resize(uniformBufferCount);
+
+     // Descriptor set allocation info
+    VkDescriptorSetAllocateInfo setAllocInfo{};
+    setAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    setAllocInfo.descriptorPool = mDescriptorPool2; // pool to allocate descriptor set from
+    setAllocInfo.descriptorSetCount = 1; // number of sets to allocate
+    setAllocInfo.pSetLayouts = &mLayout; // layouts to use to allocate sets (1:1 ratio)
+
+     // Allocate descriptor sets (multiple)
+    if (vkAllocateDescriptorSets(pGpu->getVkDevice(), &setAllocInfo, &mDescriptorSet) != VK_SUCCESS)
+    {
+      throw std::runtime_error("Failed to allocate Vulkan Descriptor Sets!");
+    }
+
+     // update all descriptor set buffer bindings (link descriptor sets with buffers that contain the actual data)
+
+       // Image info and data offset info
+    VkDescriptorImageInfo imageInfo = {};
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+    imageInfo.imageView = image.ImageView();
+     //imageInfo.sampler = image.TextureSampler();
+
+     // data about connection between binding and image we want to update
+    VkWriteDescriptorSet imageWriteDescriptors = {};
+    imageWriteDescriptors.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    imageWriteDescriptors.dstSet = mDescriptorSet;
+    imageWriteDescriptors.dstBinding = 0;
+    imageWriteDescriptors.dstArrayElement = 0;
+    imageWriteDescriptors.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    imageWriteDescriptors.descriptorCount = 1;
+    imageWriteDescriptors.pImageInfo = &imageInfo;
+
+     // update the descriptor sets with new buffer/binding infor
+     // TODO probably better to update all the descriptor sets at once
+    vkUpdateDescriptorSets(pGpu->getVkDevice(), 1, &imageWriteDescriptors, 0, nullptr);
+  }
 
 
 
     void FcDescriptor::createDescriptorSetLayout()
   {
-     // UNIFORM BUFFER OBJECT VALUES DESCRIPTOR SET LAYOUT
-
      // view projection binding info
     VkDescriptorSetLayoutBinding globalUboLayoutBinding{};
-    globalUboLayoutBinding.binding = 0;                                        // binding point in shader (designated by binding number specified in shader)
-    globalUboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER; // type of descriptor (uniform, dynamic uniform, image sampler, etc)
-    globalUboLayoutBinding.descriptorCount = 1;                                // Number of descriptors for binding
-    globalUboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;            // shader stage to bind to (which pipeline stage is the descriptor set used/defined)
-    globalUboLayoutBinding.pImmutableSamplers = nullptr;//TRY VK_NULL_HANDLE                // for textures: can make sampler immutable (unchangeable)
+     // binding point in shader (designated by binding number specified in shader)
+    globalUboLayoutBinding.binding = 0;
+     // type of descriptor (uniform, dynamic uniform, image sampler, etc)
+    globalUboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    globalUboLayoutBinding.descriptorCount = 1;
+     // shader stage to bind to (which pipeline stage is the descriptor set used/defined)
+    globalUboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+     // for textures: can make sampler immutable (unchangeable)
+    globalUboLayoutBinding.pImmutableSamplers = nullptr;
 
-     // REFERENCE FOR DYNAMIC UBOs
-     // VkDescriptorSetLayoutBinding modelLayoutBinding{};
-     // modelLayoutBinding.binding = 1;
+     // "One very important thing to do with pools is that when you reset a pool, it destroys all of
+     // the descriptor sets allocated from it. This is very useful for things like per-frame
+     // descriptors. That way we can have descriptors that are used just for one frame, allocated
+     // dynamically, and then before we start the frame we completely delete all of them in one
+     // go. This is confirmed to be a fast path by GPU vendors, and recommended to use when you need
+     // to handle per-frame descriptor sets."
+     // DYNAMIC UBOs would set the following
      // modelLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-     // modelLayoutBinding.descriptorCount = 1;
      // modelLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-     // modelLayoutBinding.pImmutableSamplers = nullptr;//TRY VK_NULL_HANDLE
-     //std::array<VkDescriptorSetLayoutBinding, 2> layoutBindings = {viewProjectionLayoutBinding, modelLayoutBinding};
 
-    std::array<VkDescriptorSetLayoutBinding, 1> layoutBindings = {globalUboLayoutBinding}; // , modelLayoutBinding};
+    std::array<VkDescriptorSetLayoutBinding, 1> layoutBindings = {globalUboLayoutBinding};
 
      // create descriptor set layout with given bindings
     VkDescriptorSetLayoutCreateInfo layoutCreateInfo{};
@@ -127,12 +270,13 @@ namespace fc
     viewProjPoolSize.descriptorCount = static_cast<uint32_t>(mGlobalUniformBuffers.size());
      // viewProjPoolSize.descriptorCount = static_cast<uint32_t>(uniformBufferCount);
 
-     // REFERENCE FOR DYNAMIC UBOs
+     // -*-*-*-*-*-*-*-*-*-*-*-   REFERENCE FOR DYNAMIC UBOS   -*-*-*-*-*-*-*-*-*-*-*- //
      // VkDescriptorPoolSize modelPoolSize{};
      // modelPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
      // modelPoolSize.descriptorCount = static_cast<uint32_t>(mModelDynUniformBuffers.size());
      // modelPoolSize.descriptorCount = static_cast<uint32_t>(uniformBufferCount);
      //std::array<VkDescriptorPoolSize, 2> descriptorPoolSizes = {viewProjPoolSize, modelPoolSize};
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
     std::array<VkDescriptorPoolSize, 1> descriptorPoolSizes = {viewProjPoolSize}; //, modelPoolSize};
 
@@ -235,7 +379,6 @@ namespace fc
     }
 
   }
-
 
    // define push constant - no create needed...
    // could put this in pipeline...
@@ -340,7 +483,7 @@ namespace fc
      // with separate update functions since we don't always need to update them at the same time
      // copy view projection data
      // TODO think about storing the sizeof results as a global number so the following is no longer a function call
-    mGlobalUniformBuffers[imgIndex].storeData(data, sizeof(GlobalUbo));
+    mGlobalUniformBuffers[imgIndex].overwriteData(data, sizeof(GlobalUbo));
 
      // SAVED FOR REFERENCE TO DYNAMIC UNIFORM BUFFERS
      // copy Model data

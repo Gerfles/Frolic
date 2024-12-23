@@ -1,13 +1,8 @@
 
-#set (CORE_SOURCES lve_window.cpp lve_device.cpp lve_swap_chain.cpp lve_model.cpp lve_pipeline)
-
 file(GLOB SRC_FILES "[a-z]*.cpp")
 set (CORE_SOURCES ${SRC_FILES})
-
-
 
 # needed by Cmake to find the SDL2 headers on OSX
 #include_directories(/usr/local/include)
 
 add_library(Core ${CORE_SOURCES})
-

@@ -7,6 +7,9 @@
 #include "vk_mem_alloc.h"
 // - STD LIBRARIES -
 
+// TODO could think about having a static FcBuffer commandBuffer for transfers,
+// etc. that all FcBuffers would use (for things like staging transfers) but
+// probably better implemented within the renderer instead...
 
 // TODO It should be noted that in a real world application, you're not supposed to actually call
 //vkAllocateMemory for every individual buffer. The maximum number of simultaneous memory
@@ -25,7 +28,6 @@ namespace fc
   {
    private:
      VkBuffer mBuffer = VK_NULL_HANDLE;
-     VkDeviceMemory mBufferMemory;
      VmaAllocation mAllocation;
 
    public:
@@ -34,9 +36,9 @@ namespace fc
      FcBuffer& operator=(const FcBuffer&) = delete;
       // ?? This must be included to allow vector.pushBack(Fcbuffer) ?? not sure if there's a better way... maybe unique_ptr
       // FcBuffer(const FcBuffer&) = delete;
-
-     void create(VkDeviceSize bufferSize, VkBufferUsageFlags useFlags, VkMemoryPropertyFlags properties);
-     void storeData(void * srcData, size_t dataSize);
+     void allocateBuffer(VkDeviceSize bufferSize, VkBufferUsageFlags useFlags);
+     void storeData(void* sourceData, VkDeviceSize bufferSize, VkBufferUsageFlags useFlags);
+     void overwriteData(void * srcData, size_t dataSize);
      void copyBuffer(const FcBuffer& srcBuffer, VkDeviceSize bufferSize);
      VkBuffer& getVkBuffer() { return mBuffer; }
      void destroy();

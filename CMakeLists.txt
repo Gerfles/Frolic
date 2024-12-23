@@ -406,10 +406,9 @@ file(COPY models DESTINATION ${CMAKE_BINARY_DIR})
 file(COPY textures DESTINATION ${CMAKE_BINARY_DIR})
 file(COPY shaders/compile_shaders.sh DESTINATION ${CMAKE_BINARY_DIR})
 
-
 # compile shaders
 set(SHADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shaders)
-file(GLOB SHADERS ${SHADER_DIR}/*.vert ${SHADER_DIR}/*.frag)
+file(GLOB SHADERS ${SHADER_DIR}/*.vert ${SHADER_DIR}/*.frag ${SHADER_DIR}/*.comp)
 
 foreach(SHADER ${SHADERS})
   get_filename_component(FILENAME ${SHADER} NAME)

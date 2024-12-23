@@ -22,7 +22,8 @@
 namespace fc
 {
 
-  FcBillboard::FcBillboard(float width, float height, glm::vec4 color)
+
+FcBillboard::FcBillboard(float width, float height, glm::vec4 color)
   {
     mPush.color  = color;
     mPush.width = width;
@@ -120,6 +121,7 @@ namespace fc
 
     // for (size_t i = 0; i < billboards.size(); ++i)
     // {
+
 
     // }
 

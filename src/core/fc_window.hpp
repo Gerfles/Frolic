@@ -29,7 +29,7 @@ namespace fc {
      FcWindow() = default;
      ~FcWindow() = default;
      bool initWindow(uint32_t width = 800, uint32_t height = 600, bool isFullscreen = false
-                     , std::string windowName = "Test Window");
+                     , std::string windowName = "Frolic Engine");
       // delete assignment operator and copy constructor
      FcWindow(const FcWindow&) = delete;
      FcWindow& operator=(const FcWindow) = delete;

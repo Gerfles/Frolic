@@ -2,6 +2,7 @@
 
 // - FROLIC ENGINE -
 //#include "core/fc_gpu.hpp"
+#include <vulkan/vulkan_core.h>
 #include "fc_image.hpp"
 #include "fc_pipeline.hpp"
 #include "fc_mesh.hpp"
@@ -29,7 +30,6 @@ namespace fc {
       // INITIALIZATION
      FcModel() = delete;
      FcModel(std::string modelFile);
-
      FcModel& operator=(FcModel&&) = default;
      FcModel(FcModel&&) = default;
       //void init(FcGpu& gpu);
@@ -38,9 +38,10 @@ namespace fc {
       // MUTATORS
       //void createModel(std::string modelFile, FcPipeline& pipeline, FcGpu& gpu);
       // ?? why were the following three function static in Ben's implementation ??
+      // ?? was it to make the functions globally available
      std::vector<std::string> LoadMaterials(const aiScene* scene);
-     void loadNodes(const FcGpu& gpu, aiNode* node, const aiScene* scene, std::vector<int>& matToTex);
-     void loadMesh(const FcGpu& gpu, aiMesh* mesh, const aiScene* scene, uint32_t textureID);
+     void loadNodes(aiNode* node, const aiScene* scene, std::vector<int>& matToTex);
+     void loadMesh(aiMesh* mesh, const aiScene* scene, uint32_t textureID);
      uint32_t loadTexture(std::string filename);
 
      void setModelMatrix(glm::mat4 modelMatrix) { mModelMatrix = modelMatrix; }

@@ -3,15 +3,18 @@
 #include "core/fc_billboard_render_system.hpp"
 #include "core/fc_game_object.hpp"
 #include "core/fc_light.hpp"
+#include "core/fc_renderer.hpp"
 #include "vulkan/vulkan_core.h"
 
 namespace fc
 {
+  FcRenderer* FcLocator::pRenderer;
   FcGpu* FcLocator::pGpu;
   VkDevice FcLocator::pDevice;
    //static Audio* pAudioService;
   FcDescriptor* FcLocator::pDescriptorClerk;
   VkExtent2D FcLocator::mScreenDimensions;
+
 
    // initialze game object list to maximum size allowed
 //  std::vector<FcGameObject*> FcLocator::mGameObjectsList(MAX_GAME_OBJECTS, nullptr);
@@ -28,8 +31,32 @@ namespace fc
     pDescriptorClerk = nullptr;
   }
 
+  void FcLocator::provide(FcRenderer* renderer)
+  {
+    if (renderer == nullptr)
+    {
+       // revert to default null device
+      std::cout << "Failed to assign proper FcGpu pointer to locator" << std::endl;
+    }
+    else
+    {
+      pRenderer = renderer;
+    }
+  }
 
-   void FcLocator::provide(FcGpu* gpu)
+  FcRenderer& FcLocator::Renderer()
+  {
+    if (pRenderer == nullptr)
+    {
+       // revert to default null device
+      std::cout << "Requested Renderer but none was provided!" << std::endl;
+    }
+    return *pRenderer;
+  }
+
+
+
+  void FcLocator::provide(FcGpu* gpu)
         {
           if (gpu == nullptr)
           {

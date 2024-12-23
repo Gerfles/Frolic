@@ -15,6 +15,7 @@
 #include "core/utilities.hpp"
 #include "vulkan/vulkan_core.h"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
@@ -73,9 +74,6 @@ namespace fc
      // create a default texture that gets used whenever assimp cant find a texture
      // Need to load this in first so it can be Texture 0 for default
      // TODO set this as a static variable
-    mFallbackTexture.loadTexture("plain.png");
-    FcLight::loadDefaultTexture("point_light.png");
-
     mInput.init();
   }
 
@@ -86,19 +84,26 @@ namespace fc
      // add a model to the model list
      // TODO make sure move constructor exists
     mUIfont.createRasterFont("fonts/Arial.ttf", 25, 32, 122);
+
     FcText text{&mUIfont};
+
     text.createText("FPS:", 10, 15, 1.0f);
     mUItextList.emplace_back(std::move(text));
 
     text.createText("9999", 70, 16, 1.0f);
     mUItextList.emplace_back(std::move(text));
+
   }
 
 
 
   void Frolic::loadGameObjects()
   {
-     // Load the castle object
+     // store default textures for when texture file is unfound
+    mFallbackTexture.loadTexture("plain.png");
+    FcLight::loadDefaultTexture("point_light.png");
+
+    // Load the castle object
     FcModel* model = new FcModel{"models/castle.obj"};
     FcGameObject* castle =  new FcGameObject(model, FcGameObject::POWER_UP);
     castle->transform.rotation = {glm::pi<float>(), 0.f, 0.f};
@@ -146,13 +151,13 @@ namespace fc
     sun->setPosition({0.0f, -4.5f, 0.0f});
     mUbo.pointLights[mUbo.numLights] = sun->generatePointLight();
     mUbo.numLights += 1;
-  }
 
+  } // --- Frolic::loadGameObjects (_) --- (END)
 
 
   void Frolic::run()
   {
-    pLog("run()");
+    fcLog("run()", 0);
 
     float deltaTime = 0.0f;
 
@@ -171,9 +176,11 @@ namespace fc
     FcCamera testCamera = camera;
 
      // load everything we need for the scene
-    loadUIobjects();
-    loadGameObjects();
-
+    fcLog("begin loading objects.");
+     //loadUIobjects();
+    fcLog("done loading UI objects.");
+     //loadGameObjects();
+    fcLog("done loading objects.");
      // TODO this should be abstracted into engine
     while (!mShouldClose)
     {
@@ -221,25 +228,29 @@ namespace fc
        // now re-start the time so that the start time is the start of each frame
       mTimer.start();
 
-      update(deltaTime);
+//update(deltaTime);
 
-      uint32_t frame = mRenderer.beginFrame();
 
       mUbo.view = camera.View();
       mUbo.projection = camera.Projection();
       mUbo.invView = camera.InverseView();
 
-      mRenderer.drawModels(frame, mUbo);
+      uint32_t swapchainImgIndex = mRenderer.beginFrame();
 
-      mRenderer.drawBillboards(camera.Position(), frame, mUbo);
+       //mRenderer.drawModels(swapchainImgIndex, mUbo);
 
-       //  std::cout << fpsString + fps;
+       //mRenderer.drawBillboards(camera.Position(), frame, mUbo);
 
-      mRenderer.drawUI(mUItextList, frame);
-      mRenderer.endFrame(frame);
+       //std::cout << fpsString + fps;
+
+       //mRenderer.drawUI(mUItextList, frame);
+
+      mRenderer.drawSimple(swapchainImgIndex);
+
+      mRenderer.endFrame(swapchainImgIndex);
 
        // TODO implement better way to wait for queues to finish
-      vkDeviceWaitIdle(FcLocator::Device());
+       //vkDeviceWaitIdle(FcLocator::Device());
 
     } // _END_ while(!shouldClose);
   }
@@ -284,30 +295,32 @@ namespace fc
       }
     }
 
+    //      auto rotateLight = glm::rotate( glm::mat4(1.f), i *
+    //      glm::two_pi<float>() / lightColors.size()
+    //                       , {0.f, -1.f, 0.f});
 
-     //      auto rotateLight = glm::rotate( glm::mat4(1.f), i * glm::two_pi<float>() / lightColors.size()
-     //                       , {0.f, -1.f, 0.f});
+    //    mUbo.pointLights[i].setPosition(glm::vec3(rotateLight *
+    //    glm::vec4(-1.f, -1.f, -1.f, 1.f)));
 
-     //    mUbo.pointLights[i].setPosition(glm::vec3(rotateLight * glm::vec4(-1.f, -1.f, -1.f, 1.f)));
+    // light->setPosition(glm::vec3(rotateLight * glm::vec4(-1.f, -1.f,
+    // -1.f, 1.f))); mLights.back().setPosition(glm::vec3(rotateLight *
+    // glm::vec4(-1.f, -1.f, -1.f, 1.f)));
 
-
-     //light->setPosition(glm::vec3(rotateLight * glm::vec4(-1.f, -1.f, -1.f, 1.f)));
-     //mLights.back().setPosition(glm::vec3(rotateLight * glm::vec4(-1.f, -1.f, -1.f, 1.f)));
-
-     //
-    rotateMat = glm::rotate(glm::mat4(1.f), glm::radians(25 * deltaTime), {0.f, -1.f, 0.f});
-
+    //
+    rotateMat = glm::rotate(glm::mat4(1.f), glm::radians(25 * deltaTime),
+                            {0.f, -1.f, 0.f});
 
     auto lights = FcLocator::Lights();
-     //
-    for (size_t i = 0; i < lights.size() - 1; ++i)
-    {
+    //
+    for (size_t i = 0; i < lights.size() - 1; ++i) {
 
-       //light->Transform().translation = glm::vec3(rotateMat * glm::vec4(light->Transform().translation, 1.f));
+      // light->Transform().translation = glm::vec3(rotateMat *
+      // glm::vec4(light->Transform().translation, 1.f));
+      glm::vec4 v = lights[i]->getPosition();
 
-      lights[i]->setPosition(rotateMat * lights[i]->getPosition());
+      lights[i]->setPosition(rotateMat * v);
 
-       // copy light to ubo
+      // copy light to ubo
       mUbo.pointLights[i] = lights[i]->generatePointLight();
     }
 
@@ -318,7 +331,11 @@ namespace fc
     std::string fpsNum{std::to_string(avgFPS)};
 
      // TODO editing this text costs about 30-40 fps for some reason, fix
-     mUItextList[1].editText(fpsNum, 70, 16, 1.0f);
+//    VkCommandBuffer cmdBuffer = mRenderer.getCurrentFrame().commandBuffer;
+
+    mUItextList[1].editText(fpsNum, 70, 16, 1.0f);
+
+//    mRenderer.submitCommandBuffer(cmdBuffer);
 
      // if (mFrameTimeIndex == 0)
      // {
@@ -328,6 +345,8 @@ namespace fc
      // mPipeline.updateUniformBuffer(imgIndex, &mUboViewProjection);
      // font.setModelMatrix(newModelMatrix);
   }
+
+
 
 
    // Keep a running total of 100 frame time samples in order to smooth the FPS calculation

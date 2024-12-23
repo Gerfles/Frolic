@@ -4,6 +4,7 @@
 #include "fc_locator.hpp"
 #include "fc_font.hpp"
 #include "vulkan/vulkan_core.h"
+#include <cstdint>
 #include <vector>
 
 namespace fc
@@ -38,7 +39,8 @@ namespace fc
     // TODO make sure that we are not create all new textures every time we alter text...
     // should only be one texture that we alter accordingly
      // create the default texture that will be used to fill the text box
-    mTextureId = mTextImage.createTexture(width, height, pixels);
+    VkExtent3D extent{static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1};
+    mTextureId = mTextImage.createTexture(extent, pixels);
 
      // create the actual billboard that text will get rendered to
      //mTextBoxMesh.createMesh(pGpu, vertices, indices, 0);
@@ -61,22 +63,21 @@ namespace fc
      // createTextBox(xPos, yPos - boxOffset, penPos, boxHeight + boxOffset);
     createTextBox(xPos, yPos, boxDims.width, boxDims.height);
 
-
-    VkCommandBuffer blitCommandBuffer = FcLocator::Gpu().beginCommandBuffer();
+    VkCommandBuffer cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
 
      // submit all the image blits at the same time
-    vkCmdBlitImage(blitCommandBuffer, pFont->mRasterTexture.Image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
+    vkCmdBlitImage(cmdBuffer, pFont->mRasterTexture.Image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
                    , mTextImage.Image(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
                    , blitsList.size(), blitsList.data(), VK_FILTER_LINEAR);
 
-    FcLocator::Gpu().submitCommandBuffer(blitCommandBuffer);
-
-    mTextImage.transitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1);
+    mTextImage.transitionImage(cmdBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1);
 
      // TODO - could later add mipmaps if being used a texture far away potentially (allow parameter option at least)
      // mOutputTexture.createImageView(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 
-     // mOutputTexture.createTextureSampler();
+    // mOutputTexture.createTextureSampler();
+
+    FcLocator::Renderer().submitCommandBuffer();
   }
 
    // editText is a faster operation than createTex as it overwrites the pixels in the already allocated image
@@ -90,23 +91,27 @@ namespace fc
     // mTextBoxSpecs.position.x = xPos;
     // mTextBoxSpecs.position.y = yPos;
 
-    VkCommandBuffer blitCommandBuffer = FcLocator::Gpu().beginCommandBuffer();
+    VkCommandBuffer cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
 
      // BUG may have to transition image initially to something else to erase/write to it
-    mTextImage.transitionImageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1);
+    mTextImage.transitionImage(cmdBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+                               , VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1);
 
      // first clear out the old texture
     VkClearColorValue clearColor{0, 0, 0, 0};
-    mTextImage.clear(&clearColor);
+    mTextImage.clear(cmdBuffer, &clearColor);
 
      // submit all the image blits at the same time
-    vkCmdBlitImage(blitCommandBuffer, pFont->mRasterTexture.Image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
+    vkCmdBlitImage(cmdBuffer, pFont->mRasterTexture.Image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
                    , mTextImage.Image(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
                    , blitsList.size(), blitsList.data(), VK_FILTER_LINEAR);
 
-    FcLocator::Gpu().submitCommandBuffer(blitCommandBuffer);
+//    FcLocator::Gpu().submitCommandBuffer(blitCommandBuffer);
 
-    mTextImage.transitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1);
+    mTextImage.transitionImage(cmdBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                               VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1);
+
+    FcLocator::Renderer().submitCommandBuffer();
   }
 
 

@@ -54,14 +54,14 @@ namespace fc
         vmaAllocatorInfo.device = mLogicalGPU;
         vmaAllocatorInfo.instance = instance;
         vmaAllocatorInfo.vulkanApiVersion = VK_API_VERSION_1_3;
+         // this will let us use GPU pointers
+        vmaAllocatorInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
          // ?? check thoroughly if we need to add different flags
          //vmaAllocatorInfo.flags  = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
 
         VkResult result = vmaCreateAllocator(&vmaAllocatorInfo, &mAllocator);
         check(result);
 
-         // create the command pool for later allocating command from
-        createCommandPool();
         return true;
       }
     }
@@ -168,7 +168,7 @@ namespace fc
   {
      //TODO Consider changing the queue situation to make a little more logical sense - maybe creating a queue struct that has a queue member and an index member
      // Queue that logical device needs to be created
-    QueueFamilyIndices indices = getQueueFamilies(mPhysicalGPU);
+    QueueFamilyIndices indices = getQueueFamilies();
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 
@@ -324,11 +324,12 @@ namespace fc
     VkPhysicalDeviceFeatures deviceFeatures;
     vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
 
+     // ?? used to make sure that both queues are present (graphics and present but could do this check later or
+     // potentially omit since it is probably not likely to find a GPU without graphics and present queue...)
      // get the graphics and presentation queues
-    QueueFamilyIndices indices = getQueueFamilies(device);
+     //QueueFamilyIndices indices = getQueueFamilies(device);
 
-     // make sure that both queues are present
-    return indices.isValid() && deviceFeatures.samplerAnisotropy;
+    return deviceFeatures.samplerAnisotropy;
   }
 
    // TODO pass list of required extensions to let us get rid of stored global deviceExtensions
@@ -363,14 +364,14 @@ namespace fc
 
 
 
-  QueueFamilyIndices FcGpu::getQueueFamilies(const VkPhysicalDevice& device) const
+  const QueueFamilyIndices FcGpu::getQueueFamilies()
   {
     QueueFamilyIndices indices;
 
     uint32_t queueFamilyCount = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+    vkGetPhysicalDeviceQueueFamilyProperties(mPhysicalGPU, &queueFamilyCount, nullptr);
     std::vector<VkQueueFamilyProperties> queueFamilyList(queueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilyList.data());
+    vkGetPhysicalDeviceQueueFamilyProperties(mPhysicalGPU, &queueFamilyCount, queueFamilyList.data());
 
      // go through each queue family and check if it has at least 1 of the required types of queues
     int i = 0;
@@ -384,7 +385,7 @@ namespace fc
 
        // check if queue family supports presentation (usually graphics queue also supports presentation)
       VkBool32 presentationSupport = false;
-      vkGetPhysicalDeviceSurfaceSupportKHR(device, i, pWindow->surface(), &presentationSupport);
+      vkGetPhysicalDeviceSurfaceSupportKHR(mPhysicalGPU, i, pWindow->surface(), &presentationSupport);
 
        //
       if (queueFamily.queueCount > 0 && presentationSupport)
@@ -439,108 +440,9 @@ namespace fc
   }
 
 
-
-   // TODO could consider relocatting this to fcrenderer
-  void FcGpu::createCommandPool()
-  {
-     // get indices of queue families from device
-    QueueFamilyIndices queueFamilyIndices = getQueueFamilies(mPhysicalGPU);
-    VkCommandPoolCreateInfo commandPoolInfo = {};
-    commandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    commandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    commandPoolInfo.pNext = nullptr;
-    commandPoolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily;
-
-     // To support mult-threading, we need to add multiple command pools
-    for (FrameData frame : mFrames)
-    {
-      if (vkCreateCommandPool(mLogicalGPU, &commandPoolInfo, nullptr, &frame.commandPool) != VK_SUCCESS)
-      {
-        throw std::runtime_error("Failed to create a Vulkan Command Pool!");
-      }
-
-       // Allocate the default command buffer that we will use for rendering
-      VkCommandBufferAllocateInfo allocInfo{};
-      allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-      allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-      allocInfo.pNext = nullptr;
-      allocInfo.commandPool = frame.commandPool;
-      allocInfo.commandBufferCount = 1;
-
-       // allocate command buffer from pool
-      if (vkAllocateCommandBuffers(mLogicalGPU, &allocInfo, &frame.commandBuffer) != VK_SUCCESS)
-      {
-        throw std::runtime_error("Failed to allocate a Vulkan Command Buffer!");
-      }
-    }
-
-  }
-
-
-
-  VkCommandBuffer FcGpu::beginCommandBuffer() const
-  {
-    //  // command buffer to hold transfer commands
-    // VkCommandBuffer commandBuffer;
-
-    //  // command buffer details
-    // VkCommandBufferAllocateInfo allocInfo{};
-    // allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    // allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    // allocInfo.commandPool = mCommandPool;
-    // allocInfo.commandBufferCount = 1;
-
-    //  // allocate command buffer from pool
-    // vkAllocateCommandBuffers(mLogicalGPU, &allocInfo, &commandBuffer);
-
-     // information to be the command buffer record
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-     // TODO ?? could maybe create commmand Buffers that will be reused for very consistent
-     // items, such as image transfer etc. and then just reuse those anytime we want to do the Op
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT; // becomes invalid after submit
-
-     // begin recording transfer commands
-    vkBeginCommandBuffer(commandBuffer, &beginInfo);
-
-    return commandBuffer;
-  }
-
-
-
-  void FcGpu::submitCommandBuffer(VkCommandBuffer commandBuffer) const
-  {
-     // End commands
-    vkEndCommandBuffer(commandBuffer);
-
-     // Queue submission information
-    VkSubmitInfo submitInfo{};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffer;
-
-     // submit transfer command to transfer queue and wait until it finishes
-    vkQueueSubmit(mGraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-
-     // TODO NOT THE MOST EFFICIENT WAY TO DO THIS SINCE IT LOADS MESHES ONE AT A TIME
-     // BETTER TO CREATE SOME KIND OF SYNCHRONIZATION
-    vkQueueWaitIdle(mGraphicsQueue);
-
-     // free temporary command buffer back to the pool
-    vkFreeCommandBuffers(mLogicalGPU, mCommandPool, 1, &commandBuffer);
-  }
-
-
-
-
   void FcGpu::release(VkInstance& instance)
   {
     vmaDestroyAllocator(mAllocator);
-
-    for (FrameData frame : mFrames)
-    {
-      vkDestroyCommandPool(mLogicalGPU, frame.commandPool, nullptr);
-    }
 
     if (mLogicalGPU != VK_NULL_HANDLE)
     {

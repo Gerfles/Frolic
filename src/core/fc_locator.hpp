@@ -5,6 +5,7 @@
 #include "core/fc_gpu.hpp"
 #include "core/fc_game_object.hpp"
 //#include "core/fc_light.hpp"
+#include "core/fc_renderer.hpp"
 #include "vulkan/vulkan_core.h"
 
 #include <iostream>
@@ -33,6 +34,7 @@ namespace fc
    private:
 
       // RENDERER SERVICES
+     static FcRenderer* pRenderer;
      static FcGpu* pGpu;
 //     FcGpu* pGpu = nullptr;
      static VkDevice pDevice;
@@ -57,8 +59,10 @@ namespace fc
      static void provide(FcGpu* gpu);
      static void provide(FcDescriptor* descriptorClerk);
      static void provide(VkExtent2D screenDimensions);
+     static void provide(FcRenderer* renderer);
       // - GETTERS -
       // TODO think about making some of these const
+     static FcRenderer& Renderer();
      static FcGpu& Gpu() { return *pGpu; }
      static VkDevice Device() { return pDevice; }
      static FcDescriptor& DescriptorClerk() { return *pDescriptorClerk; }

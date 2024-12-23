@@ -44,7 +44,6 @@ namespace fc
   //    glm::mat4 model;
   // };
 
-
   class FcMesh
   {
    private:
@@ -56,13 +55,14 @@ namespace fc
      uint32_t mTextureID;
      FcBuffer mVertexBuffer;
      FcBuffer mIndexBuffer;
-     void createVertexBuffer(const FcGpu* gpu, std::vector<Vertex>& vertices);
-     void createIndexBuffer(const FcGpu* gpu, std::vector<uint32_t>& indices);
+     void createVertexBuffer(std::vector<Vertex>& vertices);
+     void createIndexBuffer(std::vector<uint32_t>& indices);
    public:
-     FcMesh() = default;
-     FcMesh(const FcGpu* gpu, std::vector<Vertex>& vertices
+      //FcMesh() = default;
+     FcMesh() = delete;
+     FcMesh(std::vector<Vertex>& vertices
                      , std::vector<uint32_t>& indices, uint32_t textureID);
-     void createMesh(const FcGpu* gpu, std::vector<Vertex>& vertices
+     void createMesh(std::vector<Vertex>& vertices
                      , std::vector<uint32_t>& indices, uint32_t textureID);
      void setModel(glm::mat4 newModel);
       // GETTERS

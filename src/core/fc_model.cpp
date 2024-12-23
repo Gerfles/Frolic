@@ -10,6 +10,7 @@
 // - EXTERNAL LIBRARIES -
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
+#include <vulkan/vulkan_core.h>
 #include <cstddef>
 #include <stdexcept>
 #include <string>
@@ -99,13 +100,16 @@ namespace fc {
     }
 
      // load in all our meshes
-    loadNodes(FcLocator::Gpu(), scene->mRootNode, scene, materialNumToTexID);
-  }
+    loadNodes(scene->mRootNode, scene, materialNumToTexID);
+
+  } // --- FcModel::FcModel (_) --- (END)
+
 
 
 
    // recursively load all the nodes from a tree of nodes within the scene
-  void FcModel::loadNodes(const FcGpu& gpu, aiNode* node, const aiScene* scene, std::vector<int>& matToTex)
+  void FcModel::loadNodes(aiNode* node
+                          , const aiScene* scene, std::vector<int>& matToTex)
   {
      // go through each mesh at this node and create it, then add it to our meshList ()
     for (size_t i = 0; i < node->mNumMeshes; ++i)
@@ -114,18 +118,18 @@ namespace fc {
        // node object just contains the indices that corresponds to the texture in the scene
       aiMesh* currMesh = scene->mMeshes[node->mMeshes[i]];
        //
-      loadMesh(gpu, currMesh, scene, matToTex[currMesh->mMaterialIndex]);
+      loadMesh(currMesh, scene, matToTex[currMesh->mMaterialIndex]);
     }
      // go through each nod attached to this node and load it, then append their meshes to this
      // node's mesh list
     for (size_t i = 0; i < node->mNumChildren; ++i)
     {
-      loadNodes(gpu, node->mChildren[i], scene, matToTex);
+      loadNodes(node->mChildren[i], scene, matToTex);
     }
   }
 
 
-  void FcModel::loadMesh(const FcGpu& gpu, aiMesh* mesh, const aiScene* scene, uint32_t textureID)
+  void FcModel::loadMesh(aiMesh* mesh, const aiScene* scene, uint32_t textureID)
   {
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
@@ -175,7 +179,7 @@ namespace fc {
      //FcMesh newMesh;
      //newMesh.createMesh(&gpu, vertices, indices, textureID);
      //mMeshList.push_back(newMesh);
-    mMeshList.emplace_back(&gpu, vertices, indices, textureID);
+    mMeshList.emplace_back(vertices, indices, textureID);
   }
 
 

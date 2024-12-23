@@ -10,6 +10,7 @@
 #include "glm/mat4x4.hpp"
 #include "vulkan/vulkan_core.h"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include <cstdint>
 #include <vector>
 #include <array>
 
@@ -48,21 +49,25 @@ namespace fc
   };
 
 
+  struct PoolSizeRatio
+  {
+     VkDescriptorType type;
+     float ratio;
+  };
 
-  class FcMesh;
+
+
+
+    class FcMesh;
 
    // TODO ?? could change this to FcDescriptorSet or FcDescriptorBank...
   class FcDescriptor
   {
    private:
-     const FcGpu* pGpu;
-//     VkDevice pDevice;
 
+     const FcGpu* pGpu;
      VkDescriptorSetLayout mUboDescriptorSetLayout;
      VkDescriptorSetLayout mSamplerDescriptorSetLayout;
-      // TODO this is DUMB!! get rid of the idea below
-      //std::array<VkDescriptorSetLayout, 2> mDescriptorSetLayouts;
-      //VkPushConstantRange mPushConstantRange;
       // - TEXTURES -
      VkDescriptorPool mSamplerDescriptorPool; // TODO SHOULD REMOVE - don't have to have multiple pools here but not sure if any advantages??
      VkDescriptorPool mDescriptorPool;
@@ -82,8 +87,25 @@ namespace fc
      void createDescriptorSetLayout();
      void createDescriptorSets(int uniformBufferCount);
      void createUniformBuffers(int uniformBufferCount);
+      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW METHOD   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     VkDescriptorSetLayout mLayout;
+     VkDescriptorPool mDescriptorPool2;
+     VkDescriptorSet mDescriptorSet;
+     std::vector<VkDescriptorSetLayoutBinding> mLayoutBindings;
 
    public:
+
+     void addBinding(uint32_t bindSlot, VkDescriptorType type, VkShaderStageFlags shaderStages);
+     void createDescriptorPool2(uint32_t maxSets, std::vector<PoolSizeRatio> poolRatios);
+     void createDescriptorSetLayout2(VkDescriptorSetLayoutCreateFlags flags = 0);
+     void cleanupLayoutBindings();
+     void clearDescriptors();
+     void createDescriptorSets2(FcImage& image);
+     void destroyPool();
+     VkDescriptorSetLayout* vkDescriptorLayout() { return &mLayout; }
+     const VkDescriptorSet* vkDescriptor() const { return &mDescriptorSet; }
+      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END NEW METHOD   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
      void create(const FcGpu* gpu, int uniformBufferCount);
      uint32_t createTextureDescriptor(VkImageView textureImageView, VkSampler& textureSampler);
      void update(uint32_t imgIndex, void* data);

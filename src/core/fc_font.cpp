@@ -26,7 +26,9 @@ namespace fc
 {
 
 
-  void FcFont::createRasterFont(std::string fontName, int size, int firstGlyph, int lastGlyph)
+   // TODO this function may need to be broken up
+  void FcFont::createRasterFont(std::string fontName
+                                , int size, int firstGlyph, int lastGlyph)
   {
     int result;
     FT_Library fontLibrary;
@@ -54,6 +56,7 @@ namespace fc
     FT_Set_Pixel_Sizes(face, 0, size);
 
      // keep track of dimensions needed to store all glyphs in image
+     // TODO DELETE in favor of VkExtent2D and create conversion to extent 3D
     uint32_t imageWidth = 0;
     uint32_t tallestChar = 0;
 
@@ -155,19 +158,20 @@ namespace fc
     FT_Done_Face(face);
     FT_Done_FreeType(fontLibrary);
 
+     // TODO DELETE
+    VkExtent3D temp = {imageWidth, tallestChar, 1};
      // TODO upload texture as a transfer_dst_optimal since we won't be drawing to it once it's rendered
-    mRasterTexture.createTexture(imageWidth, tallestChar, imageBuffer);
+    mRasterTexture.createTexture(temp, imageBuffer);
 
      // after raster image is created, transition layout so it's in the best format for being blitted from
-    mRasterTexture.transitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 1);
+    VkCommandBuffer cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
+
+    mRasterTexture.transitionImage(cmdBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+                                   , VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 1);
+
+    FcLocator::Renderer().submitCommandBuffer();
+
   }
-
-
-
-
-
-
-
 
 
   void FcFont::free()

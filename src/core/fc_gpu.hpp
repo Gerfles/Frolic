@@ -1,7 +1,7 @@
 #pragma once
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "core/fc_renderer.hpp"
+#include <vulkan/vulkan_core.h>
 #include "fc_window.hpp"
 #include "fc_swapChain.hpp"
 #include "utilities.hpp"
@@ -17,12 +17,6 @@
 namespace fc
 {
 
-  struct FrameData
-  {
-     VkCommandPool commandPool = VK_NULL_HANDLE;
-     VkCommandBuffer commandBuffer;
-  };
-
   struct PerformanceProperties
   {
      float maxSamplerAnisotropy;
@@ -34,27 +28,25 @@ namespace fc
   class FcGpu
   {
    private:
-     int mFrameNumber {0};
-     FrameData mFrames[MAX_FRAME_DRAWS];
      VkPhysicalDevice mPhysicalGPU = VK_NULL_HANDLE;
       // TODO consider renaming
      VkDevice mLogicalGPU = VK_NULL_HANDLE;
      VmaAllocator mAllocator = VK_NULL_HANDLE;
-      // handles to Queues (graphics is often the same as presentation)
-     VkQueue mGraphicsQueue;
-     VkQueue mPresentationQueue;
+      // handles to Queues (graphics is often the same as presentation but could make dedicated)
+     VkQueue mGraphicsQueue {VK_NULL_HANDLE};
+     VkQueue mPresentationQueue {VK_NULL_HANDLE};
      FcWindow* pWindow;
       // TODO delete VkCommandPool mCommandPool = VK_NULL_HANDLE;
       // used to setup graphics capabilities, sampler attributes, etc.
      PerformanceProperties mGpuPerformanceProperties;
       //VkSurfaceKHR mSurface;
       // - support functions
-     void createCommandPool();
+
 
       // -- checker functions
      bool isDeviceSuitable(const VkPhysicalDevice& device);
      bool isDeviceExtensionSupported(const VkPhysicalDevice& device) const;
-     QueueFamilyIndices getQueueFamilies(const VkPhysicalDevice& device) const;
+
      void pickPhysicalDevice(const VkInstance& instance, const std::vector<const char*> deviceExtensions);
 
    public:
@@ -63,17 +55,19 @@ namespace fc
       // - INITIALIZATION -
      bool init(const VkInstance& instance, FcWindow& window);
      bool createLogicalDevice();
-      //
-     VkCommandBuffer beginCommandBuffer() const;
-     void submitCommandBuffer(VkCommandBuffer commandBuffer) const;
+      // TODO DELETE 2 below
+     // VkCommandBuffer beginCommandBuffer() const;
+     // void submitCommandBuffer(VkCommandBuffer commandBuffer) const;
       // TODO establish convention that all getter functions are capitalized (since they "are" a type)
       // - GETTER FUNCTIONS -
+      // DEL QueueFamilyIndices getQueueFamilies(const VkPhysicalDevice& device) const;
+     const QueueFamilyIndices getQueueFamilies();
      const VmaAllocator& getAllocator() const { return mAllocator; }
      const VkDevice& getVkDevice() const { return mLogicalGPU; }
      const VkPhysicalDevice& physicalDevice() const { return mPhysicalGPU; }
      const VkSurfaceKHR& surface() const { return pWindow->surface(); }
      VkExtent2D SurfaceExtent() const { return pWindow->ScreenSize(); }
-     const FrameData& getCurrentFrame() const { return mFrames[mFrameNumber % MAX_FRAME_DRAWS]; }
+
       // DELETE
 //     QueueFamilyIndices GpuQueueFamilies() const { return getQueueFamilies(mPhysicalGPU); }
      const VkQueue& graphicsQueue() const { return mGraphicsQueue; }

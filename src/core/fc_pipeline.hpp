@@ -39,6 +39,11 @@ namespace fc
      uint32_t subpass = 0;
   };
 
+  struct ShaderInfo
+  {
+     std::string filename;
+     VkShaderStageFlagBits stage;
+  };
 
 
   // TODO on all the classes that are only instantiated once per game, initialize all the vulkan pointer to VK_NULL_HANDLE
@@ -49,11 +54,18 @@ namespace fc
         //TODO if this device is necessary, should make all ref pointers const
        VkPipeline mPipeline = nullptr;
        VkPipelineLayout mPipelineLayout = nullptr;
-        //
        VkShaderModule createShaderModule(const std::vector<char>& code);
        void createRenderPass();
 
+        // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
+
      public:
+       void create2(std::vector<ShaderInfo> shaderInfos);
+       void bind2(VkCommandBuffer commandBuffer);
+
+        // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
        FcPipeline() = default;
        ~FcPipeline() = default;
        FcPipeline(const FcPipeline&) = delete;
@@ -65,8 +77,8 @@ namespace fc
                    const PipelineConfigInfo& configInfo);
 
        void bind(VkCommandBuffer commandBuffer);
-       // uint32_t updateTextureDescriptors(VkImageView textureImageView, VkSampler textureSampler)
-       //  { return mDescriptor.createTextureDescriptor(textureImageView, textureSampler); }
+        // uint32_t updateTextureDescriptors(VkImageView textureImageView, VkSampler textureSampler)
+        //  { return mDescriptor.createTextureDescriptor(textureImageView, textureSampler); }
         // GETTERS
         //size_t ModelUniformAlignment() { return mDescriptor.ModelUniformAlignment(); }
        const VkPipeline& getVkPipeline() const { return mPipeline; }
