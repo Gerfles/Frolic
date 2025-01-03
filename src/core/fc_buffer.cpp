@@ -27,6 +27,7 @@ namespace  fc
     VmaAllocationCreateInfo allocInfo = {};
      // TODO performace test different mem type flags
     allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+    allocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
 
      // ?? Leaving this out for now as VMA seems to be better at determining but may add back in later for fine grain
      //allocInfo.requiredFlags = properties;
@@ -37,16 +38,22 @@ namespace  fc
      //       allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
      // }
 
-    if ((useFlags & VK_BUFFER_USAGE_TRANSFER_SRC_BIT) == VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
-    {
-      allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-    }
+    // if ((useFlags & VK_BUFFER_USAGE_TRANSFER_SRC_BIT) == VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
+    // {
+    //   allocInfo.flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+    // }
 
-     // ?? Try ommiting this check
-     // ?? TODO probably inefficient to check for each buffer use case in this way...
-    if ((useFlags & VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT) == VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT)
+    //  // ?? Try ommiting this check
+    //  // ?? TODO probably inefficient to check for each buffer use case in this way...
+    // if ((useFlags & VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT) == VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT)
+    // {
+    //   allocInfo.flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+    // }
+
+
+    if ((useFlags & VMA_ALLOCATION_CREATE_MAPPED_BIT) == VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
     {
-      allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+      allocInfo.flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
     }
 
      // much slower frame rate if allow access random bit
@@ -59,7 +66,7 @@ namespace  fc
     if (vmaCreateBuffer(FcLocator::Gpu().getAllocator(), &bufferInfo, &allocInfo, &mBuffer, &mAllocation, nullptr)
         != VK_SUCCESS)
     {
-      throw std::runtime_error("Failed to create a Vulkan Buffer!");
+      throw std::runtime_error("Failed to create Vulkan Buffer!");
     }
   } // --- FcBuffer::allocateBuffer (_) --- (END)
 
@@ -99,35 +106,35 @@ namespace  fc
 
 
    // Might be good to implement but would require some memory optimizations
-  // void FcBuffer::transferToGpu()
-  // {
-  //        // create staging buffer to store indices in RAM
-  //   FcBuffer stagingBuffer;
-  //   stagingBuffer.create(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT
-  //                        , VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+   // void FcBuffer::transferToGpu()
+   // {
+   //        // create staging buffer to store indices in RAM
+   //   FcBuffer stagingBuffer;
+   //   stagingBuffer.create(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT
+   //                        , VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-  //    // map memory to index buffer (copy index data into buffer)
-  //    // NOTE: the pointer to the actual data must be used even though the program compiles if the pointer to the vector (or any other pointer) is given
-  //   stagingBuffer.storeData(indices.data(), bufferSize);
+   //    // map memory to index buffer (copy index data into buffer)
+   //    // NOTE: the pointer to the actual data must be used even though the program compiles if the pointer to the vector (or any other pointer) is given
+   //   stagingBuffer.storeData(indices.data(), bufferSize);
 
-  //    // Now create the buffer in GPU memory so we can transfer our RAM data there
-  //   mIndexBuffer.create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT
-  //                       , VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+   //    // Now create the buffer in GPU memory so we can transfer our RAM data there
+   //   mIndexBuffer.create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT
+   //                       , VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-  //   mIndexBuffer.copyBuffer(stagingBuffer, bufferSize);
+   //   mIndexBuffer.copyBuffer(stagingBuffer, bufferSize);
 
-  //    // finally, free the resources of the staging buffer since it's no longer needed
-  //   stagingBuffer.destroy();
-  // }
+   //    // finally, free the resources of the staging buffer since it's no longer needed
+   //   stagingBuffer.destroy();
+   // }
 
 
 
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   OLD METHOD ?  -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-     // VkDevice device = FcLocator::Device();
-     // if (vkCreateBuffer(device, &bufferInfo, nullptr, &mBuffer) != VK_SUCCESS)
-     // {
-     //   throw std::runtime_error("Failed to create a Vulkan Buffer!");
-     // }
+   // VkDevice device = FcLocator::Device();
+   // if (vkCreateBuffer(device, &bufferInfo, nullptr, &mBuffer) != VK_SUCCESS)
+   // {
+   //   throw std::runtime_error("Failed to create a Vulkan Buffer!");
+   // }
 
 //      // GET BUFFER MEMORY REQUIREMENTS
 //     VkMemoryRequirements memRequirments;
@@ -185,7 +192,7 @@ namespace  fc
 
     if (vmaMapMemory(allocator, mAllocation, &memAddress) != VK_SUCCESS)
     {
-            throw std::runtime_error("Failed to map VMA buffer memory!");
+      throw std::runtime_error("Failed to map VMA buffer memory!");
     }
 
     memcpy(memAddress, sourceData, dataSize);
@@ -194,14 +201,12 @@ namespace  fc
   } // --- FcBuffer::writeData (_) --- (END)
 
 
-
   void FcBuffer::copyBuffer(const FcBuffer& srcBuffer, VkDeviceSize bufferSize)
   {
      // allocate and begin the command buffer to transfer a buffer
     VkCommandBuffer cmd = FcLocator::Renderer().beginCommandBuffer();
 
-
-    // VkCommandBuffer transferCommandBuffer = FcLocator::Gpu().beginCommandBuffer();
+     // VkCommandBuffer transferCommandBuffer = FcLocator::Gpu().beginCommandBuffer();
 
      // region of data to copy from and to
     VkBufferCopy bufferCopyRegion{};
@@ -219,17 +224,17 @@ namespace  fc
 
   void FcBuffer::destroy()
   {
-    //  // Destroy the VMA buffer allocation first
-    // vmaDestroyBuffer(FcLocator::Gpu().getAllocator(), mBuffer, mAllocation);
+     //  // Destroy the VMA buffer allocation first
+     // vmaDestroyBuffer(FcLocator::Gpu().getAllocator(), mBuffer, mAllocation);
 
      // Destroy buffer and deallocate memory
-    if (mBuffer != VK_NULL_HANDLE)
+    if (mBuffer != nullptr)
     {
        // Destroy the VMA buffer allocation which will in turn call vkDestroyBuffer and vkFreeMemory
-       vmaDestroyBuffer(FcLocator::Gpu().getAllocator(), mBuffer, mAllocation);
+      vmaDestroyBuffer(FcLocator::Gpu().getAllocator(), mBuffer, mAllocation);
 
-      // vkDestroyBuffer(FcLocator::Device(), mBuffer, nullptr);
-      // vkFreeMemory(FcLocator::Device(), mBufferMemory, nullptr);
+       // vkDestroyBuffer(FcLocator::Device(), mBuffer, nullptr);
+       // vkFreeMemory(FcLocator::Device(), mBufferMemory, nullptr);
     }
 
   }

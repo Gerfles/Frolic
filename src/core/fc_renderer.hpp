@@ -3,6 +3,7 @@
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "core/fc_billboard_render_system.hpp"
 #include "core/fc_camera.hpp"
+#include "core/fc_descriptors.hpp"
 #include "core/fc_model_render_system.hpp"
 #include "core/fc_ui_render_system.hpp"
 #include "fc_model.hpp"
@@ -15,6 +16,7 @@
 #include "fc_janitor.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
+#include <glm/vec3.hpp>
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <cstdint>
 #include <stdexcept>
@@ -33,11 +35,13 @@ namespace fc
      VkSemaphore imageAvailableSemaphore;
      VkSemaphore renderFinishedSemaphore;
      VkFence renderFence;
+     VkDescriptorSet scendDataDescriptorSet;
      fcJanitor janitor;
   };
 
-//static constexpr int MAX_FRAMES_IN_FLIGHT = 3; // used in swap chain
-  constexpr unsigned int MAX_FRAME_DRAWS = 2;
+
+  //static constexpr int MAX_FRAMES_IN_FLIGHT = 3; // used in swap chain
+    constexpr unsigned int MAX_FRAME_DRAWS = 4;
 
 
   class FcRenderer
@@ -85,10 +89,19 @@ namespace fc
      void createSynchronization();
 
       // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    // ?? TODO should this be handled by the swapchain
+
+      // Right now we only have one draw image and depth image, but on a more developed engine it could be
+      // significantly more, and re-creating all that can be a considerable hassle. Instead, we create the
+      // draw and depth image at startup with a preset size, and then draw into a section of it if the
+      // window is small, or scale it up if the window is bigger. As we arent reallocating but just
+      // rendering into a corner, we can also use this same logic to perform dynamic resolution, which is
+      // a useful way of scaling performance, and can be handy for debugging.
+
+     // ?? TODO should this be handled by the swapchain even though its used by compute
      FcImage mDrawImage;
+     FcImage mDepthImage; // <--Normally in the swapchain
       //Fc[...]renderSystem m[...]Renderer;
-     FcPipeline mBackgroundPipeline;
+     bool mShouldWindowResize{false};
      int mFrameNumber {0};
       // ?? DELETE
      void initDrawImage();
@@ -97,13 +110,34 @@ namespace fc
      VkCommandPool mImmediateCommandPool;
      VkCommandBuffer mImmediateCmdBuffer;
      VkDevice pDevice;
+      // TODO think about integrating into descriptorClerk
      VkDescriptorPool mImgGuiDescriptorPool;
+      //std::vector<ComputeEffect> backgroundEffects;
+     VkPipeline pDrawPipeline;
+     VkPipelineLayout pDrawPipelineLayout;
+     VkExtent2D mDrawExtent;
+     float renderScale = 1.f;
+
+
+
+     FcModel testModel;
+
+
    public:
+      //void setResizeFlag(bool shouldWindowResizeFlag) { mWindowResizeFlag = shouldWindowResizeFlag; }
       // TODO probably best to issue multiple command buffers, one for each task
+     bool shouldWindowResize() { return mShouldWindowResize; }
      VkCommandBuffer beginCommandBuffer();
      void submitCommandBuffer();
+     void drawImGui(VkCommandBuffer cmd, VkImageView targetImageView);
+      // TODO implement differently
+     // FcPipeline mGradientPipeline;
+     // FcPipeline mSkyPipeline;
+     void initDefaults();
+     float* getRenderScale() { return &renderScale; }
+     void attachPipeline(FcPipeline* pipeline);
 
-      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
      // Constructors, etc. - Prevent copying or altering -
      FcRenderer() = default;
@@ -112,6 +146,7 @@ namespace fc
      FcRenderer(const FcRenderer&) = delete;
       //
      int init(VkApplicationInfo& appInfo, VkExtent2D screenSize);
+
       //
      void handleWindowResize();
       //FcDescriptor& DescriptorManager() { return mDescriptorManager; }
@@ -121,7 +156,8 @@ namespace fc
      void drawModels(uint32_t swapchainImgIndex, GlobalUbo& ubo);
      void drawBillboards(glm::vec3 cameraPosition, uint32_t swapchainImgIndex, GlobalUbo& ubo);
      void drawUI(std::vector<FcText>& UIelements, uint32_t swapchainImgIndex);
-     void drawSimple(uint32_t swapchainImgIndex);
+     void drawSimple(ComputePushConstants& pushConstans);
+     void drawGeometry(FcPipeline& pipeline);
       // - GETTERS -
       FrameData& getCurrentFrame() { return mFrames[mFrameNumber % MAX_FRAME_DRAWS]; }
       // ?? is this used often enough to merit a member variable?

@@ -1,4 +1,5 @@
 #include "fc_window.hpp"
+#include <SDL_video.h>
 
 // - FROLIC ENGINE -
 
@@ -26,7 +27,7 @@ namespace fc {
      // SDL_Init() initializes assertions and crash protection
      // and then calls SDL_InitSubSystem(). TODO bypass those protections
      // by calling SDL_InitSubSystem() directly for release.
-    if (SDL_Init(SDL_INIT_VIDEO) < 0)
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) < 0)
     {
       std::ostringstream errorMsg;
       errorMsg << "Failed to initialize SDL! SDL Error: " << SDL_GetError();
@@ -46,7 +47,7 @@ namespace fc {
     }
     else
     {
-      mWindow = SDL_CreateWindow(name.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED
+      mWindow = SDL_CreateWindow(name.c_str(), SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED
                                  , width, height, SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN
                                  | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
     }
@@ -71,26 +72,15 @@ namespace fc {
   const VkExtent2D FcWindow::ScreenSize()
   {
     int width, height;
+     // SDL_GetWindowSize(mWindow, &width, &height);
     SDL_Vulkan_GetDrawableSize(mWindow, &width, &height);
+
 
     VkExtent2D winExtent{static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
 
     return winExtent;
   }
 
-
-  // void FcWindow::framebufferResizeCallback(SDL_Window* window, int width, int height)
-  // {
-  //   //  auto mFcWindow = reinterpret_cast<FcWindow*>(glfwGetWindowUserPointer(window));
-  //   //  mFcWindow->framebufferResized = true;
-  //   //  mFcWindow->width = width;
-  //   //  mFcWindow->height = height;
-
-  //   // auto mFcWindow = reinterpret_cast<FcWindow*>(window);
-  //   //  mFcWindow->mFrameBufferResized = true;
-  //   //  mFcWindow->width = width;
-  //   //  mFcWindow->height = height;
-  // }
 
 
   void FcWindow::createWindowSurface(const VkInstance& instance)
@@ -105,6 +95,11 @@ namespace fc {
 
       throw std::runtime_error("failed to create window surface!");
     }
+
+     // TODO Create ImGui framebuffers from here ?
+    // int width, height;
+    // SDL_GetWindowSize(mWindow, &width, &height);
+
   }
 
 

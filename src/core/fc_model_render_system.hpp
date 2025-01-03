@@ -24,7 +24,7 @@ namespace fc
       //
       //
    public:
-     void createPipeline(FcGpu& gpu, FcPipeline& pipeline, FcDescriptor& descriptors, VkRenderPass& renderPass);
+     void createPipeline(FcGpu& gpu, FcPipeline& pipeline, FcDescriptorClerk& descriptors, VkRenderPass& renderPass);
      FcModelRenderSystem() = default;
      ~FcModelRenderSystem();
      FcModelRenderSystem(const FcModelRenderSystem&) = delete;

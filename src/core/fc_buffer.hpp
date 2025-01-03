@@ -27,8 +27,9 @@ namespace fc
   class FcBuffer
   {
    private:
-     VkBuffer mBuffer = VK_NULL_HANDLE;
+     VkBuffer mBuffer{nullptr};
      VmaAllocation mAllocation;
+     VmaAllocationInfo info;
 
    public:
      FcBuffer() = default;

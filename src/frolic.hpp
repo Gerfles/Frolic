@@ -2,6 +2,8 @@
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "core/fc_input.hpp"
+#include "core/fc_mesh.hpp"
+#include "core/fc_pipeline.hpp"
 #include "core/fc_renderer.hpp"
 #include "core/fc_text.hpp"
 #include "core/fc_timer.hpp"
@@ -32,14 +34,26 @@ namespace fc
 
      GlobalUbo mUbo;
 
-     // - SYSTEMS -
+      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     FcPipeline mGradientPipeline;
+     FcPipeline mSkyPipeline;
+     FcPipeline mMeshPipeline;
+
+     std::vector<FcPipeline*> mPipelines;
+     std::vector<ComputePushConstants> pushConstants{2};
+
+
+      // ComputePushConstants gradientPushConstants{};
+      // ComputePushConstants skyPushConstants{};
+
+      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   (END) NEW   -**-*-*-*-*-*-*-*-*-*-*-*-*- //
      FcRenderer mRenderer;
      FcInput mInput;
      bool mShouldClose = false;
      SDL_Event mEvent;
 
       // TODO for now hold point lights but later place in locator
-//     std::vector<FcLight> mLights;
+      //     std::vector<FcLight> mLights;
 
       // UI
      std::vector<FcText> mUItextList;
@@ -53,6 +67,8 @@ namespace fc
      void run();
      void loadGameObjects();
      void loadUIobjects();
+     void initPipelines();
+
      void update(float deltaTime);
      int calcFPS(float lastFrameTime);
      void close();

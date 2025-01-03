@@ -1,34 +1,45 @@
 #pragma once
 
-// - FROLIC ENGINE -
+ // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 //#include "core/fc_gpu.hpp"
+#include <assimp/mesh.h>
 #include <vulkan/vulkan_core.h>
 #include "fc_image.hpp"
 #include "fc_pipeline.hpp"
 #include "fc_mesh.hpp"
-// - EXTERNAL LIBRARIES -
-#include <glm/glm.hpp>
-#define ASSIMP_USE_HUNTER
-#include <assimp/scene.h>
-// - STD LIBRARIES -
+ // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include <cstdint>
+
+
+ // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <string>
 #include <vector>
+#include <unordered_map>
+#include <filesystem>
+
+ // *-*-*-*-*-*-*-*-*-*-*-*-*-   FORWARD DECLARATIONS   *-*-*-*-*-*-*-*-*-*-*-*-*- //
+ class FcMesh;
+ class aiScene;
+ class aiNode;
+ class aiMesh;
+
 
 namespace fc {
-
-  class FcMesh;
-
+   //
   class FcModel
   {
    private:
-      //static FcGpu* pGpu;
      std::vector<FcMesh> mMeshList;
      std::vector<FcImage> mTextures;
      glm::mat4 mModelMatrix;
-
+      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     std::string name;
    public:
+      //std::optional<std::vector<std::shared_ptr<FcModel>>> loadGltfMeshes(std::filesystem::path filePath);
+     void loadGltfMeshes(std::filesystem::path filePath);
+      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
       // INITIALIZATION
-     FcModel() = delete;
+     FcModel() = default;
      FcModel(std::string modelFile);
      FcModel& operator=(FcModel&&) = default;
      FcModel(FcModel&&) = default;
@@ -55,7 +66,4 @@ namespace fc {
       // Think we
      ~FcModel() = default;
   };
-
-
-
 }

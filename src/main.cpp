@@ -19,9 +19,6 @@ int main(int argc, char* argv[])
    std::cout << "\n-Release Build-" << std::endl;
   #endif
 
-   int type;
-   type = 1;
-
    fc::Frolic frolic;
 
   try

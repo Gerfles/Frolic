@@ -242,6 +242,8 @@ find_package(SDL2 REQUIRED)
 # Add Assimp open asset importer libraries
 find_package(assimp REQUIRED)
 
+#find_package(imgui CONFIG REQUIRED)
+
 find_package(Freetype REQUIRED)
 
 #______________________________________________
@@ -269,7 +271,9 @@ find_package(Freetype REQUIRED)
 # 	message(STATUS "Using glfw lib at: ${GLFW_LIB}")
 # endif()
 
-include_directories(external)
+# add external file folder
+add_subdirectory(external)
+#include_directories(external)
 
 # If TINYOBJ_PATH not specified in .env.cmake, try fetching from git repo
 if (NOT TINYOBJ_PATH)
@@ -287,14 +291,17 @@ if (assimp_FOUND)
 
  endif(assimp_FOUND)
 
-
  message("freetype_FOUND: ${FREETYPE_INCLUDE_DIRS}")
-
 
 # make sure we exclude emacs lock files with the following (lock files begin with #)
 file(GLOB_RECURSE SOURCES ${PROJECT_SOURCE_DIR}/src/[a-z]*.cpp)
 
-add_executable(${PROJECT_NAME} ${SOURCES})
+#file(GLOB_RECURSE EXTERNAL ${PROJECT_SOURCE_DIR}/external/[a-z]*.cpp)
+
+add_executable(${PROJECT_NAME}
+  ${SOURCES}
+#  ${EXTERNAL}
+)
 
 
 # #specify the C++ standard
@@ -302,7 +309,7 @@ add_executable(${PROJECT_NAME} ${SOURCES})
  # set(CMAKE_CXX_STANDARD_REQUIRED true)
 # set(CMAKE_CXX_COMPILER  $/usr/bin/c++)
  set(CMAKE_CXX_COMPILER  clang++)
- target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
+ target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
 
 
 
@@ -327,6 +334,7 @@ if (WIN32)
 
   target_include_directories(${PROJECT_NAME} PUBLIC
     ${PROJECT_SOURCE_DIR}/src
+#    ${PROJECT_SOURCE_DIR}/external
     ${Vulkan_INCLUDE_DIRS}
     ${TINYOBJ_PATH}
     #${GLFW_INCLUDE_DIRS}
@@ -337,18 +345,33 @@ if (WIN32)
   target_link_directories(${PROJECT_NAME} PUBLIC
     ${Vulkan_LIBRARIES}
     ${ASSIMP_LIBRARY}
-   # ${GLFW_LIB}
   )
 
-  target_link_libraries(${PROJECT_NAME} vulkan-1)
+  target_link_libraries(${PROJECT_NAME} vulkan-1 fastgltf simdjson)
+
 elseif (UNIX)
+
     message(STATUS "CREATING BUILD FOR LINUX")
+
     target_include_directories(${PROJECT_NAME} PUBLIC
       ${PROJECT_SOURCE_DIR}/src
+ #     ${PROJECT_SOURCE_DIR}/external
       ${TINYOBJ_PATH}
       ${FREETYPE_INCLUDE_DIRS}
     )
-    target_link_libraries(${PROJECT_NAME} ${Vulkan_LIBRARIES} ${SDL2_LIBRARIES} ${SDL2_MIXER_LIBRARIES} ${ASSIMP_LIBRARIES} ${FREETYPE_LIBRARIES})
+
+    target_link_libraries(${PROJECT_NAME}
+      ${Vulkan_LIBRARIES}
+      ${SDL2_LIBRARIES}
+      ${SDL2_MIXER_LIBRARIES}
+      ${ASSIMP_LIBRARIES}
+      ${FREETYPE_LIBRARIES}
+      fastgltf
+      ImGui
+      simdjson
+      stb
+    )
+
   endif()
 
   message(STATUS "Cmake C++ flags: ${CMAKE_CXX_FLAGS}")
@@ -391,9 +414,6 @@ elseif (UNIX)
 # )
 
 
-
-
-
 # Copy assets to build folder
 #---------------------------------------------------
 #file(COPY graphics DESTINATION ${CMAKE_BINARY_DIR})
@@ -405,6 +425,8 @@ file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/shaders)
 file(COPY models DESTINATION ${CMAKE_BINARY_DIR})
 file(COPY textures DESTINATION ${CMAKE_BINARY_DIR})
 file(COPY shaders/compile_shaders.sh DESTINATION ${CMAKE_BINARY_DIR})
+
+#file(COPY) compile_commands.json DESTINAMTION ../
 
 # compile shaders
 set(SHADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shaders)

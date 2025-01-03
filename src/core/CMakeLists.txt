@@ -1,4 +1,3 @@
-
 file(GLOB SRC_FILES "[a-z]*.cpp")
 set (CORE_SOURCES ${SRC_FILES})
 

@@ -20,12 +20,18 @@ namespace fc {
    private:
       //TODO may want to include swapchain in window but maybe not
       //static void framebufferResizeCallback(SDL_Window* window, int width, int height);
-     SDL_Window* mWindow = nullptr;
+     SDL_Window* mWindow{nullptr};
      VkSurfaceKHR mSurface;
      VkExtent2D mScreenSize;
-     bool mFrameBufferResized = false;
+      //bool mFrameBufferResized{false};
       // Helper Functions
-   public:
+      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
+     public:
+
+      // bool wasWindowResized() {return mFrameBufferResized;}
+      // void resetWindowResizedFlag() {mFrameBufferResized = false;}
+      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      FcWindow() = default;
      ~FcWindow() = default;
      bool initWindow(uint32_t width = 800, uint32_t height = 600, bool isFullscreen = false
@@ -35,8 +41,8 @@ namespace fc {
      FcWindow& operator=(const FcWindow) = delete;
 
      const VkExtent2D ScreenSize();
-     bool wasWindowResized() {return mFrameBufferResized;}
-     void resetWindowResizedFlag() {mFrameBufferResized = false;}
+
+
      void createWindowSurface(const VkInstance& instance);
       // ?? not sure what's going on with the const here--don't think it should work for pointer?
      SDL_Window* SDLwindow() const { return mWindow; }

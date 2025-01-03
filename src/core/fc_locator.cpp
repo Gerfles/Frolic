@@ -12,7 +12,7 @@ namespace fc
   FcGpu* FcLocator::pGpu;
   VkDevice FcLocator::pDevice;
    //static Audio* pAudioService;
-  FcDescriptor* FcLocator::pDescriptorClerk;
+  FcDescriptorClerk* FcLocator::pDescriptorClerk;
   VkExtent2D FcLocator::mScreenDimensions;
 
 
@@ -68,10 +68,11 @@ namespace fc
           {
             pGpu = gpu;
             pDevice = gpu->getVkDevice();
+            pPhysicalDevice = gpu->physicalDevice();
           }
         }
 
-  void FcLocator::provide(FcDescriptor* descriptorClerk)
+  void FcLocator::provide(FcDescriptorClerk* descriptorClerk)
         {
           if (descriptorClerk == nullptr)
           {

@@ -37,8 +37,10 @@ namespace fc
 
 
 
-  void FcSwapChain::reCreateSwapChain()
+  void FcSwapChain::reCreateSwapChain(VkExtent2D windowSize)
   {
+    fcLog("Recreating Swapchain");
+
      // make sure nothing is getting written to or read before we re-create our swap chain
     vkDeviceWaitIdle(pGpu->getVkDevice());
 
@@ -46,7 +48,7 @@ namespace fc
     clearSwapChain();
 
     // create new swap chain stuff
-    createSwapChain(mSurfaceExtent, true);
+    createSwapChain(windowSize, true);
     createDepthBufferImage();
     createFrameBuffers();
   }
@@ -63,8 +65,8 @@ namespace fc
      // 3. Choose swap chain image resolution
     VkExtent2D extent = chooseSwapExtent(swapChainDetails.surfaceCapabilities, windowSize);
 
-     // std::cout << "extent size: " << extent.width
-     //           << " x " << extent.height << std::endl;
+     std::cout << "extent size: " << extent.width
+               << " x " << extent.height << std::endl;
 
      // BUG this would NOT give us tripple buffering but give us double buffering if minImageCount is 1;
      // How many images are in the swap chain? get 1 more than the minimum to allow tripple buffering
@@ -512,8 +514,6 @@ namespace fc
    // Partially free of swapchain resources -- used when resizing the window and recreating swapchain
   void FcSwapChain::clearSwapChain()
   {
-     // free up our depth buffer image
-     mDepthBufferImage.destroy();
 
      // destroy all the frame buffers
     for (auto& frameBuffer : mSwapChainFramebuffers)
@@ -521,15 +521,20 @@ namespace fc
       vkDestroyFramebuffer(pGpu->getVkDevice(), frameBuffer, nullptr);
     }
 
-     // destroy all the images views in our swapchain--the actual images and memory are freed by actual swapchain
+     // destroy all the image views in our swapchain--the actual images and memory are freed by actual swapchain
     for (auto& image : mSwapchainImages)
     {
-      image.destroyImageView();
+       image.destroyImageView();
     }
+
      // make sure to shrink the swapchain images container in case we just need to recreateswapchain for window resize
     mSwapchainImages.clear();
 
+     //mDepthBufferImage.destroy();
     mMultiSampledImage.destroy();
+
+     // free up our depth buffer image
+    mDepthBufferImage.destroy();
   }
 
    // full destruction of swapchain, note: includes call to partial destruction of swapchain
@@ -537,13 +542,13 @@ namespace fc
   {
     std::cout << "calling: FcSwapChain::destroy" << std::endl;
 
-    clearSwapChain();
-
      // destroy the render pass
-    vkDestroyRenderPass(pGpu->getVkDevice(), mRenderPass, nullptr);
+     vkDestroyRenderPass(pGpu->getVkDevice(), mRenderPass, nullptr);
 
-     // finally destroy the swapchain itself
-    vkDestroySwapchainKHR(pGpu->getVkDevice(), mSwapchain, nullptr);
+     clearSwapChain();
+
+      // finally destroy the swapchain itself
+     vkDestroySwapchainKHR(pGpu->getVkDevice(), mSwapchain, nullptr);
   }
 
 

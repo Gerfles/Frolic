@@ -1,24 +1,212 @@
 #include "fc_model.hpp"
 
-// - FROLIC ENGINE -
-#include "SDL2/SDL_stdinc.h"
-#include "core/fc_descriptors.hpp"
-#include "core/fc_gpu.hpp"
-#include "core/fc_image.hpp"
-#include "core/fc_locator.hpp"
+ // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
+//#include "fastgltf/types.hpp"l
+//#include "fastgltf/util.hpp"
+#include "core/utilities.hpp"
+#include "fc_descriptors.hpp"
+#include "fc_gpu.hpp"
+#include "fc_image.hpp"
+#include "fc_locator.hpp"
 #include "fc_mesh.hpp"
-// - EXTERNAL LIBRARIES -
+ // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES -*-*-*-*-*-*-*-*-*-*-*-*-*-
+#include <cstdint>
+// glTF loading
+#include <fastgltf/core.hpp>
+#include <fastgltf/glm_element_traits.hpp>
+#include <fastgltf/tools.hpp>
+// glm
+#include <filesystem>
+#include <fstream>
+#include <glm/ext/vector_float2.hpp>
+#include <glm/ext/vector_float3.hpp>
+#include <glm/ext/vector_float4.hpp>
+//#include "fastgltf/core.hpp"
+
+// #include <fastgltf/parser.hpp>
+// TODO delete assimp or isolate it to a separate loader class
+#define ASSIMP_USE_HUNTER
+#include <assimp/scene.h>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <vulkan/vulkan_core.h>
+#include "SDL2/SDL_stdinc.h"
+ // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <cstddef>
 #include <stdexcept>
 #include <string>
 #include <vector>
-// - STD LIBRARIES -
+// #include <glm/glm.hpp>
 
 
 namespace fc {
+
+  void FcModel::loadGltfMeshes(std::filesystem::path filePath)
+  {
+    filePath = std::filesystem::path{R"(..//models//basicmesh.glb)"};
+    //  // First check for errors with files
+    // if (!std::filesystem::exists(filePath))
+    // {
+    //   throw std::runtime_error("Directory does not exist");
+    // }
+    // else
+    // {
+    //   std::cout << "Directory: " << filePath.parent_path() << std::endl;
+    //   std::ofstream file(filePath);
+    //   if (!file.is_open())
+    //   {
+    //     throw std::runtime_error("file was unable to load");
+    //   }
+    //   else
+    //   {
+    //     file.close();
+    std::cout << "Loading GLTF: " << filePath.string() << std::endl;
+    //   }
+    // }
+
+     // Now that we know the file is valid, load the data
+    fastgltf::Expected<fastgltf::GltfDataBuffer> data = fastgltf::GltfDataBuffer::FromPath(filePath);
+
+     // check that the glTF file was properly loaded
+    if (data.error() != fastgltf::Error::None)
+    {
+      throw std::invalid_argument("Error: Could not load the glTF file.");
+    }
+
+    constexpr auto gltfOptions = fastgltf::Options::LoadExternalBuffers;
+
+    fastgltf::Parser parser{};
+    fastgltf::Asset gltf;
+
+    fcLog("opened file");
+    auto load = parser.loadGltfBinary(data.get(), filePath.parent_path(), gltfOptions);
+
+    fcLog("attached parser");
+    if (load)
+    {
+      gltf = std::move(load.get());
+    }
+    else
+    {
+      std::cout << "Failed to load glTF: " << fastgltf::to_underlying(load.error()) << std::endl;
+       // TODO still need a way to return null or empty
+      return;
+    }
+
+
+
+     // use the same vectors for all meshes so that the memory doesn't reallocate as often
+     // TODO std::move
+    std::vector<uint32_t> indices;
+    std::vector<Vertex2> vertices;
+
+    for (fastgltf::Mesh& mesh : gltf.meshes)
+    {
+       // clear the mesh arrays each mesh, we don't want to merge them by error
+       // TODO change if can since these operations are O(N) (has to call destructor for each element)
+      indices.clear();
+      vertices.clear();
+
+       // TODO this isn't right
+      uint32_t startIndex;
+      uint32_t Indexcount;
+
+      for (auto&& primitive : mesh.primitives)
+      {
+         // Surface newSurface;
+         // newSurface.startIndex = static_cast<uint32_t>(indices.size());
+         // newSurface.count = static_cast<uint32_t>(gltf.accessors[primitive.indicesAccessor.value()].count);
+
+        startIndex = static_cast<uint32_t>(indices.size());
+        Indexcount = static_cast<uint32_t>(gltf.accessors[primitive.indicesAccessor.value()].count);
+
+        size_t initialVertex = vertices.size();
+
+         // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   LOAD INDICES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+         // ?? not sure why these need to have the following scope
+        {
+          fastgltf::Accessor& indexAccessor = gltf.accessors[primitive.indicesAccessor.value()];
+          indices.reserve(indices.size() + indexAccessor.count);
+
+          fastgltf::iterateAccessor<std::uint32_t>(gltf, indexAccessor, [&](std::uint32_t idx) {
+            indices.push_back(idx + initialVertex); });
+        }
+
+         // *-*-*-*-*-*-*-*-*-*-*-*-*-   LOAD VERTEX POSITIONS   *-*-*-*-*-*-*-*-*-*-*-*-*- //
+        {
+           // This will always be present in glTF so no need to check
+          fastgltf::Accessor& posAccessor = gltf.accessors[primitive.findAttribute("POSITION")->accessorIndex];
+          vertices.resize(vertices.size() + posAccessor.count);
+
+          fastgltf::iterateAccessorWithIndex<glm::vec3>(gltf, posAccessor
+                                                        , [&](glm::vec3 v, size_t index) {
+                                                          Vertex2 newVertex;
+                                                          newVertex.position = v;
+                                                          newVertex.normal = { 1, 0, 0 };
+                                                          newVertex.color = glm::vec4 { 1.f };
+                                                          newVertex.uv_x = 0;
+                                                          newVertex.uv_y = 0;
+                                                          vertices[initialVertex + index] = newVertex;
+                                                        });
+        }
+
+         // -*-*-*-*-*-*-*-*-*-*-*-*-*-   LOAD VERTEX NORMALS   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
+         // The rest of the attributes will need to be checked for first since the glTF file may not include
+        auto normals = primitive.findAttribute("NORMAL");
+        if (normals != primitive.attributes.end())
+        {
+          fastgltf::iterateAccessorWithIndex<glm::vec3>(gltf, gltf.accessors[(*normals).accessorIndex]
+                                                        , [&](glm::vec3 vec, size_t index) {
+                                                          vertices[initialVertex + index].normal = vec;
+                                                        });
+        }
+
+         // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   LOAD VERTEX UVS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+        auto uv = primitive.findAttribute("TEXCOORD_0");
+        if (uv != primitive.attributes.end())
+        {
+          fastgltf::iterateAccessorWithIndex<glm::vec2>(gltf, gltf.accessors[(*uv).accessorIndex]
+                                                        , [&](glm::vec2 vec, size_t index) {
+                                                          vertices[initialVertex + index].uv_x = vec.x;
+                                                          vertices[initialVertex + index].uv_y = vec.y;
+                                                        });
+        }
+
+         // -*-*-*-*-*-*-*-*-*-*-*-*-*-   LOAD VERTEX COLORS   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
+        auto colors = primitive.findAttribute("COLOR_0");
+        if (colors != primitive.attributes.end())
+        {
+          fastgltf::iterateAccessorWithIndex<glm::vec4>(gltf, gltf.accessors[(*colors).accessorIndex]
+                                                        , [&](glm::vec4 vec, size_t index) {
+                                                          vertices[initialVertex + index].color = vec;
+                                                        });
+        }
+
+      }
+
+       // -*-*-*-*-*-*-*-*-*-*-*-*-   DISPLAY VERTEX NORMALS   -*-*-*-*-*-*-*-*-*-*-*-*- //
+      constexpr bool OverrideColors = true;
+      if (OverrideColors)
+      {
+        for (Vertex2& vertex : vertices)
+        {
+          vertex.color = glm::vec4(vertex.normal, 1.f);
+        }
+      }
+
+       // TODO start here with optimizations, including a new constructor with name
+      FcMesh newMesh;
+      newMesh.uploadMesh2(name, vertices, indices);
+      newMesh.setIndexCounts(startIndex, Indexcount);
+      mMeshList.emplace_back(std::move(newMesh));
+
+       // TODO try and implement with shared pointers to meshes
+       // std::vector<std::shared_ptr<FcMesh>> meshes;
+       // mMeshList.emplace_back(std::make_shared<FcMesh>(std::move(newMesh)));
+    }
+  }
+
 
 
    // TODO rename most of these function to what they actually do - ie generateTextureList();

@@ -36,10 +36,11 @@ namespace fc
       // RENDERER SERVICES
      static FcRenderer* pRenderer;
      static FcGpu* pGpu;
+     static VkPhysicalDevice pPhysicalDevice;
 //     FcGpu* pGpu = nullptr;
      static VkDevice pDevice;
       //static Audio* pAudioService;
-     static FcDescriptor* pDescriptorClerk;
+     static FcDescriptorClerk* pDescriptorClerk;
      static VkExtent2D mScreenDimensions;
       // this is the global handle table -- a simple array of pointers to FcGameObjects
 
@@ -57,7 +58,7 @@ namespace fc
       //static Audio& getAudio() { return *pAudioService; }
      static void initialize();
      static void provide(FcGpu* gpu);
-     static void provide(FcDescriptor* descriptorClerk);
+     static void provide(FcDescriptorClerk* descriptorClerk);
      static void provide(VkExtent2D screenDimensions);
      static void provide(FcRenderer* renderer);
       // - GETTERS -
@@ -65,7 +66,8 @@ namespace fc
      static FcRenderer& Renderer();
      static FcGpu& Gpu() { return *pGpu; }
      static VkDevice Device() { return pDevice; }
-     static FcDescriptor& DescriptorClerk() { return *pDescriptorClerk; }
+     static VkPhysicalDevice vkPhysicalDevice() { return pPhysicalDevice; }
+     static FcDescriptorClerk& DescriptorClerk() { return *pDescriptorClerk; }
      static VkExtent2D& ScreenDims() { return mScreenDimensions; }
      static std::vector<FcGameObject* >& GameObjects() { return mGameObjectsList; }
      static std::vector<FcLight* >& Lights() { return mLightsList; }

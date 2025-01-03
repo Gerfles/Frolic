@@ -4,8 +4,10 @@
 #include "fc_pipeline.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
+#include <glm/vec4.hpp>
+#include <glm/vec3.hpp>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <memory>
+//#include <memory>
 
 
 namespace fc

@@ -555,25 +555,28 @@ namespace fc
    // TODO combine with null checks perhaps
   void FcImage::destroyImageView()
   {
+     //if (mImageView != nullptr)
+     // {
     vkDestroyImageView(FcLocator::Device(), mImageView, nullptr);
+       //}
   }
 
   void FcImage::destroy()
   {
     VkDevice device = FcLocator::Device();
      // destroy texture image sampler if it exists
-     // if (mTextureSampler != VK_NULL_HANDLE)
-     // {
-    vkDestroySampler(device, mTextureSampler, nullptr);
-     //}
+     if (mTextureSampler != nullptr)
+     {
+       vkDestroySampler(device, mTextureSampler, nullptr);
+     }
 
-     // Destroy image and free the associated memory
-    vkDestroyImageView(device, mImageView, nullptr);
+     destroyImageView();
 
-     // BUG destroy only one
-    vmaDestroyImage(FcLocator::Gpu().getAllocator(), mImage, mAllocation);
-     //vkDestroyImage(device, mImage, nullptr);
-     //vkFreeMemory(device, mImageMemory, nullptr);
+      // TODO I think the vk destroy already checks for NULL
+      //    if (mImage != nullptr)
+      //    {
+      vmaDestroyImage(FcLocator::Gpu().getAllocator(), mImage, mAllocation);
+       //    }
   }
 
 

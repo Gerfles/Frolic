@@ -34,7 +34,7 @@ namespace fc
      VkSwapchainKHR mSwapchain;
      VkExtent2D mSurfaceExtent;
      VkFormat mSwapchainFormat;
-     VkRenderPass mRenderPass;
+     VkRenderPass mRenderPass{nullptr};
       //std::vector<SwapchainImage> mSwapchainImages;
       // FRAMEBUFFER ATTACHMENTS
      std::vector<FcImage> mSwapchainImages;
@@ -66,9 +66,9 @@ namespace fc
      FcSwapChain(FcSwapChain* oldSwapChain);
      uint32_t init(FcGpu& gpu, const VkExtent2D& windowSize);
       // TODO see if we can just make this part of create swapChain??
-     void transitionImage(VkCommandBuffer commandBuffer, uint32_t currentFrame
-                          , VkImageLayout oldLayout, VkImageLayout newLayout);
-     void reCreateSwapChain();
+     void transitionImage(VkCommandBuffer commandBuffer
+                          , uint32_t currentFrame,  VkImageLayout currentLayout, VkImageLayout newLayout);
+     void reCreateSwapChain(VkExtent2D windowSize);
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   GETTER FUNCTIONS   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      VkFramebuffer& getFrameBuffer(int index) { return mSwapChainFramebuffers[index]; }
      FcImage& getFcImage(uint32_t index) { return mSwapchainImages[index]; }

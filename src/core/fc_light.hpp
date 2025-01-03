@@ -1,12 +1,10 @@
 #pragma once
 
-#include <vulkan/vulkan_core.h>
 #include "core/fc_image.hpp"
-#include "fc_billboard_render_system.hpp"
+#include "core/fc_billboard_render_system.hpp"
 #include "core/fc_game_object.hpp"
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include "glm/vector_relational.hpp"
+#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
 
 
 namespace fc

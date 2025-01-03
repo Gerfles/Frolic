@@ -1,6 +1,7 @@
 #include "fc_gpu.hpp"
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "core/fc_locator.hpp"
 #include "core/fc_renderer.hpp"
 #include "utilities.hpp"
 // #include "log.hpp"
@@ -137,7 +138,7 @@ namespace fc
 
        // make sure we're using a dedicated graphics card TODO write provisions to have a fallback GPU
        // could simply add a stack where we push when a discrete GPU is found
-      if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+       //   if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
       {
         if (isDeviceSuitable(potentialDevice))
         {
@@ -442,6 +443,9 @@ namespace fc
 
   void FcGpu::release(VkInstance& instance)
   {
+    fcLog("Calling FcGpu::release()");
+
+
     vmaDestroyAllocator(mAllocator);
 
     if (mLogicalGPU != VK_NULL_HANDLE)

@@ -4,8 +4,8 @@
 
 layout (location = 0) in vec3 inColor;
 layout (location = 1) in vec3 inPosWorld;
-layout (location = 2) in vec3 inNormalWorld; 
- 
+layout (location = 2) in vec3 inNormalWorld;
+
 layout (location = 0) out vec4 outColor;
 
 struct PointLight
@@ -42,14 +42,14 @@ void main()
   // get the camera position in world space
   vec3 cameraPosWorld = ubo.invView[3].xyz;
   vec3 viewDirection = normalize(cameraPosWorld - inPosWorld);
-  
+
   for (int i = 0; i < ubo.numLights; i++)
   {
     PointLight light = ubo.pointLights[i];
     vec3 directionToLight = light.position.xyz - inPosWorld;
     float attenuation = 1.0 / dot(directionToLight, directionToLight); // distance squared
     directionToLight = normalize(directionToLight);
-    
+
     float cosAngIncidence = max(dot(surfaceNormal, directionToLight), 0);
     vec3 intensity = light.color.xyz * light.color.w * attenuation;
 
@@ -65,5 +65,5 @@ void main()
     specularLight += intensity * blinnTerm;
   }
 
-  outColor = vec4(diffuseLight * inColor + specularLight  * inColor, 1.0); 
+  outColor = vec4(diffuseLight * inColor + specularLight  * inColor, 1.0);
 }

@@ -3,6 +3,7 @@
 
 // Frolic Engine
 //#include "core/fc_descriptors.hpp"
+#include "core/utilities.hpp"
 #include "fc_buffer.hpp"
 // external libraries
 #include "vulkan/vulkan_core.h"
@@ -20,10 +21,12 @@ namespace fc
   {
    private:
       // TODO could get rid of most of these devices if pased to the destroy function ??
-     VkImage mImage;
-     VkImageView mImageView;
-     VmaAllocation mAllocation = VK_NULL_HANDLE;
-     VkSampler mTextureSampler = VK_NULL_HANDLE;
+     VkImage mImage{nullptr};
+     VkImageView mImageView{nullptr};
+     VmaAllocation mAllocation{nullptr};
+     VkSampler mTextureSampler{nullptr};
+      // TODO create a synced state variable to track current image layout
+      // VkImageLayout mCurrentLayout{VK_IMAGE_LAYOUT_UNDEFINED};
      VkExtent3D mImageExtent;
      uint32_t mMipLevels = 1;
 
@@ -42,6 +45,7 @@ namespace fc
      FcImage(std::string filename) { loadTexture(filename); }
      FcImage() = default;
      FcImage(VkImage image);
+     ~FcImage() = default;
 
      FcImage& operator=(const FcImage&) = delete;
      FcImage(const FcImage&) = delete;
@@ -77,7 +81,7 @@ namespace fc
      VkExtent3D getExtent() { return mImageExtent; }
      VkExtent2D size() { return {mImageExtent.width, mImageExtent.height}; }
       // cleanup
-     ~FcImage() = default;
+//     ~FcImage() = default;
      void destroyImageView();
      void destroy();
   };
