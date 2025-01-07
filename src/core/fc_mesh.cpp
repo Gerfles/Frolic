@@ -21,11 +21,11 @@ namespace fc
 {
    // TODO might be better to have as a constructor
   FcMesh::FcMesh(std::vector<Vertex>& vertices
-                          , std::vector<uint32_t>& indices, uint32_t textureID)
+                 , std::vector<uint32_t>& indices, uint32_t descriptorID)
   {
     createVertexBuffer(vertices);
     createIndexBuffer(indices);
-    mTextureID = textureID;
+    mDescriptorID = descriptorID;
   }
 
 
@@ -37,8 +37,11 @@ namespace fc
 //staging buffers.
   void FcMesh::uploadMesh2(std::string name, std::span<Vertex2> vertices, std::span<uint32_t> indices)
   {
+
+
     mName = name;
 
+     // *-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE VERTEX BUFFER   *-*-*-*-*-*-*-*-*-*-*-*-*- //
      // get buffer size needed to store vertices
     VkDeviceSize bufferSize = sizeof(Vertex2) * vertices.size();
 
@@ -58,8 +61,10 @@ namespace fc
 
     mVertexBufferAddress = vkGetBufferDeviceAddress(FcLocator::Device(), &deviceAddressInfo);
 
-   // TODO could condense this into one "create() function and just pass both vertices and indices" could also combine with a transferToGpu() function in buffer
+   // TODO could condense this into one "create() function and just pass both vertices and indices"
+     // could also combine with a transferToGpu() function in buffer
 
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE INDEX BUFFER   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
      // get buffer size needed to store indices
     bufferSize = sizeof(uint32_t) * static_cast<uint32_t>(indices.size());
 

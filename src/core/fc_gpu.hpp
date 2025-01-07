@@ -46,7 +46,6 @@ namespace fc
       // -- checker functions
      bool isDeviceSuitable(const VkPhysicalDevice& device);
      bool isDeviceExtensionSupported(const VkPhysicalDevice& device) const;
-
      void pickPhysicalDevice(const VkInstance& instance, const std::vector<const char*> deviceExtensions);
 
    public:
@@ -64,7 +63,7 @@ namespace fc
      const QueueFamilyIndices getQueueFamilies();
      const VmaAllocator& getAllocator() const { return mAllocator; }
      const VkDevice& getVkDevice() const { return mLogicalGPU; }
-     const VkPhysicalDevice& physicalDevice() const { return mPhysicalGPU; }
+     const VkPhysicalDevice physicalDevice() const { return mPhysicalGPU; }
      const VkSurfaceKHR& surface() const { return pWindow->surface(); }
      VkExtent2D SurfaceExtent() const { return pWindow->ScreenSize(); }
 

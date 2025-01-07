@@ -138,7 +138,7 @@ namespace fc
 
        // make sure we're using a dedicated graphics card TODO write provisions to have a fallback GPU
        // could simply add a stack where we push when a discrete GPU is found
-       //   if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+      if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
       {
         if (isDeviceSuitable(potentialDevice))
         {

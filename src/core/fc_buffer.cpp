@@ -1,12 +1,13 @@
-
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_buffer.hpp"
-#include <SDL_log.h>
-#include "core/fc_locator.hpp"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "fc_renderer.hpp"
+#include "fc_locator.hpp"
 #include "core/log.hpp"
 #include "fc_gpu.hpp"
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES -*-*-*-*-*-*-*-*-*-*-*-*-*-
+#include <SDL_log.h>
 #include "vulkan/vulkan_core.h"
+//#define VMA_IMPLEMENTATION
 #include "vk_mem_alloc.h"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <cstddef>
@@ -71,9 +72,28 @@ namespace  fc
   } // --- FcBuffer::allocateBuffer (_) --- (END)
 
 
+// TODO check preferred (fastest) method
+  void* FcBuffer::getAddres()
+  {
+    void* memAddress;
+    VmaAllocator allocator = FcLocator::Gpu().getAllocator();
+
+    if (vmaMapMemory(allocator, mAllocation, &memAddress) != VK_SUCCESS)
+    {
+      throw std::runtime_error("Failed to map VMA buffer memory!");
+    }
+
+    return memAddress;
+     // ??
+    //return mAllocation->GetMappedData();
+  }
+
+
+
   void FcBuffer::storeData(void* sourceData
                            , VkDeviceSize bufferSize, VkBufferUsageFlags useFlags)
   {
+    mBufferSize = bufferSize;
      // -*-*-*-*-*-*-*-*-*-   SIMPLE BUFFER STORED TO HOST MEMORY   -*-*-*-*-*-*-*-*-*- //
 
      // TODO should verify which mem types should be directly stored and which transferred to GPU
@@ -184,7 +204,7 @@ namespace  fc
 //     vkBindBufferMemory(device, mBuffer, mBufferMemory, 0);
 //  }
 
-
+   // TODO determine if we should just use mAllocation->GetMappedData();
   void FcBuffer::overwriteData(void* sourceData, size_t dataSize)
   {
     void* memAddress;
@@ -194,6 +214,9 @@ namespace  fc
     {
       throw std::runtime_error("Failed to map VMA buffer memory!");
     }
+
+     // TODO SHould we just use this ??
+     //mAllocation->GetMappedData();
 
     memcpy(memAddress, sourceData, dataSize);
     vmaUnmapMemory(FcLocator::Gpu().getAllocator(), mAllocation);

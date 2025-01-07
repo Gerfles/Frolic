@@ -34,7 +34,6 @@ FcBillboard::FcBillboard(float width, float height, glm::vec4 color)
 
 
 
-
   void FcBillboard::placeInHandleTable()
   {
     std::vector<FcBillboard* >& billboardList = FcLocator::Billboards();
@@ -70,48 +69,45 @@ FcBillboard::FcBillboard(float width, float height, glm::vec4 color)
     }
   }
 
-
-
-  void FcBillboardRenderSystem::createPipeline(FcPipeline& pipeline, VkRenderPass& renderPass)
+  void FcBillboard::loadTexture(std::string filename, VkDescriptorSetLayout layout, FcBindingInfo& bindInfo)
   {
-     // -- CREATE PIPELINE LAYOUT -- //
+     // TODO implement
+  }
+
+
+  void FcBillboard::loadTexture(VkDescriptorSetLayout layout, FcBindingInfo& bindInfo)
+  {
+     // TODO implement
+  }
+
+
+
+
+  [[deprecated("No longer valid")]]
+  void FcBillboardRenderSystem::createPipeline(FcPipeline& pipeline)
+  {
+    FcPipelineConfig billboardConfig{2};
+    billboardConfig.name = "Billboard";
+    billboardConfig.shaders[0].filename = "billboard.vert.spv";
+    billboardConfig.shaders[0].stageFlag = VK_SHADER_STAGE_VERTEX_BIT;
+    billboardConfig.shaders[1].filename = "bilboard.frag.spv";
+    billboardConfig.shaders[1].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
 
     VkPushConstantRange pushConstantRange{};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     pushConstantRange.offset = 0;
     pushConstantRange.size = sizeof(BillboardPushComponent);
 
-    std::array<VkDescriptorSetLayout, 2> descriptorSetLayouts = { FcLocator::DescriptorClerk().UboSetLayout()
-                                                                , FcLocator::DescriptorClerk().SamplerSetLayout() };
+    billboardConfig.addPushConstants(pushConstantRange);
 
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.pushConstantRangeCount = 1;
-    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
-    pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.size());
-    pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
+    billboardConfig.setMultiSampling(FcLocator::Gpu().Properties().maxMsaaSamples);
 
-     // create pipeline layout
-    if (vkCreatePipelineLayout(FcLocator::Device(), &pipelineLayoutInfo, nullptr, &pipeline.Layout()) != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to create Pipeline Layout!");
-    }
+    // make sure to clear these out since we won't be reading any vertex data and MUST signal vulkan as such
+    // pipelineConfig.bindingDescriptions.clear();
+    // pipelineConfig.attributeDescriptions.clear();
+    // billboardConfig.disableVertexRendering();
 
-     // -- CREATE PIPELINE -- //
-    assert(pipeline.Layout() != nullptr && "Cannot create pipeline before pipeline layout");
-
-    PipelineConfigInfo pipelineConfig;                         // TODO try with = {}; just to make it more clear that this auto populates with defaults
-    pipelineConfig.renderPass = renderPass;
-     // ?? check that the below is okay and good practice
-    pipelineConfig.pipelineLayout = pipeline.Layout();
-//    pipelineConfig.rasterizationSamples = VK_SAMPLE_COUNT_8_BIT; //gpu.Properties().maxMsaaSamples;
-    pipelineConfig.multiSamplingInfo.rasterizationSamples = FcLocator::Gpu().Properties().maxMsaaSamples;
-
-     // make sure to clear these out since we won't be reading any vertex data and MUST signal vulkan as such
-    pipelineConfig.bindingDescriptions.clear();
-    pipelineConfig.attributeDescriptions.clear();
-
-    pipeline.create("billboard.vert.spv", "billboard.frag.spv", pipelineConfig);
+    pipeline.create3(billboardConfig);
   }
 
 

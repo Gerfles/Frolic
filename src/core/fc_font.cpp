@@ -1,15 +1,17 @@
 #include "fc_font.hpp"
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "SDL2/SDL_log.h"
+#include "fc_renderer.hpp"
+#include "core/fc_gpu.hpp"
 #include "core/fc_descriptors.hpp"
 #include "core/fc_locator.hpp"
 #include "fc_debug.hpp"
+ // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "freetype/config/ftheader.h"
 #include "vulkan/vulkan_core.h"
 #include "stb_image.h"
-#include "core/fc_gpu.hpp"
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "SDL2/SDL_log.h"
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <cstdint>
 #include <cstring>
 #include <unordered_map>

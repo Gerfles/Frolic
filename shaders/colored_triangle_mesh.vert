@@ -2,7 +2,17 @@
 #extension GL_EXT_buffer_reference : require
 
 layout (location = 0) out vec3 outColor;
-layout (location = 1) out vec3 outUV;
+layout (location = 1) out vec2 outUV;
+
+// layout(set = 0, binding = 0) uniform SceneData
+// {
+//   mat4 view;
+//   mat4 projection;
+//   mat4 viewProjection;
+//   vec4 ambientLightColor; // w  is intensity
+//   vec4 sunlightDir;
+//   vec4 sunlightColor;
+// } scene;
 
 struct Vertex
 {
@@ -12,6 +22,7 @@ struct Vertex
    float uv_y;
    vec4 color;
 };
+
 
 layout (buffer_reference, std430) readonly buffer VertexBuffer
 {

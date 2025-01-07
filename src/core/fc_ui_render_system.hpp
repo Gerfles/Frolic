@@ -2,7 +2,6 @@
 
 // CORE
 // #include "core/fc_descriptors.hpp"
-#include "core/fc_gpu.hpp"
 #include "fc_pipeline.hpp"
 // EXTERNAL
 #include "vulkan/vulkan_core.h"
@@ -30,7 +29,7 @@ namespace fc
       //FcPipeline mUIpipeline;
       //
    public:
-     void createPipeline(FcPipeline& pipeline, VkRenderPass& renderPass);
+     void createPipeline(FcPipeline& pipeline);
      FcUIrenderSystem() = default;
      ~FcUIrenderSystem() = default;
      FcUIrenderSystem(const FcUIrenderSystem&) = delete;

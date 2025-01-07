@@ -67,7 +67,9 @@ namespace fc
       throw std::runtime_error("Failed to create a Vulkan Image!");
     }
 
+    createImageView(format, aspectFlags, mipLevels);
 
+     // *-*-*-*-*-*-*-   CUSTOM MEMORY ALLOCATION SAVED FOR REFERENCE   *-*-*-*-*-*-*- //
      // if (vkCreateImage(device, &imageInfo, nullptr, &mImage) != VK_SUCCESS)
      // {
      //   throw std::runtime_error("Failed to create a Vulkan Image!");
@@ -121,7 +123,6 @@ namespace fc
      // vkBindImageMemory(device, mImage, mImageMemory, 0);
 
      // now create an Image view so we can interface with it
-    createImageView(format, aspectFlags, mipLevels);
   }
 
 
@@ -297,7 +298,7 @@ namespace fc
 
 
 
-  uint32_t FcImage::loadTexture(std::string filename)
+  void FcImage::loadTexture(std::string filename)
   {
      // load image file
      // TODO determine if there's a better way to use stbi_load with VkExtent
@@ -324,13 +325,10 @@ namespace fc
     VkExtent3D extent{static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1};
 
      // using the image data from the loaded file, create the hardware texture used by the GPU
-    uint32_t textureId = createTexture(extent, imageData, mipLevels);
+    createTexture(extent, imageData, mipLevels);
 
      // free original image data
     stbi_image_free(imageData);
-
-     // return the descriptor index returned by createTextureDescriptor();
-    return textureId;
   }
 
 
@@ -432,11 +430,13 @@ namespace fc
     vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT
                          , VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
-     // finally, submit all commands the the graphics queue
+     // finally, submit all commands to the the graphics queue
     FcLocator::Renderer().submitCommandBuffer();
   }
 
 
+   // TODO determine if this should return texture sampler instead of storying it internally
+   // basically seems like we can reuse the same sampler for all simpler images??
   void FcImage::createTextureSampler(uint32_t mipLevels)
   {
     FcGpu& gpu = FcLocator::Gpu();
@@ -592,7 +592,7 @@ namespace fc
    // TODO require an init function or remove the pGpu parameter... this function doesn't use it and
    // I think other functions doen't need it either--but it's confusing and errore prone to keep an
    // unitialized pointer around
-  uint32_t FcImage::createTexture(VkExtent3D extent, void* pixelData, uint32_t mipLevels)
+  void FcImage::createTexture(VkExtent3D extent, void* pixelData, uint32_t mipLevels)
   {
      // TODO determine if having member dimensions is useful
     mImageExtent = extent;
@@ -609,9 +609,13 @@ namespace fc
     {
       generateMipMaps(mipLevels);
     }
-
-     // return the descriptor index returned by createTextureDescriptor();
-    return FcLocator::DescriptorClerk().createTextureDescriptor(mImageView, mTextureSampler);
+    else
+    {
+      VkCommandBuffer cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
+      transitionImage(cmdBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+                      , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+      FcLocator::Renderer().submitCommandBuffer();
+    }
   }
 
 

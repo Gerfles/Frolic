@@ -1,30 +1,26 @@
 #include "fc_model.hpp"
 
  // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
-//#include "fastgltf/types.hpp"l
-//#include "fastgltf/util.hpp"
-#include "core/utilities.hpp"
+ // #include "fc_gpu.hpp"
+#include "utilities.hpp"
 #include "fc_descriptors.hpp"
-#include "fc_gpu.hpp"
 #include "fc_image.hpp"
 #include "fc_locator.hpp"
 #include "fc_mesh.hpp"
+
  // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES -*-*-*-*-*-*-*-*-*-*-*-*-*-
-#include <cstdint>
-// glTF loading
+// GLTF loading
 #include <fastgltf/core.hpp>
 #include <fastgltf/glm_element_traits.hpp>
 #include <fastgltf/tools.hpp>
-// glm
-#include <filesystem>
-#include <fstream>
+//#include <fastgltf/parser.hpp>
+//#include "fastgltf/types.hpp"l
+//#include "fastgltf/util.hpp"
+// GLM
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 #include <glm/ext/vector_float4.hpp>
-//#include "fastgltf/core.hpp"
 
-// #include <fastgltf/parser.hpp>
 // TODO delete assimp or isolate it to a separate loader class
 #define ASSIMP_USE_HUNTER
 #include <assimp/scene.h>
@@ -33,10 +29,13 @@
 #include <vulkan/vulkan_core.h>
 #include "SDL2/SDL_stdinc.h"
  // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <cstddef>
+ // #include <cstddef>
+#include <filesystem>
 #include <stdexcept>
 #include <string>
 #include <vector>
+// #include <cstdint>
+// #include <fstream>
 // #include <glm/glm.hpp>
 
 
@@ -245,8 +244,7 @@ namespace fc {
   }
 
 
-
-  FcModel::FcModel(std::string modelFile)
+  FcModel::FcModel(std::string fileName, VkDescriptorSetLayout descriptorLayout, FcBindingInfo& bindInfo)
   {
      // first initialze model matrix to identity
     mModelMatrix = glm::mat4(1.0f);
@@ -257,12 +255,12 @@ namespace fc {
      // ?? I believe the aiProcess_JoinIdenticalVertices will remove the duplicate vertices so that
      // each is unique but should verify that it's working correctly by using a unordered set (w/
      // hashmap) to store the vertices and make sure we get the same number for both
-    const aiScene* scene = importer.ReadFile(modelFile, aiProcess_Triangulate
+    const aiScene* scene = importer.ReadFile(fileName, aiProcess_Triangulate
                                              | aiProcess_FlipUVs
                                              | aiProcess_JoinIdenticalVertices);
     if (!scene)
     {
-      throw std::runtime_error("Failed to load model! (" + modelFile + ")");
+      throw std::runtime_error("Failed to load model! (" + fileName + ")");
     }
 
      // get vector of all materials with 1:1 ID placement
@@ -279,11 +277,14 @@ namespace fc {
        // if material has no texture, set '0' to indicate no texture, texture 0 will be reserved for a default texture
       if (textureNames[i].empty())
       {
+         // TODO Set descriptor set to default or simply check at render time...
         materialNumToTexID[i] = 0;
       }
       else
       {	// Otherwise, create texture and set value to index of new texture
-        materialNumToTexID[i] = loadTexture(textureNames[i]);
+        //materialNumToTexID[i] = loadTexture(textureNames[i]);
+        materialNumToTexID[i] = loadTexture(textureNames[i], descriptorLayout, bindInfo);
+        // TODO maybe save descriptorset to mesh
       }
     }
 
@@ -294,10 +295,8 @@ namespace fc {
 
 
 
-
    // recursively load all the nodes from a tree of nodes within the scene
-  void FcModel::loadNodes(aiNode* node
-                          , const aiScene* scene, std::vector<int>& matToTex)
+  void FcModel::loadNodes(aiNode* node, const aiScene* scene, std::vector<int>& matToTex)
   {
      // go through each mesh at this node and create it, then add it to our meshList ()
     for (size_t i = 0; i < node->mNumMeshes; ++i)
@@ -308,7 +307,7 @@ namespace fc {
        //
       loadMesh(currMesh, scene, matToTex[currMesh->mMaterialIndex]);
     }
-     // go through each nod attached to this node and load it, then append their meshes to this
+     // go through each node attached to this node and load it, then append their meshes to this
      // node's mesh list
     for (size_t i = 0; i < node->mNumChildren; ++i)
     {
@@ -317,8 +316,9 @@ namespace fc {
   }
 
 
-  void FcModel::loadMesh(aiMesh* mesh, const aiScene* scene, uint32_t textureID)
+  void FcModel::loadMesh(aiMesh* mesh, const aiScene* scene, uint32_t descriptorID)
   {
+
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
 
@@ -362,26 +362,37 @@ namespace fc {
         indices.push_back(face.mIndices[j]);
       }
     }
-
      // create a new mesh and return it TODO - make efficient
      //FcMesh newMesh;
      //newMesh.createMesh(&gpu, vertices, indices, textureID);
      //mMeshList.push_back(newMesh);
-    mMeshList.emplace_back(vertices, indices, textureID);
+    mMeshList.emplace_back(vertices, indices, descriptorID);
   }
 
 
-   // TODO make efficient
-  uint32_t FcModel::loadTexture(std::string filename)
+
+  uint32_t FcModel::loadTexture(std::string filename, VkDescriptorSetLayout layout, FcBindingInfo& bindInfo)
   {
+
     FcImage texture;
-
-    uint32_t mDescriptorId = texture.loadTexture(filename);
-
+    texture.loadTexture(filename);
     mTextures.emplace_back(std::move(texture));
      //mTextures.push_back(descriptorManager, filename);
 
-    return mDescriptorId;
+     //bindInfo.bufferInfo = nullptr;
+    VkDescriptorImageInfo imageInfo;
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfo.sampler = texture.TextureSampler();
+    imageInfo.imageView = texture.ImageView();
+
+    bindInfo.pImageInfo = &imageInfo;
+    bindInfo.pBufferInfo = nullptr;
+
+    VkDescriptorSet descriptorSet;
+    descriptorSet = FcLocator::DescriptorClerk().createDescriptorSet(layout, bindInfo);
+    mDescriptorSets.emplace_back(std::move(descriptorSet));
+
+    return mTextures.size() - 1;
   }
 
 

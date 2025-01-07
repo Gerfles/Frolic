@@ -11,6 +11,7 @@ namespace fc
   FcRenderer* FcLocator::pRenderer;
   FcGpu* FcLocator::pGpu;
   VkDevice FcLocator::pDevice;
+  VkPhysicalDevice FcLocator::pPhysicalDevice;
    //static Audio* pAudioService;
   FcDescriptorClerk* FcLocator::pDescriptorClerk;
   VkExtent2D FcLocator::mScreenDimensions;
@@ -28,6 +29,7 @@ namespace fc
   {
     pGpu = nullptr;
     pDevice = nullptr;
+    pPhysicalDevice = nullptr;
     pDescriptorClerk = nullptr;
   }
 
@@ -66,8 +68,10 @@ namespace fc
           }
           else
           {
+             // TODO should check for null values here as well
             pGpu = gpu;
             pDevice = gpu->getVkDevice();
+             //pPhysicalDevice = nullptr;
             pPhysicalDevice = gpu->physicalDevice();
           }
         }

@@ -1,10 +1,12 @@
 #pragma once
 
-#include "core/fc_image.hpp"
-#include "core/fc_billboard_render_system.hpp"
-#include "core/fc_game_object.hpp"
+#include "fc_image.hpp"
+#include "fc_billboard_render_system.hpp"
+#include "fc_game_object.hpp"
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
+ // *-*-*-*-*-*-*-*-*-*-*-*-*-   FORWARD DECLARATIONS   *-*-*-*-*-*-*-*-*-*-*-*-*- //
+
 
 
 namespace fc

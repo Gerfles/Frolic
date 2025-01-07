@@ -1,12 +1,14 @@
 #pragma once
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "core/fc_descriptors.hpp"
 #include "core/fc_input.hpp"
 #include "core/fc_mesh.hpp"
 #include "core/fc_pipeline.hpp"
 #include "core/fc_renderer.hpp"
 #include "core/fc_text.hpp"
 #include "core/fc_timer.hpp"
+
 
 #include <vector>
 // - EXTERNAL LIBRARIES -
@@ -31,7 +33,6 @@ namespace fc
      float mFrameTimeList[MAX_FRAME_SAMPLES];
 
       // note: order of declaration matters (member variables are allocated top to bottom and destroyed in the reverse order)
-
      GlobalUbo mUbo;
 
       // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -40,9 +41,9 @@ namespace fc
      FcPipeline mMeshPipeline;
 
      std::vector<FcPipeline*> mPipelines;
-     std::vector<ComputePushConstants> pushConstants{2};
+     std::vector<ComputePushConstants> mPushConstants{2};
 
-
+     SceneData mSceneData;
       // ComputePushConstants gradientPushConstants{};
       // ComputePushConstants skyPushConstants{};
 

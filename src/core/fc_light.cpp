@@ -1,7 +1,7 @@
 #include "core/fc_light.hpp"
 #include <vulkan/vulkan_core.h>
 
-#include "core/fc_billboard_render_system.hpp"
+
 #include "core/fc_descriptors.hpp"
 #include "core/fc_image.hpp"
 #include "core/fc_locator.hpp"
@@ -18,10 +18,8 @@ namespace fc
 
   void FcLight::loadDefaultTexture(std::string filename)
   {
-    mTextureId = mPointLightTexture.loadTexture(filename);
-
+    mPointLightTexture.loadTexture(filename);
 //  mBillboard.setTextureId(texID);
-//  mPointLightTexture.loadTexture("point_light.png");
   }
 
    //?? what
@@ -32,7 +30,7 @@ namespace fc
      // mBillboard.Push().color = glm::vec4(color, intensity);
      // mBillboard.Push().width = mBillboard.Push().height = radius;
     placeInHandleTable();
-    mBillboard.setTextureId(mTextureId);
+     //mBillboard.setTextureId(mTextureId);
     mBillboard.placeInHandleTable();
   }
 

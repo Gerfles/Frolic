@@ -1,11 +1,15 @@
 #include "fc_text.hpp"
 
 // - CORE -
+#include "fc_renderer.hpp"
 #include "fc_locator.hpp"
 #include "fc_font.hpp"
+ // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
+ // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <cstdint>
 #include <vector>
+#include <cstring>
 
 namespace fc
 {
@@ -40,8 +44,8 @@ namespace fc
     // should only be one texture that we alter accordingly
      // create the default texture that will be used to fill the text box
     VkExtent3D extent{static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1};
-    mTextureId = mTextImage.createTexture(extent, pixels);
-
+    mTextImage.createTexture(extent, pixels);
+     // BUG must create descriptorset
      // create the actual billboard that text will get rendered to
      //mTextBoxMesh.createMesh(pGpu, vertices, indices, 0);
   }

@@ -20,16 +20,20 @@
 //functions.  You can either implement such an allocator yourself, or use the VulkanMemoryAllocator
 //library provided by the GPUOpen initiative.
 
+
+// TODO restructure with using mBufferSize instead of passing in for each
+// function
+// TODO should all FcBuffers contain binding information? or maybe create a
+// inhereted class FcBoundBuffer that contains that stuff?
 namespace fc
 {
-  class FcGpu;
-
   class FcBuffer
   {
    private:
      VkBuffer mBuffer{nullptr};
      VmaAllocation mAllocation;
-     VmaAllocationInfo info;
+//     VmaAllocationInfo info;
+     VkDeviceSize mBufferSize;
 
    public:
      FcBuffer() = default;
@@ -42,6 +46,9 @@ namespace fc
      void overwriteData(void * srcData, size_t dataSize);
      void copyBuffer(const FcBuffer& srcBuffer, VkDeviceSize bufferSize);
      VkBuffer& getVkBuffer() { return mBuffer; }
+      // BUG this doesn't always have size storred
+     VkDeviceSize size() { return mBufferSize; }
+     void* getAddres();
      void destroy();
   };
 

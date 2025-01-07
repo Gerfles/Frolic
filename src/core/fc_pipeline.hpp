@@ -1,24 +1,28 @@
 #pragma once
 
-
  // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 //#include "fc_font.hpp"
 //#include "core/fc_renderer.hpp"
 //#include "fc_gpu.hpp"
 //#include "fc_swapChain.hpp"
+//#include "core/fc_model.hpp"
 //#include "fc_descriptors.hpp"
 //#include "mesh.h"
  // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
 #include <glm/vec4.hpp>
  // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include <cstdint>
 #include <string>
 #include <vector>
+#include <span>
 
 
 
 namespace fc
 {
+  class FcBindingInfo;
+
 
   struct PipelineConfigInfo
   {
@@ -49,14 +53,19 @@ namespace fc
      VkShaderStageFlagBits stageFlag;
   };
 
+
+
+
    // Allow constructor with variable argument list (vk stage names)
-  struct FcPipelineConfigInfo2
+  struct FcPipelineConfig
   {
      const char* name; // ?? might want to remove but then may serve as good identifier (hashmap)
      // std::vector<VkVertexInputBindingDescription> bindingDescriptions{};
      // std::vector<VkVertexInputAttributeDescription> attributeDescriptions{};
+     // TODO think about making vectors refs
      std::vector<ShaderInfo> shaders; // default size allocation of 1, declare with numStages to increase
      std::vector<VkPushConstantRange> pushConstantsInfo;
+     std::vector<FcBindingInfo> bindInfos;
      VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo{};
      VkPipelineRasterizationStateCreateInfo rasterizationInfo{};
      VkPipelineMultisampleStateCreateInfo multiSamplingInfo{};
@@ -66,19 +75,20 @@ namespace fc
      VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
      VkPipelineViewportStateCreateInfo viewportInfo{};
      VkPipelineColorBlendStateCreateInfo colorBlendInfo{};
-     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-     VkFormat colorAttachmentFormat;
+      //VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+     VkFormat colorAttachmentFormat{};
       // std::vector<VkDynamicState> dynamicStateEnables{};
      // VkPipelineDynamicStateCreateInfo dynamicStateInfo{};
      // VkSampleCountFlagBits rasterizationSamples{};
 
-
-      // Initialize the number of stages with a list initializer
+     // Initialize the number of stages with a list initializer
       // TODO CB = comment better
-     FcPipelineConfigInfo2(int numStages);
-     FcPipelineConfigInfo2(const PipelineConfigInfo&) = delete;
-     FcPipelineConfigInfo2& operator=(const PipelineConfigInfo&) = delete;
-
+     FcPipelineConfig(int numStages);
+     FcPipelineConfig(std::vector<ShaderInfo> shaderInfos);
+     FcPipelineConfig(const PipelineConfigInfo&) = delete;
+     FcPipelineConfig& operator=(const PipelineConfigInfo&) = delete;
+     void init();
+     void addBinding(uint32_t bindSlot, VkDescriptorType type, VkShaderStageFlags stages);
      void addPushConstants(VkPushConstantRange pushConstant);
      void setInputTopology(VkPrimitiveTopology topology);
      void setPolygonMode(VkPolygonMode mode);
@@ -88,6 +98,7 @@ namespace fc
      void setDepthFormat(VkFormat format);
      void disableDepthtest();
      void enableDepthtest(bool depthWriteEnable, VkCompareOp op);
+      //void disableVertexRendering();
       // TODO combine
      void disableBlending();
      void enableBlendingAdditive();
@@ -96,25 +107,6 @@ namespace fc
   }; // ---   struct FcPipelineConfigInfo2 --- (END)
 
 
-  // class PipelineBuilder
-  // {
-  //  public:
-  //    std::vector<VkPipelineShaderStageCreateInfo> mShaderStages;
-  //    VkPipelineInputAssemblyStateCreateInfo mInputAssemblyInfo{};
-  //    VkPipelineRasterizationStateCreateInfo mRasterizationInfo{};
-  //    VkPipelineColorBlendAttachmentState mColorBlendAttachment{};
-  //    VkPipelineMultisampleStateCreateInfo mMultiSamplingInfo{};
-  //    VkPipelineLayout mPipelineLayout{VK_NULL_HANDLE};
-  //    VkPipelineDepthStencilStateCreateInfo mDepthStencilInfo{};
-  //    VkPipelineRenderingCreateInfo mRenderInfo{};
-  //    VkFormat mColorAttachmentFormat{};
-  //     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CTORS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-  //    PipelineBuilder() { clear(); }
-  //     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   UTILS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-  //    VkPipeline buildPipeline(VkDevice device);
-  //    void setShaders(VkShaderModule vertexShader, VkShaderModule fragmentShader);
-  //    void clear();
-  // };
 
   struct ComputePushConstants
   {
@@ -146,22 +138,30 @@ namespace fc
    private:
       //TODO see if this can be eliminated and passed as init instead()
       //TODO if this device is necessary, should make all ref pointers const
-     VkPipeline mPipeline = nullptr;
-     VkPipelineLayout mPipelineLayout = nullptr;
+     VkPipeline mPipeline{nullptr};
+     VkPipelineLayout mPipelineLayout{nullptr};
+
+      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      VkPipelineBindPoint mBindPoint{VK_PIPELINE_BIND_POINT_GRAPHICS};
      const char* mName;
-
+     uint32_t mNumDescriptorSets{0};
+     uint32_t mSetIndex{0};
+      // TODO determine if this can be deleted
+     VkDescriptorSetLayout mDescriptorSetLayout{nullptr
+     };
+      //std::vector<VkDescriptorSet> mLinkedDescriptorSets{};
 
      VkShaderModule createShaderModule(const std::vector<char>& code);
      void createRenderPass();
 
-      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-      // class PipelineBuilder
-
    public:
-     void create2(FcPipelineCreateInfo* pipelineInfo);
-     void create3(FcPipelineConfigInfo2& configInfo);
+      //void create2(FcPipelineCreateInfo* pipelineInfo);
+     void create3(FcPipelineConfig& configInfo);
+     void connectDescriptorSet(VkDescriptorSet descriptorSet);
+     void bindDescriptorSets(VkCommandBuffer cmdBuffer);
+     void bind(VkCommandBuffer commandBuffer);
       // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
 
      FcPipeline() = default;
      ~FcPipeline() = default;
@@ -173,22 +173,18 @@ namespace fc
                  const std::string& fragShaderFilename,
                  const PipelineConfigInfo& configInfo);
 
-     void bind(VkCommandBuffer commandBuffer);
+
       // uint32_t updateTextureDescriptors(VkImageView textureImageView, VkSampler textureSampler)
       //  { return mDescriptor.createTextureDescriptor(textureImageView, textureSampler); }
       // GETTERS
       //size_t ModelUniformAlignment() { return mDescriptor.ModelUniformAlignment(); }
-     const VkPipeline& getVkPipeline() const { return mPipeline; }
+     const VkPipeline& getVkPipeline()  { return mPipeline; }
      VkPipelineLayout& Layout() { return mPipelineLayout; }
      const char* Name() { return mName; }
       //VkDescriptorSet DescriptorSet(int index) { return mDescriptor[index]; }
       //VkDescriptorSet TextureDescriptorSet(const FcFont& font) { return mDescriptor[font]; }
       //VkDescriptorSet TextureDescriptorSet(const FcMesh& mesh) { return mDescriptor[mesh]; }
-
      void destroy();
   };
 
-
-
-
-}
+}// --- namespace fc --- (END)

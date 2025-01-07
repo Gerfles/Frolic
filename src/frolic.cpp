@@ -1,6 +1,7 @@
 #include "frolic.hpp"
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "core/fc_descriptors.hpp"
 #include "core/fc_game_object.hpp"
 #include "core/fc_font.hpp"
 #include "core/fc_light.hpp"
@@ -81,6 +82,9 @@ namespace fc
     mInput.init();
 
     initPipelines();
+
+     // attach camera
+    mRenderer.attachSceneData(&mSceneData);
   }
 
 
@@ -98,19 +102,25 @@ namespace fc
 
     text.createText("9999", 70, 16, 1.0f);
     mUItextList.emplace_back(std::move(text));
-
   }
 
 
 
   void Frolic::loadGameObjects()
   {
-     // store default textures for when texture file is unfound
+     // store default textures for when texture file is unfound, etc.
+     // TODO handle this with texture atlas
     mFallbackTexture.loadTexture("plain.png");
     FcLight::loadDefaultTexture("point_light.png");
 
     // Load the castle object
-    FcModel* model = new FcModel{"models/castle.obj"};
+    FcBindingInfo bindInfo;
+    bindInfo.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    bindInfo.shaderStages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    bindInfo.bindingSlotNumber = 0;
+    VkDescriptorSetLayout dsl = FcLocator::DescriptorClerk().createDescriptorSetLayout(bindInfo);
+
+    FcModel* model = new FcModel{"models/castle.obj", dsl, bindInfo};
     FcGameObject* castle =  new FcGameObject(model, FcGameObject::POWER_UP);
     castle->transform.rotation = {glm::pi<float>(), 0.f, 0.f};
     castle->transform.translation = {0.f, 1.f, 0.f};
@@ -123,7 +133,7 @@ namespace fc
     // vase->transform.scale = { 3.f, 3.f, 3.f };
 
      // load the floor
-    model = new FcModel{"models/quad.obj"};
+    model = new FcModel("models/quad.obj", dsl, bindInfo);
     FcGameObject* floor = new FcGameObject(model, FcGameObject::TERRAIN);
     floor->transform.translation = { 0.f, 1.f, 0.f };
     floor->transform.scale = { 8.f, 8.f, 8.f };
@@ -165,59 +175,68 @@ namespace fc
   {
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   GRADIENT PIPELINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     // Make sure to initialize the FcPipelineCreateInfo with the number of stages we want
-    FcPipelineCreateInfo gradient{1};
-    gradient.name = "gradient";
-
-    gradient.shaders[0].filename = "gradient_color.comp.spv";
-    gradient.shaders[0].stageFlag = VK_SHADER_STAGE_COMPUTE_BIT;
-
-    mGradientPipeline.create2(&gradient);
-
-    pushConstants[0].data1 = glm::vec4(1,0,0,1);
-    pushConstants[0].data2 = glm::vec4(0,1,0,1);
-
-
-     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   SKY PIPELINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    FcPipelineConfigInfo2 sky{1};
-    sky.name = "Sky";
-    sky.shaders[0].filename = "sky.comp.spv";
-    sky.shaders[0].stageFlag = VK_SHADER_STAGE_COMPUTE_BIT;
-
+    FcPipelineConfig gradientPipelineConfig{1};
+    gradientPipelineConfig.name = "gradient";
+    gradientPipelineConfig.shaders[0].filename = "gradient_color.comp.spv";
+    gradientPipelineConfig.shaders[0].stageFlag = VK_SHADER_STAGE_COMPUTE_BIT;
 
     VkPushConstantRange pushRange;
     pushRange.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
     pushRange.offset = 0;
     pushRange.size = sizeof(ComputePushConstants);
 
-    sky.addPushConstants(pushRange);
+    gradientPipelineConfig.addPushConstants(pushRange);
+    gradientPipelineConfig.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT);
 
-    mSkyPipeline.create3(sky);
-
-    pushConstants[1].data1 = glm::vec4{0.1, 0.2, 0.4, 0.97};
-
-     // // TODO delete
+    mGradientPipeline.create3(gradientPipelineConfig);
     mPipelines.push_back(&mGradientPipeline);
+
+    mPushConstants[0].data1 = glm::vec4(1,0,0,1);
+    mPushConstants[0].data2 = glm::vec4(0,1,0,1);
+
+
+     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   SKY PIPELINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    FcPipelineConfig skyPipelineConfig{1};
+    skyPipelineConfig.name = "Sky";
+    skyPipelineConfig.shaders[0].filename = "sky.comp.spv";
+    skyPipelineConfig.shaders[0].stageFlag = VK_SHADER_STAGE_COMPUTE_BIT;
+
+    skyPipelineConfig.addPushConstants(pushRange);
+    skyPipelineConfig.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT);
+
+    mSkyPipeline.create3(skyPipelineConfig);
+
+    mPushConstants[1].data1 = glm::vec4{0.1, 0.2, 0.4, 0.97};
+
     mPipelines.push_back(&mSkyPipeline);
 
 
-     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   MESH PIPELINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    FcPipelineConfigInfo2 meshConfig{2};
+    // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   MESH PIPELINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    FcPipelineConfig meshConfig{2};
     meshConfig.name = "Mesh";
     meshConfig.shaders[0].filename = "colored_triangle_mesh.vert.spv";
     meshConfig.shaders[0].stageFlag = VK_SHADER_STAGE_VERTEX_BIT;
-    meshConfig.shaders[1].filename = "single_triangle.frag.spv";
+    meshConfig.shaders[1].filename = "tex_image.frag.spv";
     meshConfig.shaders[1].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
 
+    meshConfig.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+     //meshConfig.addBinding(1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+
+    // add push constants
     VkPushConstantRange vertexPushConstantRange;
     vertexPushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     vertexPushConstantRange.offset = 0;
     vertexPushConstantRange.size = sizeof(drawPushConstants);
+
     meshConfig.addPushConstants(vertexPushConstantRange);
+
+    // basic config
     meshConfig.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
     meshConfig.setPolygonMode(VK_POLYGON_MODE_FILL);
     meshConfig.setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE);
     meshConfig.setMultiSampling(VK_SAMPLE_COUNT_1_BIT);
     meshConfig.enableBlendingAlpha();
+
     // meshConfig.disableDepthtest();
     meshConfig.enableDepthtest(true, VK_COMPARE_OP_GREATER);
 
@@ -227,6 +246,8 @@ namespace fc
     meshConfig.setDepthFormat(VK_FORMAT_D32_SFLOAT);
 
     mMeshPipeline.create3(meshConfig);
+
+    fcLog("Finished intializing all Pipelines!");
   }
 
 
@@ -245,9 +266,10 @@ namespace fc
     FcPlayer player{mInput};
     player.setPosition(glm::vec3(0.f, 0.f, -5.f));
      // Simple first person camera
+     // TODO make function calls more expressive
     FcCamera camera;
 
-    int currentBackgroundEffect{1};
+    int currentBackgroundEffect{0};
 
     camera.setPerspectiveProjection(glm::radians(45.0f), mRenderer.AspectRatio(), 0.1f, 100.f);
     mUbo.projection = camera.Projection();
@@ -301,6 +323,7 @@ namespace fc
           break;
         }
 
+         // TODO see if this is better handles (without this additional check) from SDL switch
         if (mRenderer.shouldWindowResize())
         {
           mRenderer.handleWindowResize();
@@ -324,19 +347,25 @@ namespace fc
 
        //update(deltaTime);
 
+       // TODO keep only one
       mUbo.view = camera.View();
       mUbo.projection = camera.Projection();
       mUbo.invView = camera.InverseView();
+
+      mSceneData.view = camera.View();
+      mSceneData.projection = camera.Projection();
+      mSceneData.viewProj = mSceneData.projection * mSceneData.view;
+
 
        // -*-*-*-*-*-*-*-*-*-*-*-*-*-   START THE NEW FRAME   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
       uint32_t swapchainImgIndex = mRenderer.beginFrame();
 
       FcPipeline* selected = mPipelines[currentBackgroundEffect];
+
       mRenderer.attachPipeline(selected);
 
        // test ImGui UI
        //ImGui::ShowDemoWindow();
-
       if (ImGui::Begin("background"))
       {
          // TODO getrenderScale should be deleted
@@ -346,10 +375,10 @@ namespace fc
 
         ImGui::SliderInt("Efect Index", &currentBackgroundEffect, 0, mPipelines.size() - 1);
 
-        ImGui::InputFloat4("Data1", (float*)& pushConstants[currentBackgroundEffect].data1);
-        ImGui::InputFloat4("Data2", (float*)& pushConstants[currentBackgroundEffect].data2);
-        ImGui::InputFloat4("Data3", (float*)& pushConstants[currentBackgroundEffect].data3);
-        ImGui::InputFloat4("Data4", (float*)& pushConstants[currentBackgroundEffect].data4);
+        ImGui::InputFloat4("Data1", (float*)& mPushConstants[currentBackgroundEffect].data1);
+        ImGui::InputFloat4("Data2", (float*)& mPushConstants[currentBackgroundEffect].data2);
+        ImGui::InputFloat4("Data3", (float*)& mPushConstants[currentBackgroundEffect].data3);
+        ImGui::InputFloat4("Data4", (float*)& mPushConstants[currentBackgroundEffect].data4);
       }
 
       ImGui::End();
@@ -367,7 +396,7 @@ namespace fc
 
        //mRenderer.drawUI(mUItextList, frame);
 
-      mRenderer.drawSimple(pushConstants[currentBackgroundEffect]);
+      mRenderer.drawSimple(mPushConstants[currentBackgroundEffect]);
 
       mRenderer.drawGeometry(mMeshPipeline);
 
@@ -429,6 +458,9 @@ namespace fc
     // light->setPosition(glm::vec3(rotateLight * glm::vec4(-1.f, -1.f,
     // -1.f, 1.f))); mLights.back().setPosition(glm::vec3(rotateLight *
     // glm::vec4(-1.f, -1.f, -1.f, 1.f)));
+
+
+
 
     //
     rotateMat = glm::rotate(glm::mat4(1.f), glm::radians(25 * deltaTime),

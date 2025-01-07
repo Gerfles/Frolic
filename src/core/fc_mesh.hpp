@@ -78,7 +78,8 @@ namespace fc
       // TODO As it appears that both VkDevice and vkphysicaldevice are both just "opaque handles"
       // we should be able to avoid using pointers to them (since they are already pointers...)
       //  ModelMatrix mUboModel;
-     uint32_t mTextureID{0};
+      // TODO DELETE as we are no longer accessing a desriptor set but may need for texture atlas
+     uint32_t mDescriptorID{0};
      FcBuffer mVertexBuffer;
      FcBuffer mIndexBuffer;
      VkDeviceAddress mVertexBufferAddress{};
@@ -101,22 +102,21 @@ namespace fc
      uint32_t getStartIndex() { return startIndex; }
       // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      FcMesh() = default;
-     FcMesh(std::vector<Vertex>& vertices
-            , std::vector<uint32_t>& indices, uint32_t textureID);
+     FcMesh(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, uint32_t descriptorID);
      // void createMesh(std::vector<Vertex>& vertices
      //                 , std::vector<uint32_t>& indices, uint32_t textureID);
 
      void setModel(glm::mat4 newModel);
-      // GETTERS
-//     const ModelMatrix& getModel() { return mUboModel; }
+      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   GETTERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+      // const ModelMatrix& getModel() { return mUboModel; }
      uint32_t VertexCount() const { return mVertexCount; }
      uint32_t IndexCount() const { return mIndexCount; }
       // TODO should both be const and probably not referenct since VkBuffer is just pointer
      VkBuffer& VertexBuffer() { return mVertexBuffer.getVkBuffer(); }
      const VkBuffer IndexBuffer() { return mIndexBuffer.getVkBuffer(); }
-     uint32_t DescriptorId() const { return mTextureID; }
+     uint32_t DescriptorId() const { return mDescriptorID; }
      VkDeviceAddress VertexBufferAddress() { return mVertexBufferAddress; }
-      // CLEANUP
+      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CLEANUP   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      void destroy();
      ~FcMesh() = default;
 

@@ -3,15 +3,20 @@
 
 // Frolic Engine
 //#include "core/fc_descriptors.hpp"
-#include "core/utilities.hpp"
-#include "fc_buffer.hpp"
+//#include "core/utilities.hpp"
+//#include "fc_buffer.hpp"
 // external libraries
 #include "vulkan/vulkan_core.h"
 // std libraries
+#include "vk_mem_alloc.h"
 #include<string>
+
 
 namespace fc
 {
+
+  class FcBuffer;
+
    // TODO create new texture class that inherits from image
    // FORWARD DECLARATIONS
 //  class FcPipeline;
@@ -38,8 +43,7 @@ namespace fc
      void writeToTexture(void* pixelData, uint32_t mipLevels = 1);
    public:
       // TODO DELETE
-       void imageToGpu(VkImageLayout oldLayout
-                       , VkImageLayout newLayout, uint32_t mipLevels);
+       void imageToGpu(VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels);
 
       // - CTORS -
      FcImage(std::string filename) { loadTexture(filename); }
@@ -51,10 +55,10 @@ namespace fc
      FcImage(const FcImage&) = delete;
      FcImage& operator=(FcImage&&) = default;
      FcImage(FcImage&&) = default;
-
-
-     void create(VkExtent3D imgExtent, VkFormat format, VkSampleCountFlagBits msaaSampleCount
-                 , VkImageUsageFlags useFlags, VkImageAspectFlags aspectFlags, uint32_t mipLevels = 1);
+     void create(VkExtent3D imgExtent, VkFormat format
+                 , VkSampleCountFlagBits msaaSampleCount, VkImageUsageFlags useFlags
+                 , VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT
+                 , uint32_t mipLevels = 1);
      void createImageView(VkFormat imageFormat, VkImageAspectFlags aspectFlags, uint32_t mipLevels = 1);
 
       // ?? This must be included to allow vector.pushBack(Fcbuffer) ?? not sure if there's a better
@@ -71,8 +75,8 @@ namespace fc
      void copyFromImage(VkCommandBuffer cmdBuffer, FcImage* source, VkExtent2D srcSize, VkExtent2D dstSize);
      void clear(VkCommandBuffer cmdBuffer, VkClearColorValue* pColor);
       // TEXTURE FUNCTIONS
-     uint32_t loadTexture(std::string filename);
-     uint32_t createTexture(VkExtent3D extent, void* pixelData, uint32_t mipLevels = 1);
+     void loadTexture(std::string filename);
+     void createTexture(VkExtent3D extent, void* pixelData, uint32_t mipLevels = 1);
       //void overwriteTexture(void* pixelData, uint32_t mipLevel = 1);
       // GETTERS
      VkImageView& ImageView() { return mImageView; }

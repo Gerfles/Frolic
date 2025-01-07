@@ -1,7 +1,10 @@
 #pragma once
 
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "fc_pipeline.hpp"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
+// //
+// #include "fc_pipeline.hpp"
+#include "core/fc_pipeline.hpp"
+#include "fc_image.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
 #include <glm/vec4.hpp>
@@ -9,9 +12,13 @@
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 //#include <memory>
 
-
 namespace fc
 {
+   // *-*-*-*-*-*-*-*-*-*-*-*-*-   FORWARD DECLARATIONS   *-*-*-*-*-*-*-*-*-*-*-*-*- //
+  class FcPipeline;
+
+
+
    // should this be inside billboard class
   struct BillboardPushComponent
   {
@@ -27,14 +34,17 @@ namespace fc
   class FcBillboard
   {
    private:
-     uint32_t mTextureId;
+
+      //uint32_t mTextureId;
+     FcImage mTexture;
+     VkDescriptorSet mDescriptor{nullptr};
      uint32_t mHandleIndex; // ?? find out if we even need a handle index
      BillboardPushComponent mPush;
 
    public:
       // - CTORS -
-     FcBillboard() = default; // { mTextureId = 0; }
      FcBillboard(float width, float height, glm::vec4 color);
+     FcBillboard() = default; // { mTextureId = 0; }
      FcBillboard(const FcBillboard&) = delete;
      FcBillboard& operator=(const FcBillboard&) = delete;
      FcBillboard(FcBillboard&&) = default;
@@ -42,8 +52,12 @@ namespace fc
 
      void placeInHandleTable();
      BillboardPushComponent& PushComponent() { return mPush; }
-     uint32_t TextureId() { return mTextureId; }
-     void setTextureId(uint32_t textureId) { mTextureId = textureId; }
+     void loadTexture(std::string filename, VkDescriptorSetLayout layout, FcBindingInfo& bindInfo);
+     void loadTexture(VkDescriptorSetLayout layout, FcBindingInfo& bindInfo);
+      //uint32_t TextureId() { return mTextureId; }
+      //void setTextureId(uint32_t textureId) { mTextureId = textureId; }
+
+     VkDescriptorSet getDescriptor() { return mDescriptor; };
   };
 
 
@@ -52,7 +66,7 @@ namespace fc
    private:
       //
    public:
-     void createPipeline(FcPipeline& pipeline, VkRenderPass& renderPass);
+     void createPipeline(FcPipeline& pipeline);
      FcBillboardRenderSystem() = default;
      ~FcBillboardRenderSystem() = default;
      FcBillboardRenderSystem(const FcBillboardRenderSystem&) = delete;

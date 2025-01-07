@@ -1,20 +1,24 @@
 #include "fc_descriptors.hpp"
-#include <SDL_log.h>
+
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "core/fc_buffer.hpp"
+#include "core/fc_image.hpp"
 #include "core/fc_locator.hpp"
-#include "fc_gpu.hpp"
 //#include "fc_mesh.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "core/utilities.hpp"
 #include "vulkan/vulkan_core.h"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <iostream>
 #include <stdexcept>
 #include <vector>
 #include <span>
+
 
 namespace fc
 {
@@ -44,7 +48,233 @@ namespace fc
      // create the layout for the SceneData uniform buffer
   }
 
+  VkDescriptorSetLayout
+  FcDescriptorClerk::createDescriptorSetLayout(FcBindingInfo& bindingInfo
+                                               , VkDescriptorSetLayoutCreateFlags flags)
+  {
+    VkDescriptorSetLayoutBinding layoutBinding{};
+     // newBinding point in shader (designated by newBinding number specified in shader)
+    layoutBinding.binding = bindingInfo.bindingSlotNumber;
+     // type of descriptor (uniform, dynamic uniform, image sampler, etc)
+    layoutBinding.descriptorType = bindingInfo.type;
+    layoutBinding.descriptorCount = 1;
+    layoutBinding.stageFlags = bindingInfo.shaderStages;
+     // TODO not necessary to set but look into: for textures, can make sampler immutable (unchangeable)
+    layoutBinding.pImmutableSamplers = nullptr;
 
+     // create descriptor set layout with given bindings
+    VkDescriptorSetLayoutCreateInfo layoutCreateInfo{};
+    layoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layoutCreateInfo.bindingCount = 1;
+    layoutCreateInfo.pBindings = &layoutBinding;
+    layoutCreateInfo.flags = flags;
+
+    VkDescriptorSetLayout descriptorSetLayout;
+
+    fcLog("Creating DS Layout");
+    if (vkCreateDescriptorSetLayout(pDevice, &layoutCreateInfo, nullptr, &descriptorSetLayout)
+        != VK_SUCCESS)
+    {
+      throw std::runtime_error("Failed to create a Vulkan Descriptor Set Layout!");
+    }
+    fcLog("Done Creating Layout");
+    return descriptorSetLayout;
+  }
+
+   // TODO must handle empty buffer or image list case
+   // TODO use a wrapper of some sort then delete the above method
+   // TODO determine if we should return layout or hold or return ptr to pre-build descriptors
+  VkDescriptorSetLayout
+  FcDescriptorClerk::createDescriptorSetLayout(std::vector<FcBindingInfo>& bindingInfos
+                                               , VkDescriptorSetLayoutCreateFlags flags)
+  {
+     // allocate enough layout bindings for all our images and buffers
+    std::vector<VkDescriptorSetLayoutBinding> layoutBindings(bindingInfos.size()
+                                                             , VkDescriptorSetLayoutBinding{});
+
+     // first setup layout binding for all buffers in the descriptorset
+     // TODO effiecientize -> note that the .at(index) function for vector does boundary checking
+    for (size_t i = 0; i < bindingInfos.size(); i++)
+    {
+       // newBinding point in shader (designated by newBinding number specified in shader)
+      layoutBindings[i].binding = bindingInfos[i].bindingSlotNumber;
+       // type of descriptor (uniform, dynamic uniform, image sampler, etc)
+      layoutBindings[i].descriptorType = bindingInfos[i].type;
+      layoutBindings[i].descriptorCount = 1;
+      layoutBindings[i].stageFlags = bindingInfos[i].shaderStages;
+       // TODO not necessary to set but look into: for textures, can make sampler immutable (unchangeable)
+      layoutBindings[i].pImmutableSamplers = nullptr;
+    }
+
+     // create descriptor set layout with given bindings
+    VkDescriptorSetLayoutCreateInfo layoutCreateInfo{};
+    layoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layoutCreateInfo.bindingCount = static_cast<uint32_t>(layoutBindings.size());
+    layoutCreateInfo.pBindings = layoutBindings.data();
+    layoutCreateInfo.flags = flags;
+
+    VkDescriptorSetLayout descriptorLayout;
+
+    if (vkCreateDescriptorSetLayout(pDevice, &layoutCreateInfo, nullptr, &descriptorLayout)
+        != VK_SUCCESS)
+    {
+      throw std::runtime_error("Failed to create a Vulkan Descriptor Set Layout!");
+    }
+
+    return descriptorLayout;
+  }
+
+
+
+   //
+  VkDescriptorSet FcDescriptorClerk::createDescriptorSet(VkDescriptorSetLayout layout
+                                                         , FcBindingInfo& bindInfo)
+  {
+    VkDescriptorSet descriptorSet = allocateDescriptorSet(layout, nullptr);
+
+    VkWriteDescriptorSet descriptorWrite{};
+    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrite.descriptorType = bindInfo.type;
+    descriptorWrite.dstBinding = bindInfo.bindingSlotNumber;
+    descriptorWrite.descriptorCount = 1;
+    descriptorWrite.dstSet = descriptorSet;
+    descriptorWrite.pBufferInfo = bindInfo.pBufferInfo;
+    descriptorWrite.pImageInfo = bindInfo.pImageInfo;
+
+    vkUpdateDescriptorSets(pDevice, 1, &descriptorWrite, 0, nullptr);
+
+    return descriptorSet;
+  }
+
+
+  VkDescriptorSet FcDescriptorClerk::createDescriptorSet(VkDescriptorSetLayout layout
+                                                         , std::span<FcBindingInfo> bindingInfos)
+  {
+    VkDescriptorSet descriptorSet = allocateDescriptorSet(layout, nullptr);
+
+     // Fill up the descriptorWrites with the resources information passed in
+    std::vector<VkWriteDescriptorSet> descriptorWrites{bindingInfos.size(), VkWriteDescriptorSet{}};
+
+    for (size_t i = 0; i < bindingInfos.size(); i++)
+    {
+      descriptorWrites[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+      descriptorWrites[i].descriptorType = bindingInfos[i].type;
+      descriptorWrites[i].dstBinding = bindingInfos[i].bindingSlotNumber;
+      descriptorWrites[i].descriptorCount = 1;
+      descriptorWrites[i].dstSet = descriptorSet;
+      descriptorWrites[i].pBufferInfo = bindingInfos[i].pBufferInfo;
+      descriptorWrites[i].pImageInfo = bindingInfos[i].pImageInfo;
+    }
+
+    vkUpdateDescriptorSets(pDevice, descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
+
+    return descriptorSet;
+  }
+
+
+
+VkDescriptorSet FcDescriptorClerk::allocateDescriptorSet(VkDescriptorSetLayout layout, void* pNext)
+  {
+     // Get or create a pool to allocat from
+    VkDescriptorPool nextPool = getPool();
+
+    VkDescriptorSetAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocInfo.pNext = pNext;
+    allocInfo.descriptorPool = nextPool;
+    allocInfo.descriptorSetCount = 1;
+    allocInfo.pSetLayouts = &layout;
+
+    VkDescriptorSet descriptorSet;
+    VkResult result = vkAllocateDescriptorSets(pDevice, &allocInfo, &descriptorSet);
+
+     // Check if allocation failed and if so, try again
+    if (result == VK_ERROR_OUT_OF_POOL_MEMORY || result == VK_ERROR_FRAGMENTED_POOL)
+    {
+      mFullPools.push_back(nextPool);
+
+      nextPool = getPool();
+       // ?? shouldn't need the following I think
+       // TODO TEST with nullptr then if fails, try removing, then if succeeds, safe to elim
+      allocInfo.descriptorPool = nextPool;
+
+      if (vkAllocateDescriptorSets(pDevice, &allocInfo, &descriptorSet) != VK_SUCCESS)
+      {
+        throw std::runtime_error("failed to allocate Vulkan Descriptor Set");
+      }
+    }
+
+    mReadyPools.push_back(nextPool);
+
+    return descriptorSet;
+  }
+
+   //
+  // void FcDescriptorClerk::addDescriptorWrites(std::vector<FcBuffer>& bufferBindingInfos
+  //                                             , std::vector<FcImage>& imageBindingInfos
+  //                                             , VkDescriptorSet descriptorSet)
+  // {
+  //    // Check to make sure we don't try to to access any NULL sets
+  //    // TODO look into making more efficient without checking for nullptr
+  //   int numBufferBinds{0}, numImageBinds{0};
+
+  //   if (bufferBindingInfos != nullptr)
+  //   {
+  //     numBufferBinds = bufferBindingInfos->size();
+  //   }
+
+  //   if (imageBindingInfos != nullptr)
+  //   {
+  //     numImageBinds = imageBindingInfos->size();
+  //   }
+
+  //   size_t numDescriptors = bufferBindingInfos.size() + imageBindingInfos.size();
+
+  //    //
+  //   std::vector<VkDescriptorBufferInfo> bufferInfos(bufferBindingInfos.size(), VkDescriptorBufferInfo{});
+  //   std::vector<VkDescriptorImageInfo> imageInfos(imageBindingInfos.size(), VkDescriptorImageInfo{});
+
+  //    //
+  //   std::vector<VkWriteDescriptorSet> descriptorWrites(numDescriptors, VkWriteDescriptorSet{});
+
+  //    // first setup descriptor writes for all buffers in the descriptorset
+  //   for (size_t i = 0; i < bufferBindingInfos.size(); i++)
+  //   {
+  //      //
+  //     bufferInfos[i].buffer = bufferBindingInfos[i].buffer;
+  //     bufferInfos[i].offset = bufferBindingInfos[i].bufferOffset;
+  //     bufferInfos[i].range = bufferBindingInfos[i].bufferSize;
+
+  //      //
+  //     descriptorWrites[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+  //     descriptorWrites[i].descriptorType = bufferBindingInfos[i].type;
+  //     descriptorWrites[i].dstBinding = bufferBindingInfos[i].bindingSlotNumber;
+  //     descriptorWrites[i].descriptorCount = 1;
+  //     descriptorWrites[i].dstSet = descriptorSet;
+  //     descriptorWrites[i].pBufferInfo = &bufferInfos[i];
+  //   }
+
+  //    // next setup descriptor writes for all images in the descriptorset
+  //   for(size_t i = 0, j =  bufferInfos.size() - 1;  j < numDescriptors; i++, j++)
+  //   {
+  //      //
+  //     imageInfos[i].imageView = imageBindingInfos[i].imageView;
+  //     imageInfos[i].sampler = imageBindingInfos[i].imageSampler;
+  //     imageInfos[i].imageLayout = imageBindingInfos[i].imageLayout;
+  //     imageInfos[i].
+
+
+  //      //
+  //     descriptorWrites[j].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+  //     descriptorWrites[j].descriptorType = imageBindingInfos[i].type;
+  //     descriptorWrites[j].dstBinding = imageBindingInfos[i].bindingSlotNumber;
+  //     descriptorWrites[j].descriptorCount = 1;
+  //     descriptorWrites[j].dstSet = descriptorSet;
+  //     descriptorWrites[j].pImageInfo = &imageInfos[i];
+  //   }
+
+  //   vkUpdateDescriptorSets(pDevice, descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
+  // }
 // [[deprecated("Buffers will be moved out of FcDescriptorClerk")]]
 //  void FcDescriptorClerk::createUniformBuffers(int uniformBufferCount)
 //   {
@@ -113,132 +343,6 @@ namespace fc
     mFullPools.clear();
   }
 
-   // CURRENT USE
-  VkDescriptorSet FcDescriptorClerk::createDescriptorSet(std::vector<FcBufferBindingInfo>& bufferBindingInfos
-                                                         , std::vector<FcImageBindingInfo>& imageBindingInfos
-                                                         , VkDescriptorSetLayoutCreateFlags flags)
-  {
-    VkDescriptorSetLayout layout = createDescriptorSetLayout(bufferBindingInfos, imageBindingInfos, flags);
-
-    VkDescriptorSet descriptorSet = allocateDescriptorSet(layout, nullptr);
-
-    addDescriptorWrites(bufferBindingInfos, imageBindingInfos, descriptorSet);
-
-    return descriptorSet;
-  }
-
-// TODO must handle empty buffer or image list case
-// TODO determine if we should return layout or hold or return ptr to pre-build descriptors
-  VkDescriptorSetLayout
-  FcDescriptorClerk::createDescriptorSetLayout(std::vector<FcBufferBindingInfo>& bufferBindingInfos
-                                               , std::vector<FcImageBindingInfo>& imageBindingInfos
-                                               , VkDescriptorSetLayoutCreateFlags flags)
-  {
-     // allocate enough layout bindings for all our images and buffers
-    std::vector<VkDescriptorSetLayoutBinding> layoutBindings(bufferBindingInfos.size() + imageBindingInfos.size()
-                                                             , VkDescriptorSetLayoutBinding{});
-
-     // first setup layout binding for all buffers in the descriptorset
-    for (size_t i = 0; i < bufferBindingInfos.size(); i++)
-    {
-       // newBinding point in shader (designated by newBinding number specified in shader)
-      layoutBindings[i].binding = bufferBindingInfos[i].bindingSlotNumber;
-       // type of descriptor (uniform, dynamic uniform, image sampler, etc)
-      layoutBindings[i].descriptorType = bufferBindingInfos[i].type;
-      layoutBindings[i].descriptorCount = 1;
-      layoutBindings[i].stageFlags = bufferBindingInfos[i].shaderStages;
-       // TODO not necessary to set but look into: for textures, can make sampler immutable (unchangeable)
-      layoutBindings[i].pImmutableSamplers = nullptr;
-    }
-
-     // next setup layout binding for all images in the descriptorset
-    for(size_t i = 0, j = bufferBindingInfos.size();  i < imageBindingInfos.size(); i++, j++)
-    {
-      layoutBindings[j].binding = imageBindingInfos[i].bindingSlotNumber;
-      layoutBindings[j].descriptorType = imageBindingInfos[i].type;
-      layoutBindings[j].descriptorCount = 1;
-      layoutBindings[j].stageFlags = imageBindingInfos[i].shaderStages;
-    }
-
-     // create descriptor set layout with given bindings
-    VkDescriptorSetLayoutCreateInfo layoutCreateInfo{};
-    layoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutCreateInfo.bindingCount = static_cast<uint32_t>(layoutBindings.size());
-    layoutCreateInfo.pBindings = layoutBindings.data();
-    layoutCreateInfo.flags = flags;
-
-    VkDescriptorSetLayout descriptorLayout;
-
-    if (vkCreateDescriptorSetLayout(pDevice, &layoutCreateInfo, nullptr, &descriptorLayout)
-        != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to create a Vulkan Descriptor Set Layout!");
-    }
-
-    return descriptorLayout;
-  }
-
-
-
-  void FcDescriptorClerk::addDescriptorWrites(std::vector<FcBufferBindingInfo>& bufferBindingInfos
-                                              , std::vector<FcImageBindingInfo>& imageBindingInfos
-                                              , VkDescriptorSet descriptorSet)
-  {
-    size_t numDescriptors = bufferBindingInfos.size() + imageBindingInfos.size();
-
-     //
-    std::vector<VkDescriptorBufferInfo> bufferInfos(bufferBindingInfos.size(), VkDescriptorBufferInfo{});
-    std::vector<VkDescriptorImageInfo> imageInfos(imageBindingInfos.size(), VkDescriptorImageInfo{});
-
-     //
-    std::vector<VkWriteDescriptorSet> descriptorWrites(numDescriptors, VkWriteDescriptorSet{});
-
-     // first setup descriptor writes for all buffers in the descriptorset
-    for (size_t i = 0; i < bufferBindingInfos.size(); i++)
-    {
-       //
-      bufferInfos[i].buffer = bufferBindingInfos[i].buffer;
-      bufferInfos[i].offset = bufferBindingInfos[i].bufferOffset;
-      bufferInfos[i].range = bufferBindingInfos[i].bufferSize;
-       //
-      descriptorWrites[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-      descriptorWrites[i].descriptorType = bufferBindingInfos[i].type;
-      descriptorWrites[i].dstBinding = bufferBindingInfos[i].bindingSlotNumber;
-      descriptorWrites[i].descriptorCount = 1;
-      descriptorWrites[i].pBufferInfo = &bufferInfos[i];
-      descriptorWrites[i].dstSet = descriptorSet;
-    }
-
-     // next setup descriptor writes for all images in the descriptorset
-    for(size_t i = 0, j =  bufferInfos.size() - 1;  j < numDescriptors; i++, j++)
-    {
-       //
-      imageInfos[i].imageView = imageBindingInfos[i].imageView;
-      imageInfos[i].sampler = imageBindingInfos[i].imageSampler;
-      imageInfos[i].imageLayout = imageBindingInfos[i].imageLayout;
-       //
-      descriptorWrites[j].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-      descriptorWrites[j].descriptorType = imageBindingInfos[i].type;
-      descriptorWrites[j].dstBinding = imageBindingInfos[i].bindingSlotNumber;
-      descriptorWrites[j].descriptorCount = 1;
-      descriptorWrites[j].pImageInfo = &imageInfos[i];
-      descriptorWrites[j].dstSet = descriptorSet;
-    }
-
-    vkUpdateDescriptorSets(pDevice, descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
-  }
-
-
-
-  // void FcDescriptorClerk::clearWrites()
-  // {
-  //   mImageInfos.clear();
-  //   mBufferInfos.clear();
-  //   mDescriptorWrites.clear();
-  // }
-
-
-
   void FcDescriptorClerk::clearPools()
   {
     for (VkDescriptorPool pool : mReadyPools)
@@ -257,41 +361,7 @@ namespace fc
   }
 
 
-  VkDescriptorSet FcDescriptorClerk::allocateDescriptorSet(VkDescriptorSetLayout layout, void* pNext)
-  {
-     // Get or create a pool to allocat from
-    VkDescriptorPool nextPool = getPool();
 
-    VkDescriptorSetAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.pNext = pNext;
-    allocInfo.descriptorPool = nextPool;
-    allocInfo.descriptorSetCount = 1;
-    allocInfo.pSetLayouts = &layout;
-
-    VkDescriptorSet descriptorSet;
-    VkResult result = vkAllocateDescriptorSets(pDevice, &allocInfo, &descriptorSet);
-
-     // Check if allocation failed and if so, try again
-    if (result == VK_ERROR_OUT_OF_POOL_MEMORY || result == VK_ERROR_FRAGMENTED_POOL)
-    {
-      mFullPools.push_back(nextPool);
-
-      nextPool = getPool();
-       // ?? shouldn't need the following I think
-       // TODO TEST with nullptr then if fails, try removing, then if succeeds, safe to elim
-      allocInfo.descriptorPool = nextPool;
-
-      if (vkAllocateDescriptorSets(pDevice, &allocInfo, &descriptorSet) != VK_SUCCESS)
-      {
-        throw std::runtime_error("failed to allocate Vulkan Descriptor Set");
-      }
-    }
-
-    mReadyPools.push_back(nextPool);
-
-    return descriptorSet;
-  }
 
 
   // void FcDescriptorClerk::createBufferWrite(int binding, VkBuffer buffer, size_t size
@@ -684,13 +754,13 @@ namespace fc
 
 
 
-
-
   void FcDescriptorClerk::allocateDynamicBufferTransferSpace()
   {
      // collect specifications of our physical deviece to determine how to align(space out) our dynamic UBOs
     VkPhysicalDeviceProperties deviceProperties;
-    vkGetPhysicalDeviceProperties(FcLocator::vkPhysicalDevice(), &deviceProperties);
+
+
+     //vkGetPhysicalDeviceProperties(FcLocator::vkPhysicalDevice(), &deviceProperties);
 
      // return the memory allignment minimum for our UBOs
     VkDeviceSize uniformBufferOffsetMinimum = deviceProperties.limits.minUniformBufferOffsetAlignment;
@@ -703,8 +773,6 @@ namespace fc
      // create space in memory to hold dynamic buffer that is aligned to our required alignment and holds MAX_OBJECTS
      //pModelTransferSpace = (Model *)aligned_alloc(mModelUniformAlignment, MAX_OBJECTS * mModelUniformAlignment);
   }
-
-
 
   // uint32_t FcDescriptorClerk::createTextureDescriptor(VkImageView textureImageView, VkSampler& textureSampler)
   // {
@@ -789,30 +857,27 @@ namespace fc
      // release the memory block we have allocated for our model matrix Uniform Buffer Objects
      // free(pModelTransferSpace);
 
-     // TEXTURES
-    VkDevice device = pDevice;
-
-    vkDestroyDescriptorPool(device, mSamplerDescriptorPool, nullptr);
-    vkDestroyDescriptorSetLayout(device, mSamplerDescriptorSetLayout, nullptr);
+         //vkDestroyDescriptorPool(device, mSamplerDescriptorPool, nullptr);
+     //vkDestroyDescriptorSetLayout(device, mSamplerDescriptorSetLayout, nullptr);
      // TODO  should also check all this stuff to see if it's VK_NULL_HANDLE
 
      //vkDestroySampler(pGpu->VkDevice(), mTextureSampler, nullptr);
 
-    vkDestroyDescriptorPool(device, mDescriptorPool, nullptr);
+     //vkDestroyDescriptorPool(pDevice, mDescriptorPool, nullptr);
 
      // delete all the buffers (1 per swap chain image)
 
-    for (auto& buffer : mGlobalUniformBuffers)
-    {
-       buffer.destroy();
-    }
+    // for (auto& buffer : mGlobalUniformBuffers)
+    // {
+    //    buffer.destroy();
+    // }
 
      // for (auto& buffer : mModelDynUniformBuffers)
      // {
      //   buffer.destroy();
      // }
 
-    vkDestroyDescriptorSetLayout(device, mUboDescriptorSetLayout, nullptr);
+     //vkDestroyDescriptorSetLayout(pDevice, mUboDescriptorSetLayout, nullptr);
 
     destroyPools();
      //vkDestroyDescriptorSetLayout(device, mLayout, nullptr);

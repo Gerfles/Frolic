@@ -1,11 +1,11 @@
 #pragma once
 
-#include "core/fc_billboard_render_system.hpp"
-#include "core/fc_descriptors.hpp"
-#include "core/fc_gpu.hpp"
-#include "core/fc_game_object.hpp"
+//#include "core/fc_billboard_render_system.hpp"
+//#include "core/fc_descriptors.hpp"
+//#include "core/fc_gpu.hpp"
+//#include "core/fc_game_object.hpp"
 //#include "core/fc_light.hpp"
-#include "core/fc_renderer.hpp"
+//#include "core/fc_renderer.hpp"
 #include "vulkan/vulkan_core.h"
 
 #include <iostream>
@@ -15,6 +15,12 @@
 namespace fc
 {
 
+  class FcDescriptorClerk;
+  class FcGpu;
+  class FcBillboard;
+  class FcGameObject;
+  class FcRenderer;
+  class FcLight;
 //    // TODO think about removing NullServices for release version
 //   class NullGpu: public FcGpu
 //   {
@@ -28,19 +34,17 @@ namespace fc
 //    public:
 //   };
 
-
   class FcLocator
   {
    private:
-
       // RENDERER SERVICES
      static FcRenderer* pRenderer;
      static FcGpu* pGpu;
-     static VkPhysicalDevice pPhysicalDevice;
+     static FcDescriptorClerk* pDescriptorClerk;
 //     FcGpu* pGpu = nullptr;
      static VkDevice pDevice;
+     static VkPhysicalDevice pPhysicalDevice;
       //static Audio* pAudioService;
-     static FcDescriptorClerk* pDescriptorClerk;
      static VkExtent2D mScreenDimensions;
       // this is the global handle table -- a simple array of pointers to FcGameObjects
 
@@ -65,9 +69,9 @@ namespace fc
       // TODO think about making some of these const
      static FcRenderer& Renderer();
      static FcGpu& Gpu() { return *pGpu; }
+     static FcDescriptorClerk& DescriptorClerk() { return *pDescriptorClerk; }
      static VkDevice Device() { return pDevice; }
      static VkPhysicalDevice vkPhysicalDevice() { return pPhysicalDevice; }
-     static FcDescriptorClerk& DescriptorClerk() { return *pDescriptorClerk; }
      static VkExtent2D& ScreenDims() { return mScreenDimensions; }
      static std::vector<FcGameObject* >& GameObjects() { return mGameObjectsList; }
      static std::vector<FcLight* >& Lights() { return mLightsList; }

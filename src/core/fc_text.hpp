@@ -16,6 +16,7 @@
 #include FT_GLYPH_H
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <string>
+#include <vector>
 
 
 
@@ -29,11 +30,9 @@ namespace fc
      FcFont* pFont;
      BillboardPushComponent mTextBoxSpecs;
 
-      // TODO delete one of
-     uint32_t mTextureId;
      id_t mId;
      FcImage mTextImage;
-
+     VkDescriptorSet mDescriptor{nullptr};
       // -
      VkExtent2D writeTextTexture(const std::string& text, float scale, std::vector<VkImageBlit>& blitsList);
    public:
@@ -47,8 +46,7 @@ namespace fc
      FcText& operator=(FcText&&) = default;
 
      // - GETTERS -
-     uint32_t TextureId() const { return mTextureId; }
-
+     VkDescriptorSet getDescriptor() { return mDescriptor; }
      // -
      BillboardPushComponent& Push() { return mTextBoxSpecs; }
      void createTextBox(int x, int y, int width, int height);

@@ -1,11 +1,11 @@
 #pragma once
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "core/fc_billboard_render_system.hpp"
-#include "core/fc_camera.hpp"
-#include "core/fc_descriptors.hpp"
-#include "core/fc_model_render_system.hpp"
-#include "core/fc_ui_render_system.hpp"
+#include "fc_billboard_render_system.hpp"
+#include "fc_camera.hpp"
+#include "fc_descriptors.hpp"
+#include "fc_model_render_system.hpp"
+#include "fc_ui_render_system.hpp"
 #include "fc_model.hpp"
 #include "fc_font.hpp"
 #include "fc_swapChain.hpp"
@@ -14,6 +14,7 @@
 #include "fc_window.hpp"
 #include "fc_pipeline.hpp"
 #include "fc_janitor.hpp"
+#include "fc_texture_atlas.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
 #include <glm/vec3.hpp>
@@ -35,7 +36,7 @@ namespace fc
      VkSemaphore imageAvailableSemaphore;
      VkSemaphore renderFinishedSemaphore;
      VkFence renderFence;
-     VkDescriptorSet scendDataDescriptorSet;
+     VkDescriptorSet sceneDataDescriptorSet;
      fcJanitor janitor;
   };
 
@@ -99,6 +100,9 @@ namespace fc
 
      // ?? TODO should this be handled by the swapchain even though its used by compute
      FcImage mDrawImage;
+      // TODO try and delete the following
+
+     VkDescriptorSet mDrawImageDescriptor;
      FcImage mDepthImage; // <--Normally in the swapchain
       //Fc[...]renderSystem m[...]Renderer;
      bool mShouldWindowResize{false};
@@ -117,12 +121,23 @@ namespace fc
      VkPipelineLayout pDrawPipelineLayout;
      VkExtent2D mDrawExtent;
      float renderScale = 1.f;
-
-
-
+     FcTextureAtlas textureAtlas;
      FcModel testModel;
 
+     VkDescriptorSetLayout mSceneDataDescriptorLayout;
+     VkDescriptorSetLayout mSingleImageDescriptorLayout;
 
+     FcBuffer mSceneDataBuffer;
+     SceneData* pSceneData;
+      // TODO try this single one instead of one in each frame
+     VkDescriptorSet mSceneDataDescriptor;
+      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   DEFAULT TEXTURES   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     FcImage mWhiteTexture;
+     FcImage mBlackTexture;
+     FcImage mGreyTexture;
+     FcImage mCheckerboardTexture;
+     VkSampler mDefaultSamplerLinear;
+     VkSampler mDefaultSamplerNearest;
    public:
       //void setResizeFlag(bool shouldWindowResizeFlag) { mWindowResizeFlag = shouldWindowResizeFlag; }
       // TODO probably best to issue multiple command buffers, one for each task
@@ -136,7 +151,7 @@ namespace fc
      void initDefaults();
      float* getRenderScale() { return &renderScale; }
      void attachPipeline(FcPipeline* pipeline);
-
+     void attachSceneData(SceneData* pSceneData) { this->pSceneData = pSceneData; }
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
      // Constructors, etc. - Prevent copying or altering -

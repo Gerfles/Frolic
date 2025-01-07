@@ -1,6 +1,7 @@
 #include "fc_pipeline.hpp"
 
 // - FROLIC ENGINE -
+//#include "core/fc_descriptors.hpp"
 #include "core/fc_descriptors.hpp"
 #include "core/fc_locator.hpp"
 #include "core/fc_renderer.hpp"
@@ -17,7 +18,7 @@
 
 namespace fc
 {
-  void FcPipelineConfigInfo2::clear()
+  void FcPipelineConfig::clear()
   {
      // clear all of the structs we need back to 0 with their correct stype
      // ?? Uses CPP20 initializers so perhaps a different solution would be preferred for compatibility
@@ -33,15 +34,28 @@ namespace fc
 
     colorBlendAttachment = {};
 
-    pipelineLayout = {};
+     //pipelineLayout = {};
 
      // mShaderStages.clear();
   }
 
 
-  FcPipelineConfigInfo2::FcPipelineConfigInfo2(int numStages) : shaders(numStages)
+  FcPipelineConfig::FcPipelineConfig(int numStages) : shaders(numStages)
   {
-     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   VIEWPORT   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    init();
+  }
+
+  FcPipelineConfig::FcPipelineConfig(std::vector<ShaderInfo> shaderInfos)
+    : shaders{shaderInfos}
+  {
+    init();
+  }
+
+
+
+  void FcPipelineConfig::init()
+  {
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   VIEWPORT   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      // make viewport state from our stored viewport and scissors
      // TODO add support for multiple viewports or scissors
     viewportInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -92,15 +106,28 @@ namespace fc
   }// --------------------------------------------------------- PipelineBuilder::buildPipeline (_) --- (END)//
 
 
+
+  void FcPipelineConfig::addBinding(uint32_t bindSlot, VkDescriptorType type, VkShaderStageFlags stages)
+  {
+    FcBindingInfo bind;
+    bind.bindingSlotNumber = bindSlot;
+    bind.type = type;
+    bind.shaderStages = stages;
+
+    bindInfos.emplace_back(std::move(bind));
+  }
+
+
+
    // NOTE: this will copy each push constant range
    // TODO sub for more efficient emplace
-  void FcPipelineConfigInfo2::addPushConstants(VkPushConstantRange pushConstant)
+  void FcPipelineConfig::addPushConstants(VkPushConstantRange pushConstant)
   {
     pushConstantsInfo.push_back(pushConstant);
   }
 
 
-  void FcPipelineConfigInfo2::setInputTopology(VkPrimitiveTopology topology)
+  void FcPipelineConfig::setInputTopology(VkPrimitiveTopology topology)
   {
     inputAssemblyInfo.topology = topology;
      // we wont be using primitive restart here so leave it false
@@ -108,21 +135,21 @@ namespace fc
   }
 
 
-  void FcPipelineConfigInfo2::setPolygonMode(VkPolygonMode mode)
+  void FcPipelineConfig::setPolygonMode(VkPolygonMode mode)
   {
     rasterizationInfo.polygonMode = mode;
     rasterizationInfo.lineWidth = 1.f;
   }
 
 
-  void FcPipelineConfigInfo2::setCullMode(VkCullModeFlags cullMode, VkFrontFace frontFace)
+  void FcPipelineConfig::setCullMode(VkCullModeFlags cullMode, VkFrontFace frontFace)
   {
     rasterizationInfo.cullMode = cullMode;
     rasterizationInfo.frontFace = frontFace;
   }
 
 
-  void FcPipelineConfigInfo2::setMultiSampling(VkSampleCountFlagBits sampleCount)
+  void FcPipelineConfig::setMultiSampling(VkSampleCountFlagBits sampleCount)
   {
     multiSamplingInfo.sampleShadingEnable = VK_FALSE;
      //
@@ -136,7 +163,7 @@ namespace fc
   }
 
 
-  void FcPipelineConfigInfo2::setColorAttachment(VkFormat format)
+  void FcPipelineConfig::setColorAttachment(VkFormat format)
   {
     colorAttachmentFormat = format;
      // connect the format to the renderInfo structure
@@ -145,14 +172,14 @@ namespace fc
   }
 
 
-  void FcPipelineConfigInfo2::setDepthFormat(VkFormat format)
+  void FcPipelineConfig::setDepthFormat(VkFormat format)
   {
     renderInfo.depthAttachmentFormat = format;
   }
 
 
    // TODO Should just make this the default
-  void FcPipelineConfigInfo2::disableDepthtest()
+  void FcPipelineConfig::disableDepthtest()
   {
     depthStencilInfo.depthTestEnable = VK_FALSE;
     depthStencilInfo.depthWriteEnable = VK_FALSE;
@@ -165,7 +192,7 @@ namespace fc
     depthStencilInfo.maxDepthBounds = 1.f;
   }
 
-  void FcPipelineConfigInfo2::enableDepthtest(bool depthWriteEnable, VkCompareOp op)
+  void FcPipelineConfig::enableDepthtest(bool depthWriteEnable, VkCompareOp op)
   {
     depthStencilInfo.depthTestEnable = VK_TRUE;
     depthStencilInfo.depthWriteEnable = depthWriteEnable;
@@ -179,7 +206,7 @@ namespace fc
   }
 
 
-  void FcPipelineConfigInfo2::disableBlending()
+  void FcPipelineConfig::disableBlending()
   {
      // default write mask
     colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT
@@ -188,7 +215,7 @@ namespace fc
     colorBlendAttachment.blendEnable = VK_FALSE;
   }
 
-  void FcPipelineConfigInfo2::enableBlendingAdditive()
+  void FcPipelineConfig::enableBlendingAdditive()
   {
     colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT
                                           | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -200,7 +227,7 @@ namespace fc
     colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
   }
 
-  void FcPipelineConfigInfo2::enableBlendingAlpha()
+  void FcPipelineConfig::enableBlendingAlpha()
   {
     colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT
                                           | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -372,109 +399,136 @@ namespace fc
     vkCmdBindPipeline(commandBuffer, mBindPoint, mPipeline);
   }
 
-  void FcPipeline::create2(FcPipelineCreateInfo* pipelineInfo)
+   // TODO verify proper operation
+  void FcPipeline::connectDescriptorSet(VkDescriptorSet descriptorSet)
   {
-     // -*-*-*-*-*-*-*-*-*-*-*-*-   CREATE PIPELINE LAYOUT   -*-*-*-*-*-*-*-*-*-*-*-*- //
+    // mDescriptorSets[mSetIndex] = descriptorSet;
 
-    // std::array<VkDescriptorSetLayout, 2> descriptorSetLayouts = { FcLocator::DescriptorClerk().UboSetLayout()
-    //                                                             , FcLocator::DescriptorClerk().SamplerSetLayout() };
-
-    mName = pipelineInfo->name;
-
-    VkPushConstantRange pushConstants{};
-    pushConstants.offset = 0;
-    pushConstants.size = sizeof(ComputePushConstants);
-    pushConstants.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.pushConstantRangeCount = 1;
-    pipelineLayoutInfo.pPushConstantRanges = &pushConstants;
-
-    pipelineLayoutInfo.setLayoutCount = 1;
-     //pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.size());
-     //pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
-    pipelineLayoutInfo.pSetLayouts = FcLocator::DescriptorClerk().vkDescriptorLayout();
-
-     // create the pipeline layout
-    if (vkCreatePipelineLayout(FcLocator::Device(), &pipelineLayoutInfo, nullptr, &mPipelineLayout) != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to create Pipeline Layout!");
-    }
-
-// std::string& vertShaderFilename, const std::string& fragShaderFilename, const PipelineConfigInfo& pipelineInfo)
-     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE SHADERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
-     // read in SPIR-V code of shaders
-     // TODO add ability to specify filename as relative path and load the absolute path or
-     // perhaps a small loader program that finds file paths for everything
-
-     // allocate and initialize ( = {}) enough shader state create infos for each stage
-    std::vector<VkPipelineShaderStageCreateInfo> shaderStages(pipelineInfo->shaders.size()
-                                                              , VkPipelineShaderStageCreateInfo{});
-
-    std::vector<VkShaderModule> shaderModules(shaderStages.size());
-
-    for (uint32_t i = 0; i < shaderStages.size(); i++)
-    {
-       // create the shader modules from our SPIR-V code
-      auto shaderCode = readFile("shaders/" + pipelineInfo->shaders[i].filename);
-      shaderModules[i] = createShaderModule(shaderCode);
-
-       // populate the shader stage create info
-      shaderStages[i].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-      shaderStages[i].stage = pipelineInfo->shaders[i].stageFlag;
-      shaderStages[i].module = shaderModules[i];
-      shaderStages[i].pName = "main";
-    }
-
-     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE PIPELINE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    assert(mPipelineLayout != nullptr && "Cannot create pipeline before pipeline layout");
-
-    VkComputePipelineCreateInfo computePipelineInfo = {};
-    computePipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-    computePipelineInfo.layout = mPipelineLayout;
-     // TODO integrate graphics pipeline creation with compute, probably best to just create separate call for compute
-    computePipelineInfo.stage = shaderStages[0];
-
-    if (vkCreateComputePipelines(FcLocator::Device(), VK_NULL_HANDLE, 1,
-                                  &computePipelineInfo, nullptr, &mPipeline) != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to create Vulkan Graphics Pipeline!");
-    }
-
-     // Destroy shader modules, no longer needed after pipeline created
-    for (VkShaderModule& shaderModule : shaderModules)
-    {
-      vkDestroyShaderModule(FcLocator::Device(), shaderModule, nullptr);
-    }
+    //  // TODO TRY
+    //  //mSetIndex = ++mSetIndex % mNumDescriptorSets;
+    // mSetIndex = (mSetIndex + 1) % mNumDescriptorSets;
   }
 
-   // * TODO * Preferred method! Destroy all other methods and configs
-  void FcPipeline::create3(FcPipelineConfigInfo2& pipelineConfig)
-  {
-    fcLog("FcPipeline::create3() called");
-     // -*-*-*-*-*-*-*-*-*-*-*-*-   CREATE PIPELINE LAYOUT   -*-*-*-*-*-*-*-*-*-*-*-*- //
 
-     // std::array<VkDescriptorSetLayout, 2> descriptorSetLayouts =
-     //   { FcLocator::DescriptorClerk().UboSetLayout()
-     //   , FcLocator::DescriptorClerk().SamplerSetLayout() };
+  void FcPipeline::bindDescriptorSets(VkCommandBuffer cmdBuffer)
+  {
+    // vkCmdBindDescriptorSets(cmdBuffer, mBindPoint, mPipelineLayout, 0
+    //                         , mDescriptorSets.size(), mDescriptorSets.data(), 0, nullptr);
+  }
+
+
+
+
+
+
+//   void FcPipeline::create2(FcPipelineCreateInfo* pipelineInfo)
+//   {
+//      // -*-*-*-*-*-*-*-*-*-*-*-*-   CREATE PIPELINE LAYOUT   -*-*-*-*-*-*-*-*-*-*-*-*- //
+
+//     // std::array<VkDescriptorSetLayout, 2> descriptorSetLayouts = { FcLocator::DescriptorClerk().UboSetLayout()
+//     //                                                             , FcLocator::DescriptorClerk().SamplerSetLayout() };
+
+//     mName = pipelineInfo->name;
+
+//     VkPushConstantRange pushConstants{};
+//     pushConstants.offset = 0;
+//     pushConstants.size = sizeof(ComputePushConstants);
+//     pushConstants.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+//     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+//     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+//     pipelineLayoutInfo.pushConstantRangeCount = 1;
+//     pipelineLayoutInfo.pPushConstantRanges = &pushConstants;
+
+//     pipelineLayoutInfo.setLayoutCount = 1;
+//      //pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.size());
+//      //pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
+//     pipelineLayoutInfo.pSetLayouts = FcLocator::DescriptorClerk().vkDescriptorLayout();
+
+//      // create the pipeline layout
+//     if (vkCreatePipelineLayout(FcLocator::Device(), &pipelineLayoutInfo, nullptr, &mPipelineLayout) != VK_SUCCESS)
+//     {
+//       throw std::runtime_error("Failed to create Pipeline Layout!");
+//     }
+
+// // std::string& vertShaderFilename, const std::string& fragShaderFilename, const PipelineConfigInfo& pipelineInfo)
+//      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE SHADERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
+//      // read in SPIR-V code of shaders
+//      // TODO add ability to specify filename as relative path and load the absolute path or
+//      // perhaps a small loader program that finds file paths for everything
+
+//      // allocate and initialize ( = {}) enough shader state create infos for each stage
+//     std::vector<VkPipelineShaderStageCreateInfo> shaderStages(pipelineInfo->shaders.size()
+//                                                               , VkPipelineShaderStageCreateInfo{});
+
+//     std::vector<VkShaderModule> shaderModules(shaderStages.size());
+
+//     for (uint32_t i = 0; i < shaderStages.size(); i++)
+//     {
+//        // create the shader modules from our SPIR-V code
+//       auto shaderCode = readFile("shaders/" + pipelineInfo->shaders[i].filename);
+//       shaderModules[i] = createShaderModule(shaderCode);
+
+//        // populate the shader stage create info
+//       shaderStages[i].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+//       shaderStages[i].stage = pipelineInfo->shaders[i].stageFlag;
+//       shaderStages[i].module = shaderModules[i];
+//       shaderStages[i].pName = "main";
+//     }
+
+//      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE PIPELINE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+//     assert(mPipelineLayout != nullptr && "Cannot create pipeline before pipeline layout");
+
+//     VkComputePipelineCreateInfo computePipelineInfo = {};
+//     computePipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+//     computePipelineInfo.layout = mPipelineLayout;
+//      // TODO integrate graphics pipeline creation with compute, probably best to just create separate call for compute
+//     computePipelineInfo.stage = shaderStages[0];
+
+//     if (vkCreateComputePipelines(FcLocator::Device(), VK_NULL_HANDLE, 1,
+//                                   &computePipelineInfo, nullptr, &mPipeline) != VK_SUCCESS)
+//     {
+//       throw std::runtime_error("Failed to create Vulkan Graphics Pipeline!");
+//     }
+
+//      // Destroy shader modules, no longer needed after pipeline created
+//     for (VkShaderModule& shaderModule : shaderModules)
+//     {
+//       vkDestroyShaderModule(FcLocator::Device(), shaderModule, nullptr);
+//     }
+//   }
+
+   // * TODO * Preferred method! Destroy all other methods and configs
+  void FcPipeline::create3(FcPipelineConfig& pipelineConfig)
+  {
+     // TODO CREATE SOME ASSERTS!!!
+
+    std::cout << "Creating Pipeline: " << pipelineConfig.name << std::endl;
+     // -*-*-*-*-*-*-*-*-*-*-*-*-   CREATE PIPELINE LAYOUT   -*-*-*-*-*-*-*-*-*-*-*-*- //
 
      // save a pointer to the device instance
     VkDevice pDevice = FcLocator::Device();
 
+     // Create the pipeline layout
     VkPipelineLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     layoutInfo.pushConstantRangeCount = static_cast<uint32_t>(pipelineConfig.pushConstantsInfo.size());
     layoutInfo.pPushConstantRanges = pipelineConfig.pushConstantsInfo.data();
+    layoutInfo.pSetLayouts = &mDescriptorSetLayout;
 
-     // TODO make consistent and delete variable size
-    layoutInfo.setLayoutCount = 1;
-     //layoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.size());
-     //layoutInfo.pSetLayouts = descriptorSetLayouts.data();
-    layoutInfo.pSetLayouts = FcLocator::DescriptorClerk().vkDescriptorLayout();
+     // First define the how this pipeline binds its resources
+    if (pipelineConfig.bindInfos.empty())
+    {
+      layoutInfo.setLayoutCount = 0;
+    }
+    else
+    {
+      layoutInfo.setLayoutCount = 1; //static_cast<uint32_t>(descriptorSetLayouts.size());
+      mDescriptorSetLayout = FcLocator::DescriptorClerk().createDescriptorSetLayout(pipelineConfig.bindInfos);
+    }
 
-     // create the pipeline layout
+     // check it was created properly
     if (vkCreatePipelineLayout(pDevice, &layoutInfo, nullptr, &mPipelineLayout) != VK_SUCCESS)
     {
       throw std::runtime_error("Failed to create Pipeline Layout!");
@@ -515,7 +569,7 @@ namespace fc
      // Determine if we should build a graphics pipeline or a compute
     if (pipelineConfig.shaders[0].stageFlag == VK_SHADER_STAGE_COMPUTE_BIT)
     {
-    fcLog("Creating Compute Pipeline");
+      fcLog("Creating Compute Pipeline");
       VkComputePipelineCreateInfo computePipelineInfo = {};
       computePipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
       computePipelineInfo.layout = mPipelineLayout;
@@ -533,8 +587,8 @@ namespace fc
     else
     {
        //mBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-      fcLog("Creating Graphics Pipeline");
-      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DYNAMIC STATE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
+       // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DYNAMIC STATE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
       VkDynamicState state[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 
       VkPipelineDynamicStateCreateInfo dynamicStateInfo{};
@@ -564,6 +618,7 @@ namespace fc
        // index of pipeline being created to derive from (for optimisation of creating multiple pipelines)
       graphicsPipelineInfo.basePipelineIndex = -1;
 
+      fcLog("Created Graphics Pipeline");
        // it's easy to error out on the create graphics pipeline call so handle better
       if (vkCreateGraphicsPipelines(pDevice, VK_NULL_HANDLE, 1, &graphicsPipelineInfo, nullptr, &mPipeline)
           != VK_SUCCESS)
@@ -572,6 +627,8 @@ namespace fc
          //       return  VK_NULL_HANDLE; or -1, etc.
          //throw std::runtime_error("Failed to create Vulkan Graphics Pipeline!");
       }
+
+      fcLog("Creating Graphics Pipeline");
     }
      // Destroy shader modules, no longer needed after pipeline created
     for (uint32_t i = 0; i < shaderStages.size(); i++)
@@ -674,6 +731,12 @@ namespace fc
   void FcPipeline::destroy()
   {
     std::cout << "calling: FcPipeline::destroy" << std::endl;
+
+    if (mDescriptorSetLayout != nullptr)
+    {
+      vkDestroyDescriptorSetLayout(FcLocator::Device(), mDescriptorSetLayout, nullptr);
+    }
+
 
     if (mPipelineLayout != nullptr)
     {

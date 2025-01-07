@@ -4,7 +4,6 @@
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
-// #include <_types/_uint64_t.h>
 #include <cstddef>
 #include <vulkan/vulkan.hpp>
 #include <glm/vec3.hpp>

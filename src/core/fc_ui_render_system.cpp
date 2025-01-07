@@ -16,45 +16,28 @@
 namespace fc
 {
 
-  void FcUIrenderSystem::createPipeline(FcPipeline& pipeline, VkRenderPass& renderPass)
+  void FcUIrenderSystem::createPipeline(FcPipeline& pipeline)
   {
-     // -- CREATE PIPELINE LAYOUT -- //
+    FcPipelineConfig uiConfig{2};
+    uiConfig.shaders[0].filename = "UI.vert.spv";
+    uiConfig.shaders[0].stageFlag = VK_SHADER_STAGE_VERTEX_BIT;
+    uiConfig.shaders[1].filename = "UI.frag.spv";
+    uiConfig.shaders[1].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
+
     VkPushConstantRange pushConstantRange{};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     pushConstantRange.offset = 0;
     pushConstantRange.size = sizeof(UIpushConstants);
 
-    std::array<VkDescriptorSetLayout, 2> descriptorSetLayouts = { FcLocator::DescriptorClerk().UboSetLayout()
-                                                                , FcLocator::DescriptorClerk().SamplerSetLayout() };
-
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.pushConstantRangeCount = 1;
-    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
-    pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.size());
-    pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
-
-     // create pipeline layout
-    if (vkCreatePipelineLayout(FcLocator::Device(), &pipelineLayoutInfo, nullptr, &pipeline.Layout()) != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to create Pipeline Layout!");
-    }
-
-     // -- CREATE PIPELINE -- //
-    assert(pipeline.Layout() != nullptr && "Cannot create pipeline before pipeline layout");
-
-    PipelineConfigInfo pipelineConfig;                         // TODO try with = {}; just to make it more clear that this auto populates with defaults
-    pipelineConfig.renderPass = renderPass;
-     // ?? check that the below is okay and good practice
-    pipelineConfig.pipelineLayout = pipeline.Layout();
-//    pipelineConfig.rasterizationSamples = VK_SAMPLE_COUNT_8_BIT; //gpu.Properties().maxMsaaSamples;
-    pipelineConfig.multiSamplingInfo.rasterizationSamples = FcLocator::Gpu().Properties().maxMsaaSamples;
-
+    uiConfig.addPushConstants(pushConstantRange);
+    uiConfig.setMultiSampling(FcLocator::Gpu().Properties().maxMsaaSamples);
      // make sure to clear these out since we won't be reading any vertex data and MUST signal vulkan as such
-    pipelineConfig.bindingDescriptions.clear();
-    pipelineConfig.attributeDescriptions.clear();
+    // uiConfig.disableVertexRendering();
+    //  // old method
+    // pipelineConfig.bindingDescriptions.clear();
+    // pipelineConfig.attributeDescriptions.clear();
 
-    pipeline.create("UI.vert.spv", "UI.frag.spv", pipelineConfig);
+    pipeline.create3(uiConfig);
   }
 
 
