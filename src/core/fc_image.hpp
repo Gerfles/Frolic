@@ -30,6 +30,9 @@ namespace fc
      VkImageView mImageView{nullptr};
      VmaAllocation mAllocation{nullptr};
      VkSampler mTextureSampler{nullptr};
+     // TODO track layout of image in transitions
+     // NOTE this layout may not be exactly up to date based on image barriers in GPU etc.
+
       // TODO create a synced state variable to track current image layout
       // VkImageLayout mCurrentLayout{VK_IMAGE_LAYOUT_UNDEFINED};
      VkExtent3D mImageExtent;

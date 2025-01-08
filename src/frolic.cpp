@@ -114,13 +114,13 @@ namespace fc
     FcLight::loadDefaultTexture("point_light.png");
 
     // Load the castle object
-    FcBindingInfo bindInfo;
-    bindInfo.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    bindInfo.shaderStages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-    bindInfo.bindingSlotNumber = 0;
+    FcDescriptorBindInfo bindInfo;
+    bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+                        , VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+
     VkDescriptorSetLayout dsl = FcLocator::DescriptorClerk().createDescriptorSetLayout(bindInfo);
 
-    FcModel* model = new FcModel{"models/castle.obj", dsl, bindInfo};
+    FcModel* model = new FcModel{"models/castle.obj", dsl};
     FcGameObject* castle =  new FcGameObject(model, FcGameObject::POWER_UP);
     castle->transform.rotation = {glm::pi<float>(), 0.f, 0.f};
     castle->transform.translation = {0.f, 1.f, 0.f};
@@ -133,7 +133,7 @@ namespace fc
     // vase->transform.scale = { 3.f, 3.f, 3.f };
 
      // load the floor
-    model = new FcModel("models/quad.obj", dsl, bindInfo);
+    model = new FcModel("models/quad.obj", dsl);
     FcGameObject* floor = new FcGameObject(model, FcGameObject::TERRAIN);
     floor->transform.translation = { 0.f, 1.f, 0.f };
     floor->transform.scale = { 8.f, 8.f, 8.f };
@@ -174,21 +174,24 @@ namespace fc
   void Frolic::initPipelines()
   {
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   GRADIENT PIPELINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    // Make sure to initialize the FcPipelineCreateInfo with the number of stages we want
-    FcPipelineConfig gradientPipelineConfig{1};
-    gradientPipelineConfig.name = "gradient";
-    gradientPipelineConfig.shaders[0].filename = "gradient_color.comp.spv";
-    gradientPipelineConfig.shaders[0].stageFlag = VK_SHADER_STAGE_COMPUTE_BIT;
+//    Make sure to initialize the FcPipelineCreateInfo with the number of stages we want
+    FcPipelineConfig pipelineConfig{1};
+    pipelineConfig.name = "gradient";
+    pipelineConfig.shaders[0].filename = "gradient_color.comp.spv";
+    pipelineConfig.shaders[0].stageFlag = VK_SHADER_STAGE_COMPUTE_BIT;
 
     VkPushConstantRange pushRange;
     pushRange.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
     pushRange.offset = 0;
     pushRange.size = sizeof(ComputePushConstants);
 
-    gradientPipelineConfig.addPushConstants(pushRange);
-    gradientPipelineConfig.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT);
+    pipelineConfig.addPushConstants(pushRange);
 
-    mGradientPipeline.create3(gradientPipelineConfig);
+    // addBinding() not needed since there's alread a descriptorSetLayout for pipeline
+    pipelineConfig.addDescriptorSetLayout(mRenderer.getBackgroundDescriptorLayout());
+
+    mGradientPipeline.create3(pipelineConfig);
+
     mPipelines.push_back(&mGradientPipeline);
 
     mPushConstants[0].data1 = glm::vec4(1,0,0,1);
@@ -196,15 +199,10 @@ namespace fc
 
 
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   SKY PIPELINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    FcPipelineConfig skyPipelineConfig{1};
-    skyPipelineConfig.name = "Sky";
-    skyPipelineConfig.shaders[0].filename = "sky.comp.spv";
-    skyPipelineConfig.shaders[0].stageFlag = VK_SHADER_STAGE_COMPUTE_BIT;
+    pipelineConfig.name = "Sky Pipeline";
+    pipelineConfig.shaders[0].filename = "sky.comp.spv";
 
-    skyPipelineConfig.addPushConstants(pushRange);
-    skyPipelineConfig.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT);
-
-    mSkyPipeline.create3(skyPipelineConfig);
+    mSkyPipeline.create3(pipelineConfig);
 
     mPushConstants[1].data1 = glm::vec4{0.1, 0.2, 0.4, 0.97};
 
@@ -219,8 +217,8 @@ namespace fc
     meshConfig.shaders[1].filename = "tex_image.frag.spv";
     meshConfig.shaders[1].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    meshConfig.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-     //meshConfig.addBinding(1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+    // addBinding() not needed since there's alread a descriptorSetLayout for pipeline
+    meshConfig.addDescriptorSetLayout(mRenderer.getSingleImageDescriptorLayout());
 
     // add push constants
     VkPushConstantRange vertexPushConstantRange;
@@ -238,7 +236,7 @@ namespace fc
     meshConfig.enableBlendingAlpha();
 
     // meshConfig.disableDepthtest();
-    meshConfig.enableDepthtest(true, VK_COMPARE_OP_GREATER);
+    meshConfig.enableDepthtest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
 
      // TODO find a way to do this systematically with the format of the draw/depth image
      // ... probably by adding a pipeline builder to renderer and calling from frolic

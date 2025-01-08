@@ -37,12 +37,14 @@ class FcBindingInfo;
      glm::mat4 mModelMatrix;
       // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      std::string name;
+
    public:
 
       //std::optional<std::vector<std::shared_ptr<FcModel>>> loadGltfMeshes(std::filesystem::path filePath);
       // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
       // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CTORS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-     FcModel(std::string fileName, VkDescriptorSetLayout descriptorLayout, FcBindingInfo& bindInfo);
+
+     FcModel(std::string fileName, VkDescriptorSetLayout descriptorLayout);
     // TODO don't initialize like this... have FcModel import meshes
      FcModel(std::vector<FcMesh> newMesh) : mMeshList{newMesh} { mModelMatrix = glm::mat4(1.0f); }
      FcModel() = default;
@@ -57,7 +59,7 @@ class FcBindingInfo;
      void loadNodes(aiNode* node, const aiScene* scene, std::vector<int>& matToTex);
      void loadGltfMeshes(std::filesystem::path filePath);
      void loadMesh(aiMesh* mesh, const aiScene* scene, uint32_t textureID);
-     uint32_t loadTexture(std::string filename, VkDescriptorSetLayout layout, FcBindingInfo& bindInfo);
+     uint32_t loadTexture(std::string filename, VkDescriptorSetLayout layout);
      void setModelMatrix(glm::mat4 modelMatrix) { mModelMatrix = modelMatrix; }
       // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   GETTERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      VkDescriptorSet getDescriptorSet(uint32_t index) { return mDescriptorSets[index]; }

@@ -126,6 +126,7 @@ namespace fc
 
      VkDescriptorSetLayout mSceneDataDescriptorLayout;
      VkDescriptorSetLayout mSingleImageDescriptorLayout;
+     VkDescriptorSetLayout mBackgroundDescriptorlayout;
 
      FcBuffer mSceneDataBuffer;
      SceneData* pSceneData;
@@ -174,6 +175,10 @@ namespace fc
      void drawSimple(ComputePushConstants& pushConstans);
      void drawGeometry(FcPipeline& pipeline);
       // - GETTERS -
+     VkDescriptorSetLayout getSceneDescriptorLayout() { return mSceneDataDescriptorLayout; }
+      // TODO delete this probably and place background pipeline in renderer
+     VkDescriptorSetLayout getBackgroundDescriptorLayout() { return mBackgroundDescriptorlayout; }
+     VkDescriptorSetLayout getSingleImageDescriptorLayout() { return mSingleImageDescriptorLayout; }
       FrameData& getCurrentFrame() { return mFrames[mFrameNumber % MAX_FRAME_DRAWS]; }
       // ?? is this used often enough to merit a member variable?
      float AspectRatio() { return (float)mSwapchain.getSurfaceExtent().width / (float)mSwapchain.getSurfaceExtent().height; }

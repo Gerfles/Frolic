@@ -52,8 +52,8 @@ namespace fc
 
      void placeInHandleTable();
      BillboardPushComponent& PushComponent() { return mPush; }
-     void loadTexture(std::string filename, VkDescriptorSetLayout layout, FcBindingInfo& bindInfo);
-     void loadTexture(VkDescriptorSetLayout layout, FcBindingInfo& bindInfo);
+     void loadTexture(std::string filename, VkDescriptorSetLayout layout);
+     void loadTexture(VkDescriptorSetLayout layout);
       //uint32_t TextureId() { return mTextureId; }
       //void setTextureId(uint32_t textureId) { mTextureId = textureId; }
 

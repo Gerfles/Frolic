@@ -244,7 +244,7 @@ namespace fc {
   }
 
 
-  FcModel::FcModel(std::string fileName, VkDescriptorSetLayout descriptorLayout, FcBindingInfo& bindInfo)
+  FcModel::FcModel(std::string fileName, VkDescriptorSetLayout descriptorLayout)
   {
      // first initialze model matrix to identity
     mModelMatrix = glm::mat4(1.0f);
@@ -283,7 +283,7 @@ namespace fc {
       else
       {	// Otherwise, create texture and set value to index of new texture
         //materialNumToTexID[i] = loadTexture(textureNames[i]);
-        materialNumToTexID[i] = loadTexture(textureNames[i], descriptorLayout, bindInfo);
+        materialNumToTexID[i] = loadTexture(textureNames[i], descriptorLayout);
         // TODO maybe save descriptorset to mesh
       }
     }
@@ -371,22 +371,17 @@ namespace fc {
 
 
 
-  uint32_t FcModel::loadTexture(std::string filename, VkDescriptorSetLayout layout, FcBindingInfo& bindInfo)
+  uint32_t FcModel::loadTexture(std::string filename, VkDescriptorSetLayout layout)
   {
-
+    // TODO i think the texture is being copied here, don't do that !!
     FcImage texture;
     texture.loadTexture(filename);
     mTextures.emplace_back(std::move(texture));
-     //mTextures.push_back(descriptorManager, filename);
 
-     //bindInfo.bufferInfo = nullptr;
-    VkDescriptorImageInfo imageInfo;
-    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.sampler = texture.TextureSampler();
-    imageInfo.imageView = texture.ImageView();
-
-    bindInfo.pImageInfo = &imageInfo;
-    bindInfo.pBufferInfo = nullptr;
+    FcDescriptorBindInfo bindInfo{};
+    bindInfo.attachImage(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, texture
+                         // TODO attach a default or passed in sampler
+                         , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL , nullptr);
 
     VkDescriptorSet descriptorSet;
     descriptorSet = FcLocator::DescriptorClerk().createDescriptorSet(layout, bindInfo);

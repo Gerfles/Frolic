@@ -69,13 +69,13 @@ FcBillboard::FcBillboard(float width, float height, glm::vec4 color)
     }
   }
 
-  void FcBillboard::loadTexture(std::string filename, VkDescriptorSetLayout layout, FcBindingInfo& bindInfo)
+  void FcBillboard::loadTexture(std::string filename, VkDescriptorSetLayout layout)
   {
      // TODO implement
   }
 
 
-  void FcBillboard::loadTexture(VkDescriptorSetLayout layout, FcBindingInfo& bindInfo)
+  void FcBillboard::loadTexture(VkDescriptorSetLayout layout)
   {
      // TODO implement
   }

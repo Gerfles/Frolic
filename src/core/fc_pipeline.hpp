@@ -21,8 +21,6 @@
 
 namespace fc
 {
-  class FcBindingInfo;
-
 
   struct PipelineConfigInfo
   {
@@ -57,15 +55,16 @@ namespace fc
 
 
    // Allow constructor with variable argument list (vk stage names)
-  struct FcPipelineConfig
+  struct
+  FcPipelineConfig
   {
+     std::vector<VkPushConstantRange> pushConstantsInfo;
+     std::vector<VkDescriptorSetLayout> descriptorlayouts;
      const char* name; // ?? might want to remove but then may serve as good identifier (hashmap)
      // std::vector<VkVertexInputBindingDescription> bindingDescriptions{};
      // std::vector<VkVertexInputAttributeDescription> attributeDescriptions{};
      // TODO think about making vectors refs
      std::vector<ShaderInfo> shaders; // default size allocation of 1, declare with numStages to increase
-     std::vector<VkPushConstantRange> pushConstantsInfo;
-     std::vector<FcBindingInfo> bindInfos;
      VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo{};
      VkPipelineRasterizationStateCreateInfo rasterizationInfo{};
      VkPipelineMultisampleStateCreateInfo multiSamplingInfo{};
@@ -90,6 +89,7 @@ namespace fc
      void init();
      void addBinding(uint32_t bindSlot, VkDescriptorType type, VkShaderStageFlags stages);
      void addPushConstants(VkPushConstantRange pushConstant);
+     void addDescriptorSetLayout(VkDescriptorSetLayout layout) { descriptorlayouts.push_back(layout);}
      void setInputTopology(VkPrimitiveTopology topology);
      void setPolygonMode(VkPolygonMode mode);
      void setCullMode(VkCullModeFlags cullMode, VkFrontFace frontFace);
@@ -147,8 +147,7 @@ namespace fc
      uint32_t mNumDescriptorSets{0};
      uint32_t mSetIndex{0};
       // TODO determine if this can be deleted
-     VkDescriptorSetLayout mDescriptorSetLayout{nullptr
-     };
+     //VkDescriptorSetLayout mDescriptorSetLayout{nullptr};
       //std::vector<VkDescriptorSet> mLinkedDescriptorSets{};
 
      VkShaderModule createShaderModule(const std::vector<char>& code);

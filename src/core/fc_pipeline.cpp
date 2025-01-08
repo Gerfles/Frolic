@@ -107,17 +107,6 @@ namespace fc
 
 
 
-  void FcPipelineConfig::addBinding(uint32_t bindSlot, VkDescriptorType type, VkShaderStageFlags stages)
-  {
-    FcBindingInfo bind;
-    bind.bindingSlotNumber = bindSlot;
-    bind.type = type;
-    bind.shaderStages = stages;
-
-    bindInfos.emplace_back(std::move(bind));
-  }
-
-
 
    // NOTE: this will copy each push constant range
    // TODO sub for more efficient emplace
@@ -515,18 +504,8 @@ namespace fc
     layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     layoutInfo.pushConstantRangeCount = static_cast<uint32_t>(pipelineConfig.pushConstantsInfo.size());
     layoutInfo.pPushConstantRanges = pipelineConfig.pushConstantsInfo.data();
-    layoutInfo.pSetLayouts = &mDescriptorSetLayout;
-
-     // First define the how this pipeline binds its resources
-    if (pipelineConfig.bindInfos.empty())
-    {
-      layoutInfo.setLayoutCount = 0;
-    }
-    else
-    {
-      layoutInfo.setLayoutCount = 1; //static_cast<uint32_t>(descriptorSetLayouts.size());
-      mDescriptorSetLayout = FcLocator::DescriptorClerk().createDescriptorSetLayout(pipelineConfig.bindInfos);
-    }
+    layoutInfo.setLayoutCount = static_cast<uint32_t>(pipelineConfig.descriptorlayouts.size());
+    layoutInfo.pSetLayouts = pipelineConfig.descriptorlayouts.data();
 
      // check it was created properly
     if (vkCreatePipelineLayout(pDevice, &layoutInfo, nullptr, &mPipelineLayout) != VK_SUCCESS)
@@ -618,7 +597,7 @@ namespace fc
        // index of pipeline being created to derive from (for optimisation of creating multiple pipelines)
       graphicsPipelineInfo.basePipelineIndex = -1;
 
-      fcLog("Created Graphics Pipeline");
+      fcLog("Creating Graphics Pipeline");
        // it's easy to error out on the create graphics pipeline call so handle better
       if (vkCreateGraphicsPipelines(pDevice, VK_NULL_HANDLE, 1, &graphicsPipelineInfo, nullptr, &mPipeline)
           != VK_SUCCESS)
@@ -628,7 +607,7 @@ namespace fc
          //throw std::runtime_error("Failed to create Vulkan Graphics Pipeline!");
       }
 
-      fcLog("Creating Graphics Pipeline");
+
     }
      // Destroy shader modules, no longer needed after pipeline created
     for (uint32_t i = 0; i < shaderStages.size(); i++)
@@ -638,7 +617,7 @@ namespace fc
 
   }
 
-
+  [[deprecated("Use create3()")]]
   void FcPipeline::create(const std::string& vertShaderFilename, const std::string& fragShaderFilename
                           , const PipelineConfigInfo& pipelineInfo)
   {
@@ -732,10 +711,10 @@ namespace fc
   {
     std::cout << "calling: FcPipeline::destroy" << std::endl;
 
-    if (mDescriptorSetLayout != nullptr)
-    {
-      vkDestroyDescriptorSetLayout(FcLocator::Device(), mDescriptorSetLayout, nullptr);
-    }
+    // if (mDescriptorSetLayout != nullptr)
+    // {
+    //   vkDestroyDescriptorSetLayout(FcLocator::Device(), mDescriptorSetLayout, nullptr);
+    // }
 
 
     if (mPipelineLayout != nullptr)
@@ -749,8 +728,7 @@ namespace fc
     }
   }
 
-
-   // TODO rewrite to pass shader module in and maybe return a bool for sucess and delete runtime error
+  // TODO rewrite to pass shader module in and maybe return a bool for sucess and delete runtime error
   VkShaderModule FcPipeline::createShaderModule(const std::vector<char>& code)
   {
     VkShaderModuleCreateInfo shaderInfo{};
