@@ -5,6 +5,7 @@
 #include "fc_camera.hpp"
 #include "fc_descriptors.hpp"
 #include "fc_model_render_system.hpp"
+#include "fc_materials.hpp"
 #include "fc_ui_render_system.hpp"
 #include "fc_model.hpp"
 #include "fc_font.hpp"
@@ -76,6 +77,7 @@ namespace fc
       // - Billboard Rendering
      FcBillboardRenderSystem mBillboardRenderer;
      FcPipeline mBillboardPipeline;
+     FcBuffer materialConstants;
      // Allocate Functions
      // Debugging validation layers
 #ifdef NDEBUG
@@ -132,13 +134,16 @@ namespace fc
      SceneData* pSceneData;
       // TODO try this single one instead of one in each frame
      VkDescriptorSet mSceneDataDescriptor;
-      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   DEFAULT TEXTURES   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DEFAULTS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      FcImage mWhiteTexture;
      FcImage mBlackTexture;
      FcImage mGreyTexture;
      FcImage mCheckerboardTexture;
      VkSampler mDefaultSamplerLinear;
      VkSampler mDefaultSamplerNearest;
+     MaterialInstance defaultMaterialData;
+     GLTFMetallicRoughness mMetalRoughMaterial;
+
    public:
       //void setResizeFlag(bool shouldWindowResizeFlag) { mWindowResizeFlag = shouldWindowResizeFlag; }
       // TODO probably best to issue multiple command buffers, one for each task

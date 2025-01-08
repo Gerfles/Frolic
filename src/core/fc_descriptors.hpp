@@ -68,11 +68,11 @@ namespace fc
      std::vector<VkWriteDescriptorSet> descriptorWrites;
      std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
      std::deque<VkDescriptorBufferInfo> bufferInfos;
-     std::vector<VkDescriptorImageInfo> imageInfos;
+     std::deque<VkDescriptorImageInfo> imageInfos;
      void attachBuffer(uint32_t bindSlot, VkDescriptorType type
-                       ,FcBuffer& buffer, VkDeviceSize offset, VkDeviceSize size);
+                       ,const FcBuffer& buffer, VkDeviceSize size, VkDeviceSize offset);
      void attachImage(uint32_t bindSlot, VkDescriptorType type
-                      ,FcImage& image, VkImageLayout layout, VkSampler imageSampler);
+                      ,const FcImage& image, VkImageLayout layout, VkSampler imageSampler);
      void addBinding(uint32_t bindSlot, VkDescriptorType type, VkShaderStageFlags shaderStages);
   };
 

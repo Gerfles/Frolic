@@ -82,7 +82,7 @@ namespace fc
      void createTexture(VkExtent3D extent, void* pixelData, uint32_t mipLevels = 1);
       //void overwriteTexture(void* pixelData, uint32_t mipLevel = 1);
       // GETTERS
-     VkImageView& ImageView() { return mImageView; }
+     const VkImageView& ImageView() const { return mImageView; }
      VkSampler TextureSampler() { return mTextureSampler; }
      VkImage Image() { return mImage; }
      VkExtent3D getExtent() { return mImageExtent; }

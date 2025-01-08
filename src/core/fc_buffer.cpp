@@ -84,7 +84,7 @@ namespace  fc
     }
 
     return memAddress;
-     // ??
+     // ?? The following method may also work->determine best from VMA site
     //return mAllocation->GetMappedData();
   }
 

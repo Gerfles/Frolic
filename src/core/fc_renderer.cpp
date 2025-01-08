@@ -4,6 +4,7 @@
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "SDL2/SDL_stdinc.h"
 #include "core/fc_billboard_render_system.hpp"
+#include "fc_materials.hpp"
 #include "core/fc_descriptors.hpp"
 #include "core/fc_font.hpp"
 #include "core/fc_game_object.hpp"
@@ -228,15 +229,18 @@ namespace fc
     samplerInfo.minFilter = VK_FILTER_LINEAR;
     vkCreateSampler(pDevice, &samplerInfo, nullptr, &mDefaultSamplerLinear);
 
-    FcDescriptorBindInfo descriptorBindInfo{};
-    descriptorBindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-    descriptorBindInfo.attachImage(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, mCheckerboardTexture
-                                   , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, mDefaultSamplerNearest);
-
     // TODO take advantage of the fact that Descriptor params can be reset once it spits out the SET
     // TODO probably delete from here
     FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
+
+    FcDescriptorBindInfo descriptorBindInfo{};
+    descriptorBindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+
     mSingleImageDescriptorLayout = descClerk.createDescriptorSetLayout(descriptorBindInfo);
+
+    descriptorBindInfo.attachImage(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, mGreyTexture
+                                   , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, mDefaultSamplerNearest);
+
 
     // *-*-*-*-*-*-*-*-*-*-*-*-   FRAME DATA INITIALIZATION   *-*-*-*-*-*-*-*-*-*-*-*- //
     mSceneDataBuffer.allocateBuffer(sizeof(SceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
@@ -245,26 +249,15 @@ namespace fc
     // descriptorSet and layout on the fly and destroy layout if not needed
     // TODO see if layout is not needed.
     FcDescriptorBindInfo sceneDescriptorBinding{};
-    sceneDescriptorBinding.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+    sceneDescriptorBinding.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+
+
     sceneDescriptorBinding.attachBuffer(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, mSceneDataBuffer
-                                        , 0, VK_WHOLE_SIZE);
-
-    // VkDescriptorBufferInfo bufferInfo{};
-    // bufferInfo.buffer = mSceneDataBuffer.getVkBuffer();
-    // bufferInfo.offset = 0;
-    // bufferInfo.range = VK_WHOLE_SIZE;//sizeof(SceneData);//mSceneDataBuffer.size();
-    //  // TODO try
-    //  //bufferInfo.range = VK_WHOLE_SIZE;
-
-    // FcBindingInfo sceneDescriptorBinding{};
-    // sceneDescriptorBinding.bindingSlotNumber = 0;
-    // sceneDescriptorBinding.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    // sceneDescriptorBinding.shaderStages = VK_SHADER_STAGE_VERTEX_BIT;
-    // sceneDescriptorBinding.pBufferInfo = &bufferInfo;
-    // sceneDescriptorBinding.pImageInfo = nullptr;
+                                        , VK_WHOLE_SIZE, 0);
 
     // create descriptorSet for sceneData
     mSceneDataDescriptorLayout = descClerk.createDescriptorSetLayout(sceneDescriptorBinding);
+
 
     // Allocate a descriptorSet to each frame buffer
     for (FrameData& frame : mFrames)
@@ -276,14 +269,34 @@ namespace fc
     }
 
 
-    mSceneDataDescriptor = descClerk.createDescriptorSet(mSceneDataDescriptorLayout, sceneDescriptorBinding);
-    // TODO think about destroying layout here
+    // mSceneDataDescriptor = descClerk.createDescriptorSet(mSceneDataDescriptorLayout, sceneDescriptorBinding);
+    // // TODO think about destroying layout here
 
 
+    mMetalRoughMaterial.buildPipelines(this);
 
 
+    // // set the uniform buffer for the material data
+    materialConstants.allocateBuffer(sizeof(GLTFMetallicRoughness::MaterialConstants), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 
+    // // write the buffer
+    GLTFMetallicRoughness::MaterialConstants* sceneUniformData =
+      (GLTFMetallicRoughness::MaterialConstants*)materialConstants.getAddres();
 
+    sceneUniformData->colorFactors = glm::vec4{1,1,1,1};
+    sceneUniformData->metalRoughFactors = glm::vec4{1, 0.5, 0, 0};
+
+    GLTFMetallicRoughness::MaterialResources materialResources;
+    // default the material textures
+    materialResources.colorImage = &mWhiteTexture;
+    materialResources.colorSampler = mDefaultSamplerLinear;
+    materialResources.metalRoughImage = &mWhiteTexture;
+    materialResources.metalRoughSampler = mDefaultSamplerLinear;
+    materialResources.dataBuffer = &materialConstants;
+    materialResources.dataBufferOffset = 0;
+
+    defaultMaterialData = mMetalRoughMaterial.writeMaterial(pDevice, MaterialPass::MainColor
+                                                           , materialResources);
   }
 
 
@@ -1428,11 +1441,10 @@ namespace fc
 //mUiRenderer.destroy();
 
     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   DELETE SCENE DATA   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    mMetalRoughMaterial.clearResources(pDevice);
     vkDestroyDescriptorSetLayout(pDevice, mSceneDataDescriptorLayout, nullptr);
     vkDestroyDescriptorSetLayout(pDevice, mBackgroundDescriptorlayout, nullptr);
-
     mSceneDataBuffer.destroy();
-
 
     // TODO should think about locating mImgGui into Descriptor Clerk
     FcLocator::DescriptorClerk().destroy();

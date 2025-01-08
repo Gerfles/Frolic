@@ -45,7 +45,7 @@ namespace fc
      void storeData(void* sourceData, VkDeviceSize bufferSize, VkBufferUsageFlags useFlags);
      void overwriteData(void * srcData, size_t dataSize);
      void copyBuffer(const FcBuffer& srcBuffer, VkDeviceSize bufferSize);
-     VkBuffer& getVkBuffer() { return mBuffer; }
+     const VkBuffer& getVkBuffer() const { return mBuffer; }
       // BUG this doesn't always have size storred
      VkDeviceSize size() { return mBufferSize; }
      void* getAddres();

@@ -1,7 +1,6 @@
-
+#pragma  once
 
 #include "core/fc_descriptors.hpp"
-#include "core/fc_renderer.hpp"
 #include "fc_pipeline.hpp"
 #include "fc_image.hpp"
 #include <vulkan/vulkan_core.h>
@@ -11,7 +10,7 @@
 namespace fc
 {
   class FcPipeline;
-
+  class FcRenderer;
 
 enum class MaterialPass : uint8_t {
   MainColor,
@@ -28,30 +27,29 @@ enum class MaterialPass : uint8_t {
 
   class GLTFMetallicRoughness
   {
-
+   private:
      FcPipeline mOpaquePipeline;
      FcPipeline mTransparentPipeline;
      VkDescriptorSetLayout mMaterialDescriptorLayout;
-
+   public:
      struct MaterialConstants
      {
         glm::vec4 colorFactors;
         glm::vec4 metalRoughFactors;
-         // Vulkan has a minimum requirement for uniform buffer alignment 256 bytes is a fairly universal gpu target
-        glm::vec4 padding[14];
+        // Vulkan has a minimum requirement for uniform buffer alignment.
+        glm::vec4 padding[14]; // We'll use 256 bytes as its a fairly universal gpu target
      };
 
      struct MaterialResources
      {
-        FcImage colorImage;
+        FcImage* colorImage;
         VkSampler colorSampler;
-        FcImage metalRoughImage;
+        FcImage* metalRoughImage;
         VkSampler metalRoughSampler;
-        VkBuffer dataBuffer;
-        uint32_t dataBufferOffset;
+        FcBuffer* dataBuffer;
+        uint32_t dataBufferOffset; // TODO should this be VkDeviceSize??
      };
 
-   public:
       // TODO think about including
       // FcDescriptorClerk descriptorClerk;
      void buildPipelines(FcRenderer* renderer);

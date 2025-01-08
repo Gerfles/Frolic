@@ -1,4 +1,5 @@
 #include "fc_materials.hpp"
+#include "fc_renderer.hpp"
 #include <vulkan/vulkan_core.h>
 #include <vector>
 #include "core/fc_descriptors.hpp"
@@ -13,6 +14,10 @@ namespace fc
   void GLTFMetallicRoughness::buildPipelines(FcRenderer *renderer)
   {
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   OPAQUE PIPELINE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
+    fcLog("Building materials pipeline");
+
+     // TODO addshader() func
     FcPipelineConfig pipelineConfig{2};
     pipelineConfig.name = "Opaque Pipeline";
     pipelineConfig.shaders[0].filename = "mesh.vert.spv";
@@ -28,18 +33,19 @@ namespace fc
 
     pipelineConfig.addPushConstants(matrixRange);
 
+    FcDescriptorBindInfo bindInfo{};
     VkShaderStageFlags stages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-     //
-    pipelineConfig.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, stages);
-    pipelineConfig.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, stages);
-    pipelineConfig.addBinding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, stages);
+    bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, stages);
+    bindInfo.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, stages);
+    bindInfo.addBinding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, stages);
 
      // create the descriptor set layout for the material
-    mMaterialDescriptorLayout = FcLocator::DescriptorClerk().createDescriptorSetLayout(pipelineConfig.bindInfos);
+    mMaterialDescriptorLayout = FcLocator::DescriptorClerk().createDescriptorSetLayout(bindInfo);
 
      // place the scene descriptor layout in the first slot (0), and material next (1)
     pipelineConfig.addDescriptorSetLayout(renderer->getSceneDescriptorLayout());
     pipelineConfig.addDescriptorSetLayout(mMaterialDescriptorLayout);
+
 
      // TODO find a way to do this systematically with the format of the draw/depth image
      // ... probably by adding a pipeline builder to renderer and calling from frolic
@@ -61,7 +67,7 @@ namespace fc
     pipelineConfig.enableBlendingAdditive();
     pipelineConfig.enableDepthtest(false, VK_COMPARE_OP_GREATER_OR_EQUAL);
 
-    mTransparentPipeline.create3(pipelineConfig);
+     mTransparentPipeline.create3(pipelineConfig);
   }
 
 
@@ -80,8 +86,37 @@ namespace fc
       matData.pPipeline = &mOpaquePipeline;
     }
 
+
+    FcDescriptorBindInfo bindInfo{};
+    VkShaderStageFlags stages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, stages);
+    bindInfo.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, stages);
+    bindInfo.addBinding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, stages);
+
+     // create the descriptor set layout for the material
+    mMaterialDescriptorLayout = FcLocator::DescriptorClerk().createDescriptorSetLayout(bindInfo);
+
+    //FcDescriptorBindInfo bindInfo{};
+    bindInfo.attachBuffer(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, *resources.dataBuffer
+                          , sizeof(MaterialConstants), resources.dataBufferOffset);
+    bindInfo.attachImage(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, *resources.colorImage
+                         , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, resources.colorSampler);
+    bindInfo.attachImage(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, *resources.metalRoughImage
+                         , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, resources.metalRoughSampler);
+
     matData.materialSet = FcLocator::DescriptorClerk().createDescriptorSet(mMaterialDescriptorLayout, bindInfo);
+
+    return matData;
   }
+
+  void GLTFMetallicRoughness::clearResources(VkDevice device)
+  {
+    mOpaquePipeline.destroy();
+    mTransparentPipeline.destroy();
+    vkDestroyDescriptorSetLayout(device, mMaterialDescriptorLayout, nullptr);
+  }
+
+
 
 
 }

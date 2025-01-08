@@ -18,31 +18,15 @@
 #include <span>
 
 
-
 namespace fc
 {
 
-  struct PipelineConfigInfo
+  struct ComputePushConstants
   {
-     PipelineConfigInfo();
-     PipelineConfigInfo(const PipelineConfigInfo&) = delete;
-     PipelineConfigInfo& operator=(const PipelineConfigInfo&) = delete;
-
-     std::vector<VkVertexInputBindingDescription> bindingDescriptions{};
-     std::vector<VkVertexInputAttributeDescription> attributeDescriptions{};
-     VkPipelineViewportStateCreateInfo viewportInfo{};
-     VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo{};
-     VkPipelineRasterizationStateCreateInfo rasterizationInfo{};
-     VkPipelineMultisampleStateCreateInfo multiSamplingInfo{};
-     VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-     VkPipelineColorBlendStateCreateInfo colorBlendInfo{};
-     VkPipelineDepthStencilStateCreateInfo depthStencilInfo{};
-     std::vector<VkDynamicState> dynamicStateEnables{};
-     VkPipelineDynamicStateCreateInfo dynamicStateInfo{};
-//     VkSampleCountFlagBits rasterizationSamples{};
-     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-     VkRenderPass renderPass = VK_NULL_HANDLE;
-     uint32_t subpass = 0;
+     glm::vec4 data1;
+     glm::vec4 data2;
+     glm::vec4 data3;
+     glm::vec4 data4;
   };
 
   struct ShaderInfo
@@ -51,9 +35,6 @@ namespace fc
      VkShaderStageFlagBits stageFlag;
   };
 
-
-
-
    // Allow constructor with variable argument list (vk stage names)
   struct
   FcPipelineConfig
@@ -61,6 +42,7 @@ namespace fc
      std::vector<VkPushConstantRange> pushConstantsInfo;
      std::vector<VkDescriptorSetLayout> descriptorlayouts;
      const char* name; // ?? might want to remove but then may serve as good identifier (hashmap)
+     // Needed for renderPass
      // std::vector<VkVertexInputBindingDescription> bindingDescriptions{};
      // std::vector<VkVertexInputAttributeDescription> attributeDescriptions{};
      // TODO think about making vectors refs
@@ -84,8 +66,8 @@ namespace fc
       // TODO CB = comment better
      FcPipelineConfig(int numStages);
      FcPipelineConfig(std::vector<ShaderInfo> shaderInfos);
-     FcPipelineConfig(const PipelineConfigInfo&) = delete;
-     FcPipelineConfig& operator=(const PipelineConfigInfo&) = delete;
+     FcPipelineConfig(const FcPipelineConfig&) = delete;
+     FcPipelineConfig& operator=(const FcPipelineConfig&) = delete;
      void init();
      void addBinding(uint32_t bindSlot, VkDescriptorType type, VkShaderStageFlags stages);
      void addPushConstants(VkPushConstantRange pushConstant);
@@ -105,32 +87,6 @@ namespace fc
      void enableBlendingAlpha();
      void clear();
   }; // ---   struct FcPipelineConfigInfo2 --- (END)
-
-
-
-  struct ComputePushConstants
-  {
-     glm::vec4 data1;
-     glm::vec4 data2;
-     glm::vec4 data3;
-     glm::vec4 data4;
-  };
-
-
-   // TODO might want to rename to something more logical
-   // TODO Create a full default similar to vkStructs
-  struct FcPipelineCreateInfo
-  {
-     const char* name;
-      //ComputePushConstants data;
-     std::vector<ShaderInfo> shaders;//{1};
-
-      // Initialize the number of stages with a list initializer
-      // TODO CB = comment better
-     FcPipelineCreateInfo(int numStages = 0) : shaders(numStages) {};
-  };
-
-
 
    // TODO on all the classes that are only instantiated once per game, initialize all the vulkan pointer to VK_NULL_HANDLE
   class FcPipeline
@@ -160,19 +116,15 @@ namespace fc
      void bindDescriptorSets(VkCommandBuffer cmdBuffer);
      void bind(VkCommandBuffer commandBuffer);
       // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
-
      FcPipeline() = default;
      ~FcPipeline() = default;
      FcPipeline(const FcPipeline&) = delete;
      FcPipeline& operator=(const FcPipeline&) = delete;
       //
-     void populatePipelineConfig(PipelineConfigInfo& configInfo);
-     void create(const std::string& vertShaderFilename,
-                 const std::string& fragShaderFilename,
-                 const PipelineConfigInfo& configInfo);
-
-
+     //void populatePipelineConfig(PipelineConfigInfo& configInfo);
+     // void create(const std::string& vertShaderFilename,
+     //             const std::string& fragShaderFilename,
+     //             const PipelineConfigInfo& configInfo);
       // uint32_t updateTextureDescriptors(VkImageView textureImageView, VkSampler textureSampler)
       //  { return mDescriptor.createTextureDescriptor(textureImageView, textureSampler); }
       // GETTERS

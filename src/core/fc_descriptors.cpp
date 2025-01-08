@@ -40,15 +40,23 @@ namespace fc
   }
 
   void FcDescriptorBindInfo::attachBuffer(uint32_t bindSlot, VkDescriptorType type
-                                    , FcBuffer& buffer, VkDeviceSize offset, VkDeviceSize size)
+                                          ,const FcBuffer& buffer, VkDeviceSize size, VkDeviceSize offset)
   {
+
+
     VkDescriptorBufferInfo& bufferInfo =
-      bufferInfos.emplace_back(VkDescriptorBufferInfo{
-          .buffer = buffer.getVkBuffer(),
+        bufferInfos.emplace_back(VkDescriptorBufferInfo{
+            .buffer = buffer.getVkBuffer(),
             .offset = offset,
-// TODO could have size determined from FcBuffer
+        // TODO could have size determined from FcBuffer
              .range = size
           });
+
+    // VkDescriptorBufferInfo bufferInfo;
+    //   bufferInfo.buffer = buffer.getVkBuffer();
+    //   bufferInfo.offset = offset;
+    //   bufferInfo.range = size;
+    //   bufferInfos.emplace_back(std::move(bufferInfo));
 
     VkWriteDescriptorSet descriptorWrite{};
     descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -59,12 +67,14 @@ namespace fc
     descriptorWrite.dstSet = VK_NULL_HANDLE;
     descriptorWrite.pBufferInfo = &bufferInfo;
     descriptorWrite.pImageInfo = VK_NULL_HANDLE;
+
     //
     descriptorWrites.emplace_back(std::move(descriptorWrite));
   }
 
+
   void FcDescriptorBindInfo::attachImage(uint32_t bindSlot, VkDescriptorType type
-                      , FcImage& image, VkImageLayout layout, VkSampler imageSampler)
+                      ,const FcImage& image, VkImageLayout layout, VkSampler imageSampler)
   {
     VkDescriptorImageInfo& imageInfo =
         imageInfos.emplace_back(VkDescriptorImageInfo{
@@ -82,7 +92,7 @@ namespace fc
     descriptorWrite.pBufferInfo = VK_NULL_HANDLE;
     descriptorWrite.pImageInfo = &imageInfo;
     //
-    descriptorWrites.emplace_back(std::move(descriptorWrite));
+    descriptorWrites.push_back(descriptorWrite);
   }
 
 
@@ -120,7 +130,8 @@ namespace fc
   FcDescriptorClerk::createDescriptorSetLayout(FcDescriptorBindInfo& bindingInfo
                                                , VkDescriptorSetLayoutCreateFlags flags)
   {
-     // create descriptor set layout with given bindings
+
+    // create descriptor set layout with given bindings
     VkDescriptorSetLayoutCreateInfo layoutCreateInfo{};
     layoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutCreateInfo.bindingCount = static_cast<uint32_t>(bindingInfo.layoutBindings.size());

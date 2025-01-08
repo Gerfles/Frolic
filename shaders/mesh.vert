@@ -3,7 +3,28 @@
 #extension GL_GOOGLE_include_directive : require
 #extension GL_EXT_buffer_reference : require
 
-#include "input_structures.glsl"
+//#include "input_structures.glsl"
+layout(set = 0, binding = 0) uniform SceneData
+{
+  mat4 view;
+  mat4 proj;
+  mat4 viewProj;
+  vec4 ambientColor;
+  vec4 sunDirection;
+  vec4 sunColor;
+  //
+} sceneData;
+
+layout(set = 1, binding = 0) uniform GLTFMaterialData
+{
+  vec4 colorFactors;
+  vec4 MetalRoughFactors;
+  //
+} materialData;
+
+
+layout(set = 1, binding = 1) uniform sampler2D colorTex;
+layout(set = 1, binding = 2) uniform sampler2D metalRoughTex;
 
 layout (location = 0) out vec3 outNormal;
 layout (location = 1) out vec3 outColor;
@@ -43,5 +64,5 @@ void main()
   outColor = v.color.xyz * materialData.colorFactors.xyz;
 
   outUV.x = v.uv_x;
-  outUV.y = u.uv_y;
+  outUV.y = v.uv_y;
 }

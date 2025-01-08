@@ -251,8 +251,6 @@ namespace fc
 
 
 
-
-
   void Frolic::run()
   {
     fcLog("run()", 0);

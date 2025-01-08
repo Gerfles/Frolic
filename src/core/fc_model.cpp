@@ -41,6 +41,8 @@
 
 namespace fc {
 
+  // TODO make sure we preallocate vectors before loading anything...
+
   void FcModel::loadGltfMeshes(std::filesystem::path filePath)
   {
     filePath = std::filesystem::path{R"(..//models//basicmesh.glb)"};
@@ -78,10 +80,8 @@ namespace fc {
     fastgltf::Parser parser{};
     fastgltf::Asset gltf;
 
-    fcLog("opened file");
     auto load = parser.loadGltfBinary(data.get(), filePath.parent_path(), gltfOptions);
 
-    fcLog("attached parser");
     if (load)
     {
       gltf = std::move(load.get());
