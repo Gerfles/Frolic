@@ -8,6 +8,7 @@
 #include "core/fc_locator.hpp"
 #include "core/fc_mesh.hpp"
 #include "core/fc_model.hpp"
+
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "SDL2/SDL_version.h"
 #include "SDL2/SDL_video.h"
@@ -19,10 +20,13 @@
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_vulkan.h"
 #include "vulkan/vulkan_core.h"
+#include <glm/gtx/transform.hpp>
+
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+
 #include <iostream>
 #include <string>
 
@@ -82,9 +86,6 @@ namespace fc
     mInput.init();
 
     initPipelines();
-
-     // attach camera
-    mRenderer.attachSceneData(&mSceneData);
   }
 
 
@@ -192,60 +193,55 @@ namespace fc
 
     mGradientPipeline.create3(pipelineConfig);
 
-    mPipelines.push_back(&mGradientPipeline);
-
-    mPushConstants[0].data1 = glm::vec4(1,0,0,1);
-    mPushConstants[0].data2 = glm::vec4(0,1,0,1);
-
-
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   SKY PIPELINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     pipelineConfig.name = "Sky Pipeline";
     pipelineConfig.shaders[0].filename = "sky.comp.spv";
 
     mSkyPipeline.create3(pipelineConfig);
 
-    mPushConstants[1].data1 = glm::vec4{0.1, 0.2, 0.4, 0.97};
-
     mPipelines.push_back(&mSkyPipeline);
+    mPipelines.push_back(&mGradientPipeline);
 
-
+    mPushConstants[0].data1 = glm::vec4{0.1, 0.2, 0.4, 0.97};
+    mPushConstants[1].data1 = glm::vec4(1,0,0,1);
+    mPushConstants[1].data2 = glm::vec4(0,1,0,1);
     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   MESH PIPELINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    FcPipelineConfig meshConfig{2};
-    meshConfig.name = "Mesh";
-    meshConfig.shaders[0].filename = "colored_triangle_mesh.vert.spv";
-    meshConfig.shaders[0].stageFlag = VK_SHADER_STAGE_VERTEX_BIT;
-    meshConfig.shaders[1].filename = "tex_image.frag.spv";
-    meshConfig.shaders[1].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
+    // FcPipelineConfig meshConfig{2};
+    // meshConfig.name = "Mesh";
+    // meshConfig.shaders[0].filename = "colored_triangle_mesh.vert.spv";
+    // meshConfig.shaders[0].stageFlag = VK_SHADER_STAGE_VERTEX_BIT;
+    // meshConfig.shaders[1].filename = "tex_image.frag.spv";
+    // meshConfig.shaders[1].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    // addBinding() not needed since there's alread a descriptorSetLayout for pipeline
-    meshConfig.addDescriptorSetLayout(mRenderer.getSingleImageDescriptorLayout());
+    // // addBinding() not needed since there's alread a descriptorSetLayout for pipeline
+    // meshConfig.addDescriptorSetLayout(mRenderer.getSingleImageDescriptorLayout());
 
-    // add push constants
-    VkPushConstantRange vertexPushConstantRange;
-    vertexPushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    vertexPushConstantRange.offset = 0;
-    vertexPushConstantRange.size = sizeof(drawPushConstants);
+    // // add push constants
+    // VkPushConstantRange vertexPushConstantRange;
+    // vertexPushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    // vertexPushConstantRange.offset = 0;
+    // vertexPushConstantRange.size = sizeof(DrawPushConstants);
 
-    meshConfig.addPushConstants(vertexPushConstantRange);
+    // meshConfig.addPushConstants(vertexPushConstantRange);
 
-    // basic config
-    meshConfig.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
-    meshConfig.setPolygonMode(VK_POLYGON_MODE_FILL);
-    meshConfig.setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE);
-    meshConfig.setMultiSampling(VK_SAMPLE_COUNT_1_BIT);
-    meshConfig.enableBlendingAlpha();
+    // // basic config
+    // meshConfig.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+    // meshConfig.setPolygonMode(VK_POLYGON_MODE_FILL);
+    // meshConfig.setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE);
+    // meshConfig.setMultiSampling(VK_SAMPLE_COUNT_1_BIT);
+    // meshConfig.enableBlendingAlpha();
 
-    // meshConfig.disableDepthtest();
-    meshConfig.enableDepthtest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
+    // // meshConfig.disableDepthtest();
+    // meshConfig.enableDepthtest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
 
-     // TODO find a way to do this systematically with the format of the draw/depth image
-     // ... probably by adding a pipeline builder to renderer and calling from frolic
-    meshConfig.setColorAttachment(VK_FORMAT_R16G16B16A16_SFLOAT);
-    meshConfig.setDepthFormat(VK_FORMAT_D32_SFLOAT);
+    //  // TODO find a way to do this systematically with the format of the draw/depth image
+    //  // ... probably by adding a pipeline builder to renderer and calling from frolic
+    // meshConfig.setColorAttachment(VK_FORMAT_R16G16B16A16_SFLOAT);
+    // meshConfig.setDepthFormat(VK_FORMAT_D32_SFLOAT);
 
-    mMeshPipeline.create3(meshConfig);
+    // mMeshPipeline.create3(meshConfig);
 
-    fcLog("Finished intializing all Pipelines!");
+    // fcLog("Finished intializing all Pipelines!");
   }
 
 
@@ -261,18 +257,57 @@ namespace fc
 
     FcPlayer player{mInput};
     player.setPosition(glm::vec3(0.f, 0.f, -5.f));
+
+
+
      // Simple first person camera
      // TODO make function calls more expressive
     FcCamera camera;
 
     int currentBackgroundEffect{0};
 
-    camera.setPerspectiveProjection(glm::radians(45.0f), mRenderer.AspectRatio(), 0.1f, 100.f);
-    mUbo.projection = camera.Projection();
+
+    camera.setPerspectiveProjection(glm::radians(70.0f), mRenderer.AspectRatio(), 10000.f, 0.1f);
+    //mUbo.projection = camera.Projection();
+
+
 
     camera.setViewDirection(glm::vec3(0.f, 0.f, -5.f), glm::vec3(0.f, 0.f, 0.f));
+    mSceneData.view = camera.View();
+    mSceneData.projection = camera.Projection();
+    mSceneData.viewProj = mSceneData.projection * mSceneData.view;
 
-    FcCamera testCamera = camera;
+
+    static float distance = -3.5f;
+    distance = distance * 1.00001f;
+
+    // TODO delete
+    // translate from camera
+    mSceneData.view = glm::translate(glm::vec3{0.f, 0.f, distance});
+    // camera projeciton
+
+    mSceneData.projection = glm::perspective(glm::radians(45.0f)
+                                             , static_cast<float>(mWindow.ScreenSize().width)
+                                             / static_cast<float>(mWindow.ScreenSize().height)
+                                             , 10000.f, 0.1f);
+
+    // invert the y direction on projection matrix so that openGL images match Vulkan axis
+    mSceneData.projection[1][1] *= -1;
+    mSceneData.viewProj = mSceneData.projection * mSceneData.view;
+
+
+ // default lighting parameters
+    mSceneData.ambientLight = glm::vec4(.1f);
+    mSceneData.sunlightColor = glm::vec4(1.f);
+    mSceneData.sunlightDirection = glm::vec4(0.f, 1.f, 0.5f, 1.f);
+
+    mSceneDataBuffer.overwriteData(&mSceneData, sizeof(SceneData));
+
+
+
+    // attach camera
+    mRenderer.attachSceneData(&mSceneData);
+    //FcCamera testCamera = camera;
 
      // load everything we need for the scene
     fcLog("skipping loading objects.");
@@ -281,6 +316,9 @@ namespace fc
      //loadGameObjects();
     fcLog("done loading objects.");
      // TODO this should be abstracted into engine
+
+
+    // TODO separate to make entirely own function
     while (!mShouldClose)
     {
       bool shouldresize = false;
@@ -289,6 +327,7 @@ namespace fc
       {
         if (mEvent.type == SDL_WINDOWEVENT)
         {
+          // TODO should think about updating input here instead of doing it asynchronously...
           switch (mEvent.window.event)
           {
              // ?? check that this is proper
@@ -341,13 +380,13 @@ namespace fc
        // now re-start the time so that the start time is the start of each frame
       mTimer.start();
 
-       //update(deltaTime);
+      //update(deltaTime);
+
 
        // TODO keep only one
-      mUbo.view = camera.View();
-      mUbo.projection = camera.Projection();
-      mUbo.invView = camera.InverseView();
-
+      // mUbo.view = camera.View();
+      // mUbo.projection = camera.Projection();
+      // mUbo.invView = camera.InverseView();
       mSceneData.view = camera.View();
       mSceneData.projection = camera.Projection();
       mSceneData.viewProj = mSceneData.projection * mSceneData.view;
@@ -361,7 +400,10 @@ namespace fc
       mRenderer.attachPipeline(selected);
 
        // test ImGui UI
+
+      // Left here to add a demo windo that names all the features for (handy for searching)
        //ImGui::ShowDemoWindow();
+
       if (ImGui::Begin("background"))
       {
          // TODO getrenderScale should be deleted
@@ -396,10 +438,7 @@ namespace fc
 
       mRenderer.drawGeometry(mMeshPipeline);
 
-      mRenderer.endFrame(swapchainImgIndex);
-
-       // TODO implement better way to wait for queues to finish
-       //vkDeviceWaitIdle(FcLocator::Device());
+       mRenderer.endFrame(swapchainImgIndex);
 
     } // _END_ while(!shouldClose);
   }

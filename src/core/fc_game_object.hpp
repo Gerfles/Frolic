@@ -1,16 +1,21 @@
 #pragma once
 
 // libraries
-#include "SDL2/SDL_stdinc.h"
-#include "core/fc_model.hpp"
-#include <cstddef>
-#include <glm/gtc/matrix_transform.hpp>
+//#include "SDL2/SDL_stdinc.h"
+// #include "core/fc_model.hpp"
+//#include <cstddef>
+//#include <cstdint>
+//#include <glm/gtc/matrix_transform.hpp>
+#include <glm/vec4.hpp>
+#include <glm/mat4x4.hpp>
 // std
-#include <memory>
-#include <unordered_map>
+//#include <memory>
+//#include <unordered_map>
 
 namespace fc
 {
+  class FcModel;
+
 
   struct TransformComponent
   {
@@ -72,7 +77,7 @@ namespace fc
 
    // ?? not sure I need the handle object for anything TODO - delete maybe
    // define the size of the handle table and hence the maximum number of game objects that can exist simultaneously
-  static const Uint32 MAX_GAME_OBJECTS = 2048;
+  static const uint32_t MAX_GAME_OBJECTS = 2048;
 
    // wrapper to allow easy lookups etc.
   class FcGameObjectHandle

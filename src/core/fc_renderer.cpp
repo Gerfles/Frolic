@@ -4,6 +4,7 @@
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "SDL2/SDL_stdinc.h"
 #include "core/fc_billboard_render_system.hpp"
+#include "core/fc_model.hpp"
 #include "fc_materials.hpp"
 #include "core/fc_descriptors.hpp"
 #include "core/fc_font.hpp"
@@ -25,12 +26,13 @@
 #include <glm/ext/vector_float3.hpp>
 #include <glm/ext/vector_float4.hpp>
 #include <glm/packing.hpp>
+#include <memory>
 #include <mutex>
 #include <string>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <SDL_events.h>
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+// #define GLM_FORCE_RADIANS
+//#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
@@ -88,8 +90,6 @@ namespace fc
 
       // create the surface (interface between Vulkan and window (SDL))
       mWindow.createWindowSurface(mInstance);
-      std::cout << "window dimensions88: " << mWindow.ScreenSize().width
-                << " x " << mWindow.ScreenSize().height << std::endl;
 
       // retrieve the physical device then create the logical device to interface with GPU & command pool
       if ( !mGpu.init(mInstance, mWindow))
@@ -193,7 +193,9 @@ namespace fc
   void FcRenderer::initDefaults()
   {
     //testModel.loadGltfMeshes("..\\..\\models\\basicmesh.glb");
-    testModel.loadGltfMeshes("..//models//basicmesh.glb");
+    mTestMeshes.loadGltfMeshes("NEED TO MAKE SURE FILE NOT HARDCODED!");
+
+    //testModel.loadGltfMeshes("..//models//basicmesh.glb");
 
     // -*-*-*-*-   3 DEFAULT TEXTURES--WHITE, GREY, BLACK AND CHECKERBOARD   -*-*-*-*- //
     uint32_t white = glm::packUnorm4x8(glm::vec4(1.f, 1.f, 1.f, 1.f));
@@ -234,7 +236,8 @@ namespace fc
     FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
 
     FcDescriptorBindInfo descriptorBindInfo{};
-    descriptorBindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+    descriptorBindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+                                  , VK_SHADER_STAGE_FRAGMENT_BIT);
 
     mSingleImageDescriptorLayout = descClerk.createDescriptorSetLayout(descriptorBindInfo);
 
@@ -245,6 +248,12 @@ namespace fc
     // *-*-*-*-*-*-*-*-*-*-*-*-   FRAME DATA INITIALIZATION   *-*-*-*-*-*-*-*-*-*-*-*- //
     mSceneDataBuffer.allocateBuffer(sizeof(SceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 
+    //
+
+    //mSceneDataBuffer.overwriteData(&mSceneData, sizeof(SceneData));
+
+    //
+
     // TODO create temporary storage for this in descClerk so we can just write the
     // descriptorSet and layout on the fly and destroy layout if not needed
     // TODO see if layout is not needed.
@@ -253,7 +262,7 @@ namespace fc
 
 
     sceneDescriptorBinding.attachBuffer(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, mSceneDataBuffer
-                                        , VK_WHOLE_SIZE, 0);
+                                        , sizeof(SceneData), 0);
 
     // create descriptorSet for sceneData
     mSceneDataDescriptorLayout = descClerk.createDescriptorSetLayout(sceneDescriptorBinding);
@@ -262,10 +271,10 @@ namespace fc
     // Allocate a descriptorSet to each frame buffer
     for (FrameData& frame : mFrames)
     {
-      // frame.sceneDataDescriptorSet = descClerk->createDescriptorSet(mSceneDataDescriptorLayout
-      //                                                                     , sceneDescriptorBinding);
-      frame.sceneDataDescriptorSet = descClerk.createDescriptorSet(mSingleImageDescriptorLayout
-                                                                   , descriptorBindInfo);
+      frame.sceneDataDescriptorSet = descClerk.createDescriptorSet(mSceneDataDescriptorLayout
+                                                                          , sceneDescriptorBinding);
+      // frame.sceneDataDescriptorSet = descClerk.createDescriptorSet(mSingleImageDescriptorLayout
+      //                                                              , descriptorBindInfo);
     }
 
 
@@ -296,7 +305,32 @@ namespace fc
     materialResources.dataBufferOffset = 0;
 
     defaultMaterialData = mMetalRoughMaterial.writeMaterial(pDevice, MaterialPass::MainColor
-                                                           , materialResources);
+                                                            , materialResources);
+
+    // ?? SEEMS VERY SLOW
+    for (auto& mesh_i : mTestMeshes.meshes)
+    {
+
+      std::shared_ptr<MeshNode> newNode = std::make_shared<MeshNode>();
+      newNode->mesh = mesh_i;
+
+      newNode->localTransform = glm::mat4{1.f};
+      newNode->worldTransform = glm::mat4{1.f};
+
+      for (Surface& surface : newNode->mesh->mSurfaces)
+      {
+        surface.material = std::make_shared<GLTFMaterial>(defaultMaterialData);
+      }
+
+      loadedNodes[mesh_i->name()] = std::move(newNode);
+    }
+
+    for (auto& node : loadedNodes)
+    {
+      std::cout << "Added Node: " << node.first << std::endl;
+    }
+
+//    mTestMeshes =
   }
 
 
@@ -640,6 +674,27 @@ namespace fc
   }
 
 
+  void FcRenderer::updateScene()
+  {
+    mainDrawContext.opaqueSurfaces.clear();
+
+    loadedNodes["Suzanne"]->draw(glm::mat4{1.f}, mainDrawContext);
+
+    for (int x = -3; x < 3; x++)
+    {
+      glm::mat4 scale = glm::scale(glm::vec3{0.2});
+      glm::mat4 translation = glm::translate(glm::vec3{x, 1, 0});
+
+      loadedNodes["Sphere"]->draw(translation * scale, mainDrawContext);
+    }
+
+    static float distance = -3.5f;
+    distance = distance * 1.00001f;
+
+  }
+
+
+
   //TODO change current frame to currentFrameBuffer
   void FcRenderer::drawModels(uint32_t swapchainImageIndex, GlobalUbo& ubo)
   {
@@ -685,7 +740,6 @@ namespace fc
           // TODO don't update UBO unless changed (may still need to do just because of frame set)
           FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
 
-
           // TODO use sceneData per frame instead
           //descClerk.update(swapchainImageIndex, &ubo);
 
@@ -705,7 +759,8 @@ namespace fc
                                   , descriptorSets.data() , 0, nullptr);
 
           // execute pipeline
-          vkCmdDrawIndexed(getCurrentFrame().commandBuffer, currMesh.IndexCount(), 1, 0, 0, 0);
+          // FIXME
+          //vkCmdDrawIndexed(getCurrentFrame().commandBuffer, currMesh.indexCount(), 1, 0, 0, 0);
         }
       }
 
@@ -854,10 +909,13 @@ namespace fc
   }
 
 
+  //
   void FcRenderer::drawSimple(ComputePushConstants& pushConstants)
   {
 
     VkCommandBuffer cmd = getCurrentFrame().commandBuffer;
+
+
 
     // transition our main draw image into general layout so we can write into it
     mDrawImage.transitionImage(cmd, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
@@ -882,49 +940,57 @@ namespace fc
     // bind the compute pipeline
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pDrawPipeline);
 
-    // bind the descriptorClerk set containing the draw image for the compute pipeline
+    // bind the descriptorClerk set containing the draw image for the compute
+    // pipeline
     FcDescriptorClerk& descriptorClerk = FcLocator::DescriptorClerk();
 
-    //		drawImGui(cmd, mSwapchain.getFcImage(swapchainImgIndex).ImageView());
+    //		drawImGui(cmd,
+    //mSwapchain.getFcImage(swapchainImgIndex).ImageView());
     std::array<VkDescriptorSet, 1> ds{mDrawImageDescriptor};
 
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE
-                            , pDrawPipelineLayout, 0, 1, ds.data(), 0, nullptr);
+    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE,
+                            pDrawPipelineLayout, 0, 1, ds.data(), 0, nullptr);
     // vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE
-    //                         , pDrawPipelineLayout, 0, 1, &getCurrentFrame().sceneDataDescriptorSet, 0, nullptr);
-//                            , pDrawPipelineLayout, 0, 1, descriptorClerk.vkDescriptor(), 0, nullptr);
+    //                         , pDrawPipelineLayout, 0, 1,
+    //                         &getCurrentFrame().sceneDataDescriptorSet, 0,
+    //                         nullptr);
+    //                            , pDrawPipelineLayout, 0, 1,
+    //                            descriptorClerk.vkDescriptor(), 0, nullptr);
 
     // inject the push constants
     // ComputePushConstants pc;
     // pc.data1 = glm::vec4(1,0,0,1);
     // pc.data2 = glm::vec4(0,0,1,1);
 
-    vkCmdPushConstants(cmd, pDrawPipelineLayout
-                       , VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(ComputePushConstants), &pushConstants);
+    vkCmdPushConstants(cmd, pDrawPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
+                       sizeof(ComputePushConstants), &pushConstants);
 
     // execute the compute pipeline dispatch.
-    vkCmdDispatch(cmd, std::ceil(mDrawImage.size().width / 16.0)
-                  , std::ceil(mDrawImage.size().height / 16.0), 1);
+    vkCmdDispatch(cmd, std::ceil(mDrawImage.size().width / 16.0),
+                  std::ceil(mDrawImage.size().height / 16.0), 1);
   }
 
-  void FcRenderer::drawGeometry(FcPipeline& pipeline)
-  {
+  // TODO remove pipeline passing in
+  void FcRenderer::drawGeometry(FcPipeline& pipeline) {
     VkCommandBuffer cmd = getCurrentFrame().commandBuffer;
 
-    mDrawExtent.height = std::min(mSwapchain.getSurfaceExtent().height, mDrawImage.getExtent().height) * renderScale;
-    mDrawExtent.width = std::min(mSwapchain.getSurfaceExtent().width, mDrawImage.getExtent().width) * renderScale;
+    //std::cout << "drawExtent: " << mDrawExtent.width << " x " << mDrawExtent.height << std::endl;
+    // transition draw image from compute shader write optimal to best format
+    // for graphics pipeline writeable
+    mDrawImage.transitionImage(cmd, VK_IMAGE_LAYOUT_GENERAL,
+                               VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    //
+    mDepthImage.transitionImage(cmd, VK_IMAGE_LAYOUT_UNDEFINED,
+                                VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 
-// transition draw image from compute shader write optimal to best format for graphics pipeline writeable
-    mDrawImage.transitionImage(cmd,  VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-//
-    mDepthImage.transitionImage(cmd, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
-
+    // TODO extract into builder...
     // begin a render pass connected to our draw image
     VkRenderingAttachmentInfo colorAttachment{};
     colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
     colorAttachment.imageView = mDrawImage.ImageView();
     colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    //		colorAttachment.loadOp = clear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
+    //		colorAttachment.loadOp = clear ? VK_ATTACHMENT_LOAD_OP_CLEAR :
+    //VK_ATTACHMENT_LOAD_OP_LOAD;
     colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
@@ -940,7 +1006,7 @@ namespace fc
     //
     VkRenderingInfo renderInfo{};
     renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-    renderInfo.renderArea = VkRect2D{ VkOffset2D{0, 0}, mDrawExtent};
+    renderInfo.renderArea = VkRect2D{VkOffset2D{0, 0}, mDrawExtent};
     renderInfo.layerCount = 1;
     renderInfo.colorAttachmentCount = 1;
     renderInfo.pColorAttachments = &colorAttachment;
@@ -950,73 +1016,100 @@ namespace fc
     vkCmdBeginRendering(cmd, &renderInfo);
 
     // update scene data
-
-
     // Bind the globalUBO(Scene data) descriptorSet to the buffer...
-
-
     // bind the descriptor set containing the draw image for the
-    //FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
+    // FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
+    //   mFrames[swapchainImgIndex]
 
-//   mFrames[swapchainImgIndex]
+    // vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS
+    //                         , pipeline.Layout(), 0, 1,
+    //                         &getCurrentFrame().sceneDataDescriptorSet, 0,
+    //                         nullptr);
 
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS
-                            , pipeline.Layout(), 0, 1, &getCurrentFrame().sceneDataDescriptorSet, 0, nullptr);
+    // bind whichever pipeline HERE
+    // TODO remove
+    // pipeline.bind(cmd);
+
+    // // set dynamic viewport and scissors
+    // VkViewport viewport = {};
+    // viewport.x = 0;
+    // viewport.y = 0;
+    // viewport.width = mDrawExtent.width;
+    // viewport.height = mDrawExtent.height;
+    // viewport.minDepth = 0.f;
+    // viewport.maxDepth = 1.f;
+
+    // vkCmdSetViewport(cmd, 0, 1, &viewport);
+
+    // VkRect2D scissors = {};
+    // scissors.offset.x = 0;
+    // scissors.offset.y = 0;
+    // scissors.extent.width = mDrawExtent.width;
+    // scissors.extent.height = mDrawExtent.height;
+
+    // vkCmdSetScissor(cmd, 0, 1, &scissors);
+      // set dynamic viewport and scissors
+      VkViewport viewport = {};
+      viewport.x = 0;
+      viewport.y = 0;
+      viewport.width = mDrawExtent.width;
+      viewport.height = mDrawExtent.height;
+      viewport.minDepth = 0.f;
+      viewport.maxDepth = 1.f;
+
+      vkCmdSetViewport(cmd, 0, 1, &viewport);
+
+      VkRect2D scissors = {};
+      scissors.offset.x = 0;
+      scissors.offset.y = 0;
+      scissors.extent.width = viewport.width;
+      scissors.extent.height = viewport.height;
+
+      vkCmdSetScissor(cmd, 0, 1, &scissors);
 
 
+
+
+    // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   DRAW MESH MODELS
+    // *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    for (const RenderObject& model : mainDrawContext.opaqueSurfaces) {
+      model.bindPipeline(cmd);
+
+
+
+      // TODO binding data every draw is inefficient: FIXME
+      // model.bindDescriptorSets(cmd, &mSceneDataDescriptor, 0);
+
+      model.bindDescriptorSet(cmd, getCurrentFrame().sceneDataDescriptorSet, 0);
+      model.bindDescriptorSet(cmd, model.material->materialSet, 1);
+
+      model.bindIndexBuffer(cmd);
+
+      DrawPushConstants pushConstants;
+      pushConstants.vertexBuffer = model.vertexBufferAddress;
+      pushConstants.worldMatrix = model.transform;
+
+      vkCmdPushConstants(cmd, model.material->pPipeline->Layout(),
+                         VK_SHADER_STAGE_VERTEX_BIT, 0,
+                         sizeof(DrawPushConstants), &pushConstants);
+
+      vkCmdDrawIndexed(cmd, model.indexCount, 1, model.firstIndex, 0, 0);
+    }
 
     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   DRAW MONKEY HEAD   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    pipeline.bind(cmd);
-
-    // set dynamic viewport and scissors
-    VkViewport viewport = {};
-    viewport.x = 0;
-    viewport.y = 0;
-    viewport.width = mDrawExtent.width;
-    viewport.height = mDrawExtent.height;
-    viewport.minDepth = 0.f;
-    viewport.maxDepth = 1.f;
-
-    vkCmdSetViewport(cmd, 0, 1, &viewport);
-
-    VkRect2D scissors = {};
-    scissors.offset.x = 0;
-    scissors.offset.y = 0;
-    scissors.extent.width = mDrawExtent.width;
-    scissors.extent.height = mDrawExtent.height;
-
-    vkCmdSetScissor(cmd, 0, 1, &scissors);
-
-    static float distance = -5.f;
-    distance = distance * 1.0001f;
+    //pipeline.bind(cmd);
 
 
 
-    // translate from camera
-    glm::mat4 view = glm::translate(glm::vec3{0, 0, distance});
-    // camera projeciton
-    glm::mat4 projection = glm::perspective(glm::radians(70.0f)
-                                            , static_cast<float>(mDrawExtent.width)
-                                            / static_cast<float>(mDrawExtent.height)
-                                            , 0.0f, 100.f);
+    // vkCmdPushConstants(cmd, pipeline.Layout(), VK_SHADER_STAGE_VERTEX_BIT, 0
+    //                    , sizeof(drawPushConstants), &pushConstants);
 
-    // invert the y direction on projection matrix so that openGL images match Vulkan axis
-    projection[1][1] *= -1;
+    // vkCmdBindIndexBuffer(cmd, testModel.Mesh(2).IndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
-    drawPushConstants pushConstants;
-    pushConstants.vertexBuffer = testModel.Mesh(2).VertexBufferAddress();
-    pushConstants.worldMatrix = projection * view;
-
-    vkCmdPushConstants(cmd, pipeline.Layout(), VK_SHADER_STAGE_VERTEX_BIT, 0
-                       , sizeof(drawPushConstants), &pushConstants);
-
-    vkCmdBindIndexBuffer(cmd, testModel.Mesh(2).IndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
-
-    vkCmdDrawIndexed(cmd, testModel.Mesh(2).IndexCount(), 1, testModel.Mesh(2).getStartIndex(), 0, 0);
+    // vkCmdDrawIndexed(cmd, testModel.Mesh(2).IndexCount(), 1, testModel.Mesh(2).getStartIndex(), 0, 0);
 
     vkCmdEndRendering(cmd);
   }
-
 
   void FcRenderer::drawImGui(VkCommandBuffer cmd, VkImageView targetImageView)
   {
@@ -1098,6 +1191,9 @@ namespace fc
 
   uint32_t FcRenderer::beginFrame()
   {
+    // call to update scene immediately (before waiting on fences)
+    updateScene();
+
     // TODO put all ImGui stuff into renderer and maybe its own class
     // update ImGui
     // ImGui_ImplVulkan_NewFrame();
@@ -1131,6 +1227,11 @@ namespace fc
     {
       throw std::runtime_error("Failed to acquire Vulkan Swap Chain image!");
     }
+
+    mDrawExtent.height = std::min(mSwapchain.getSurfaceExtent().height
+                                  , mDrawImage.getExtent().height) * renderScale;
+    mDrawExtent.width = std::min(mSwapchain.getSurfaceExtent().width
+                                 , mDrawImage.getExtent().width) * renderScale;
 
     // manully un-signal (close) the fence ONLY when we are sure we're submitting work (result == VK_SUCESS)
     vkResetFences(pDevice, 1, &getCurrentFrame().renderFence);
@@ -1481,7 +1582,7 @@ namespace fc
     mDrawImage.destroy();
     mDepthImage.destroy();
 
-    testModel.destroy();
+    mTestMeshes.destroy();
 
     mGpu.release(mInstance);
 

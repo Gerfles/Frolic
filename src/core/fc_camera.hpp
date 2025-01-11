@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/fc_game_object.hpp"
+//#include "core/fc_game_object.hpp"
 #include "glm/mat4x4.hpp"
 
 namespace fc
@@ -12,8 +12,18 @@ namespace fc
      glm::mat4 mViewMatrix{1.0f};
      glm::mat4 mProjectionMatrix{1.0f};
      glm::mat4 mInverseViewMatrix{1.0f};
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     glm::vec3 mVelocity;
+     glm::vec3 mPosition;
+     // vertical rotation
+     float mPitch{0.f};
+     // Horizontal rotation
+     float mYaw{0.f};
 
-   public:
+     public:
+     //void processSDLEvent(SDL_Event& e);
+     void update();
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      void setOrthographicProjection(float left, float right, float top
                                                 , float bottom, float near, float far);
      void setPerspectiveProjection(float fovY, float aspect, float near, float far);

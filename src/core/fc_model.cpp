@@ -10,6 +10,7 @@
 
  // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES -*-*-*-*-*-*-*-*-*-*-*-*-*-
 // GLTF loading
+#include <cstdint>
 #include <fastgltf/core.hpp>
 #include <fastgltf/glm_element_traits.hpp>
 #include <fastgltf/tools.hpp>
@@ -42,6 +43,27 @@
 namespace fc {
 
   // TODO make sure we preallocate vectors before loading anything...
+
+  // void FcModel::bindDescriptorSets(VkCommandBuffer cmd
+  //                                  , VkDescriptorSet pDescriptorSet, uint32_t firstSet) const
+  // {
+  //   vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pMaterial->pPipeline->Layout()
+  //                           , firstSet, 1, &pDescriptorSet, 0, nullptr);
+  // }
+
+  // void FcModel::bindMaterialDescriptorSet(VkCommandBuffer cmd, uint32_t firstSet) const
+  // {
+  //   vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pMaterial->pPipeline->Layout()
+  //                           , firstSet, 1, &pMaterial->materialSet, 0, nullptr);
+  // }
+
+
+  // void FcModel::bindIndexBuffer(VkCommandBuffer cmd) const
+  // {
+  //   vkCmdBindIndexBuffer(cmd, mIndexBuffer.getVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
+  // }
+
+
 
   void FcModel::loadGltfMeshes(std::filesystem::path filePath)
   {
@@ -93,8 +115,6 @@ namespace fc {
       return;
     }
 
-
-
      // use the same vectors for all meshes so that the memory doesn't reallocate as often
      // TODO std::move
     std::vector<uint32_t> indices;
@@ -102,6 +122,9 @@ namespace fc {
 
     for (fastgltf::Mesh& mesh : gltf.meshes)
     {
+      FcMesh newMesh;
+      //newMesh.name = mesh.name;
+
        // clear the mesh arrays each mesh, we don't want to merge them by error
        // TODO change if can since these operations are O(N) (has to call destructor for each element)
       indices.clear();
@@ -113,15 +136,11 @@ namespace fc {
 
       for (auto&& primitive : mesh.primitives)
       {
-         // Surface newSurface;
-         // newSurface.startIndex = static_cast<uint32_t>(indices.size());
-         // newSurface.count = static_cast<uint32_t>(gltf.accessors[primitive.indicesAccessor.value()].count);
-
-        startIndex = static_cast<uint32_t>(indices.size());
-        Indexcount = static_cast<uint32_t>(gltf.accessors[primitive.indicesAccessor.value()].count);
+        Surface newSurface;
+         newSurface.startIndex = static_cast<uint32_t>(indices.size());
+         newSurface.count = static_cast<uint32_t>(gltf.accessors[primitive.indicesAccessor.value()].count);
 
         size_t initialVertex = vertices.size();
-
          // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   LOAD INDICES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
          // ?? not sure why these need to have the following scope
         {
@@ -182,10 +201,13 @@ namespace fc {
                                                         });
         }
 
+        newMesh.mSurfaces.push_back(newSurface);
       }
 
+
+
        // -*-*-*-*-*-*-*-*-*-*-*-*-   DISPLAY VERTEX NORMALS   -*-*-*-*-*-*-*-*-*-*-*-*- //
-      constexpr bool OverrideColors = true;
+      constexpr bool OverrideColors = false;
       if (OverrideColors)
       {
         for (Vertex2& vertex : vertices)
@@ -194,15 +216,17 @@ namespace fc {
         }
       }
 
+      // TODO check that we're not causing superfluous calls to copy constructor
        // TODO start here with optimizations, including a new constructor with name
-      FcMesh newMesh;
-      newMesh.uploadMesh2(name, vertices, indices);
-      newMesh.setIndexCounts(startIndex, Indexcount);
-      mMeshList.emplace_back(std::move(newMesh));
+      newMesh.mName = mesh.name;
+
+      // TODO create constructor for mesh so we can emplace it in place
+      newMesh.uploadMesh2(vertices, indices);
+      //mMeshList.emplace_back(std::move(newMesh));
 
        // TODO try and implement with shared pointers to meshes
        // std::vector<std::shared_ptr<FcMesh>> meshes;
-       // mMeshList.emplace_back(std::make_shared<FcMesh>(std::move(newMesh)));
+      meshes.emplace_back(std::make_shared<FcMesh>(std::move(newMesh)));
     }
   }
 
@@ -395,6 +419,11 @@ namespace fc {
 
   void FcModel::destroy()
   {
+    for (auto& mesh : meshes)
+    {
+      mesh->destroy();
+    }
+
 
     for (auto& mesh : mMeshList)
     {

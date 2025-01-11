@@ -45,7 +45,8 @@ namespace fc
 
 
      // get the x and y position of the mouse
-    mouseState = SDL_GetMouseState(&mouseX, &mouseY);
+    mouseState = SDL_GetRelativeMouseState(&mouseX, &mouseY);
+    //mouseState = SDL_GetMouseState(&mouseX, &mouseY);
 
      // get the key states of the mouse
     for (int i = 0; i < 3; i++)
@@ -58,16 +59,16 @@ namespace fc
 
   void FcInput::receiveEvent(SDL_Event &event)
   {
-     // make sure we have established a string to write to
+    // make sure we have established a string to write to
     if (p_text != NULL)
     {
-       // handle backspace while text editing
+      // handle backspace while text editing
       if (event.key.keysym.sym == SDLK_BACKSPACE && p_text->length() > 0 )
       {
         p_text->pop_back();
         m_hasTextUpdated = true;
       }
-       // allow return button to end the text editing events
+      // allow return button to end the text editing events
       else if (event.key.keysym.sym == SDLK_RETURN)
       {
         p_text = NULL;
@@ -79,6 +80,14 @@ namespace fc
         m_hasTextUpdated = true;
       }
     }
+
+    // Handle Mouse here??
+    if (event.type == SDL_MOUSEMOTION)
+    {
+      relativeX = event.motion.xrel;
+      relativeY = event.motion.yrel;
+    }
+
   }
 
 
@@ -194,6 +203,7 @@ namespace fc
   {
     SDL_WarpMouseInWindow(win, x, y);
   }
+
 
 
   void FcInput::hideCursor(bool hide)

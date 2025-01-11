@@ -1,6 +1,7 @@
 #pragma once
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "core/fc_mesh.hpp"
 #include "fc_billboard_render_system.hpp"
 #include "fc_camera.hpp"
 #include "fc_descriptors.hpp"
@@ -21,6 +22,7 @@
 #include <glm/vec3.hpp>
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <cstdint>
+#include <memory>
 #include <stdexcept>
 #include <vector>
 
@@ -124,17 +126,19 @@ namespace fc
      VkExtent2D mDrawExtent;
      float renderScale = 1.f;
      FcTextureAtlas textureAtlas;
-     FcModel testModel;
+     //FcModel testModel;
 
      VkDescriptorSetLayout mSceneDataDescriptorLayout;
      VkDescriptorSetLayout mSingleImageDescriptorLayout;
      VkDescriptorSetLayout mBackgroundDescriptorlayout;
 
      FcBuffer mSceneDataBuffer;
-     SceneData* pSceneData;
+
       // TODO try this single one instead of one in each frame
      VkDescriptorSet mSceneDataDescriptor;
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DEFAULTS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     SceneData* pSceneData;
+     //SceneData mSceneData;
      FcImage mWhiteTexture;
      FcImage mBlackTexture;
      FcImage mGreyTexture;
@@ -143,10 +147,16 @@ namespace fc
      VkSampler mDefaultSamplerNearest;
      MaterialInstance defaultMaterialData;
      GLTFMetallicRoughness mMetalRoughMaterial;
+     DrawContext mainDrawContext;
+
+     //std::vector<std::shared_ptr<FcMesh>> mTestMeshes;
+     FcModel mTestMeshes;
+     std::unordered_map<std::string, std::shared_ptr<Node>> loadedNodes;
 
    public:
-      //void setResizeFlag(bool shouldWindowResizeFlag) { mWindowResizeFlag = shouldWindowResizeFlag; }
-      // TODO probably best to issue multiple command buffers, one for each task
+     void updateScene();
+     //void setResizeFlag(bool shouldWindowResizeFlag) { mWindowResizeFlag = shouldWindowResizeFlag; }
+     // TODO probably best to issue multiple command buffers, one for each task
      bool shouldWindowResize() { return mShouldWindowResize; }
      VkCommandBuffer beginCommandBuffer();
      void submitCommandBuffer();
@@ -180,11 +190,12 @@ namespace fc
      void drawSimple(ComputePushConstants& pushConstans);
      void drawGeometry(FcPipeline& pipeline);
       // - GETTERS -
+
      VkDescriptorSetLayout getSceneDescriptorLayout() { return mSceneDataDescriptorLayout; }
       // TODO delete this probably and place background pipeline in renderer
      VkDescriptorSetLayout getBackgroundDescriptorLayout() { return mBackgroundDescriptorlayout; }
      VkDescriptorSetLayout getSingleImageDescriptorLayout() { return mSingleImageDescriptorLayout; }
-      FrameData& getCurrentFrame() { return mFrames[mFrameNumber % MAX_FRAME_DRAWS]; }
+     FrameData& getCurrentFrame() { return mFrames[mFrameNumber % MAX_FRAME_DRAWS]; }
       // ?? is this used often enough to merit a member variable?
      float AspectRatio() { return (float)mSwapchain.getSurfaceExtent().width / (float)mSwapchain.getSurfaceExtent().height; }
      VkRenderPass RenderPass() { return mSwapchain.getRenderPass(); }

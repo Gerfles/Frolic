@@ -29,7 +29,7 @@ namespace fc
     VkPushConstantRange matrixRange;
     matrixRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     matrixRange.offset = 0;
-    matrixRange.size = sizeof(drawPushConstants);
+    matrixRange.size = sizeof(DrawPushConstants);
 
     pipelineConfig.addPushConstants(matrixRange);
 
@@ -56,8 +56,8 @@ namespace fc
     pipelineConfig.setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE);
     pipelineConfig.setMultiSampling(VK_SAMPLE_COUNT_1_BIT);
     pipelineConfig.disableBlending();
-    pipelineConfig.enableDepthtest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
-    //pipelineConfig.enableDepthtest(true, VK_COMPARE_OP_GREATER);
+    pipelineConfig.enableDepthtest(true, VK_COMPARE_OP_GREATER);
+    //pipelineConfig.enableDepthtest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
 
     // TODO make pipeline and config and descriptors friend classes
     mOpaquePipeline.create3(pipelineConfig);
@@ -65,7 +65,7 @@ namespace fc
     // using the same pipeline config, alter slightly for transparent pipeline
     pipelineConfig.name = "Transparent Pipeline";
     pipelineConfig.enableBlendingAdditive();
-    pipelineConfig.enableDepthtest(false, VK_COMPARE_OP_GREATER_OR_EQUAL);
+    pipelineConfig.enableDepthtest(false, VK_COMPARE_OP_GREATER);
 
      mTransparentPipeline.create3(pipelineConfig);
   }

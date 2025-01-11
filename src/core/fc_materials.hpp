@@ -2,15 +2,16 @@
 
 #include "core/fc_descriptors.hpp"
 #include "fc_pipeline.hpp"
-#include "fc_image.hpp"
+// #include "fc_image.hpp"
+//#include <vulkan/vulkan_handles.hpp>
 #include <vulkan/vulkan_core.h>
-#include <cstdint>
+//#include <cstdint>
 
 
 namespace fc
 {
-  class FcPipeline;
   class FcRenderer;
+  class FcImage;
 
 enum class MaterialPass : uint8_t {
   MainColor,
@@ -42,8 +43,10 @@ enum class MaterialPass : uint8_t {
 
      struct MaterialResources
      {
+//        FcImage colorImage;
         FcImage* colorImage;
         VkSampler colorSampler;
+//        FcImage metalRoughImage;
         FcImage* metalRoughImage;
         VkSampler metalRoughSampler;
         FcBuffer* dataBuffer;
@@ -57,8 +60,4 @@ enum class MaterialPass : uint8_t {
 
      MaterialInstance writeMaterial(VkDevice device, MaterialPass pass, const MaterialResources& resources);
   };
-
-
-
-
 }

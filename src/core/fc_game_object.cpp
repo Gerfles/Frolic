@@ -2,6 +2,9 @@
 
 #include "core/fc_locator.hpp"
 #include "core/utilities.hpp"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
+#include "glm/glm.hpp"
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <memory>
 #include <vector>
 

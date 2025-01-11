@@ -1,15 +1,16 @@
 #pragma once
 
 
-// Frolic Engine
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 //#include "core/fc_descriptors.hpp"
 //#include "core/utilities.hpp"
 //#include "fc_buffer.hpp"
-// external libraries
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
-// std libraries
 #include "vk_mem_alloc.h"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include<string>
+
 
 
 namespace fc

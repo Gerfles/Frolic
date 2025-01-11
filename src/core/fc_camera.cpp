@@ -9,6 +9,15 @@
 
 namespace fc
 {
+  void FcCamera::update()
+  {
+    // glm::mat4 cameraRotation = getRotationMatrix();
+    // mPosition += glm::vec3(camerRotation * glm::vec4(mVelocity * 0.5f, 0.f));
+  }
+
+
+
+
   void FcCamera::setOrthographicProjection(float left, float right, float top
                                            , float bottom, float near, float far)
   {

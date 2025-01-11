@@ -7,7 +7,7 @@
 # #configure file to version number into source code
 # #----------------------------------------------------------------------
 # specify the C++ standard
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 
@@ -311,7 +311,7 @@ add_executable(${PROJECT_NAME}
  set(CMAKE_CXX_COMPILER  clang++)
  target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
 
-
+target_compile_definitions(${PROJECT_NAME} PUBLIC GLM_FORCE_DEPTH_ZERO_TO_ONE)
 
 # ?? in tutorial as:
 #add_library(frolic_compiler_flags INTERFACE)
@@ -373,6 +373,9 @@ elseif (UNIX)
     )
 
   endif()
+
+
+
 
   message(STATUS "Cmake C++ flags: ${CMAKE_CXX_FLAGS}")
 

@@ -1,9 +1,8 @@
 #include "fc_mesh.hpp"
-#include <SDL_log.h>
-
 
 // - FROLIC ENGINE -
-//
+#include "fc_model.hpp"
+
 // - EXTERNAL LIBRARIES -
 #include "core/fc_locator.hpp"
 #include "vulkan/vulkan_core.h"
@@ -12,13 +11,76 @@
 #include <cstdio>
 #include <cstring>
 #include <iostream>
+#include <memory>
 #include <span>
 #include <stdexcept>
 
-
+//#include "utilities.hpp"
 
 namespace fc
 {
+
+
+  void RenderObject::bindDescriptorSet(VkCommandBuffer cmd
+                                   , VkDescriptorSet descriptorSet, uint32_t firstSet) const
+  {
+    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, material->pPipeline->Layout()
+                            , firstSet, 1, &descriptorSet, 0, nullptr);
+  }
+
+
+  void RenderObject::bindIndexBuffer(VkCommandBuffer cmd) const
+  {
+    vkCmdBindIndexBuffer(cmd, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+  }
+
+
+  void Node::refreshTransform(const glm::mat4& parentMatrix)
+  {
+    worldTransform = parentMatrix * localTransform;
+
+    for (std::shared_ptr<Node> child : children)
+    {
+      child->refreshTransform(worldTransform);
+    }
+  }
+
+
+  void Node::draw(const glm::mat4& topMatrix, DrawContext& context)
+  {
+    // draw children
+    // ?? do we need the & here??
+    for (std::shared_ptr<Node>& child : children)
+    {
+      child->draw(topMatrix, context);
+    }
+  }
+
+
+  void MeshNode::draw(const glm::mat4& topMatrix, DrawContext& context)
+  {
+    glm::mat4 nodeMatrix = topMatrix * worldTransform;
+
+    for (const Surface& surface : mesh->mSurfaces)
+    {
+      RenderObject renderObj;
+      renderObj.indexCount = surface.count;
+      renderObj.firstIndex = surface.startIndex;
+      renderObj.indexBuffer = mesh->IndexBuffer();
+      renderObj.material = &surface.material->data;
+
+      renderObj.transform = nodeMatrix;
+      renderObj.vertexBufferAddress = mesh->VertexBufferAddress();
+
+      context.opaqueSurfaces.push_back(renderObj);
+    }
+
+    // recurse down children nodes
+    Node::draw(topMatrix, context);
+  }
+
+
+
    // TODO might be better to have as a constructor
   FcMesh::FcMesh(std::vector<Vertex>& vertices
                  , std::vector<uint32_t>& indices, uint32_t descriptorID)
@@ -35,11 +97,10 @@ namespace fc
 //execute before continuing with our CPU side logic. This is something people generally put on a
 //background thread, whose sole job is to execute uploads like this one, and deleting/reusing the
 //staging buffers.
-  void FcMesh::uploadMesh2(std::string name, std::span<Vertex2> vertices, std::span<uint32_t> indices)
+
+  void FcMesh::uploadMesh2(std::span<Vertex2> vertices, std::span<uint32_t> indices)
   {
-
-
-    mName = name;
+    // mName = name;
 
      // *-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE VERTEX BUFFER   *-*-*-*-*-*-*-*-*-*-*-*-*- //
      // get buffer size needed to store vertices
@@ -82,11 +143,11 @@ namespace fc
   // }
 
 
-  void FcMesh::setIndexCounts(uint32_t start, uint32_t count)
-  {
-    startIndex = start;
-    mIndexCount = count;
-  }
+  // void FcMesh::setIndexCounts(uint32_t start, uint32_t count)
+  // {
+  //   // startIndex = start;
+  //   // mIndexCount = count;
+  // }
 
 
 
@@ -112,10 +173,10 @@ namespace fc
   void FcMesh::createVertexBuffer(std::vector<Vertex>& vertices)
   {
      // initialize the Mesh object
-    mVertexCount = vertices.size();
+    //mVertexCount = vertices.size();
 
      // get buffer size needed to store vertices
-    VkDeviceSize bufferSize = sizeof(Vertex) * mVertexCount;
+    VkDeviceSize bufferSize = sizeof(Vertex) * vertices.size();//mVertexCount;
 
      // map memory to vertex buffer (copy vertex data into buffer)
      // Now create the buffer in GPU memory so we can transfer our RAM data there
@@ -127,21 +188,14 @@ namespace fc
    // TODO could condense this into one "create() function and just pass both vertices and indices" could also combine with a transferToGpu() function in buffer
   void FcMesh::createIndexBuffer(std::vector<uint32_t>& indices)
   {
-    mIndexCount = static_cast<uint32_t>(indices.size());
+    //mIndexCount = static_cast<uint32_t>(indices.size());
 
      // get buffer size needed to store indices
-    VkDeviceSize bufferSize = sizeof(uint32_t) * mIndexCount;
+    VkDeviceSize bufferSize = sizeof(uint32_t) * indices.size();//mIndexCount;
 
      // Now create the buffer
     mIndexBuffer.storeData(indices.data(), bufferSize
                            , VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-  }
-
-
-
-  void FcMesh::setModel(glm::mat4 newModel)
-  {
-     //mUboModel.model = newModel;
   }
 
 

@@ -22,6 +22,9 @@ namespace fc
 
      int mouseX;
      int mouseY;
+     // TODO finish
+     float relativeX;
+     float relativeY;
 
      std::string* p_text; // pointer to string for storing text input data
      bool m_hasTextUpdated; // signifies if text input has been received

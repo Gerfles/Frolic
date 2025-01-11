@@ -22,6 +22,9 @@ namespace fc
     if (mInput.keyDown(keys.lookUp)) rotate.x += 4.f;
     if (mInput.keyDown(keys.lookDown)) rotate.x -= 4.f;
 
+    //rotate.x += static_cast<float>(mInput.getMouseX()) / 200.f;
+
+
      // make sure not to normalize a zero vector
      // epsilon is a better check since comparing a float to zero has its limitations
     if (glm::dot(rotate, rotate) > std::numeric_limits<float>::epsilon())
