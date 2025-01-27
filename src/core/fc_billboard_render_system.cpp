@@ -107,7 +107,7 @@ FcBillboard::FcBillboard(float width, float height, glm::vec4 color)
     // pipelineConfig.attributeDescriptions.clear();
     // billboardConfig.disableVertexRendering();
 
-    pipeline.create3(billboardConfig);
+    pipeline.create(billboardConfig);
   }
 
 

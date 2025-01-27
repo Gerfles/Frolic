@@ -82,11 +82,14 @@ namespace fc
             .imageView = image.ImageView(),
             .imageLayout = layout } );
 
+
     VkWriteDescriptorSet descriptorWrite{};
     descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrite.descriptorType = type;
     descriptorWrite.dstBinding = bindSlot;
     descriptorWrite.descriptorCount = 1;
+
+
     // leave blank for now until it's time to write descriptor set
     descriptorWrite.dstSet = VK_NULL_HANDLE;
     descriptorWrite.pBufferInfo = VK_NULL_HANDLE;

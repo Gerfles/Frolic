@@ -173,6 +173,7 @@ cmake_minimum_required(VERSION 3.11.0)
 
 set(NAME frolic)
 
+
 #output the compile commands
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -181,6 +182,13 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # always compile for debugging
 set(CMAKE_BUILD_TYPE DEBUG)
+
+# NOT WORKING BUT SHOULD MAKE
+# if (NOT CMAKE_BUILD_TYPE EQUAL DEBUG)
+#   # TODO should substitute this keyword for you own probably
+#   add_compile_definitions(NDEBUG)
+# endif()
+
 
 message(STATUS "using Cmake Generator: ${CMAKE_GENERATOR}")
 if (CMAKE_GENERATOR STREQUAL "MinGW Makefiles")
@@ -425,8 +433,8 @@ file(COPY fonts DESTINATION ${CMAKE_BINARY_DIR})
 #file(COPY audio DESTINATION ${CMAKE_BINARY_DIR})
 file(COPY maps DESTINATION ${CMAKE_BINARY_DIR})
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/shaders)
-file(COPY models DESTINATION ${CMAKE_BINARY_DIR})
-file(COPY textures DESTINATION ${CMAKE_BINARY_DIR})
+# file(COPY models DESTINATION ${CMAKE_BINARY_DIR})
+# file(COPY textures DESTINATION ${CMAKE_BINARY_DIR})
 file(COPY shaders/compile_shaders.sh DESTINATION ${CMAKE_BINARY_DIR})
 
 #file(COPY) compile_commands.json DESTINAMTION ../

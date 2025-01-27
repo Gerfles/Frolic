@@ -4,19 +4,9 @@
 
 
 const float FcTimer::TICK_PERIOD = 1.0 / (double)SDL_GetPerformanceFrequency();
-
 //static const TICK_PERIOD = 1.0 / (double)SDL_GetPerformanceFrequency();
 
-
-FcTimer::FcTimer()
-{
-  mStartTicks = 0;
-  mPausedTicks = 0;
-  mIsPaused = false;
-  mHasStarted = false;
-}
-
-
+// TODO consider using std::chrono::system_clock... etc;
 void FcTimer::start()
 {
   // start the timer

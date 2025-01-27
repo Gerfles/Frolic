@@ -5,6 +5,7 @@
 //#include "fc_pipeline.hpp"
 #include "core/fc_materials.hpp"
 //#include "core/fc_model.hpp"
+#include "core/utilities.hpp"
 #include "fc_buffer.hpp"
 // - EXTERNAL LIBRARIES -
 #include "glm/mat4x4.hpp"
@@ -24,38 +25,24 @@ namespace fc
   class FcModel;
   struct DrawContext;
 
-// Vertex data representation
+//I've seen recommendations to have a binding for anything needed for calculating gl_Position, and a
+//second binding for everything else. So hardware that does a pre-pass to bin by position only has
+//to touch the relevant half of the data.
   struct Vertex
-  {
-     glm::vec3 position; // vertex position (x, y, z)
-     glm::vec3 color; // vertex color (r, g, b)
-     glm::vec3 normal;
-     glm::vec2 texCoord; // texel coordinates(u, v)
-
-     // void print()
-     //  {
-     //    std::cout << "Vertex: Position(" << pos.x << ", " << pos.y << ", " << pos.z << ")"
-     //              << "        Color(" << col.r << ", " << col.g << ", " << col.b << ")"
-     //              << "        TexCoord(" << tex.x << ", " << tex.y << ")" << std::endl;
-     //  }
-     bool operator==(const Vertex& rhs) const
-      {
-        return position == rhs.position && color == rhs.color && normal == rhs.normal && texCoord == rhs.texCoord;
-      }
-  };
-
-  struct Vertex2
   {
      glm::vec3 position;
      float uv_x;
      glm::vec3 normal;
      float uv_y;
-     glm::vec4 color;
+     //glm::vec4 color; // not needed with pbr
+     glm::vec4 tangent;
+     // TODO could add some features like a print function, etc.
   };
 
   struct DrawPushConstants
   {
      glm::mat4 worldMatrix;
+     glm::mat4 normalTransform;
      VkDeviceAddress vertexBuffer;
   };
 
@@ -70,7 +57,8 @@ namespace fc
   // base class for a renderable dynamic object
   class IRenderable
   {
-     virtual void draw(const glm::mat4& topMatrix, DrawContext& ctx) = 0;
+     virtual void draw(DrawContext& ctx) = 0;
+     virtual void update(const glm::mat4& topMatrix) = 0;
   };
 
   // implementation of a drawable scene node. The scene node can hold Children and will also keep
@@ -84,17 +72,25 @@ namespace fc
 
      glm::mat4 localTransform;
      glm::mat4 worldTransform;
-
      void refreshTransform(const glm::mat4& parentMatrix);
-     virtual void draw(const glm::mat4& topMatrix, DrawContext& context);
+     virtual void draw(DrawContext& context);
+     virtual void update(const glm::mat4& topMatrix);
   };
 
 
   struct MeshNode : public Node
   {
      std::shared_ptr<FcMesh> mesh;
+     virtual void draw(DrawContext& context) override;
+     virtual void update(const glm::mat4& topMatrix) override;
+  };
 
-     virtual void draw(const glm::mat4& topMatrix, DrawContext& context) override;
+
+  struct Bounds
+  {
+     glm::vec3 origin;
+     float sphereRadius;
+     glm::vec3 extents;
   };
 
 
@@ -107,11 +103,14 @@ namespace fc
 
      MaterialInstance* material;
      glm::mat4 transform;
+     glm::mat4 invModelMatrix;
+     Bounds bounds;
      VkDeviceAddress vertexBufferAddress;
-     void bindPipeline(VkCommandBuffer cmd) const { material->pPipeline->bind(cmd); }
+     void bindPipeline(VkCommandBuffer cmd) const {  material->pPipeline->bind(cmd); }
      void bindDescriptorSet(VkCommandBuffer cmd
-                             , VkDescriptorSet descriptorSet, uint32_t firstSet) const;
+                            , VkDescriptorSet descriptorSet, uint32_t firstSet) const;
      void bindIndexBuffer(VkCommandBuffer cmd) const;
+     bool isVisible(const glm::mat4& viewProj);
   };
 
   struct GLTFMaterial
@@ -120,12 +119,13 @@ namespace fc
   };
 
 
-    struct Surface
-    {
-       uint32_t startIndex{0};
-       uint32_t count{0};
-       std::shared_ptr<GLTFMaterial> material;
-    };
+  struct Surface
+  {
+     uint32_t startIndex{0};
+     uint32_t count{0};
+     Bounds bounds;
+     std::shared_ptr<GLTFMaterial> material;
+  };
 
   // FIXME Should think about lightening this class or making it a wrapper class for a struct with quickly
   // accessible variables, etc.
@@ -155,28 +155,30 @@ namespace fc
      // TODO try and implement with shared pointers to meshes
      // std::vector<std::shared_ptr<FcMesh>> meshes;
    public:
-          std::string mName;
+     std::string mName;
      std::vector<Surface> mSurfaces;
      //     const std::vector<Surface>& getSurfaces() { return mSurfaces; }
-
+     ~FcMesh() { fcLog("Deleting FcMesh");}
      // TODO pass by referenced and verify operation
      // ?? ?? for some reason we cant call the following class with fastgltf::mesh.name
      // since it uses an std::pmr::string that only seems to be able to bind to a public
      // class member?? TODO researce PMR
-     void uploadMesh2(std::span<Vertex2> vertices, std::span<uint32_t> indices);
+     void uploadMesh2(std::span<Vertex> vertices, std::span<uint32_t> indices);
 
      //void setIndexCounts(uint32_t start, uint32_t count);
      //uint32_t getStartIndex(int ) { return mSurfaces; }
 
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      FcMesh() = default;
+     FcMesh(const FcMesh&) = delete;
+
      FcMesh(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, uint32_t descriptorID);
      // void createMesh(std::vector<Vertex>& vertices
      //                 , std::vector<uint32_t>& indices, uint32_t textureID);
 
      void setModel(glm::mat4 newModel);
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   GETTERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-     std::string name() { return mName; }
+     std::string& name() { return mName; }
      // const ModelMatrix& getModel() { return mUboModel; }
      //uint32_t VertexCount() const { return mVertexCount; }
      //uint32_t IndexCount() const { return mIndexCount; }
@@ -187,7 +189,7 @@ namespace fc
      VkDeviceAddress VertexBufferAddress() { return mVertexBufferAddress; }
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CLEANUP   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      void destroy();
-     ~FcMesh() = default;
+     //~FcMesh() = default;
 
   };
 

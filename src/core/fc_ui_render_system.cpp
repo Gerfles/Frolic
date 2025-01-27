@@ -37,7 +37,7 @@ namespace fc
     // pipelineConfig.bindingDescriptions.clear();
     // pipelineConfig.attributeDescriptions.clear();
 
-    pipeline.create3(uiConfig);
+    pipeline.create(uiConfig);
   }
 
 

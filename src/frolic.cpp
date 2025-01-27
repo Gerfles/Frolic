@@ -1,32 +1,33 @@
 #include "frolic.hpp"
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "core/fc_descriptors.hpp"
+//#include "core/fc_descriptors.hpp"
 #include "core/fc_game_object.hpp"
 #include "core/fc_font.hpp"
 #include "core/fc_light.hpp"
 #include "core/fc_locator.hpp"
-#include "core/fc_mesh.hpp"
+//#include "core/fc_mesh.hpp"
 #include "core/fc_model.hpp"
-
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "SDL2/SDL_version.h"
-#include "SDL2/SDL_video.h"
-#include "core/fc_pipeline.hpp"
+//#include "core/fc_pipeline.hpp"
 #include "core/fc_player.hpp"
 #include "core/fc_text.hpp"
 #include "core/utilities.hpp"
+//#include "core/fc_timer.hpp"
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "SDL2/SDL_version.h"
+#include "SDL2/SDL_video.h"
+//
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_vulkan.h"
+//
 #include "vulkan/vulkan_core.h"
+//
 #include <glm/gtx/transform.hpp>
-
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
-
 #include <iostream>
 #include <string>
 
@@ -71,11 +72,16 @@ namespace fc
     // features13.dynamicRendering = true;
     // features13.synchronization2 = true;
 
+    // TODO TRY to pull some stuff out of render initialize and have init VK systems?
      //TODO should maybe define our own exit_success and failure codes for debugging later
     if (mRenderer.init(appInfo, screenDims) != EXIT_SUCCESS)
     {
       mShouldClose = true;
     }
+
+    mSceneDataBuffer.allocateBuffer(sizeof(SceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+
+    mRenderer.initDefaults(mSceneDataBuffer, &mSceneData);
 
      // zero out the ticklist for performance tracking
     std::memset(mFrameTimeList, 0, sizeof(mFrameTimeList));
@@ -84,6 +90,11 @@ namespace fc
      // Need to load this in first so it can be Texture 0 for default
      // TODO set this as a static variable
     mInput.init();
+    std::cout << "log: screenwidth:height" << mRenderer.ScreenWidth() << mRenderer.ScreenHeight() << std::endl;
+
+    // NOTE: must use screen dimension not pixel width and height
+    // TODO should make a better distinction and perhaps have it available globally
+    mInput.setMouseDeadzone(50, screenDims.width, screenDims.height);
 
     initPipelines();
   }
@@ -111,7 +122,7 @@ namespace fc
   {
      // store default textures for when texture file is unfound, etc.
      // TODO handle this with texture atlas
-    mFallbackTexture.loadTexture("plain.png");
+    //mFallbackTexture.loadTexture("plain.png");
     FcLight::loadDefaultTexture("point_light.png");
 
     // Load the castle object
@@ -174,6 +185,7 @@ namespace fc
 
   void Frolic::initPipelines()
   {
+
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   GRADIENT PIPELINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 //    Make sure to initialize the FcPipelineCreateInfo with the number of stages we want
     FcPipelineConfig pipelineConfig{1};
@@ -188,23 +200,28 @@ namespace fc
 
     pipelineConfig.addPushConstants(pushRange);
 
+    pipelineConfig.setMultiSampling(FcLocator::Gpu().Properties().maxMsaaSamples);
+
     // addBinding() not needed since there's alread a descriptorSetLayout for pipeline
     pipelineConfig.addDescriptorSetLayout(mRenderer.getBackgroundDescriptorLayout());
+    // pipelineConfig.disableBlending();
+    //pipelineConfig.disableDepthtest();
+    // pipelineConfig.enableBlendingAlpha();
 
-    mGradientPipeline.create3(pipelineConfig);
+    mGradientPipeline.create(pipelineConfig);
 
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   SKY PIPELINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     pipelineConfig.name = "Sky Pipeline";
     pipelineConfig.shaders[0].filename = "sky.comp.spv";
 
-    mSkyPipeline.create3(pipelineConfig);
-
+    mSkyPipeline.create(pipelineConfig);
     mPipelines.push_back(&mSkyPipeline);
     mPipelines.push_back(&mGradientPipeline);
 
     mPushConstants[0].data1 = glm::vec4{0.1, 0.2, 0.4, 0.97};
     mPushConstants[1].data1 = glm::vec4(1,0,0,1);
     mPushConstants[1].data2 = glm::vec4(0,1,0,1);
+
     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   MESH PIPELINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     // FcPipelineConfig meshConfig{2};
     // meshConfig.name = "Mesh";
@@ -249,65 +266,32 @@ namespace fc
 
   void Frolic::run()
   {
-    fcLog("run()", 0);
-
-    float deltaTime = 0.0f;
-
-    mTimer.start();
-
+    // Initialize player controls and position
     FcPlayer player{mInput};
-    player.setPosition(glm::vec3(0.f, 0.f, -5.f));
+    //player.setPosition(glm::vec3(30.f, -00.f, -85.f));
+    player.setPosition(glm::vec3(0.f, 0.f, 2.0f));
 
-
-
-     // Simple first person camera
-     // TODO make function calls more expressive
+    // Initialize simple first person camera
     FcCamera camera;
+    mSceneData.projection = glm::perspective(glm::radians(70.0f), mRenderer.aspectRatio(), 10000.f, 0.01f);
+    //mSceneData.projection = glm::perspective(glm::radians(70.0f), mRenderer.aspectRatio(), 10000.f, 0.1f);
+    mSceneData.projection[1][1] *= -1;
+    // camera.setViewTarget(glm::vec3{0,0,5}, glm::vec3{0,0,-1})
 
     int currentBackgroundEffect{0};
 
-
-    camera.setPerspectiveProjection(glm::radians(70.0f), mRenderer.AspectRatio(), 10000.f, 0.1f);
-    //mUbo.projection = camera.Projection();
-
+    // FIXME
+    // SDL_ShowCursor(SDL_DISABLE);
 
 
-    camera.setViewDirection(glm::vec3(0.f, 0.f, -5.f), glm::vec3(0.f, 0.f, 0.f));
-    mSceneData.view = camera.View();
-    mSceneData.projection = camera.Projection();
-    mSceneData.viewProj = mSceneData.projection * mSceneData.view;
-
-
-    static float distance = -3.5f;
-    distance = distance * 1.00001f;
-
-    // TODO delete
-    // translate from camera
-    mSceneData.view = glm::translate(glm::vec3{0.f, 0.f, distance});
-    // camera projeciton
-
-    mSceneData.projection = glm::perspective(glm::radians(45.0f)
-                                             , static_cast<float>(mWindow.ScreenSize().width)
-                                             / static_cast<float>(mWindow.ScreenSize().height)
-                                             , 10000.f, 0.1f);
-
-    // invert the y direction on projection matrix so that openGL images match Vulkan axis
-    mSceneData.projection[1][1] *= -1;
-    mSceneData.viewProj = mSceneData.projection * mSceneData.view;
-
-
- // default lighting parameters
-    mSceneData.ambientLight = glm::vec4(.1f);
-    mSceneData.sunlightColor = glm::vec4(1.f);
-    mSceneData.sunlightDirection = glm::vec4(0.f, 1.f, 0.5f, 1.f);
-
-    mSceneDataBuffer.overwriteData(&mSceneData, sizeof(SceneData));
-
-
-
-    // attach camera
-    mRenderer.attachSceneData(&mSceneData);
-    //FcCamera testCamera = camera;
+     // default lighting parameters
+//    mSceneData.ambientLight = glm::vec4(1.0f, 0.05f, 0.05f, .5f);
+    //mSceneData.ambientLight = glm::vec4(1.0f, 0.05f, 0.05f, .3f);
+    mSceneData.ambientLight = glm::vec4(0.2f);
+//    mSceneData.ambientLight = glm::vec4(1.0f, 1.0f, 1.0f, 0.3f);
+    mSceneData.sunlightColor = glm::vec4(1.f);//, 1.f, 1.f, 1.0);
+    //mSceneData.sunlightDirection = glm::vec4(2.f, 10.f, -3.f, 1.f);
+    mSceneData.sunlightDirection = glm::vec4(0.f, 10.f, -3.f, 1.f);
 
      // load everything we need for the scene
     fcLog("skipping loading objects.");
@@ -317,6 +301,10 @@ namespace fc
     fcLog("done loading objects.");
      // TODO this should be abstracted into engine
 
+    fcLog("Frolic Initialized: Starting main run loop", 0);
+    FcTimer mTimer;
+    mTimer.start();
+    float deltaTime = 0.0f;
 
     // TODO separate to make entirely own function
     while (!mShouldClose)
@@ -363,34 +351,39 @@ namespace fc
         {
           mRenderer.handleWindowResize();
         }
-
          // Send SDL event to imGUi for handling
         ImGui_ImplSDL2_ProcessEvent(&mEvent);
       }
-
        // TODO consider creating a timer that better represents time in seconds instead of milliseconds
        // that way we don't need to divide by 1000 to get a better representation of what's going on...
        // could consider bit-shifting by 1024 to get there also
       deltaTime = mTimer.elapsedTime();
-
-       // update keyboard and game controller state and use that to mover the player (and thus camera)
-      mInput.update();
-      player.move(deltaTime, camera);
-
-       // now re-start the time so that the start time is the start of each frame
+      mRenderer.stats.frametime = deltaTime;
+      mRenderer.stats.fpsAvg = calcFPS(deltaTime);
+      // now re-start the time so that the start time is the start of each frame
       mTimer.start();
 
+
+      // update keyboard and game controller state and use that to mover the player (and thus camera)
+      mInput.update();
+      player.move(deltaTime);
+      camera.update(player);
       //update(deltaTime);
 
+      // TODO not robust as getview must happen before inverseView
+      //camera.setViewTarget(glm::vec3{0,0,4.0}, glm::vec3{0,0,-1});
+      mSceneData.eye = camera.Position();
+      mSceneData.view = camera.getViewMatrix();//View();
+      mSceneData.inverseView = camera.InverseView();
+      //mSceneData.view = glm::scale(mSceneData.view, glm::vec3(15.0f, 15.0f, 15.0f));
+      //mSceneData.view = camera.View();
+     // mSceneData.view = glm::translate(glm::vec3{0.f, 0.f, -4.f});
 
-       // TODO keep only one
-      // mUbo.view = camera.View();
-      // mUbo.projection = camera.Projection();
-      // mUbo.invView = camera.InverseView();
-      mSceneData.view = camera.View();
-      mSceneData.projection = camera.Projection();
+
+      // TODO account for this in camera
       mSceneData.viewProj = mSceneData.projection * mSceneData.view;
 
+      mSceneDataBuffer.overwriteData(&mSceneData, sizeof(SceneData));
 
        // -*-*-*-*-*-*-*-*-*-*-*-*-*-   START THE NEW FRAME   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
       uint32_t swapchainImgIndex = mRenderer.beginFrame();
@@ -399,44 +392,51 @@ namespace fc
 
       mRenderer.attachPipeline(selected);
 
-       // test ImGui UI
-
+      // test ImGui UI
       // Left here to add a demo windo that names all the features for (handy for searching)
-       //ImGui::ShowDemoWindow();
+      //ImGui::ShowDemoWindow();
 
-      if (ImGui::Begin("background"))
+      if (ImGui::Begin("Frolic Stats"))
       {
          // TODO getrenderScale should be deleted
-        ImGui::SliderFloat("Render Scale", mRenderer.getRenderScale(), 0.2f, 1.0f);
+        //ImGui::SliderFloat("Render Scale", mRenderer.getRenderScale(), 0.2f, 1.0f);
+        // ImGui::Text("Selected Effect: %s", selected->Name());
+        // ImGui::SliderInt("Efect Index", &currentBackgroundEffect, 0, mPipelines.size() - 1);
+        // ImGui::InputFloat4("Data1", (float*)& mPushConstants[currentBackgroundEffect].data1);
+        // ImGui::InputFloat4("Data2", (float*)& mPushConstants[currentBackgroundEffect].data2);
+        // ImGui::InputFloat4("Data3", (float*)& mPushConstants[currentBackgroundEffect].data3);
+        // ImGui::InputFloat4("Data4", (float*)& mPushConstants[currentBackgroundEffect].data4);
+        ImGui::SliderFloat("Movement Speed", &player.moveSpeed(), 1, 10);
+        ImGui::Text("Frame time: %f ms", mRenderer.stats.frametime);
+        ImGui::Text("Average FPS: %i", mRenderer.stats.fpsAvg);
+        ImGui::Text("Draw time: %f ms", mRenderer.stats.meshDrawTime);
+        ImGui::Text("Update time: %f ms", mRenderer.stats.sceneUpdateTime);
+        ImGui::Text("Triangles rendered: %i", mRenderer.stats.triangleCount);
+        ImGui::Text("Total objects rendered: %i", mRenderer.stats.objectsRendered);
 
-        ImGui::Text("Selected Effect: %s", selected->Name());
+        int relX, relY;
+        mInput.RelativeMousePosition(relX, relY);
+        ImGui::Text("Mouse X pos: %i", mInput.getMouseX());
+        ImGui::Text("Mouse Y pos: %i", mInput.getMouseY());
 
-        ImGui::SliderInt("Efect Index", &currentBackgroundEffect, 0, mPipelines.size() - 1);
 
-        ImGui::InputFloat4("Data1", (float*)& mPushConstants[currentBackgroundEffect].data1);
-        ImGui::InputFloat4("Data2", (float*)& mPushConstants[currentBackgroundEffect].data2);
-        ImGui::InputFloat4("Data3", (float*)& mPushConstants[currentBackgroundEffect].data3);
-        ImGui::InputFloat4("Data4", (float*)& mPushConstants[currentBackgroundEffect].data4);
+        // TODO check the official way to use ImGui via the imgui example source code
+        ImGui::End();
+        //ImGui::EndFrame();
+
+        // make ImGui calculate internal draw structures
+        ImGui::Render();
       }
 
-      ImGui::End();
-       //ImGui::EndFrame();
+      //mRenderer.drawModels(swapchainImgIndex, mUbo);
 
-      ImGui::Render();
-       // // make ImGui calculate internal draw structures
-
-
-       //mRenderer.drawModels(swapchainImgIndex, mUbo);
-
-       //mRenderer.drawBillboards(camera.Position(), frame, mUbo);
-
-       //std::cout << fpsString + fps;
+      //mRenderer.drawBillboards(camera.Position(), frame, mUbo);
 
        //mRenderer.drawUI(mUItextList, frame);
 
-      mRenderer.drawSimple(mPushConstants[currentBackgroundEffect]);
+      mRenderer.drawBackground(mPushConstants[currentBackgroundEffect]);
 
-      mRenderer.drawGeometry(mMeshPipeline);
+      mRenderer.drawGeometry();
 
        mRenderer.endFrame(swapchainImgIndex);
 
@@ -458,6 +458,7 @@ namespace fc
 
 
     glm::mat4 rotateMat = glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3(0.0f, 1.0f, 0.0f));
+
 
      //TODO get rid of and just rotate camera
      rotateMat = glm::rotate(rotateMat, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
@@ -503,8 +504,8 @@ namespace fc
 
     auto lights = FcLocator::Lights();
     //
-    for (size_t i = 0; i < lights.size() - 1; ++i) {
-
+    for (size_t i = 0; i < lights.size() - 1; ++i)
+    {
       // light->Transform().translation = glm::vec3(rotateMat *
       // glm::vec4(light->Transform().translation, 1.f));
       glm::vec4 v = lights[i]->getPosition();
@@ -552,17 +553,18 @@ namespace fc
      // store the most recent frame in our array so we can subtract it from the total the next time around
     mFrameTimeList[mFrameTimeIndex] = lastFrameTime;
 
-     // TODO eventually get rid of this metric
+     // TODO eventually improve on this metric
     if (mFrameTimeIndex == MAX_FRAME_SAMPLES - 1)
     {
       float avgFrameTime = 0.0f;
 
-      for (int i = 0; i < MAX_FRAME_SAMPLES; ++i)
+      // Start at one so we don't count the first frame
+      for (int i = 1; i < MAX_FRAME_SAMPLES; ++i)
       {
         avgFrameTime += mFrameTimeList[i];
       }
 
-      avgFrameTime = MAX_FRAME_SAMPLES/avgFrameTime;
+      avgFrameTime = (MAX_FRAME_SAMPLES - 1)/avgFrameTime;
 
        //      std::cout << "average frames per second: " << avgFrameTime << std::endl;
     }
@@ -578,15 +580,18 @@ namespace fc
 
   void Frolic::close()
   {
-    mInput.kill();
-
-     // TODO I think that since we have the one device wait idle, we can eliminate all others
+    // TODO I think that since we have the one device wait idle, we can eliminate all others
     vkDeviceWaitIdle(FcLocator::Device());
+
+    mInput.kill();
 
      // free image resources
     mFallbackTexture.destroy();
-
+    //
     mMeshPipeline.destroy();
+
+    // Destroy data buffer with scene data
+    mSceneDataBuffer.destroy();
 
     FcLight::destroyDefaultTexture();
 

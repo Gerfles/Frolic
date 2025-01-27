@@ -11,7 +11,10 @@ namespace fc
   class FcInput
   {
    private:
-      // internal storage of all the keyboard key states
+     // TODO make into constexpr
+     void determineDeadZone();
+
+     // internal storage of all the keyboard key states
      bool keyStates1[SDL_NUM_SCANCODES];
      bool keyStates2[SDL_NUM_SCANCODES];
      bool* currKeyStates;
@@ -20,15 +23,21 @@ namespace fc
      bool mouseKeys[3];
      bool prevMouseKeys[3];
 
-     int mouseX;
-     int mouseY;
-     // TODO finish
-     float relativeX;
-     float relativeY;
+     int mMouseX {0};
+     int mMouseY {0};
+     int mPrevMouseX {0};
+     int mPrevMouseY {0};
+     //
+     int mDeadzoneRadius {0};
+     int mCenterX {0};
+     int mCenterY {0};
+     float relativeX {0};
+     float relativeY {0};
 
      std::string* p_text; // pointer to string for storing text input data
      bool m_hasTextUpdated; // signifies if text input has been received
      Uint32 mouseState;
+
    public:
       //?? perhaps forego these to use SDL_BUTTON(x)
      static const int MOUSE_LEFT = 1;
@@ -36,6 +45,7 @@ namespace fc
      static const int MOUSE_RIGHT = 3;
 
      void init();
+     void setMouseDeadzone(int radiusInPixels, int screenWidth, int screenHeight);
      void update();
      void kill();
 
@@ -50,8 +60,9 @@ namespace fc
      void setMousePos(SDL_Window* win, int x, int y);
      void hideCursor(bool hide = true);
 
-     int getMouseX() { return mouseX; }
-     int getMouseY() { return mouseY; }
+     void RelativeMousePosition(int &mouseX, int &mouseY);
+     int getMouseX() { return mMouseX; }
+     int getMouseY() { return mMouseY; }
 
       // text input function
      void enableTextInput(std::string* text);

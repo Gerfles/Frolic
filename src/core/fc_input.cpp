@@ -17,7 +17,7 @@ namespace fc
     currKeyStates = keyStates1;
     prevKeyStates = keyStates2;
 
-    mouseState = SDL_GetMouseState(&mouseX, &mouseY);
+    mouseState = SDL_GetMouseState(&mMouseX, &mMouseY);
     for (int i = 0; i < 3; i++)
     {
       mouseKeys[i] = mouseState & SDL_BUTTON(i);
@@ -28,6 +28,13 @@ namespace fc
     p_text = NULL;
   }
 
+
+  void FcInput::setMouseDeadzone(int radiusInPixels, int screenWidth, int screenHeight)
+  {
+    mDeadzoneRadius = radiusInPixels;
+    mCenterX = screenWidth / 2;
+    mCenterY = screenHeight / 2;
+  }
 
   void FcInput::update()
   {
@@ -44,9 +51,13 @@ namespace fc
                 , sizeof(updatedKeyStates[0]) * SDL_NUM_SCANCODES);
 
 
-     // get the x and y position of the mouse
-    mouseState = SDL_GetRelativeMouseState(&mouseX, &mouseY);
-    //mouseState = SDL_GetMouseState(&mouseX, &mouseY);
+     // get the relative x and y position of the mouse
+    //mouseState = SDL_GetRelativeMouseState(&mouseX, &mouseY);
+
+    // Get the absolute values for mouse position
+    mPrevMouseX = mMouseX;
+    mPrevMouseY = mMouseY;
+    mouseState = SDL_GetMouseState(&mMouseX, &mMouseY);
 
      // get the key states of the mouse
     for (int i = 0; i < 3; i++)
@@ -131,27 +142,22 @@ namespace fc
 
 
   //TODO change all safety checks to asserts
-
-
   bool FcInput::keyDown(int key)
   {
     if (key < 0 || key > SDL_NUM_SCANCODES)
     {
       return false;
     }
-
     return currKeyStates[key];
   }
 
 
   bool FcInput::keyHit(int key)
   {
-
     if (key < 0 || key > SDL_NUM_SCANCODES)
     {
       return false;
     }
-
     return (currKeyStates[key] && !prevKeyStates[key]);
   }
 
@@ -162,7 +168,6 @@ namespace fc
     {
       return false;
     }
-
     return (prevKeyStates[key] && !currKeyStates[key]);
   }
 
@@ -173,7 +178,6 @@ namespace fc
     {
       return false;
     }
-
     return mouseKeys[key];
   }
 
@@ -184,7 +188,6 @@ namespace fc
     {
       return false;
     }
-
     return (mouseKeys[key] && !prevMouseKeys[key]);
   }
 
@@ -194,9 +197,45 @@ namespace fc
     {
       return false;
     }
-
     return (prevMouseKeys[key] && !mouseKeys[key]);
   }
+
+  // Not relative in the sense that we're finding the delta for mouse movement but
+  // rather that we're returning the position relative to the deadzone
+  void FcInput::RelativeMousePosition(int &mouseX, int &mouseY)
+  {
+    int correctedMouseX = mMouseX - mCenterX;
+    int correctedMouseY = mMouseY - mCenterY;
+
+    // calculate mouse deltas to see if changing in the opposite direction
+    int deltaMouseX = mPrevMouseX - mMouseX;
+    int deltaMouseY = mPrevMouseY - mMouseY;
+
+
+    float length = std::sqrt(correctedMouseX * correctedMouseX + correctedMouseY * correctedMouseY);
+
+    float relativeLength = length - mDeadzoneRadius;
+
+    // Apply dampening factor if player is switching directions
+    if ((correctedMouseX > 0 && deltaMouseX < 0) || (correctedMouseX < 0 && deltaMouseX > 0))
+    {
+      relativeLength *= 0.333f;
+    }
+
+
+    if (relativeLength > 0)
+    {
+      float scaleFactor = relativeLength / length;
+      mouseX = correctedMouseX * scaleFactor;
+      mouseY = correctedMouseY * scaleFactor;
+    }
+    else
+    {
+      mouseX = 0;
+      mouseY = 0;
+    }
+  }
+
 
 
   void FcInput::setMousePos(SDL_Window* win, int x, int y)

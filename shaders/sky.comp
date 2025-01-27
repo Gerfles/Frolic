@@ -65,8 +65,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     float StarFieldThreshhold = PushConstants.data1.w;//0.97;
 
     // Stars with a slow crawl.
-    float xRate = 0.2;
-    float yRate = -0.06;
+    float xRate = 0.8;
+    float yRate = -0.26;
     vec2 vSamplePos = fragCoord.xy + vec2( xRate * float( 1 ), yRate * float( 1 ) );
 	float StarVal = StableStarField( vSamplePos, StarFieldThreshhold );
     vColor += vec3( StarVal );
@@ -85,7 +85,6 @@ void main()
     {
         vec4 color;
         mainImage(color,texelCoord);
-
         imageStore(image, texelCoord, color);
     }
 }

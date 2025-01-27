@@ -3,26 +3,33 @@
 //#include "core/fc_game_object.hpp"
 #include "glm/mat4x4.hpp"
 
+
 namespace fc
 {
+  class FcPlayer;
 
   class FcCamera
   {
    private:
      glm::mat4 mViewMatrix{1.0f};
+     glm::vec4 mInverseView{1.0f};
      glm::mat4 mProjectionMatrix{1.0f};
-     glm::mat4 mInverseViewMatrix{1.0f};
+     //glm::mat4 mInverseViewMatrix{1.0f};
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-     glm::vec3 mVelocity;
-     glm::vec3 mPosition;
+     glm::vec3 mVelocity{0.f};
+     glm::vec3 mPosition{0.f};
      // vertical rotation
      float mPitch{0.f};
      // Horizontal rotation
      float mYaw{0.f};
+     glm::mat4 mCameraRotation{1.0f};
 
      public:
      //void processSDLEvent(SDL_Event& e);
-     void update();
+
+     // TODO should initialize the camera and allow a bind function call that binds the
+     // camera to an object (ie player, rail, bad guy, etc)
+     void update(FcPlayer& player);
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      void setOrthographicProjection(float left, float right, float top
                                                 , float bottom, float near, float far);
@@ -32,10 +39,13 @@ namespace fc
      void setViewYXZ(glm::vec3 position, glm::vec3 rotation);
 
       // - GETTERS -
-     glm::mat4& View() { return mViewMatrix; }
+     glm::mat4 getRotationMatrix();
+     // TODO find out which view return method is better
+     glm::mat4 getViewMatrix();
+     //glm::mat4& View() { return mViewMatrix; }
      glm::mat4& Projection() { return mProjectionMatrix; }
-     const glm::mat4& InverseView() const { return mInverseViewMatrix; }
-     const glm::vec3 Position() const { return glm::vec3(mInverseViewMatrix[3]); }
+     const glm::vec4& InverseView() const { return mInverseView; }
+     const glm::vec4 Position() const { return glm::vec4(mPosition, 1.0f); }
 //     TransformComponent& Transform() { return mTransform; }
   };
 

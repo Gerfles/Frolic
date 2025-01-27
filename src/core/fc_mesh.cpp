@@ -1,6 +1,7 @@
 #include "fc_mesh.hpp"
 
 // - FROLIC ENGINE -
+#include "core/utilities.hpp"
 #include "fc_model.hpp"
 
 // - EXTERNAL LIBRARIES -
@@ -19,6 +20,47 @@
 
 namespace fc
 {
+  // TODO swap this function for a faster visibility check algorithm so we can do faster frustum culling
+  bool RenderObject::isVisible(const glm::mat4& viewProj)
+  {
+    std::array<glm::vec3, 8> corners { glm::vec3{1, 1, 1}
+                                     , glm::vec3{1, 1, -1}
+                                     , glm::vec3{1, -1, 1}
+                                     , glm::vec3{1, -1, -1}
+                                     , glm::vec3{-1, 1, 1}
+                                     , glm::vec3{-1, 1, -1}
+                                     , glm::vec3{-1, -1, 1}
+                                     , glm::vec3{-1, -1, -1} };
+
+    glm::mat4 matrix = viewProj * transform;
+
+    glm::vec3 min = {1.5, 1.5, 1.5};
+    glm::vec3 max = {-1.5, -1.5, -1.5};
+
+    for (int corner = 0; corner < 8; corner++)
+    {
+      // project each corner into clip space
+      glm::vec4 vector = matrix * glm::vec4(bounds.origin + corners[corner] * bounds.extents, 1.f);
+
+      // perspective correction
+      vector.x = vector.x / vector.w;
+      vector.y = vector.y / vector.w;
+      vector.z = vector.z / vector.w;
+
+      min = glm::min(glm::vec3 {vector.x, vector.y, vector.z}, min);
+      max = glm::max(glm::vec3 {vector.x, vector.y, vector.z}, max);
+    }
+
+    // check the clip space box is within the view
+    if (max.x < -1.f || min.x > 1.f || max.y < -1.f || min.y > 1.f || max.z < 0.f || min.z > 1.f)
+    {
+      return false;
+    }
+    else {
+      return true;
+    }
+  }
+
 
 
   void RenderObject::bindDescriptorSet(VkCommandBuffer cmd
@@ -45,22 +87,27 @@ namespace fc
     }
   }
 
-
-  void Node::draw(const glm::mat4& topMatrix, DrawContext& context)
+  void Node::draw(DrawContext& context)
   {
     // draw children
     // ?? do we need the & here??
     for (std::shared_ptr<Node>& child : children)
     {
-      child->draw(topMatrix, context);
+      child->draw(context);
+    }
+  }
+
+  void Node::update(const glm::mat4& topMatrix)
+  {
+    for (std::shared_ptr<Node>& child : children)
+    {
+      child->update(topMatrix);
     }
   }
 
 
-  void MeshNode::draw(const glm::mat4& topMatrix, DrawContext& context)
+  void MeshNode::draw(DrawContext& context)
   {
-    glm::mat4 nodeMatrix = topMatrix * worldTransform;
-
     for (const Surface& surface : mesh->mSurfaces)
     {
       RenderObject renderObj;
@@ -68,16 +115,37 @@ namespace fc
       renderObj.firstIndex = surface.startIndex;
       renderObj.indexBuffer = mesh->IndexBuffer();
       renderObj.material = &surface.material->data;
-
-      renderObj.transform = nodeMatrix;
+      renderObj.bounds = surface.bounds;
+      renderObj.transform = worldTransform;
+      // could refrain from calculating invWorldTransform until here and...
+      renderObj.invModelMatrix = glm::inverse(glm::transpose(worldTransform));
       renderObj.vertexBufferAddress = mesh->VertexBufferAddress();
 
-      context.opaqueSurfaces.push_back(renderObj);
+      if (surface.material->data.passType == MaterialPass::Transparent)
+      {
+        context.transparentSurfaces.push_back(renderObj);
+      }
+      else {
+        context.opaqueSurfaces.push_back(renderObj);
+      }
     }
 
     // recurse down children nodes
-    Node::draw(topMatrix, context);
+    // TODO check the stack frame count to see if this is better handles linearly
+
+    Node::draw(context);
   }
+
+
+  void MeshNode::update(const glm::mat4& topMatrix)
+  {
+    //localTransform = topMatrix * worldTransform;
+    worldTransform = topMatrix * localTransform;
+    Node::update(topMatrix);
+  }
+
+
+
 
 
 
@@ -98,13 +166,13 @@ namespace fc
 //background thread, whose sole job is to execute uploads like this one, and deleting/reusing the
 //staging buffers.
 
-  void FcMesh::uploadMesh2(std::span<Vertex2> vertices, std::span<uint32_t> indices)
+  void FcMesh::uploadMesh2(std::span<Vertex> vertices, std::span<uint32_t> indices)
   {
     // mName = name;
 
      // *-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE VERTEX BUFFER   *-*-*-*-*-*-*-*-*-*-*-*-*- //
      // get buffer size needed to store vertices
-    VkDeviceSize bufferSize = sizeof(Vertex2) * vertices.size();
+    VkDeviceSize bufferSize = sizeof(Vertex) * vertices.size();
 
      // map memory to vertex buffer (copy vertex data into buffer)
      // Now create the buffer in GPU memory so we can transfer our RAM data there
@@ -121,6 +189,7 @@ namespace fc
     deviceAddressInfo.buffer = mVertexBuffer.getVkBuffer();
 
     mVertexBufferAddress = vkGetBufferDeviceAddress(FcLocator::Device(), &deviceAddressInfo);
+    //mVertexBufferAddress = mVertexBuffer.getAddres();
 
    // TODO could condense this into one "create() function and just pass both vertices and indices"
      // could also combine with a transferToGpu() function in buffer
@@ -198,10 +267,10 @@ namespace fc
                            , VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
   }
 
-
-   // Free the resources in mesh - must do here instead of destructor since Vulkan requires all resources to be free before "shutting down"
+  // Free the resources in mesh - must do here instead of destructor since Vulkan requires all resources to be free before "shutting down"
   void FcMesh::destroy()
   {
+    fcLog("actually destroying mesh buffers!");
     mVertexBuffer.destroy();
     mIndexBuffer.destroy();
   }

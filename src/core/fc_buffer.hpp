@@ -38,12 +38,12 @@ namespace fc
    public:
      FcBuffer() = default;
      ~FcBuffer() = default;
-     FcBuffer& operator=(const FcBuffer&) = delete;
+     //FcBuffer& operator=(const FcBuffer&) = delete;
       // ?? This must be included to allow vector.pushBack(Fcbuffer) ?? not sure if there's a better way... maybe unique_ptr
       // FcBuffer(const FcBuffer&) = delete;
      void allocateBuffer(VkDeviceSize bufferSize, VkBufferUsageFlags useFlags);
      void storeData(void* sourceData, VkDeviceSize bufferSize, VkBufferUsageFlags useFlags);
-     void overwriteData(void * srcData, size_t dataSize);
+     void overwriteData(void* sourceData, size_t dataSize, VkDeviceSize offset = 0);
      void copyBuffer(const FcBuffer& srcBuffer, VkDeviceSize bufferSize);
      const VkBuffer& getVkBuffer() const { return mBuffer; }
       // BUG this doesn't always have size storred

@@ -1,21 +1,54 @@
 #include "fc_camera.hpp"
 
+#include "fc_player.hpp"
 #include "core/utilities.hpp"
 #include <limits>
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
-
+#include "glm/gtx/quaternion.hpp"
 
 
 namespace fc
 {
-  void FcCamera::update()
+  void FcCamera::update(FcPlayer& player)
   {
+    mPosition = player.position();
+    mVelocity = player.velocity();
+    mCameraRotation = player.rotationMatrix();
     // glm::mat4 cameraRotation = getRotationMatrix();
-    // mPosition += glm::vec3(camerRotation * glm::vec4(mVelocity * 0.5f, 0.f));
+    // mPosition += glm::vec3(cameraRotation * glm::vec4(mVelocity * 0.5f, 0.f));
   }
 
+  glm::mat4 FcCamera::getViewMatrix()
+  {
+    // to create a correct model view, we need to move the world in the opposite direction
+    // to the camera. So first create camera model matrix, then invert
+    glm::mat4 cameraTranslation = glm::translate(glm::mat4(1.f), mPosition);
+    // glm::mat4 cameraRotation = getRotationMatrix();
+    glm::mat4 inverseViewMatrix = (cameraTranslation * mCameraRotation);
 
+
+    // COOL
+    // inverseViewMatrix[1][1] *= -1;
+
+    //glm::vec3
+    mInverseView = inverseViewMatrix[3];
+    //mInverseView = glm::vec3(inverseViewMatrix[3].x, inverseViewMatrix[3].y, inverseViewMatrix[3].z);
+    //glm::vec3 mInverseView = glm::vec3(0,0,0);
+    return glm::inverse(inverseViewMatrix);
+    //return glm::inverse(cameraTranslation * mCameraRotation);
+  }
+
+  [[deprecated("use FcPlayer to update camera")]]
+  glm::mat4 FcCamera::getRotationMatrix()
+  {
+    // fairly typical FPS style camera. We join the pitch and yaw rotations into
+    // the final rotation matrix
+    glm::quat pitchRotation = glm::angleAxis(mPitch, glm::vec3{1.f, 0.f, 0.f});
+    glm::quat yawRotation = glm::angleAxis(mYaw, glm::vec3{0.f, -1.f, 0.f});
+
+    return glm::toMat4(yawRotation) * glm::toMat4(pitchRotation);
+  }
 
 
   void FcCamera::setOrthographicProjection(float left, float right, float top
@@ -70,19 +103,20 @@ namespace fc
     mViewMatrix[3][1] = -glm::dot(v, position);
     mViewMatrix[3][2] = -glm::dot(w, position);
 
-    mInverseViewMatrix = glm::mat4{1.f};
-    mInverseViewMatrix[0][0] = u.x;
-    mInverseViewMatrix[0][1] = u.y;
-    mInverseViewMatrix[0][2] = u.z;
-    mInverseViewMatrix[1][0] = v.x;
-    mInverseViewMatrix[1][1] = v.y;
-    mInverseViewMatrix[1][2] = v.z;
-    mInverseViewMatrix[2][0] = w.x;
-    mInverseViewMatrix[2][1] = w.y;
-    mInverseViewMatrix[2][2] = w.z;
-    mInverseViewMatrix[3][0] = position.x;
-    mInverseViewMatrix[3][1] = position.y;
-    mInverseViewMatrix[3][2] = position.z;
+    // ?? Not sure if I'll need but would require a member inverseView matrix
+    // mInverseViewMatrix = glm::mat4{1.f};
+    // mInverseViewMatrix[0][0] = u.x;
+    // mInverseViewMatrix[0][1] = u.y;
+    // mInverseViewMatrix[0][2] = u.z;
+    // mInverseViewMatrix[1][0] = v.x;
+    // mInverseViewMatrix[1][1] = v.y;
+    // mInverseViewMatrix[1][2] = v.z;
+    // mInverseViewMatrix[2][0] = w.x;
+    // mInverseViewMatrix[2][1] = w.y;
+    // mInverseViewMatrix[2][2] = w.z;
+    // mInverseViewMatrix[3][0] = position.x;
+    // mInverseViewMatrix[3][1] = position.y;
+    // mInverseViewMatrix[3][2] = position.z;
   }
 
 
@@ -122,19 +156,20 @@ namespace fc
     mViewMatrix[3][1] = -glm::dot(v, position);
     mViewMatrix[3][2] = -glm::dot(w, position);
 
-    mInverseViewMatrix = glm::mat4{1.f};
-    mInverseViewMatrix[0][0] = u.x;
-    mInverseViewMatrix[0][1] = u.y;
-    mInverseViewMatrix[0][2] = u.z;
-    mInverseViewMatrix[1][0] = v.x;
-    mInverseViewMatrix[1][1] = v.y;
-    mInverseViewMatrix[1][2] = v.z;
-    mInverseViewMatrix[2][0] = w.x;
-    mInverseViewMatrix[2][1] = w.y;
-    mInverseViewMatrix[2][2] = w.z;
-    mInverseViewMatrix[3][0] = position.x;
-    mInverseViewMatrix[3][1] = position.y;
-    mInverseViewMatrix[3][2] = position.z;
+    // ?? Not sure if I'll need but would require a member inverseView matrix
+    // mInverseViewMatrix = glm::mat4{1.f};
+    // mInverseViewMatrix[0][0] = u.x;
+    // mInverseViewMatrix[0][1] = u.y;
+    // mInverseViewMatrix[0][2] = u.z;
+    // mInverseViewMatrix[1][0] = v.x;
+    // mInverseViewMatrix[1][1] = v.y;
+    // mInverseViewMatrix[1][2] = v.z;
+    // mInverseViewMatrix[2][0] = w.x;
+    // mInverseViewMatrix[2][1] = w.y;
+    // mInverseViewMatrix[2][2] = w.z;
+    // mInverseViewMatrix[3][0] = position.x;
+    // mInverseViewMatrix[3][1] = position.y;
+    // mInverseViewMatrix[3][2] = position.z;
   }
 
 }

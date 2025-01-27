@@ -36,8 +36,7 @@ namespace fc
   };
 
    // Allow constructor with variable argument list (vk stage names)
-  struct
-  FcPipelineConfig
+  struct  FcPipelineConfig
   {
      std::vector<VkPushConstantRange> pushConstantsInfo;
      std::vector<VkDescriptorSetLayout> descriptorlayouts;
@@ -111,7 +110,7 @@ namespace fc
 
    public:
       //void create2(FcPipelineCreateInfo* pipelineInfo);
-     void create3(FcPipelineConfig& configInfo);
+     void create(FcPipelineConfig& configInfo);
      void connectDescriptorSet(VkDescriptorSet descriptorSet);
      void bindDescriptorSets(VkCommandBuffer cmdBuffer);
      void bind(VkCommandBuffer commandBuffer);

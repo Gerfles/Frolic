@@ -66,16 +66,25 @@ namespace fc
 
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   COLOR BLENDING   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      // TODO may need tweaking here with defaults
-     // Blend attachment state (how blending is handled)
+    // blending decides how to blend a new color being written to a fragment, with the old value
+    colorBlendAttachment.blendEnable = VK_FALSE;
+    colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT
+                                          | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+
     colorBlendInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-    colorBlendInfo.logicOpEnable = VK_FALSE; // alternative to calculations is to use logical operations
+
+    // alternative to calculations is to use logical operations
+    colorBlendInfo.logicOpEnable = VK_FALSE;
+
+     // not used since we will be using math instead of logic
+    // configInfo.colorBlendInfo.logicOp = VK_LOGIC_OP_NAND;
     colorBlendInfo.logicOp = VK_LOGIC_OP_COPY;
     colorBlendInfo.attachmentCount = 1;
+    colorBlendInfo.blendConstants[0] = 0.0f;
+    colorBlendInfo.blendConstants[1] = 0.0f;
+    colorBlendInfo.blendConstants[2] = 0.0f;
+    colorBlendInfo.blendConstants[3] = 0.0f;
     colorBlendInfo.pAttachments = &colorBlendAttachment;
-     // colorBlendInfo.blendConstants[0] = 0.0f;
-     // colorBlendInfo.blendConstants[1] = 0.0f;
-     // colorBlendInfo.blendConstants[2] = 0.0f;
-     // colorBlendInfo.blendConstants[3] = 0.0f;
 
 
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   VERTEX INPUT   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -93,6 +102,17 @@ namespace fc
 
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   RASTERIZATION   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     rasterizationInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+    // change if fragment beyond near/far planes are clipped (default) or clamp to far plane
+    rasterizationInfo.depthClampEnable = VK_FALSE;
+    // whether to discard data and skip rasterizer. never creates fragments--only suitable for
+    // pipeline without framebuffer output
+    rasterizationInfo.rasterizerDiscardEnable = VK_FALSE;
+    // whether to add depth bias to fragments (to reduce shadow acne)
+    rasterizationInfo.depthBiasEnable = VK_FALSE;
+    rasterizationInfo.depthBiasConstantFactor = 0.0f;
+    rasterizationInfo.depthBiasClamp = 0.0f;
+    rasterizationInfo.depthBiasSlopeFactor = 0.0f;
+
 
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   MULTISAMPLING   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     multiSamplingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
@@ -142,9 +162,10 @@ namespace fc
 
   void FcPipelineConfig::setMultiSampling(VkSampleCountFlagBits sampleCount)
   {
-    multiSamplingInfo.sampleShadingEnable = VK_FALSE;
+    multiSamplingInfo.sampleShadingEnable = VK_TRUE;
      //
     multiSamplingInfo.rasterizationSamples = sampleCount;
+    multiSamplingInfo.minSampleShading = 0.2f;
     multiSamplingInfo.minSampleShading = 1.0f;
     multiSamplingInfo.pSampleMask = nullptr;
      // no alpha to coverage either
@@ -204,6 +225,7 @@ namespace fc
                                           | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
      // no blending
     colorBlendAttachment.blendEnable = VK_FALSE;
+    colorBlendInfo.pAttachments = &colorBlendAttachment;
   }
 
   void FcPipelineConfig::enableBlendingAdditive()
@@ -216,6 +238,9 @@ namespace fc
     colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
     colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
     colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+    colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+
+    //colorBlendInfo.pAttachments = &colorBlendAttachment;
   }
 
   void FcPipelineConfig::enableBlendingAlpha()
@@ -223,12 +248,23 @@ namespace fc
     colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT
                                           | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
     colorBlendAttachment.blendEnable = VK_TRUE;
+    // blending uses: (srcColorBlendFactor * newColor) colorBlendOp (dstColorBlendFacto * oldColor)
     colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
     colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
     colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
     colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
     colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+    // colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    // colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
     colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+
+    // colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    // colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
+    // colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+
+    // colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+
+    //colorBlendInfo.pAttachments = &colorBlendAttachment;
   }
 
 
@@ -247,18 +283,10 @@ namespace fc
   //   viewportInfo.scissorCount = 1;
   //   viewportInfo.pScissors = nullptr;//&scissor;
 
-  //    // -- RASTERIZER --
-  //   rasterizationInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-  //   rasterizationInfo.depthClampEnable = VK_FALSE; // change if fragment beyond near/far planes are clipped (default) or clamp to far plane
-  //   rasterizationInfo.rasterizerDiscardEnable = VK_FALSE; // whether to discard data and skip rasterizer. never creates fragments--only suitable for pipeline without framebuffer output
-  //   rasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL; // how to handle filling the points between vertices
-  //   rasterizationInfo.lineWidth = 1.0f; // how thick lines should be when drawn
+
   //   rasterizationInfo.cullMode = VK_CULL_MODE_BACK_BIT;
-  //   rasterizationInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-  //   rasterizationInfo.depthBiasEnable = VK_FALSE; // whether to add depth bias to fragments (to reduce shadow acne)
-  //   rasterizationInfo.depthBiasConstantFactor = 0.0f;
-  //   rasterizationInfo.depthBiasClamp = 0.0f;
-  //   rasterizationInfo.depthBiasSlopeFactor = 0.0f;
+
+
 
   //    // -- MULTISAMPLING --
 
@@ -288,7 +316,7 @@ namespace fc
   //   colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
   //   colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
-  //    // blending decides how to blend a new color being written to a fragment, with the old value
+
   //   colorBlendInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
   //    //configInfo.colorBlendInfo.logicOp = VK_LOGIC_OP_NAND; // not used since we will be using math instead of logic
   //   colorBlendInfo.logicOpEnable = VK_FALSE; // alternative to calculations is to use logical operations
@@ -491,7 +519,7 @@ namespace fc
 //   }
 
    // * TODO * Preferred method! Destroy all other methods and configs
-  void FcPipeline::create3(FcPipelineConfig& pipelineConfig)
+  void FcPipeline::create(FcPipelineConfig& pipelineConfig)
   {
      // TODO CREATE SOME ASSERTS!!!
 
@@ -593,6 +621,7 @@ namespace fc
       graphicsPipelineInfo.pColorBlendState = &pipelineConfig.colorBlendInfo;
       graphicsPipelineInfo.pDepthStencilState = &pipelineConfig.depthStencilInfo;
       graphicsPipelineInfo.layout = mPipelineLayout;
+
 
        // TODO Can create multiple pipelines that derive from one another for optimisation
       graphicsPipelineInfo.basePipelineHandle = VK_NULL_HANDLE;

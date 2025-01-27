@@ -2,6 +2,7 @@
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "core/fc_renderer.hpp"
+#include "fc_locator.hpp"
 #include "core/fc_window.hpp"
 #include "fc_gpu.hpp"
 #include "utilities.hpp"
@@ -28,9 +29,11 @@ namespace fc
     pGpu = &gpu;
 
     uint32_t swapchainImageCount = createSwapChain(windowSize);
-    createDepthBufferImage();
-    createRenderPass();
-    createFrameBuffers();
+
+    // TODO remove old vulkan renderpass methods or move to sub-vulkan initializer
+    // createDepthBufferImage();
+    // createRenderPass();
+    // createFrameBuffers();
 
     return swapchainImageCount;
   }
@@ -74,13 +77,15 @@ namespace fc
     uint32_t imageCount = MAX_FRAME_DRAWS;
      // BUG should pick one image count and stick with it.
      //  uint32_t imageCount = swapChainDetails.surfaceCapabilities.minImageCount + 1;
-    std::cout << "Swapchain image count (buffers): " << imageCount << std::endl;
+
      // check to make sure
     if (swapChainDetails.surfaceCapabilities.maxImageCount > 0 &&
         swapChainDetails.surfaceCapabilities.maxImageCount < imageCount)
     {
       imageCount = swapChainDetails.surfaceCapabilities.maxImageCount;
     }
+
+    std::cout << "Swapchain image count (buffers): " << imageCount << std::endl;
 
      // creation information for swap chain
     VkSwapchainCreateInfoKHR swapChainInfo{};
@@ -92,6 +97,7 @@ namespace fc
     swapChainInfo.presentMode = presentMode;
     swapChainInfo.imageExtent =  extent;
     swapChainInfo.minImageCount = imageCount;
+
     // Number of layers for each image in chain
     swapChainInfo.imageArrayLayers = 1;
      // what attachment images will be used as
@@ -126,6 +132,8 @@ namespace fc
     VkSwapchainKHR oldSwapchain = (shouldReUseOldSwapchain) ? mSwapchain : VK_NULL_HANDLE;
     swapChainInfo.oldSwapchain = oldSwapchain;
 
+
+
      // Finally, create the swapchain
     if (vkCreateSwapchainKHR(pGpu->getVkDevice(), &swapChainInfo, nullptr, &mSwapchain) != VK_SUCCESS)
     {
@@ -159,23 +167,22 @@ namespace fc
        //swapChainImage.image = image;
 
        // Create image view
-      swapChainImage.createImageView(mSwapchainFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+      swapChainImage.createImageView(mSwapchainFormat, VK_IMAGE_ASPECT_COLOR_BIT);
        //
       mSwapchainImages.emplace_back(std::move(swapChainImage));
     }
 
-     // TODO DELETE
-    VkExtent3D temp = {mSurfaceExtent.width, mSurfaceExtent.height, 1};
+    //  // TODO DELETE
+    // this is the way it was done pre-vulkan 1.3 (Without using deferred rendering)
+    // VkExtent3D temp = {mSurfaceExtent.width, mSurfaceExtent.height, 1};
 
-     // finally create the color image and image view that will be used as multi-sampled color attachment
-    mMultiSampledImage.create(temp, mSwapchainFormat
-                              , pGpu->Properties().maxMsaaSamples
-                              , VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
-                              |   VK_IMAGE_USAGE_TRANSFER_DST_BIT
-                               // ?? Originally set and seems useful according to documentation but maybe
-                               // this is the way it was done pre-vulkan 1.3
-                               // | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT
-                              , VK_IMAGE_ASPECT_COLOR_BIT);
+    //  // finally create the color image and image view that will be used as multi-sampled color attachment
+    // mMultiSampledImage.create(temp, mSwapchainFormat
+    //                           , VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
+    //                           |   VK_IMAGE_USAGE_TRANSFER_DST_BIT
+    //                           | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT
+    //                           , VK_IMAGE_ASPECT_COLOR_BIT
+    //                           , pGpu->Properties().maxMsaaSamples);
 
     return swapchainImageCount;
   }
@@ -350,8 +357,8 @@ namespace fc
   void FcSwapChain::createDepthBufferImage()
   {
      // create an ordered list of formats with higher prioritization at the front of list
-    std::vector<VkFormat> formats{VK_FORMAT_D32_SFLOAT_S8_UINT
-                                , VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT};
+    std::vector<VkFormat> formats{VK_FORMAT_D32_SFLOAT
+                                , VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT};
 
     VkFormat depthFormat = chooseSupportedFormat(formats, VK_IMAGE_TILING_OPTIMAL
                                                  , VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
@@ -361,8 +368,8 @@ namespace fc
          // TODO DELETE
     VkExtent3D temp = {mSurfaceExtent.width, mSurfaceExtent.height, 1};
 
-    mDepthBufferImage.create(temp, depthFormat, pGpu->Properties().maxMsaaSamples
-                             , VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
+    mDepthBufferImage.create(temp, depthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
+                             , VK_IMAGE_ASPECT_DEPTH_BIT, pGpu->Properties().maxMsaaSamples);
   }
 
 
@@ -392,6 +399,7 @@ namespace fc
     VkAttachmentDescription colorAttchmentResolve{};
     colorAttchmentResolve.format = mSwapchainFormat;
     colorAttchmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
+//    colorAttchmentResolve.samples = FcLocator::Gpu().Properties().maxMsaaSamples;
     colorAttchmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     colorAttchmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     colorAttchmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -406,8 +414,8 @@ namespace fc
      // create an ordered list of formats with higher prioritization at the front of list
      //TODO since format has alread been found in the above createdepthbufferimage() we could just
      // pass or store it so we don't have to repeat the following code...
-    std::vector<VkFormat> formats{VK_FORMAT_D32_SFLOAT_S8_UINT
-                                , VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT};
+    std::vector<VkFormat> formats{VK_FORMAT_D32_SFLOAT
+                                , VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT};
 
     VkFormat depthFormat = chooseSupportedFormat(formats, VK_IMAGE_TILING_OPTIMAL
                                                  , VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
@@ -416,6 +424,7 @@ namespace fc
     VkAttachmentDescription depthAttachment{};
     depthAttachment.format = depthFormat;
     depthAttachment.samples = pGpu->Properties().maxMsaaSamples;
+    //depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
     depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -436,6 +445,7 @@ namespace fc
     subpass.pColorAttachments = &colorAttachmentReference;
     subpass.pResolveAttachments = &colorAttachmentResolveReference;
     subpass.pDepthStencilAttachment = &depthAttachmentsReference;
+
 
      // need to determine when layout transitions occur using subpass dependencies
     std::array<VkSubpassDependency, 2> subpassDependencies;
@@ -492,7 +502,8 @@ namespace fc
     for (size_t i = 0; i < mSwapChainFramebuffers.size(); i++)
     {
       std::array<VkImageView, 3> attachments = { mMultiSampledImage.ImageView()
-                                               , mSwapchainImages[i].ImageView(), mDepthBufferImage.ImageView() };
+                                               , mSwapchainImages[i].ImageView()
+                                               , mDepthBufferImage.ImageView() };
 
       VkFramebufferCreateInfo frameBufferInfo{};
       frameBufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;

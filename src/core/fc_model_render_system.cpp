@@ -18,10 +18,6 @@ namespace fc
      // -*-*-*-*-*-*-*-*-*-*-*-*-   CREATE PIPELINE LAYOUT   -*-*-*-*-*-*-*-*-*-*-*-*- //
      // according to gpu vendors, their best use case is to send some indexes to the shader to be
      // used to access some bigger data buffers.
-
-
-
-
     FcPipelineConfig pipelineInfo{2};
     pipelineInfo.shaders[0].filename = "tri.vert.spv";
     pipelineInfo.shaders[0].stageFlag = VK_SHADER_STAGE_VERTEX_BIT;
@@ -37,7 +33,7 @@ namespace fc
     pipelineInfo.addPushConstants(pushConstantRange);
     pipelineInfo.setMultiSampling(FcLocator::Gpu().Properties().maxMsaaSamples);
 
-    pipeline.create3(pipelineInfo);
+    pipeline.create(pipelineInfo);
   }
 
 

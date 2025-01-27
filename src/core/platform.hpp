@@ -8,6 +8,12 @@
 #include <signal.h>
 #endif
 
+namespace fc
+{
+  constexpr float PI = 3.14159265358f;
+  constexpr float TWO_PI = PI * 2.0f;
+  constexpr float PI_OVER_TWO = PI / 2.0f;
+
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   MACROS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #define ArraySize(array) (sizeof(array) / sizeof((array)[0]))
 
@@ -45,6 +51,7 @@ typedef  int16_t   i16;
 typedef  int32_t   i32;
 typedef  int64_t   i64;
 
+// ?? Not sure this is correct for every implementation
 typedef  float     f32;
 typedef  double    f64;
 
@@ -61,3 +68,6 @@ static const i64  i64_max  =  INT64_MAX;
 static const i32  i32_max  =  INT32_MAX;
 static const i16  i16_max  =  INT16_MAX;
 static const i8   i8_max   =  INT8_MAX;
+
+
+}

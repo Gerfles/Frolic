@@ -7,7 +7,7 @@
 #include "core/fc_pipeline.hpp"
 #include "core/fc_renderer.hpp"
 #include "core/fc_text.hpp"
-#include "core/fc_timer.hpp"
+
 
 
 #include <vector>
@@ -19,6 +19,7 @@
 namespace fc
 {
 
+
   class Frolic
   {
    private:
@@ -27,15 +28,16 @@ namespace fc
      static constexpr int MAX_FRAME_SAMPLES = 1000;
 
      // performance tracking
-     FcTimer mTimer;
      float mFrameTimeSum = 0;
      int mFrameTimeIndex = 0;
      float mFrameTimeList[MAX_FRAME_SAMPLES];
 
       // note: order of declaration matters (member variables are allocated top to bottom and destroyed in the reverse order)
+     // TODO delete
      GlobalUbo mUbo;
 
       // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     // TODO delete these pipelines and add a default to FcRenderer
      FcPipeline mGradientPipeline;
      FcPipeline mSkyPipeline;
      FcPipeline mMeshPipeline;
@@ -44,6 +46,7 @@ namespace fc
      std::vector<ComputePushConstants> mPushConstants{2};
 
      SceneData mSceneData;
+     FcBuffer mSceneDataBuffer;
       // ComputePushConstants gradientPushConstants{};
       // ComputePushConstants skyPushConstants{};
 

@@ -40,7 +40,7 @@ void main()
 {
   vec3 diffuseLight = ubo.ambientLightColor.xyz * ubo.ambientLightColor.w;
   vec3 specularLight = vec3(0.0);
-   // TODO make sure we don't normalize twice if we don't need to 
+   // TODO make sure we don't normalize twice if we don't need to
   vec3 surfaceNormal = normalize(fragNormalWorld);
 
    // get the camera position in world space
@@ -50,7 +50,7 @@ void main()
   for (int i = 0; i < ubo.numLights; i++)
   {
     PointLight light = ubo.pointLights[i];
-    
+
      // first make the direction of light the vector distance from the fragment to the light
     vec3 directionToLight = light.position.xyz - fragPosWorld;
      // now attenuate that light so it falls off proportional to the distance squared to the fragment
@@ -61,7 +61,7 @@ void main()
     vec3 intensity = light.color.xyz * light.color.w * attenuation;
      // clamp cosine of angle of incidence to zero;
     float cosAngIncidence = max(dot(surfaceNormal, directionToLight), 0);
-     // add the diffuse contribution from the current light to the fragment 
+     // add the diffuse contribution from the current light to the fragment
     diffuseLight += intensity * cosAngIncidence;
      // add the specular lighting (Blinn-Phong)
     vec3 halfAngle = normalize(directionToLight + viewDirection);
@@ -73,7 +73,7 @@ void main()
     //
     specularLight += intensity * blinnTerm;
   }
-  
+
    //  //vec3 lightColor = ubo.lightColor.xyz * ubo.lightColor.w * attenuation;
    // vec3 lightColor = vec3(1.0, 1.0, 1.0) * attenuation;
 
@@ -81,11 +81,9 @@ void main()
    // vec3 ambientLight = vec3(1.0, 1.0, 1.0) * 0.2;
 
    // vec3 diffuseLight = lightColor * max(dot(normalize(fragNormalWorld), normalize(directionToLight)), 0);
- 
+
    //vec3 lightIntensity = vec4((diffuseLight + ambientLight) * fragColor, 1.0);
 
-  
-  
 //  outColor = texture(textureSampler, texCoords) * vec4(diffuseLight + ambientLight, 1.0);
   outColor = texture(textureSampler, texCoords) * vec4(diffuseLight + specularLight, 1.0);
 

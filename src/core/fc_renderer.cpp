@@ -2,47 +2,48 @@
 
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "SDL2/SDL_stdinc.h"
-#include "core/fc_billboard_render_system.hpp"
-#include "core/fc_model.hpp"
-#include "fc_materials.hpp"
-#include "core/fc_descriptors.hpp"
-#include "core/fc_font.hpp"
+//#include "core/fc_billboard_render_system.hpp"
+//#include "core/fc_model.hpp"
+//#include "fc_materials.hpp"
+//#include "core/fc_descriptors.hpp"
+//#include "core/fc_font.hpp"
 #include "core/fc_game_object.hpp"
 #include "core/fc_locator.hpp"
-#include "core/fc_model_render_system.hpp"
-#include "core/fc_pipeline.hpp"
-#include "core/fc_swapChain.hpp"
+//#include "core/fc_model_render_system.hpp"
+//#include "core/fc_pipeline.hpp"
+//#include "core/fc_swapChain.hpp"
 #include "core/fc_mesh.hpp"
 #include "core/platform.hpp"
 #include "utilities.hpp"
 #include "fc_debug.hpp"
-#include "fc_camera.hpp"
-#include <cstdint>
-#include <exception>
-#include <glm/ext/matrix_clip_space.hpp>
-#include <glm/ext/matrix_float4x4.hpp>
-#include <glm/ext/matrix_transform.hpp>
-#include <glm/ext/vector_float3.hpp>
-#include <glm/ext/vector_float4.hpp>
-#include <glm/packing.hpp>
-#include <memory>
-#include <mutex>
-#include <string>
+//#include "fc_camera.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "SDL2/SDL_stdinc.h"
 #include <SDL_events.h>
 // #define GLM_FORCE_RADIANS
 //#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
+#include <glm/ext/matrix_clip_space.hpp>
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/ext/vector_float3.hpp>
+#include <glm/ext/vector_float4.hpp>
+#include <glm/packing.hpp>
+//
 #include "vulkan/vulkan_core.h"
 #include <SDL2/SDL_vulkan.h>
 // ImGUI
 #include "imgui.h"
 #include <imgui_impl_sdl2.h>
 #include <imgui_impl_vulkan.h>
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include <memory>
+#include <mutex>
+#include <string>
+#include <cstdint>
+#include <exception>
 #include <array>
 #include <cstddef>
 #include <cstring>
@@ -82,7 +83,6 @@ namespace fc
       // TODO get rid of this
       FcLocator::initialize();
 
-
       mWindow.initWindow(screenSize.width, screenSize.height);
 
       // now we need a vulkan instance to do anything else
@@ -110,9 +110,9 @@ namespace fc
       FcDescriptorClerk* descriptorClerk = new FcDescriptorClerk;
       // TODO understand the pool ratios better
       std::vector<PoolSizeRatio> poolRatios = { {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 6},
-                                                {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 6},
-                                                {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 6},
-                                                {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 8}
+        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 6},
+        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 6},
+        {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 8}
       };
 
       //
@@ -175,10 +175,6 @@ namespace fc
       // FcModel model;
       // model.createModel("models/smooth_vase.obj", mPipeline, mGpu);
       // mModelList.push_back(model);
-
-      initDefaults();
-
-
     }
     catch (const std::runtime_error& err) {
       printf("ERROR: %s\n", err.what());
@@ -190,24 +186,18 @@ namespace fc
 
 
 
-  void FcRenderer::initDefaults()
+  void FcRenderer::initDefaults(FcBuffer& sceneDataBuffer, SceneData* sceneData)
   {
-    //testModel.loadGltfMeshes("..\\..\\models\\basicmesh.glb");
-    mTestMeshes.loadGltfMeshes("NEED TO MAKE SURE FILE NOT HARDCODED!");
-
-    //testModel.loadGltfMeshes("..//models//basicmesh.glb");
-
+    pSceneData = sceneData;
     // -*-*-*-*-   3 DEFAULT TEXTURES--WHITE, GREY, BLACK AND CHECKERBOARD   -*-*-*-*- //
     uint32_t white = glm::packUnorm4x8(glm::vec4(1.f, 1.f, 1.f, 1.f));
-    //mWhiteTexture.create(VkExtent3D{1,1,1}, VK_FORMAT_R8G8B8A8_UNORM, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_USAGE_SAMPLED_BIT);
-    mWhiteTexture.createTexture(VkExtent3D{1,1,1}, static_cast<void*>(&white));// (void*)&white)
+    mWhiteTexture.createTexture(VkExtent3D{1,1,1}, static_cast<void*>(&white));
 
     uint32_t grey = glm::packUnorm4x8(glm::vec4(0.36f, 0.36f, 0.36f, 1.f));
-    //mGreyTexture.create(VkExtent3D{1,1,1}, VK_FORMAT_R8G8B8A8_UNORM, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_USAGE_SAMPLED_BIT);
-    mGreyTexture.createTexture(VkExtent3D{1,1,1}, static_cast<void*>(&grey));// (void*)&white)
+    mGreyTexture.createTexture(VkExtent3D{1,1,1}, static_cast<void*>(&grey));
 
     uint32_t black = glm::packUnorm4x8(glm::vec4(0.f, 0.f, 0.f, 1.f));
-    mBlackTexture.createTexture(VkExtent3D{1,1,1}, static_cast<void*>(&black));// (void*)&white)
+    mBlackTexture.createTexture(VkExtent3D{1,1,1}, static_cast<void*>(&black));
 
     // checkerboard image
     uint32_t checkerColor = glm::packUnorm4x8(glm::vec4(1.f, 0.f, 1.f, 1.f));
@@ -220,6 +210,7 @@ namespace fc
       }
     }
     mCheckerboardTexture.createTexture({16, 16, 1}, static_cast<void*>(&pixels));
+
 
     VkSamplerCreateInfo samplerInfo{};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -246,22 +237,14 @@ namespace fc
 
 
     // *-*-*-*-*-*-*-*-*-*-*-*-   FRAME DATA INITIALIZATION   *-*-*-*-*-*-*-*-*-*-*-*- //
-    mSceneDataBuffer.allocateBuffer(sizeof(SceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
-
-    //
-
-    //mSceneDataBuffer.overwriteData(&mSceneData, sizeof(SceneData));
-
-    //
-
     // TODO create temporary storage for this in descClerk so we can just write the
     // descriptorSet and layout on the fly and destroy layout if not needed
     // TODO see if layout is not needed.
     FcDescriptorBindInfo sceneDescriptorBinding{};
-    sceneDescriptorBinding.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+    sceneDescriptorBinding.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
+                                      , VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
 
-
-    sceneDescriptorBinding.attachBuffer(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, mSceneDataBuffer
+    sceneDescriptorBinding.attachBuffer(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, sceneDataBuffer
                                         , sizeof(SceneData), 0);
 
     // create descriptorSet for sceneData
@@ -272,7 +255,7 @@ namespace fc
     for (FrameData& frame : mFrames)
     {
       frame.sceneDataDescriptorSet = descClerk.createDescriptorSet(mSceneDataDescriptorLayout
-                                                                          , sceneDescriptorBinding);
+                                                                   , sceneDescriptorBinding);
       // frame.sceneDataDescriptorSet = descClerk.createDescriptorSet(mSingleImageDescriptorLayout
       //                                                              , descriptorBindInfo);
     }
@@ -286,51 +269,82 @@ namespace fc
 
 
     // // set the uniform buffer for the material data
-    materialConstants.allocateBuffer(sizeof(GLTFMetallicRoughness::MaterialConstants), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+    materialConstants.allocateBuffer(sizeof(MaterialConstants), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 
-    // // write the buffer
-    GLTFMetallicRoughness::MaterialConstants* sceneUniformData =
-      (GLTFMetallicRoughness::MaterialConstants*)materialConstants.getAddres();
+    // write the buffer
+    MaterialConstants* materialUniformData =
+      (MaterialConstants*)materialConstants.getAddres();
 
-    sceneUniformData->colorFactors = glm::vec4{1,1,1,1};
-    sceneUniformData->metalRoughFactors = glm::vec4{1, 0.5, 0, 0};
+
+    materialUniformData->colorFactors = glm::vec4{1,1,1,1};
+    materialUniformData->metalRoughFactors = glm::vec4{1, 0.5, 0, 0};
 
     GLTFMetallicRoughness::MaterialResources materialResources;
     // default the material textures
-    materialResources.colorImage = &mWhiteTexture;
+    materialResources.dataBuffer = materialConstants;
+    materialResources.colorImage = mWhiteTexture;
     materialResources.colorSampler = mDefaultSamplerLinear;
-    materialResources.metalRoughImage = &mWhiteTexture;
+    materialResources.metalRoughImage = mWhiteTexture;
     materialResources.metalRoughSampler = mDefaultSamplerLinear;
-    materialResources.dataBuffer = &materialConstants;
+    materialResources.normalTexture = mWhiteTexture;
+    materialResources.normalSampler = mDefaultSamplerLinear;
+    materialResources.occlusionTexture = mWhiteTexture;
+    materialResources.occlusionSampler = mDefaultSamplerLinear;
+    materialResources.emissiveTexture = mBlackTexture;
+    materialResources.emissiveSampler = mDefaultSamplerLinear;
     materialResources.dataBufferOffset = 0;
 
     defaultMaterialData = mMetalRoughMaterial.writeMaterial(pDevice, MaterialPass::MainColor
                                                             , materialResources);
 
-    // ?? SEEMS VERY SLOW
-    for (auto& mesh_i : mTestMeshes.meshes)
-    {
+    // TODO implement with std::optional
+    // TODO move to frolic.cpp
+    // structure.loadGltf(this, "..//models//MosquitoInAmber.glb");
+    //structure.loadGltf(this, "..//models//MaterialsVariantsShoe.glb");
+    //structure.loadGltf(this, "..//models//helmet//DamagedHelmet.gltf");
+    //structure.loadGltf(this, "..//models//SheenWoodLeatherSofa.glb");
+    //structure.loadGltf(this, "..//models//structure.glb");
+    //structure.loadGltf(this, "..//models//structure_mat.glb");
 
-      std::shared_ptr<MeshNode> newNode = std::make_shared<MeshNode>();
-      newNode->mesh = mesh_i;
+    structure.loadGltf(this, "..//models//sponza//Sponza.gltf");
+    // // NOTE: This moves the object not the camera/lights/etc...
+    // glm::mat4 drawMat{1.f};
+    // glm::vec3 translate{30.f, -00.f, 85.f};
+    // drawMat = glm::translate(drawMat, translate);
+    // structure.update(drawMat);
 
-      newNode->localTransform = glm::mat4{1.f};
-      newNode->worldTransform = glm::mat4{1.f};
+    //
+    mSkybox.loadTextures("..//models//skybox", ".jpg");
 
-      for (Surface& surface : newNode->mesh->mSurfaces)
-      {
-        surface.material = std::make_shared<GLTFMaterial>(defaultMaterialData);
-      }
+    FcPipelineConfig pipelineConfig{2};
+    pipelineConfig.name = "skybox";
+    pipelineConfig.shaders[0].filename = "skybox.vert";
+    pipelineConfig.shaders[0].stageFlag = VK_SHADER_STAGE_VERTEX_BIT;
+    pipelineConfig.shaders[1].filename = "skybox.frag";
+    pipelineConfig.shaders[1].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-      loadedNodes[mesh_i->name()] = std::move(newNode);
-    }
+    FcDescriptorBindInfo bindInfo{};
+    bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+    bindInfo.attachImage(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, mSkybox.Image()
+                         , VK_IMAGE_LAYOUT_GENERAL, mSkybox.Sampler());
 
-    for (auto& node : loadedNodes)
-    {
-      std::cout << "Added Node: " << node.first << std::endl;
-    }
+    pipelineConfig.addDescriptorSetLayout(mSceneDataDescriptorLayout);
+    mSkyboxDescriptorLayout = FcLocator::DescriptorClerk().createDescriptorSetLayout(bindInfo);
+    pipelineConfig.addDescriptorSetLayout(mSkyboxDescriptorLayout);
 
-//    mTestMeshes =
+    mSkyboxDescriptor = descClerk.createDescriptorSet(mSkyboxDescriptorLayout, bindInfo);
+
+    pipelineConfig.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+    pipelineConfig.setPolygonMode(VK_POLYGON_MODE_FILL);
+    pipelineConfig.setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE);
+    pipelineConfig.disableDepthtest();
+    pipelineConfig.setColorAttachment(VK_FORMAT_R16G16B16A16_SFLOAT);
+
+    mSkyboxPipeline.create(pipelineConfig);
+
+
+
+    //vkDeviceWaitIdle(pDevice);
   }
 
 
@@ -402,7 +416,8 @@ namespace fc
     imGuiInfo.UseDynamicRendering = true;
     imGuiInfo.PipelineRenderingCreateInfo = pipelineRenderingInfo;
     // TODO change to discovered
-    imGuiInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+    imGuiInfo.MSAASamples = FcLocator::Gpu().Properties().maxMsaaSamples;
+    //imGuiInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
     if (!ImGui_ImplVulkan_Init(&imGuiInfo))
     {
@@ -522,11 +537,8 @@ namespace fc
     imgUse |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
     // hardcoding the draw format to 32 bit float
-    mDrawImage.create(drawImgExtent
-                      , VK_FORMAT_R16G16B16A16_SFLOAT
-                      , VK_SAMPLE_COUNT_1_BIT
-                      , imgUse
-                      , VK_IMAGE_ASPECT_COLOR_BIT);
+    mDrawImage.create(drawImgExtent, VK_FORMAT_R16G16B16A16_SFLOAT, imgUse
+                      , VK_IMAGE_ASPECT_COLOR_BIT, FcLocator::Gpu().Properties().maxMsaaSamples);
 
     // *-*-*-*-*-*-*-*-*-*-*-   CREATE DRAW IMAGE DESCRIPTOR   *-*-*-*-*-*-*-*-*-*-*- //
     // TODO some redundancy that might be able to be eliminated
@@ -544,8 +556,8 @@ namespace fc
 
     // -*-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE DEPTH IMAGE   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
     imgUse = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    mDepthImage.create(drawImgExtent, VK_FORMAT_D32_SFLOAT, VK_SAMPLE_COUNT_1_BIT
-                       , imgUse, VK_IMAGE_ASPECT_DEPTH_BIT);
+    mDepthImage.create(drawImgExtent, VK_FORMAT_D32_SFLOAT, imgUse
+                       , VK_IMAGE_ASPECT_DEPTH_BIT, FcLocator::Gpu().Properties().maxMsaaSamples);
   }
 
 
@@ -676,21 +688,22 @@ namespace fc
 
   void FcRenderer::updateScene()
   {
+    mTimer.start();
+    // TODO this is calling the destructor for all objects in draw, should flatten more
+    // to just the necessary AND changing parameters...
     mainDrawContext.opaqueSurfaces.clear();
+    mainDrawContext.transparentSurfaces.clear();
+//    loadedNodes["Suzanne"]->draw(glm::mat4{1.f}, mainDrawContext);
 
-    loadedNodes["Suzanne"]->draw(glm::mat4{1.f}, mainDrawContext);
+    // rotationMatrix = glm::rotate(rotationMatrix, rotationSpeed * glm::pi<float>(), {0.f, -1.f, 0.f});
+    // structure.update(rotationMatrix);
 
-    for (int x = -3; x < 3; x++)
-    {
-      glm::mat4 scale = glm::scale(glm::vec3{0.2});
-      glm::mat4 translation = glm::translate(glm::vec3{x, 1, 0});
+    structure.draw(mainDrawContext);
 
-      loadedNodes["Sphere"]->draw(translation * scale, mainDrawContext);
-    }
+    //loadedScenes["structure"]->draw(glm::mat4{1.f}, mainDrawContext);
 
-    static float distance = -3.5f;
-    distance = distance * 1.00001f;
-
+    // ?? elapsed time should already be in ms
+    stats.sceneUpdateTime = mTimer.elapsedTime();
   }
 
 
@@ -759,7 +772,6 @@ namespace fc
                                   , descriptorSets.data() , 0, nullptr);
 
           // execute pipeline
-          // FIXME
           //vkCmdDrawIndexed(getCurrentFrame().commandBuffer, currMesh.indexCount(), 1, 0, 0, 0);
         }
       }
@@ -910,34 +922,15 @@ namespace fc
 
 
   //
-  void FcRenderer::drawSimple(ComputePushConstants& pushConstants)
+  void FcRenderer::drawBackground(ComputePushConstants& pushConstants)
   {
 
     VkCommandBuffer cmd = getCurrentFrame().commandBuffer;
 
-
-
     // transition our main draw image into general layout so we can write into it
     mDrawImage.transitionImage(cmd, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
-    // VkImageSubresourceRange clearRange {};
-    // clearRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    // clearRange.baseMipLevel = 0;
-    // clearRange.levelCount = VK_REMAINING_MIP_LEVELS;
-    // clearRange.baseArrayLayer = 0;
-    // clearRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
 
-    //  //make a clear-color from frame number. This will flash with a 120 frame period.
-    // VkClearColorValue clearValue;
-    // float flash = std::abs(std::sin(mFrameNumber / 60.f));
-    // clearValue = { { 0.0f, 0.0f, flash, 1.0f } };
-
-    //  //clear image
-    // // vkCmdClearColorImage(cmd, mSwapchain.vkImage(swapchainImgIndex)
-    // //                      , VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clearRange);
-    // vkCmdClearColorImage(cmd, mDrawImage.Image(), VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clearRange);
-
-    // bind the compute pipeline
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pDrawPipeline);
 
     // bind the descriptorClerk set containing the draw image for the compute
@@ -970,8 +963,55 @@ namespace fc
                   std::ceil(mDrawImage.size().height / 16.0), 1);
   }
 
-  // TODO remove pipeline passing in
-  void FcRenderer::drawGeometry(FcPipeline& pipeline) {
+
+  void FcRenderer::drawGeometry() {
+    // TODO should consider sorting outside the drawGeometry perhaps, unless something changes
+    // or perhaps just inserting objects into draw via a hashmap. One thing to consider though
+    // is that we also perform visibility checks before we sort
+    // TODO should also make sure to sort using more than one thread
+    // Sort rendered objects according to material type and if the same sorted by indexBuffer
+    // A lot of big game engines do this to reduce the number of pipeline/descriptor set binds
+    std::vector<uint32_t> sortedOpaqueReferences;
+    sortedOpaqueReferences.reserve(mainDrawContext.opaqueSurfaces.size());
+
+    // Only place the meshes whose bounding box is within the view frustrum
+    for (uint32_t i = 0; i < mainDrawContext.opaqueSurfaces.size(); i++)
+    {
+      // BUG the bounding boxes are excluding visible objects for some reason
+      if (true)//mainDrawContext.opaqueSurfaces[i].isVisible(pSceneData->viewProj))
+      {
+        sortedOpaqueReferences.push_back(i);
+      }
+    }
+
+    // ?? couldn't we sort drawn meshes into a set of vectors that're already sorted by material
+    // and keep drawn object in linked list every iteration (unless removed manually) instead
+    // of clearing the draw list every update...
+
+    // TODO sort algorithm could be improved by calculating a sort key, and then our sortedOpaqueReferences
+    // would be something like 20bits draw index and 44 bits for sort key/hash
+    // sort the opaque surfaces by material and mesh
+    std::sort(sortedOpaqueReferences.begin(), sortedOpaqueReferences.end(), [&](const auto& iA, const auto& iB)
+     {
+       const RenderObject& A = mainDrawContext.opaqueSurfaces[iA];
+       const RenderObject& B = mainDrawContext.opaqueSurfaces[iB];
+       if (A.material == B.material)
+       {
+         return A.indexBuffer < B.indexBuffer;
+       }
+       else
+       {
+         return A.material < B.material;
+       }
+     });
+
+
+    // reset counters
+    stats.objectsRendered = 0;
+    stats.triangleCount = 0;
+    // begin clock
+    mTimer.start();
+
     VkCommandBuffer cmd = getCurrentFrame().commandBuffer;
 
     //std::cout << "drawExtent: " << mDrawExtent.width << " x " << mDrawExtent.height << std::endl;
@@ -991,6 +1031,7 @@ namespace fc
     colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     //		colorAttachment.loadOp = clear ? VK_ATTACHMENT_LOAD_OP_CLEAR :
     //VK_ATTACHMENT_LOAD_OP_LOAD;
+
     colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
@@ -1003,6 +1044,7 @@ namespace fc
     depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     depthAttachment.clearValue.depthStencil.depth = 0.f;
 
+
     //
     VkRenderingInfo renderInfo{};
     renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
@@ -1013,103 +1055,96 @@ namespace fc
     renderInfo.pDepthAttachment = &depthAttachment;
     renderInfo.pStencilAttachment = nullptr;
 
+
     vkCmdBeginRendering(cmd, &renderInfo);
 
-    // update scene data
-    // Bind the globalUBO(Scene data) descriptorSet to the buffer...
-    // bind the descriptor set containing the draw image for the
-    // FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
-    //   mFrames[swapchainImgIndex]
+    // defined outside of the draw function, this is the state we will try to skip
+    FcPipeline* lastPipeline = nullptr;
+    MaterialInstance* lastMaterial = nullptr;
+    VkBuffer lastIndexBuffer = VK_NULL_HANDLE;
 
-    // vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS
-    //                         , pipeline.Layout(), 0, 1,
-    //                         &getCurrentFrame().sceneDataDescriptorSet, 0,
-    //                         nullptr);
+    //
+    auto draw = [&](const RenderObject& model)
+     {
+       if (model.material != lastMaterial)
+       {
+         lastMaterial = model.material;
 
-    // bind whichever pipeline HERE
-    // TODO remove
-    // pipeline.bind(cmd);
+         // Only rebind pipeline and material descriptors if the material changed
+         // TODO have each object track state of its own descriptorSets
+         if (model.material->pPipeline != lastPipeline)
+         {
+           lastPipeline = model.material->pPipeline;
 
-    // // set dynamic viewport and scissors
-    // VkViewport viewport = {};
-    // viewport.x = 0;
-    // viewport.y = 0;
-    // viewport.width = mDrawExtent.width;
-    // viewport.height = mDrawExtent.height;
-    // viewport.minDepth = 0.f;
-    // viewport.maxDepth = 1.f;
+           model.bindPipeline(cmd);
+           model.bindDescriptorSet(cmd, getCurrentFrame().sceneDataDescriptorSet, 0);
 
-    // vkCmdSetViewport(cmd, 0, 1, &viewport);
+           // TODO see about seting these once and only after they change
+           VkViewport viewport = {};
+           viewport.x = 0;
+           viewport.y = 0;
+           viewport.width = mDrawExtent.width;
+           viewport.height = mDrawExtent.height;
+           viewport.minDepth = 0.f;
+           viewport.maxDepth = 1.f;
 
-    // VkRect2D scissors = {};
-    // scissors.offset.x = 0;
-    // scissors.offset.y = 0;
-    // scissors.extent.width = mDrawExtent.width;
-    // scissors.extent.height = mDrawExtent.height;
+           VkRect2D scissors = {};
+           scissors.offset.x = 0;
+           scissors.offset.y = 0;
+           scissors.extent.width = viewport.width;
+           scissors.extent.height = viewport.height;
 
-    // vkCmdSetScissor(cmd, 0, 1, &scissors);
-      // set dynamic viewport and scissors
-      VkViewport viewport = {};
-      viewport.x = 0;
-      viewport.y = 0;
-      viewport.width = mDrawExtent.width;
-      viewport.height = mDrawExtent.height;
-      viewport.minDepth = 0.f;
-      viewport.maxDepth = 1.f;
+           vkCmdSetViewport(cmd, 0, 1, &viewport);
+           vkCmdSetScissor(cmd, 0, 1, &scissors);
+         }
 
-      vkCmdSetViewport(cmd, 0, 1, &viewport);
+         model.bindDescriptorSet(cmd, model.material->materialSet, 1);
+       }
 
-      VkRect2D scissors = {};
-      scissors.offset.x = 0;
-      scissors.offset.y = 0;
-      scissors.extent.width = viewport.width;
-      scissors.extent.height = viewport.height;
+       // Only bind index buffer if it has changed
+       if (model.indexBuffer != lastIndexBuffer)
+       {
+         lastIndexBuffer = model.indexBuffer;
+         model.bindIndexBuffer(cmd);
+       }
 
-      vkCmdSetScissor(cmd, 0, 1, &scissors);
+       // Calculate final mesh matrix
+       DrawPushConstants pushConstants;
+       pushConstants.vertexBuffer = model.vertexBufferAddress;
+       pushConstants.worldMatrix = model.transform;
+       pushConstants.normalTransform = model.invModelMatrix;
+
+       vkCmdPushConstants(cmd, model.material->pPipeline->Layout(),
+                          VK_SHADER_STAGE_VERTEX_BIT, 0,
+                          sizeof(DrawPushConstants), &pushConstants);
+
+       vkCmdDrawIndexed(cmd, model.indexCount, 1, model.firstIndex, 0, 0);
+
+       // add counters for triangles and draws calls
+       stats.objectsRendered++;
+       stats.triangleCount += model.indexCount / 3;
+     };
 
 
-
-
-    // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   DRAW MESH MODELS
-    // *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    for (const RenderObject& model : mainDrawContext.opaqueSurfaces) {
-      model.bindPipeline(cmd);
-
-
-
-      // TODO binding data every draw is inefficient: FIXME
-      // model.bindDescriptorSets(cmd, &mSceneDataDescriptor, 0);
-
-      model.bindDescriptorSet(cmd, getCurrentFrame().sceneDataDescriptorSet, 0);
-      model.bindDescriptorSet(cmd, model.material->materialSet, 1);
-
-      model.bindIndexBuffer(cmd);
-
-      DrawPushConstants pushConstants;
-      pushConstants.vertexBuffer = model.vertexBufferAddress;
-      pushConstants.worldMatrix = model.transform;
-
-      vkCmdPushConstants(cmd, model.material->pPipeline->Layout(),
-                         VK_SHADER_STAGE_VERTEX_BIT, 0,
-                         sizeof(DrawPushConstants), &pushConstants);
-
-      vkCmdDrawIndexed(cmd, model.indexCount, 1, model.firstIndex, 0, 0);
+    // First draw the opaque objects
+    for (auto& model : sortedOpaqueReferences)
+    {
+      draw(mainDrawContext.opaqueSurfaces[model]);
     }
 
-    // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   DRAW MONKEY HEAD   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    //pipeline.bind(cmd);
-
-
-
-    // vkCmdPushConstants(cmd, pipeline.Layout(), VK_SHADER_STAGE_VERTEX_BIT, 0
-    //                    , sizeof(drawPushConstants), &pushConstants);
-
-    // vkCmdBindIndexBuffer(cmd, testModel.Mesh(2).IndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
-
-    // vkCmdDrawIndexed(cmd, testModel.Mesh(2).IndexCount(), 1, testModel.Mesh(2).getStartIndex(), 0, 0);
+    // Afterwards, we can draw the transparent ones
+    for (auto& model : mainDrawContext.transparentSurfaces)
+    {
+      draw(model);
+    }
 
     vkCmdEndRendering(cmd);
+
+    // ?? elapsed time should already be in ms
+    stats.meshDrawTime = mTimer.elapsedTime();
   }
+
+
 
   void FcRenderer::drawImGui(VkCommandBuffer cmd, VkImageView targetImageView)
   {
@@ -1210,6 +1245,8 @@ namespace fc
     // ?? this seems to be the wrong location for this, just by observation: test
     getCurrentFrame().janitor.flush();
 
+
+
     // 1. get the next available image to draw to and set to signal the semaphore when we're finished with it
     uint32_t swapchainImageIndex;
     VkResult result = vkAcquireNextImageKHR(pDevice, mSwapchain.vkSwapchain(), maxWaitTime
@@ -1276,6 +1313,27 @@ namespace fc
     // vkCmdSetScissor(commandBuffer, 0, 1, &mDynamicScissors);
 
     // -*-*-*-*-*-*-*-*-*-*-*-*-*-   END FROM OLD METHOD   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
+
+    VkImageSubresourceRange clearRange {};
+    clearRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    clearRange.baseMipLevel = 0;
+    clearRange.levelCount = VK_REMAINING_MIP_LEVELS;
+    clearRange.baseArrayLayer = 0;
+    clearRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+
+    //  //make a clear-color from frame number. This will flash with a 120 frame period.
+
+    //  VkClearDepthStencilValue clearValue;
+    // //float flash = std::abs(std::sin(mFrameNumber / 60.f));
+    //  clearValue = { 0.0f};
+
+    //  vkCmdClearDepthStencilImage(commandBuffer, mDepthImage.Image(), VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clearRange);
+    /* vkCmdClearColorImage(commandBuffer, mDrawImage.Image(), VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clearRange); */
+    /* vkCmdClearDepthStencilImage(cmd, mSwapchain., VkImageLayout imageLayout, const VkClearDepthStencilValue *pDepthStencil, uint32_t rangeCount, const VkImageSubresourceRange *pRanges) */
+    // bind the compute pipeline
+
+
 
 
 
@@ -1530,6 +1588,9 @@ namespace fc
     // wait until no actions being run on device before destroying
     vkDeviceWaitIdle(pDevice);
 
+
+    //loadedScenes.clear();
+
     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DEFAULTS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     vkDestroySampler(pDevice, mDefaultSamplerLinear, nullptr);
     vkDestroySampler(pDevice, mDefaultSamplerNearest, nullptr);
@@ -1545,7 +1606,6 @@ namespace fc
     mMetalRoughMaterial.clearResources(pDevice);
     vkDestroyDescriptorSetLayout(pDevice, mSceneDataDescriptorLayout, nullptr);
     vkDestroyDescriptorSetLayout(pDevice, mBackgroundDescriptorlayout, nullptr);
-    mSceneDataBuffer.destroy();
 
     // TODO should think about locating mImgGui into Descriptor Clerk
     FcLocator::DescriptorClerk().destroy();

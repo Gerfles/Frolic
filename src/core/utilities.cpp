@@ -92,7 +92,7 @@ namespace fc
     }
     if (header != "")
     {
-      std::cout << "Logging Funtion: " << header
+      std::cout << "--*--*--*--*  " << header
                 << std::right << ":\tLog Count: "<< logCount++ << std::endl;
     }
     else

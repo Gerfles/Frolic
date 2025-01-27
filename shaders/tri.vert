@@ -1,4 +1,4 @@
-// TRI VERTEX SHADER - SWITCH TO VERTEX SHADER WITH s-p, a
+// TRI VERTEX SHADER - SWITCH TO FRAGMENT SHADER WITH s-p, a
 // use GLSL version 4.5
 #version 450
 
@@ -42,15 +42,15 @@ layout(push_constant) uniform Push
 } push;
 
 
-void main()  
+void main()
 {
    // calculate vertex location
   vec4 positionWorld = push.modelMatrix * vec4(position, 1.0);
   gl_Position = ubo.projection * ubo.view * positionWorld;
-  
+
    // - VERTEX NORMALS -
-  
-   // Method 1. This is only correct i f all scaling is uniform (sX == sY == sZ)!
+
+   // Method 1. This is only correct if all scaling is uniform (sX == sY == sZ)!
    // but this method is by far the fastest and should use if we don't plan on utilizing non-uniform scales
    //vec3 normalWorldSpace = normalize(mat3(push.modelMatrix) * normal);
 
@@ -58,15 +58,13 @@ void main()
    // mat3 normalMatrix = transpose(inverse(mat3(push.modelMatrix)));
    // fragNormalWorld = normalize(normalMatrix * normal);
    // fragPosWorld = positionWorld.xyz;
-  
+
    // Method 3. Pass in pre-computed normal matrix to shaders-adds complexity, but better than calculating normal matrix each vertex
    //TODO check normalize later
   fragNormalWorld = mat3(push.normalMatrix) * normal;
   fragPosWorld = positionWorld.xyz;
-  
+
   outColor = inColor;
   outTexCoords = inTexCoords;
 
 }
-
-                 

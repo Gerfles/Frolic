@@ -9,18 +9,18 @@ class FcTimer
 
    static const float TICK_PERIOD; // = 1.0 / SDL_Counts_per_sec
     // the application clock time (started when application starts) when the timer started
-   uint64_t mStartTicks;
+   uint64_t mStartTicks{0};
 
     // stores the ticks if timer gets paused
-   uint64_t mPausedTicks;
+   uint64_t mPausedTicks{0};
 
     // timer state
-   bool mIsPaused;
-   bool mHasStarted;
+   bool mIsPaused{false};
+   bool mHasStarted{false};
 
  public:
     // initialize variables
-   FcTimer();
+   FcTimer() = default;
 
     // clock actions
    void start();

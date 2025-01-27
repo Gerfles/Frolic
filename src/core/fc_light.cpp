@@ -18,7 +18,7 @@ namespace fc
 
   void FcLight::loadDefaultTexture(std::string filename)
   {
-    mPointLightTexture.loadTexture(filename);
+//    mPointLightTexture.loadTexture(filename);
 //  mBillboard.setTextureId(texID);
   }
 

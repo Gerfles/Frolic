@@ -9,8 +9,15 @@
 #include "vulkan/vulkan_core.h"
 #include "vk_mem_alloc.h"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+//#include <fastgltf/types.hpp>
+#include <filesystem>
 #include<string>
-
+// *-*-*-*-*-*-*-*-*-*-*-*-*-   FORWARD DECLARATIONS   *-*-*-*-*-*-*-*-*-*-*-*-*- //
+namespace fastgltf
+{
+  class Image;
+  class Asset;
+}
 
 
 namespace fc
@@ -27,43 +34,50 @@ namespace fc
   {
    private:
       // TODO could get rid of most of these devices if pased to the destroy function ??
-     VkImage mImage{nullptr};
-     VkImageView mImageView{nullptr};
+     VkImage mImage{VK_NULL_HANDLE};
+     VkImageView mImageView{VK_NULL_HANDLE};
      VmaAllocation mAllocation{nullptr};
-     VkSampler mTextureSampler{nullptr};
+
+
+     // TODO get rid of or simply have as pointer to texture cache
+     VkSampler mTextureSampler{VK_NULL_HANDLE};
+
      // TODO track layout of image in transitions
      // NOTE this layout may not be exactly up to date based on image barriers in GPU etc.
 
       // TODO create a synced state variable to track current image layout
       // VkImageLayout mCurrentLayout{VK_IMAGE_LAYOUT_UNDEFINED};
      VkExtent3D mImageExtent;
-     uint32_t mMipLevels = 1;
+     uint32_t mMipLevels{1};
 
      // void extracted(VkImageLayout& oldLayout,
      //                VkImageLayout& newLayout,
      //                VkImageMemoryBarrier& imageMemoryBarrier);
-     void generateMipMaps(uint32_t mipLevels);
-     void createTextureSampler(uint32_t mipLevels = 1);
-     void writeToTexture(void* pixelData, uint32_t mipLevels = 1);
+     void generateMipMaps();
+     void createTextureSampler();
+     void createCubeMapSampler();
+     void writeToTexture(void* pixelData, bool generateMipmaps);
    public:
-      // TODO DELETE
-       void imageToGpu(VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels);
-
       // - CTORS -
-     FcImage(std::string filename) { loadTexture(filename); }
+     FcImage(std::filesystem::path& filename) { loadTexture(filename); }
      FcImage() = default;
      FcImage(VkImage image);
      ~FcImage() = default;
 
-     FcImage& operator=(const FcImage&) = delete;
-     FcImage(const FcImage&) = delete;
-     FcImage& operator=(FcImage&&) = default;
-     FcImage(FcImage&&) = default;
+     //FcImage& operator=(const FcImage&) = delete;
+     // TODO implement or delete or default ALL constructors throughout the engine -> THEN DOCUMENT
+     // TODO delete all constructors for each class then recompile to see where they're used.
+     FcImage(const FcImage&) = default;
+     //FcImage& operator=(FcImage&&) = default;
+     //FcImage(FcImage&&) = default;
      void create(VkExtent3D imgExtent, VkFormat format
-                 , VkSampleCountFlagBits msaaSampleCount, VkImageUsageFlags useFlags
+                 , VkImageUsageFlags useFlags
                  , VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT
-                 , uint32_t mipLevels = 1);
-     void createImageView(VkFormat imageFormat, VkImageAspectFlags aspectFlags, uint32_t mipLevels = 1);
+                 , VkSampleCountFlagBits msaaSampleCount = VK_SAMPLE_COUNT_1_BIT
+                 , bool generateMipMaps = false
+                 , VkImageCreateFlags createFlags = 0);
+     void createImageView(VkFormat imageFormat, VkImageAspectFlags aspectFlags
+                          , VkImageViewType imageViewType = VK_IMAGE_VIEW_TYPE_2D);
 
       // ?? This must be included to allow vector.pushBack(Fcbuffer) ?? not sure if there's a better
       // way... maybe unique_ptr
@@ -79,10 +93,13 @@ namespace fc
      void copyFromImage(VkCommandBuffer cmdBuffer, FcImage* source, VkExtent2D srcSize, VkExtent2D dstSize);
      void clear(VkCommandBuffer cmdBuffer, VkClearColorValue* pColor);
       // TEXTURE FUNCTIONS
-     void loadTexture(std::string filename);
-     void createTexture(VkExtent3D extent, void* pixelData, uint32_t mipLevels = 1);
+     void loadTexture(std::filesystem::path& filename);
+     void loadTexture(std::filesystem::path& path, fastgltf::Asset& asset, fastgltf::Image& image);
+     void loadCubeMap(std::array<std::filesystem::path, 6>& filenames);
+     void createTexture(VkExtent3D extent, void* pixelData, bool generateMipmaps = false);
       //void overwriteTexture(void* pixelData, uint32_t mipLevel = 1);
       // GETTERS
+     const bool isValid() const { return mImage != VK_NULL_HANDLE; }
      const VkImageView& ImageView() const { return mImageView; }
      VkSampler TextureSampler() { return mTextureSampler; }
      VkImage Image() { return mImage; }

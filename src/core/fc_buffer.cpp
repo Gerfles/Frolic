@@ -51,8 +51,9 @@ namespace  fc
     //   allocInfo.flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
     // }
 
-
-    if ((useFlags & VMA_ALLOCATION_CREATE_MAPPED_BIT) == VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
+    // ?? BUG?? This doesn't make sense
+    //if ((useFlags & VMA_ALLOCATION_CREATE_MAPPED_BIT) == VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
+      if ((useFlags & VK_BUFFER_USAGE_TRANSFER_SRC_BIT) == VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
     {
       allocInfo.flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
     }
@@ -84,6 +85,7 @@ namespace  fc
     }
 
     return memAddress;
+
      // ?? The following method may also work->determine best from VMA site
     //return mAllocation->GetMappedData();
   }
@@ -205,7 +207,7 @@ namespace  fc
 //  }
 
    // TODO determine if we should just use mAllocation->GetMappedData();
-  void FcBuffer::overwriteData(void* sourceData, size_t dataSize)
+  void FcBuffer::overwriteData(void* sourceData, size_t dataSize, VkDeviceSize offset)
   {
     void* memAddress;
     VmaAllocator allocator = FcLocator::Gpu().getAllocator();
@@ -215,12 +217,16 @@ namespace  fc
       throw std::runtime_error("Failed to map VMA buffer memory!");
     }
 
+    // ?? Note that the following function will also accomplish the same thing but
+    // in a more robust manner -- though it may be a bit slower, this also flushes
+    // memory when needed so should really look into.
+    vmaCopyMemoryToAllocation(allocator, sourceData, mAllocation, offset, dataSize);
      // TODO SHould we just use this ??
      //mAllocation->GetMappedData();
+    memAddress = (char*)memAddress + offset;
 
     memcpy(memAddress, sourceData, dataSize);
     vmaUnmapMemory(FcLocator::Gpu().getAllocator(), mAllocation);
-
   } // --- FcBuffer::writeData (_) --- (END)
 
 

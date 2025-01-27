@@ -2,6 +2,7 @@
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "core/fc_mesh.hpp"
+#include "fc_skybox.hpp"
 #include "fc_billboard_render_system.hpp"
 #include "fc_camera.hpp"
 #include "fc_descriptors.hpp"
@@ -17,6 +18,7 @@
 #include "fc_pipeline.hpp"
 #include "fc_janitor.hpp"
 #include "fc_texture_atlas.hpp"
+#include "fc_timer.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
 #include <glm/vec3.hpp>
@@ -30,6 +32,17 @@
 
 namespace fc
 {
+
+  struct FrolicStats
+  {
+     float frametime;
+     int fpsAvg;
+     int triangleCount;
+     int objectsRendered;
+     float sceneUpdateTime;
+     float meshDrawTime;
+  };
+
 
   struct FrameData
   {
@@ -45,7 +58,8 @@ namespace fc
 
 
   //static constexpr int MAX_FRAMES_IN_FLIGHT = 3; // used in swap chain
-    constexpr unsigned int MAX_FRAME_DRAWS = 4;
+  // ?? No idea why drawing with 4 frames is faster than 3??
+  constexpr unsigned int MAX_FRAME_DRAWS = 4;
 
 
   class FcRenderer
@@ -128,33 +142,45 @@ namespace fc
      FcTextureAtlas textureAtlas;
      //FcModel testModel;
 
+
+     // TODO try this single one instead of one in each frame
+     VkDescriptorSet mSceneDataDescriptor;
      VkDescriptorSetLayout mSceneDataDescriptorLayout;
      VkDescriptorSetLayout mSingleImageDescriptorLayout;
      VkDescriptorSetLayout mBackgroundDescriptorlayout;
-
-     FcBuffer mSceneDataBuffer;
-
-      // TODO try this single one instead of one in each frame
-     VkDescriptorSet mSceneDataDescriptor;
-     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DEFAULTS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      SceneData* pSceneData;
-     //SceneData mSceneData;
-     FcImage mWhiteTexture;
-     FcImage mBlackTexture;
-     FcImage mGreyTexture;
-     FcImage mCheckerboardTexture;
-     VkSampler mDefaultSamplerLinear;
-     VkSampler mDefaultSamplerNearest;
-     MaterialInstance defaultMaterialData;
-     GLTFMetallicRoughness mMetalRoughMaterial;
-     DrawContext mainDrawContext;
 
+     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DEFAULTS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     //SceneData mSceneData;
+     DrawContext mainDrawContext;
      //std::vector<std::shared_ptr<FcMesh>> mTestMeshes;
      FcModel mTestMeshes;
      std::unordered_map<std::string, std::shared_ptr<Node>> loadedNodes;
 
    public:
+     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   PROFILING   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     FcTimer mTimer;
+     FrolicStats stats;
+     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DEFAULTS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     FcImage mWhiteTexture;
+     FcImage mBlackTexture;
+     FcImage mGreyTexture;
+     FcSkybox mSkybox;
+     VkDescriptorSetLayout mSkyboxDescriptorLayout;
+     VkDescriptorSet mSkyboxDescriptor;
+     FcImage mCheckerboardTexture;
+     VkSampler mDefaultSamplerLinear;
+     VkSampler mDefaultSamplerNearest;
+     MaterialInstance defaultMaterialData;
+     GLTFMetallicRoughness mMetalRoughMaterial;
+     std::unordered_map<std::string, std::shared_ptr<LoadedGLTF>> loadedScenes;
+     LoadedGLTF structure;
+     glm::mat4 rotationMatrix{1.0f};
+     float rotationSpeed{.0001};
+
      void updateScene();
+     float aspectRatio() { return static_cast<float>(mWindow.ScreenSize().width)
+         / static_cast<float>(mWindow.ScreenSize().height); }
      //void setResizeFlag(bool shouldWindowResizeFlag) { mWindowResizeFlag = shouldWindowResizeFlag; }
      // TODO probably best to issue multiple command buffers, one for each task
      bool shouldWindowResize() { return mShouldWindowResize; }
@@ -164,10 +190,10 @@ namespace fc
       // TODO implement differently
      // FcPipeline mGradientPipeline;
      // FcPipeline mSkyPipeline;
-     void initDefaults();
+     FcPipeline mSkyboxPipeline;
+     void initDefaults(FcBuffer& sceneDataBuffer, SceneData* sceneData);
      float* getRenderScale() { return &renderScale; }
      void attachPipeline(FcPipeline* pipeline);
-     void attachSceneData(SceneData* pSceneData) { this->pSceneData = pSceneData; }
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
      // Constructors, etc. - Prevent copying or altering -
@@ -177,7 +203,6 @@ namespace fc
      FcRenderer(const FcRenderer&) = delete;
       //
      int init(VkApplicationInfo& appInfo, VkExtent2D screenSize);
-
       //
      void handleWindowResize();
       //FcDescriptor& DescriptorManager() { return mDescriptorManager; }
@@ -187,16 +212,18 @@ namespace fc
      void drawModels(uint32_t swapchainImgIndex, GlobalUbo& ubo);
      void drawBillboards(glm::vec3 cameraPosition, uint32_t swapchainImgIndex, GlobalUbo& ubo);
      void drawUI(std::vector<FcText>& UIelements, uint32_t swapchainImgIndex);
-     void drawSimple(ComputePushConstants& pushConstans);
-     void drawGeometry(FcPipeline& pipeline);
+     void drawBackground(ComputePushConstants& pushConstans);
+     void drawGeometry();
       // - GETTERS -
-
+     GLTFMetallicRoughness* getMetalRoughMaterial() { return &mMetalRoughMaterial; }
      VkDescriptorSetLayout getSceneDescriptorLayout() { return mSceneDataDescriptorLayout; }
       // TODO delete this probably and place background pipeline in renderer
      VkDescriptorSetLayout getBackgroundDescriptorLayout() { return mBackgroundDescriptorlayout; }
      VkDescriptorSetLayout getSingleImageDescriptorLayout() { return mSingleImageDescriptorLayout; }
      FrameData& getCurrentFrame() { return mFrames[mFrameNumber % MAX_FRAME_DRAWS]; }
       // ?? is this used often enough to merit a member variable?
+     float ScreenWidth() { return mWindow.ScreenSize().width; }
+     float ScreenHeight() { return mWindow.ScreenSize().height; }
      float AspectRatio() { return (float)mSwapchain.getSurfaceExtent().width / (float)mSwapchain.getSurfaceExtent().height; }
      VkRenderPass RenderPass() { return mSwapchain.getRenderPass(); }
      uint32_t BufferCount() const { return mBufferCount; }

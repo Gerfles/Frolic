@@ -35,17 +35,29 @@ namespace fc
      };
 
      KeyBindings keys{};
-     float moveSpeed{2.f};
-     float lookSpeed{1.5f};
+     float mMoveSpeed{5.f};
+     float mLookSpeed{0.01f};
      FcInput& mInput;
+     glm::vec3 mPosition{0.f,0.f,0.f};
+     glm::vec3 mVelocity{0.f,0.f,0.f};
+     float mYaw{0};
+     float mPitch{0};
+     glm::mat4 mRotationMatrix;
+     // TODO get rid of Transformcomponent -> not lightweight
      TransformComponent mTransform{};
+
 
 public:
      FcPlayer(FcInput& input) : mInput{input} {}
       //
-     void move(float dt, FcCamera& camera);
+     void move(float dt);
+     void moveOLD(float dt);
      void setPosition(const glm::vec3& position);
-
+     const glm::vec3 position() const { return mPosition; }
+     const glm::vec3 velocity() const { return mVelocity; }
+     float& moveSpeed() { return mMoveSpeed; }
+     float& lookSpeed() { return mLookSpeed; }
+     const glm::mat4 rotationMatrix() const { return mRotationMatrix; }
   };
 
 
