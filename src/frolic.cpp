@@ -256,7 +256,7 @@ namespace fc
     // meshConfig.setColorAttachment(VK_FORMAT_R16G16B16A16_SFLOAT);
     // meshConfig.setDepthFormat(VK_FORMAT_D32_SFLOAT);
 
-    // mMeshPipeline.create3(meshConfig);
+    // meshPipeline.create3(meshConfig);
 
     // fcLog("Finished intializing all Pipelines!");
   }
@@ -282,7 +282,6 @@ namespace fc
 
     // FIXME
     // SDL_ShowCursor(SDL_DISABLE);
-
 
      // default lighting parameters
 //    mSceneData.ambientLight = glm::vec4(1.0f, 0.05f, 0.05f, .5f);

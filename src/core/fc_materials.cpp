@@ -42,12 +42,11 @@ namespace fc
     bindInfo.addBinding(4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, stages);
     bindInfo.addBinding(5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, stages);
 
+    // place the scene descriptor layout in the first slot (0), and material next (1)
+    pipelineConfig.addDescriptorSetLayout(renderer->getSceneDescriptorLayout());
      // create the descriptor set layout for the material
     // TODO check to see if we even need a member variable for the below?? could it be temporary
     mMaterialDescriptorLayout = FcLocator::DescriptorClerk().createDescriptorSetLayout(bindInfo);
-
-    // place the scene descriptor layout in the first slot (0), and material next (1)
-    pipelineConfig.addDescriptorSetLayout(renderer->getSceneDescriptorLayout());
     pipelineConfig.addDescriptorSetLayout(mMaterialDescriptorLayout);
 
 
@@ -95,7 +94,6 @@ namespace fc
     {
       matData.pPipeline = &mOpaquePipeline;
     }
-
 
     FcDescriptorBindInfo bindInfo{};
     VkShaderStageFlags stages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;

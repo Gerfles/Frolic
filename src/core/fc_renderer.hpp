@@ -166,8 +166,6 @@ namespace fc
      FcImage mBlackTexture;
      FcImage mGreyTexture;
      FcSkybox mSkybox;
-     VkDescriptorSetLayout mSkyboxDescriptorLayout;
-     VkDescriptorSet mSkyboxDescriptor;
      FcImage mCheckerboardTexture;
      VkSampler mDefaultSamplerLinear;
      VkSampler mDefaultSamplerNearest;
@@ -190,7 +188,7 @@ namespace fc
       // TODO implement differently
      // FcPipeline mGradientPipeline;
      // FcPipeline mSkyPipeline;
-     FcPipeline mSkyboxPipeline;
+
      void initDefaults(FcBuffer& sceneDataBuffer, SceneData* sceneData);
      float* getRenderScale() { return &renderScale; }
      void attachPipeline(FcPipeline* pipeline);

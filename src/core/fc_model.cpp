@@ -489,11 +489,6 @@ namespace fc {
           //gltf.materials[primitive.materialIndex.value()].
         }
 
-
-
-
-
-
         // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- MESH BOUNDING BOX   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
         // loop the vertices of this surface, find min/max bounds
         glm::vec3 minPos = vertices[initialVertex].position;

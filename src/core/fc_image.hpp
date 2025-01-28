@@ -89,7 +89,8 @@ namespace fc
      void transitionImage(VkCommandBuffer cmd, VkImageLayout oldLayout
                           , VkImageLayout newLayout, uint32_t mipLevels = 1);
 
-     void copyFromBuffer(FcBuffer& srcBuffer, VkDeviceSize bufferSize);
+     void copyFromBuffer(FcBuffer& srcBuffer, VkDeviceSize bufferSize
+                         , VkDeviceSize offset = 0, uint32_t arrayLayer = 0);
      void copyFromImage(VkCommandBuffer cmdBuffer, FcImage* source, VkExtent2D srcSize, VkExtent2D dstSize);
      void clear(VkCommandBuffer cmdBuffer, VkClearColorValue* pColor);
       // TEXTURE FUNCTIONS

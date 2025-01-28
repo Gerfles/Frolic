@@ -13,6 +13,7 @@ namespace fc
   class FcRenderer;
   class FcImage;
 
+
   enum class MaterialPass : uint8_t {
     MainColor,
     Transparent,
@@ -31,14 +32,12 @@ namespace fc
   };
 
 
-
-
-    struct MaterialInstance
-    {
-       FcPipeline* pPipeline;
-       VkDescriptorSet materialSet;
-       MaterialPass passType;
-    };
+  struct MaterialInstance
+  {
+     FcPipeline* pPipeline;
+     VkDescriptorSet materialSet;
+     MaterialPass passType;
+  };
 
 
   // ?? TODO could pack these tighter but need to study the downfalls, etc.

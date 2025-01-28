@@ -341,18 +341,20 @@ namespace fc
         transitionImage(cmdBuffer, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
         FcLocator::Renderer().submitCommandBuffer();
 
-        // Allocate a buffer big enough to hold all image layers
+        // TODO would be better to Allocate a buffer big enough to hold all image layers then copy after
         stagingBuffer.allocateBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
       }
 
       // copy the actual image data into the staging buffer.
-      stagingBuffer.overwriteData(pixels, layerSize);//, i * layerSize);
+      stagingBuffer.overwriteData(pixels, layerSize, layerSize * i);
 
       // free original image data
       stbi_image_free(pixels);
+
+      // copy data to image
+      copyFromBuffer(stagingBuffer, layerSize, layerSize * i, i);
     }
-    // copy data to image
-    copyFromBuffer(stagingBuffer, imageSize);
+
 
     // no longer need staging buffer so get rid of
     stagingBuffer.destroy();
@@ -709,19 +711,20 @@ namespace fc
 
   // TODO should consider the use case for when we want to make this operation part of an existing cmdBuffer
   // TODO TRY passing in a command buffer for this copy
-  void FcImage::copyFromBuffer(FcBuffer& srcBuffer, VkDeviceSize bufferSize)
+  void FcImage::copyFromBuffer(FcBuffer& srcBuffer, VkDeviceSize bufferSize
+                               , VkDeviceSize offset, uint32_t arrayLayer)
   {
     // allocate and begin the command buffer to transfer an image
     FcGpu& gpu = FcLocator::Gpu();
 
     // region of image to copy from and to
     VkBufferImageCopy imageCopyRegion{};
-    imageCopyRegion.bufferOffset = 0;                                        // offset into data
+    imageCopyRegion.bufferOffset = offset;                                        // offset into data
     imageCopyRegion.bufferRowLength = 0;                                     // for calculating data spacing (row length of data)
     imageCopyRegion.bufferImageHeight = 0;                                   // similar to above but vertical spacing
     imageCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; // which aspect of image to copy
     imageCopyRegion.imageSubresource.mipLevel = 0;                           // mipmap level to copy
-    imageCopyRegion.imageSubresource.baseArrayLayer = 0;                     // starting array layer if we're using an array (cubemaps etc)
+    imageCopyRegion.imageSubresource.baseArrayLayer = arrayLayer;                     // starting array layer if we're using an array (cubemaps etc)
     imageCopyRegion.imageSubresource.layerCount = 1;                         // number of layers to copy starting at basearraylayer
 
     imageCopyRegion.imageOffset = {0, 0, 0};                                 // offset into image (as ooposed to raw data in bufferOffset)

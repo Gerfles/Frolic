@@ -89,10 +89,9 @@ namespace fc
 
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   VERTEX INPUT   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    // vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescriptions.size());
-    // vertexInputInfo.pVertexBindingDescriptions = bindingDescriptions.data(); //(data spacing / stride info)
-    // vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-    // vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+    vertexInputInfo.vertexBindingDescriptionCount = 0;
+    vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+
 
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   INPUT ASSEMBLY   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     inputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -106,6 +105,7 @@ namespace fc
     rasterizationInfo.depthClampEnable = VK_FALSE;
     // whether to discard data and skip rasterizer. never creates fragments--only suitable for
     // pipeline without framebuffer output
+    // ?? BUG Ours seems to all discard even with this set to false
     rasterizationInfo.rasterizerDiscardEnable = VK_FALSE;
     // whether to add depth bias to fragments (to reduce shadow acne)
     rasterizationInfo.depthBiasEnable = VK_FALSE;
@@ -268,6 +268,93 @@ namespace fc
   }
 
 
+  // how data for a single vertex (such as position, color, texture coords, normals, etc) is as a whole
+  void FcPipelineConfig::setDefaultVertexInput()
+  {
+    // make sure we update the vertext binding count from 0 to 1
+    vertexInputInfo.vertexBindingDescriptionCount = 1;
+
+    // can bind multiple streams of data, this defines which one
+    bindingDescription.binding = 0;
+    // size of a single vertex object
+    bindingDescription.stride = sizeof(Vertex);
+    // how to move between data after each vertex
+    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    // VK_VERTEX_INPUT_RATE_VERTEX : move on to the next vertex
+    // VK_VERTEX_INPUT_RATE_INSTANCE : move to a vertex for the next instance
+
+
+    // How the data for an attribute is defined within a vertex
+    attributeDescriptions.resize(5);
+
+     // position attribute
+     // which binding the data is at (should be the same as above unless you have multiple streams of data)
+    attributeDescriptions[0].binding = 0;
+     // location in shader where data will be read from
+    attributeDescriptions[0].location = 0;
+    // format the data will take (also helps define the size of the data)
+    attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+    // where this attribute is defined in the data for a single vertex
+    attributeDescriptions[0].offset = offsetof(Vertex, position);
+
+     // texture attribute
+    attributeDescriptions[1].binding = 0;
+    attributeDescriptions[1].location = 1;
+    attributeDescriptions[1].format = VK_FORMAT_R32_SFLOAT;
+    attributeDescriptions[1].offset = offsetof(Vertex, uv_x);
+
+     // normals attribute
+    attributeDescriptions[2].binding = 0;
+    attributeDescriptions[2].location = 2;
+    attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
+    attributeDescriptions[2].offset = offsetof(Vertex, normal);
+
+    // texture attribute
+    attributeDescriptions[3].binding = 0;
+    attributeDescriptions[3].location = 3;
+    attributeDescriptions[3].format = VK_FORMAT_R32_SFLOAT;
+    attributeDescriptions[3].offset = offsetof(Vertex, uv_y);
+
+    //
+    attributeDescriptions[4].binding = 0;
+    attributeDescriptions[4].location = 4;
+    attributeDescriptions[4].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+    attributeDescriptions[4].offset = offsetof(Vertex, tangent);
+  }
+
+
+
+
+  void FcPipelineConfig::setCubemapVertexInput()
+  {
+    // can bind multiple streams of data, this defines which one
+    bindingDescription.binding = 0;
+    // size of a single vertex object
+    bindingDescription.stride = sizeof(CubeVertex);
+    // how to move between data after each vertex
+    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    // VK_VERTEX_INPUT_RATE_VERTEX : move on to the next vertex
+    // VK_VERTEX_INPUT_RATE_INSTANCE : move to a vertex for the next instance
+
+    // How the data for an attribute is defined within a vertex
+    attributeDescriptions.resize(1);
+
+     // position attribute
+     // which binding the data is at (should be the same as above unless you have multiple streams of data)
+    attributeDescriptions[0].binding = 0;
+     // location in shader where data will be read from
+    attributeDescriptions[0].location = 0;
+    // format the data will take (also helps define the size of the data)
+    attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+    // where this attribute is defined in the data for a single vertex
+    attributeDescriptions[0].offset = offsetof(CubeVertex, position);
+
+    // make sure we update the vertext binding count from 0 to 1
+    vertexInputInfo.vertexBindingDescriptionCount = 1;
+    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+  }
+
   // OLD pipeline configuration defaults
   // FcPipelineConfig::PipelineConfigInfo()
   // {
@@ -370,46 +457,7 @@ namespace fc
   //    // scissor.offset = {0,0};           // offset to use region from
   //    // scissor.extent = surfaceExtent; // extent to describe region to use, starting at offset
 
-  //    //-- VERTEX INPUT --
 
-  //    // how the data for a single vertex (including info such as position, color, texture coords, normals, etc) is as a whole
-  //   bindingDescriptions.resize(1);
-  //   bindingDescriptions[0].binding = 0;                             // can bind multiple streams of data, this defines which one
-  //   bindingDescriptions[0].stride = sizeof(Vertex);                 // size of a single vertex object
-  //   bindingDescriptions[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX; // how to move between data after each vertex
-  //                                                               // VK_VERTEX_INPUT_RATE_VERTEX : move on to the next vertex
-  //                                                               // VK_VERTEX_INPUT_RATE_INSTANCE : move to a vertex for the next instance
-
-  //    // How the data for an attribute is defined within a vertex
-  //   attributeDescriptions.resize(4);
-
-  //    // position attribute
-  //    // which binding the data is at (should be the same as above unless you have multiple streams of data)
-  //   attributeDescriptions[0].binding = 0;
-  //    // location in shader where data will be read from
-  //   attributeDescriptions[0].location = 0;
-  //   // format the data will take (also helps define the size of the data)
-  //   attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-  //   // where this attribute is defined in the data for a single vertex
-  //   attributeDescriptions[0].offset = offsetof(Vertex, position);
-
-  //    // color attribute
-  //   attributeDescriptions[1].binding = 0;
-  //   attributeDescriptions[1].location = 1;
-  //   attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-  //   attributeDescriptions[1].offset = offsetof(Vertex, color);
-
-  //    // normals attribute
-  //   attributeDescriptions[2].binding = 0;
-  //   attributeDescriptions[2].location = 2;
-  //   attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
-  //   attributeDescriptions[2].offset = offsetof(Vertex, normal);
-
-  //    // texture attribute
-  //   attributeDescriptions[3].binding = 0;
-  //   attributeDescriptions[3].location = 3;
-  //   attributeDescriptions[3].format = VK_FORMAT_R32G32_SFLOAT;
-  //   attributeDescriptions[3].offset = offsetof(Vertex, texCoord);
   // }
 
 
@@ -606,6 +654,7 @@ namespace fc
       dynamicStateInfo.dynamicStateCount = 2;
 
 
+
        // -*-*-*-*-*-*-*-*-*-*-*-   GRAPHICS PIPELINE CREATION   -*-*-*-*-*-*-*-*-*-*-*- //
       VkGraphicsPipelineCreateInfo graphicsPipelineInfo{};
       graphicsPipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -691,16 +740,7 @@ namespace fc
   //    // put shader stage creation info into an array (required by pipeline create info)
   //   VkPipelineShaderStageCreateInfo shaderStages[2] = {vertexShaderInfo, fragmentShaderInfo};
 
-  //   // TODO check to see if this is necessary to accomplish that an empty binding/attribute vector uses null for vertexInputInfo
-  //   auto& bindingDescriptions = pipelineInfo.bindingDescriptions;
-  //   auto& attributeDescriptions = pipelineInfo.attributeDescriptions;
 
-  //   VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-  //   vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-  //   vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescriptions.size());
-  //   vertexInputInfo.pVertexBindingDescriptions = bindingDescriptions.data(); //(data spacing / stride info)
-  //   vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-  //   vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
   //    // -- GRAPHICS PIPELINE CREATION --
 

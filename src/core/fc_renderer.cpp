@@ -315,36 +315,11 @@ namespace fc
 
     //
     mSkybox.loadTextures("..//models//skybox", ".jpg");
+    // TODO should be more descriptive in name to show this has to happen after loadTextures
+    mSkybox.init(mSceneDataDescriptorLayout);
 
-    FcPipelineConfig pipelineConfig{2};
-    pipelineConfig.name = "skybox";
-    pipelineConfig.shaders[0].filename = "skybox.vert";
-    pipelineConfig.shaders[0].stageFlag = VK_SHADER_STAGE_VERTEX_BIT;
-    pipelineConfig.shaders[1].filename = "skybox.frag";
-    pipelineConfig.shaders[1].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-    FcDescriptorBindInfo bindInfo{};
-    bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-    bindInfo.attachImage(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, mSkybox.Image()
-                         , VK_IMAGE_LAYOUT_GENERAL, mSkybox.Sampler());
-
-    pipelineConfig.addDescriptorSetLayout(mSceneDataDescriptorLayout);
-    mSkyboxDescriptorLayout = FcLocator::DescriptorClerk().createDescriptorSetLayout(bindInfo);
-    pipelineConfig.addDescriptorSetLayout(mSkyboxDescriptorLayout);
-
-    mSkyboxDescriptor = descClerk.createDescriptorSet(mSkyboxDescriptorLayout, bindInfo);
-
-    pipelineConfig.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
-    pipelineConfig.setPolygonMode(VK_POLYGON_MODE_FILL);
-    pipelineConfig.setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE);
-    pipelineConfig.disableDepthtest();
-    pipelineConfig.setColorAttachment(VK_FORMAT_R16G16B16A16_SFLOAT);
-
-    mSkyboxPipeline.create(pipelineConfig);
-
-
-
-    //vkDeviceWaitIdle(pDevice);
+    // TODO remove at some point but prefer to leave in while debugging
+    vkDeviceWaitIdle(pDevice);
   }
 
 
@@ -931,36 +906,39 @@ namespace fc
     mDrawImage.transitionImage(cmd, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
 
-    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pDrawPipeline);
+    // vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pDrawPipeline);
 
-    // bind the descriptorClerk set containing the draw image for the compute
-    // pipeline
-    FcDescriptorClerk& descriptorClerk = FcLocator::DescriptorClerk();
+    // // bind the descriptorClerk set containing the draw image for the compute
+    // // pipeline
+    // FcDescriptorClerk& descriptorClerk = FcLocator::DescriptorClerk();
 
-    //		drawImGui(cmd,
-    //mSwapchain.getFcImage(swapchainImgIndex).ImageView());
-    std::array<VkDescriptorSet, 1> ds{mDrawImageDescriptor};
+    // //		drawImGui(cmd,
+    // //mSwapchain.getFcImage(swapchainImgIndex).ImageView());
+    // std::array<VkDescriptorSet, 1> ds{mDrawImageDescriptor};
 
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE,
-                            pDrawPipelineLayout, 0, 1, ds.data(), 0, nullptr);
-    // vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE
-    //                         , pDrawPipelineLayout, 0, 1,
-    //                         &getCurrentFrame().sceneDataDescriptorSet, 0,
-    //                         nullptr);
-    //                            , pDrawPipelineLayout, 0, 1,
-    //                            descriptorClerk.vkDescriptor(), 0, nullptr);
+    // vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE,
+    //                         pDrawPipelineLayout, 0, 1, ds.data(), 0, nullptr);
+    // // vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE
+    // //                         , pDrawPipelineLayout, 0, 1,
+    // //                         &getCurrentFrame().sceneDataDescriptorSet, 0,
+    // //                         nullptr);
+    // //                            , pDrawPipelineLayout, 0, 1,
+    // //                            descriptorClerk.vkDescriptor(), 0, nullptr);
 
-    // inject the push constants
-    // ComputePushConstants pc;
-    // pc.data1 = glm::vec4(1,0,0,1);
-    // pc.data2 = glm::vec4(0,0,1,1);
+    // // inject the push constants
+    // // ComputePushConstants pc;
+    // // pc.data1 = glm::vec4(1,0,0,1);
+    // // pc.data2 = glm::vec4(0,0,1,1);
 
-    vkCmdPushConstants(cmd, pDrawPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
-                       sizeof(ComputePushConstants), &pushConstants);
+    // vkCmdPushConstants(cmd, pDrawPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
+    //                    sizeof(ComputePushConstants), &pushConstants);
 
-    // execute the compute pipeline dispatch.
-    vkCmdDispatch(cmd, std::ceil(mDrawImage.size().width / 16.0),
-                  std::ceil(mDrawImage.size().height / 16.0), 1);
+    // // execute the compute pipeline dispatch.
+    // vkCmdDispatch(cmd, std::ceil(mDrawImage.size().width / 16.0),
+    //               std::ceil(mDrawImage.size().height / 16.0), 1);
+
+
+
   }
 
 
@@ -1063,9 +1041,33 @@ namespace fc
     MaterialInstance* lastMaterial = nullptr;
     VkBuffer lastIndexBuffer = VK_NULL_HANDLE;
 
+
+ // // TODO see about seting these once and only after they change
+ //           VkViewport viewport = {};
+ //           viewport.x = 0;
+ //           viewport.y = 0;
+ //           viewport.width = mDrawExtent.width;
+ //           viewport.height = mDrawExtent.height;
+ //           viewport.minDepth = 0.f;
+ //           viewport.maxDepth = 1.f;
+
+ //           VkRect2D scissors = {};
+ //           scissors.offset.x = 0;
+ //           scissors.offset.y = 0;
+ //           scissors.extent.width = viewport.width;
+ //           scissors.extent.height = viewport.height;
+
+ //           vkCmdSetViewport(cmd, 0, 1, &viewport);
+ //           vkCmdSetScissor(cmd, 0, 1, &scissors);
+ //       mSkybox.draw(cmd, &getCurrentFrame().sceneDataDescriptorSet);
+
     //
     auto draw = [&](const RenderObject& model)
      {
+
+
+
+
        if (model.material != lastMaterial)
        {
          lastMaterial = model.material;
@@ -1137,6 +1139,10 @@ namespace fc
     {
       draw(model);
     }
+
+
+    mSkybox.draw(cmd, &getCurrentFrame().sceneDataDescriptorSet);
+
 
     vkCmdEndRendering(cmd);
 

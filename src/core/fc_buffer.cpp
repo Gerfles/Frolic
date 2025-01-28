@@ -65,12 +65,15 @@ namespace  fc
      // buffer, although recommended as a good practice, is out of scope of this library and could
      // be implemented by the user as a higher-level logic on top of VMA.
      // TODO create allocator entry in FcLocator
-    if (vmaCreateBuffer(FcLocator::Gpu().getAllocator(), &bufferInfo, &allocInfo, &mBuffer, &mAllocation, nullptr)
+      if (vmaCreateBuffer(FcLocator::Gpu().getAllocator(), &bufferInfo, &allocInfo, &mBuffer, &mAllocation, nullptr)
         != VK_SUCCESS)
     {
       throw std::runtime_error("Failed to create Vulkan Buffer!");
     }
   } // --- FcBuffer::allocateBuffer (_) --- (END)
+
+
+
 
 
 // TODO check preferred (fastest) method
@@ -117,7 +120,6 @@ namespace  fc
 
        // map memory to buffer to copy data into buffer
       stagingBuffer.overwriteData(sourceData, bufferSize);
-
       allocateBuffer(bufferSize, useFlags);
 
       copyBuffer(stagingBuffer, bufferSize);
@@ -220,7 +222,7 @@ namespace  fc
     // ?? Note that the following function will also accomplish the same thing but
     // in a more robust manner -- though it may be a bit slower, this also flushes
     // memory when needed so should really look into.
-    vmaCopyMemoryToAllocation(allocator, sourceData, mAllocation, offset, dataSize);
+    //vmaCopyMemoryToAllocation(allocator, sourceData, mAllocation, offset, dataSize);
      // TODO SHould we just use this ??
      //mAllocation->GetMappedData();
     memAddress = (char*)memAddress + offset;

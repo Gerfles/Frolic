@@ -4,6 +4,8 @@
 #extension GL_EXT_buffer_reference : require
 
 //#include "input_structures.glsl"
+
+// TODO think about only including this in vertex shader and passing needed to fragment
 layout(std140, set = 0, binding = 0) uniform SceneData
 {
   vec4 eye;

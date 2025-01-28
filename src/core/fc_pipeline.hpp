@@ -41,9 +41,11 @@ namespace fc
      std::vector<VkPushConstantRange> pushConstantsInfo;
      std::vector<VkDescriptorSetLayout> descriptorlayouts;
      const char* name; // ?? might want to remove but then may serve as good identifier (hashmap)
-     // Needed for renderPass
-     // std::vector<VkVertexInputBindingDescription> bindingDescriptions{};
-     // std::vector<VkVertexInputAttributeDescription> attributeDescriptions{};
+
+     // Only used when binding vertex buffer
+     VkVertexInputBindingDescription bindingDescription;
+     std::vector<VkVertexInputAttributeDescription> attributeDescriptions{};
+
      // TODO think about making vectors refs
      std::vector<ShaderInfo> shaders; // default size allocation of 1, declare with numStages to increase
      VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo{};
@@ -77,6 +79,8 @@ namespace fc
      void setMultiSampling(VkSampleCountFlagBits sampleCount);
      void setColorAttachment(VkFormat format);
      void setDepthFormat(VkFormat format);
+     void setDefaultVertexInput();
+     void setCubemapVertexInput();
      void disableDepthtest();
      void enableDepthtest(bool depthWriteEnable, VkCompareOp op);
       //void disableVertexRendering();
