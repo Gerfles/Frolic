@@ -140,7 +140,8 @@ namespace fc
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   GETTERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      const FcImage& Image() { return mCubeImage; }
      const VkSampler Sampler() { return mCubeImage.TextureSampler(); }
-
+     const VkDescriptorSetLayout DescriptorLayout() { return mDescriptorLayout; }
+     const VkDescriptorSet Descriptor() { return mDescriptor; }
 };
 
 

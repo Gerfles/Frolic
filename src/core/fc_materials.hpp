@@ -22,15 +22,14 @@ namespace fc
 
 
   enum MaterialFeatures : uint32_t {
-    ColorTexture = 1 << 0,
-    NormalTexture = 1 << 1,
-    RoughMetalTexture = 1 << 2,
-    OcclusionTexture = 1 << 3,
-    EmissiveTexture = 1 << 4,
-    VertexTangentAttribute = 1 << 5,
-    VertexTextureCoordinates = 1 << 6
+    HasColorTexture = 1 << 0,
+    HasNormalTexture = 1 << 1,
+    HasRoughMetalTexture = 1 << 2,
+    HasOcclusionTexture = 1 << 3,
+    HasEmissiveTexture = 1 << 4,
+    HasVertexTangentAttribute = 1 << 5,
+    HasVertexTextureCoordinates = 1 << 6
   };
-
 
   struct MaterialInstance
   {
@@ -44,6 +43,8 @@ namespace fc
   // https://www.khronos.org/opengl/wiki/Interface_Block_(GLSL)#Memory_layout
   struct alignas(16) MaterialConstants
   {
+     // TODO create two structs for material constants, one for full feature rendering and
+     // raytracing and one for actual game engine.
      glm::vec4 colorFactors;
      glm::vec4 metalRoughFactors;
      glm::vec4 emmisiveFactors; // w = emmisive strength

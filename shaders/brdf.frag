@@ -1,7 +1,6 @@
 #version 450
 #extension GL_GOOGLE_include_directive : require
 
-
 uint HasColorTexture = 1 << 0;
 uint HasNormalTexture = 1 << 1;
 uint HasRoughMetalTexture = 1 << 2;
@@ -9,6 +8,8 @@ uint HasOcclusionTexture = 1 << 3;
 uint HasEmissiveTexture = 1 << 4;
 uint HasVertexTangentAttribute = 1 << 5;
 uint HasVertexTextureCoordinates = 1 << 6;
+
+//uint MAX_ENUM_FLAG = 0xFFFFFFFF;
 
 //#include "input_structures.glsl"
 layout(std140, set = 0, binding = 0) uniform SceneData
@@ -24,7 +25,11 @@ layout(std140, set = 0, binding = 0) uniform SceneData
   //
 } sceneData;
 
-layout(std140, set = 1, binding = 0) uniform MaterialConstants
+
+layout(set = 1, binding = 0) uniform samplerCube skybox;
+
+
+layout(std140, set = 2, binding = 0) uniform MaterialConstants
 {
   vec4 colorFactors;
   vec4 MetalRoughFactors;
@@ -35,11 +40,13 @@ layout(std140, set = 1, binding = 0) uniform MaterialConstants
   uint flags;
 } materialData;
 
-layout(set = 1, binding = 1) uniform sampler2D colorTex;
-layout(set = 1, binding = 2) uniform sampler2D metalRoughTex;
-layout(set = 1, binding = 3) uniform sampler2D normalMap;
-layout(set = 1, binding = 4) uniform sampler2D occlusionMap;
-layout(set = 1, binding = 5) uniform sampler2D emissiveMap;
+
+layout(set = 2, binding = 1) uniform sampler2D colorTex;
+layout(set = 2, binding = 2) uniform sampler2D metalRoughTex;
+layout(set = 2, binding = 3) uniform sampler2D normalMap;
+layout(set = 2, binding = 4) uniform sampler2D occlusionMap;
+layout(set = 2, binding = 5) uniform sampler2D emissiveMap;
+
 
 // TODO
 // consider normalizing and cross producting in vertex shader... not sure why not done there
@@ -149,6 +156,14 @@ float heaviside(float v)
 
 void main()
 {
+
+  if (materialData.flags == 0)
+  {
+    outFragColor = vec4(.8, .1, .1, 1.0);
+    return;
+  }
+
+
   vec3 normalDirection = normalize(inNormal);
 
   // -*-*-*-*-*-*-*-*-*-*-*-*-   USING PASSED IN TANGENT   -*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -182,22 +197,42 @@ void main()
   // vec3 cameraPosWorld = inverseView[3].xyz;
   // vec3 viewDirection = normalize(cameraPosWorld - inPosWorld);
 
-  // TODO check if normal map passed in
-  // Normal textures are encoded to [0, 1] but need to be mapped to [-1, 1]
-  normalDirection = normalize(texture(normalMap, inUV).rgb * 2.0 - 1.0);
-  //normalDirection = normalize(texture(normalMap, inUV).rgb);
-  normalDirection = normalize(TBN * normalDirection);
+  // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NORMAL MAP   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+  if ((materialData.flags & HasNormalTexture) == HasNormalTexture)
+  {
+    // Normal textures are encoded to [0, 1] but need to be mapped to [-1, 1]
+    normalDirection = normalize(texture(normalMap, inUV).rgb * 2.0 - 1.0);
+    //normalDirection = normalize(texture(normalMap, inUV).rgb);
+    //normalDirection.z *= -1;
+    normalDirection = normalize(TBN * normalDirection);
+  }
+
   //
   vec3 viewDirection = normalize(sceneData.eye.xyz - inPosWorld);
 
-  float shiftAmount = dot(inNormal, viewDirection);
-  normalDirection = shiftAmount < 0.0f
-                    ? normalDirection + viewDirection * (-shiftAmount + 1e-5f) : normalDirection;
+  // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CHROME   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+  // // Get reflected view ray from the surface to calculate cube map reflection
+  // //TODO do in one call
+  // vec3 incident = -viewDirection;
+  // vec3 reflection = reflect(incident, normalDirection);
+  // vec4 reflectedColor = vec4(texture(skybox, reflection).rgb, 1.0);
+  // outFragColor = reflectedColor;
+  // return;
 
+  // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   GLASS/WATER/ETC   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+  // float iorRatio = 1.00 / 1.309;
+  // vec3 incident = -viewDirection;
+  // vec3 refraction = refract(incident, normalDirection, iorRatio);
+  // outFragColor = vec4(texture(skybox, refraction).rgb, 1.0);
+  // return;
+
+  // float shiftAmount = dot(inNormal, viewDirection);
+  // normalDirection = shiftAmount < 0.0f
+  //                   ? normalDirection + viewDirection * (shiftAmount + 1e-5f) : normalDirection;
 
 
   // TODO this might be the case for sun(ambient) light but not for point lights
-  vec3 lightDirection = normalize(sceneData.sunDirection.xyz);// - inPosWorld);
+  vec3 lightDirection = normalize(-sceneData.sunDirection.xyz);// - inPosWorld);
 //  vec3 lightDirection = normalize(sceneData.sunDirection.xyz - inPosWorld);
   //vec3 lightDirection = normalize(inPosWorld - sceneData.sunDirection.xyz);
 
@@ -217,11 +252,14 @@ void main()
   // TODO TEST we could have many conditionals or we could default the textures
   // to a value that will preserve the conditions regardless so probably want to avoid branches
   // ?? even with the GPU
-  // float ambientOcclusion = 1.0f;
-  // if ((passedFlags & ambientOcclusionTexture) != 0)
-  // {
-  float ambientOcclusion = texture(occlusionMap, inUV).r;
-  // }
+  float occlusionFactor = 1.0f;
+  if ((materialData.flags & HasOcclusionTexture) == HasOcclusionTexture)
+  {
+    // Proper way to implement if material occlusion has associate strength factor but
+    // if we are counting on the default strength factor (1.0) then reduces to used equation
+    //occlusionFactor = 1.0 + materialData.occlusionFactor * (texture(occlusionMap, inUV).r - 1.0);
+    occlusionFactor = texture(occlusionMap, inUV).r;
+  }
 
   // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   COLOR   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
   vec4 baseColor = materialData.colorFactors;
@@ -253,8 +291,8 @@ void main()
   float distribution = (alphaSquared * heaviside(NdotH)) / (PI * distDenom * distDenom);
 
 
-  //float NdotL = dot(normalDirection, lightDirection);
-  float NdotL = clamp( dot(normalDirection, lightDirection), 0.0, 1.0);
+  float NdotL = dot(normalDirection, lightDirection);
+  //float NdotL = clamp( dot(normalDirection, lightDirection), 0.0, 1.0);
   //float NdotL = max( dot(normalDirection, lightDirection), 0.0);
 //  if (NdotL > 1e-5)
 //  {
@@ -270,8 +308,13 @@ void main()
 
   float specularBRDF = visibility * distribution;
 
-  vec3 diffuseBRDF = (1.0 / PI) * baseColor.rgb;// * baseColor.a;
-  //vec3 diffuseBRDF = (1.0 / PI) * baseColor.rgb * baseColor.a;
+  //vec3 diffuseBRDF = (1.0 / PI) * baseColor.rgb;//baseColor.a;
+  vec3 diffuseBRDF = (1.0 / PI) * baseColor.rgb * baseColor.a;
+  // if (metalness > 0.6)
+  // {
+  //   //diffuseBRDF *= 0.5;
+  //   diffuseBRDF = (reflectedColor).xyz * baseColor.a;
+  // }
 
   // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FRESNEL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
   vec3 conductorFresnel = specularBRDF * (baseColor.rgb + (1.0 - baseColor.rgb) * pow(1.0 - abs(HdotV), 5));
@@ -285,9 +328,12 @@ void main()
 
   // TODO pass this in
   materialColor = emissive
-                  + mix(materialColor, materialColor * ambientOcclusion, materialData.occlusionFactor);
+                  + mix(materialColor, materialColor * occlusionFactor, materialData.occlusionFactor);
 
   outFragColor = vec4(encode_srgb(materialColor), baseColor.a);
+
+
+
   // }
   // else
   // {

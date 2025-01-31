@@ -19,24 +19,6 @@ layout(std140, set = 0, binding = 0) uniform SceneData
   //
 } sceneData;
 
-layout(std140, set = 1, binding = 0) uniform MaterialConstants
-{
-  vec4 colorFactors;
-  vec4 MetalRoughFactors;
-  vec4 emissiveFactors; // w = emissive strength
-  //
-  float occlusionFactor;
-  float iorF0;
-  uint flags;
-} materialData;
-
-// TODO check if we can remove these since not accessed in this stage
-layout(set = 1, binding = 1) uniform sampler2D colorTex;
-layout(set = 1, binding = 2) uniform sampler2D metalRoughTex;
-layout(set = 1, binding = 3) uniform sampler2D normalMap;
-layout(set = 1, binding = 4) uniform sampler2D occlusionMap;
-layout(set = 1, binding = 5) uniform sampler2D emissiveMap;
-
 layout (location = 0) out vec3 outNormal;
 layout (location = 1) out vec4 outTangent;
 layout (location = 2) out vec2 outUV;

@@ -58,6 +58,7 @@ namespace fc
 
     SDL_Log("SDL version(s): %u.%u.%u (compiled),  %u.%u.%u. (linked)\n",
             compiled.major, compiled.minor, compiled.patch, linked.major, linked.minor, linked.patch);
+    SDL_Log("Window Dimensions: %i x %i", screenDims.width, screenDims.height);
 
      // TODO addd to builder
     // // vulkan features to request from version 1.2
@@ -89,8 +90,7 @@ namespace fc
      // create a default texture that gets used whenever assimp cant find a texture
      // Need to load this in first so it can be Texture 0 for default
      // TODO set this as a static variable
-    mInput.init();
-    std::cout << "log: screenwidth:height" << mRenderer.ScreenWidth() << mRenderer.ScreenHeight() << std::endl;
+    mInput.init(mRenderer.Window());
 
     // NOTE: must use screen dimension not pixel width and height
     // TODO should make a better distinction and perhaps have it available globally
@@ -273,7 +273,7 @@ namespace fc
 
     // Initialize simple first person camera
     FcCamera camera;
-    mSceneData.projection = glm::perspective(glm::radians(70.0f), mRenderer.aspectRatio(), 10000.f, 0.01f);
+    mSceneData.projection = glm::perspective(glm::radians(70.0f), mRenderer.aspectRatio(), 1000.f, 0.01f);
     //mSceneData.projection = glm::perspective(glm::radians(70.0f), mRenderer.aspectRatio(), 10000.f, 0.1f);
     mSceneData.projection[1][1] *= -1;
     // camera.setViewTarget(glm::vec3{0,0,5}, glm::vec3{0,0,-1})
@@ -283,33 +283,33 @@ namespace fc
     // FIXME
     // SDL_ShowCursor(SDL_DISABLE);
 
-     // default lighting parameters
+    // default lighting parameters
 //    mSceneData.ambientLight = glm::vec4(1.0f, 0.05f, 0.05f, .5f);
     //mSceneData.ambientLight = glm::vec4(1.0f, 0.05f, 0.05f, .3f);
     mSceneData.ambientLight = glm::vec4(0.2f);
 //    mSceneData.ambientLight = glm::vec4(1.0f, 1.0f, 1.0f, 0.3f);
     mSceneData.sunlightColor = glm::vec4(1.f);//, 1.f, 1.f, 1.0);
     //mSceneData.sunlightDirection = glm::vec4(2.f, 10.f, -3.f, 1.f);
-    mSceneData.sunlightDirection = glm::vec4(0.f, 10.f, -3.f, 1.f);
+    mSceneData.sunlightDirection = glm::vec4(0.5f, -1.f, -0.5f, 1.f);
 
-     // load everything we need for the scene
-    fcLog("skipping loading objects.");
-     //loadUIobjects();
-    fcLog("skipping loading UI objects.");
-     //loadGameObjects();
-    fcLog("done loading objects.");
-     // TODO this should be abstracted into engine
+    // load everything we need for the scene
+    //loadUIobjects();
+    //loadGameObjects();
+    // TODO this should be abstracted into engine
 
     fcLog("Frolic Initialized: Starting main run loop", 0);
     FcTimer mTimer;
     mTimer.start();
     float deltaTime = 0.0f;
 
+
+    bool ao;
+
     // TODO separate to make entirely own function
     while (!mShouldClose)
     {
       bool shouldresize = false;
-       // Check for events every cycle of the game loop
+      // Check for events every cycle of the game loop
       while (SDL_PollEvent(&mEvent))
       {
         if (mEvent.type == SDL_WINDOWEVENT)
@@ -317,16 +317,16 @@ namespace fc
           // TODO should think about updating input here instead of doing it asynchronously...
           switch (mEvent.window.event)
           {
-             // ?? check that this is proper
+            // ?? check that this is proper
               case SDL_WINDOWEVENT_MINIMIZED:
               case SDL_WINDOWEVENT_HIDDEN:
               {
-                 // TODO replace here with mRenderer.pause();
+                // TODO replace here with mRenderer.pause();
                 SDL_WaitEvent(nullptr);
                 break;
               }
-               // ?? this event seems to cause issues in Wayland, seems like wayland already handles resize
-               // case SDL_WINDOWEVENT_SIZE_CHANGED:
+              // ?? this event seems to cause issues in Wayland, seems like wayland already handles resize
+              // case SDL_WINDOWEVENT_SIZE_CHANGED:
               // {
               //    // TODO handle better here
 
@@ -345,17 +345,17 @@ namespace fc
           break;
         }
 
-         // TODO see if this is better handles (without this additional check) from SDL switch
+        // TODO see if this is better handles (without this additional check) from SDL switch
         if (mRenderer.shouldWindowResize())
         {
           mRenderer.handleWindowResize();
         }
-         // Send SDL event to imGUi for handling
+        // Send SDL event to imGUi for handling
         ImGui_ImplSDL2_ProcessEvent(&mEvent);
       }
-       // TODO consider creating a timer that better represents time in seconds instead of milliseconds
-       // that way we don't need to divide by 1000 to get a better representation of what's going on...
-       // could consider bit-shifting by 1024 to get there also
+      // TODO consider creating a timer that better represents time in seconds instead of milliseconds
+      // that way we don't need to divide by 1000 to get a better representation of what's going on...
+      // could consider bit-shifting by 1024 to get there also
       deltaTime = mTimer.elapsedTime();
       mRenderer.stats.frametime = deltaTime;
       mRenderer.stats.fpsAvg = calcFPS(deltaTime);
@@ -376,7 +376,7 @@ namespace fc
       mSceneData.inverseView = camera.InverseView();
       //mSceneData.view = glm::scale(mSceneData.view, glm::vec3(15.0f, 15.0f, 15.0f));
       //mSceneData.view = camera.View();
-     // mSceneData.view = glm::translate(glm::vec3{0.f, 0.f, -4.f});
+      // mSceneData.view = glm::translate(glm::vec3{0.f, 0.f, -4.f});
 
 
       // TODO account for this in camera
@@ -384,7 +384,7 @@ namespace fc
 
       mSceneDataBuffer.overwriteData(&mSceneData, sizeof(SceneData));
 
-       // -*-*-*-*-*-*-*-*-*-*-*-*-*-   START THE NEW FRAME   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
+      // -*-*-*-*-*-*-*-*-*-*-*-*-*-   START THE NEW FRAME   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
       uint32_t swapchainImgIndex = mRenderer.beginFrame();
 
       FcPipeline* selected = mPipelines[currentBackgroundEffect];
@@ -393,35 +393,68 @@ namespace fc
 
       // test ImGui UI
       // Left here to add a demo windo that names all the features for (handy for searching)
-      //ImGui::ShowDemoWindow();
+      // ImGui::ShowDemoWindow();
 
-      if (ImGui::Begin("Frolic Stats"))
+      // Create Statistics window that spans the frame
+      if (ImGui::Begin("Frolic Stats", NULL, ImGuiWindowFlags_NoTitleBar))
       {
-         // TODO getrenderScale should be deleted
+        // Stats
+        ImGui::Text("Average FPS: %i ", mRenderer.stats.fpsAvg);
+        ImGui::SameLine(0.f, 10.f);
+        ImGui::Text("| Frame time: %fms", mRenderer.stats.frametime);
+        ImGui::SameLine(0.f, 10.f);
+        ImGui::Text("| Draw time: %fms", mRenderer.stats.meshDrawTime);
+        ImGui::SameLine(0.f, 10.f);
+        ImGui::Text("| Update time: %fms", mRenderer.stats.sceneUpdateTime);
+        ImGui::SameLine(0.f, 10.f);
+        ImGui::Text("| Triangles rendered: %i", mRenderer.stats.triangleCount);
+        ImGui::SameLine(0.f, 10.f);
+        ImGui::Text("| Total objects rendered: %i", mRenderer.stats.objectsRendered);
+
+        // int relX, relY;
+        // mInput.RelativeMousePosition(relX, relY);
+        // ImGui::Text("Mouse X pos: %i", mInput.getMouseX());
+        // ImGui::Text("Mouse Y pos: %i", mInput.getMouseY());
+
+        // TODO check the official way to use ImGui via the imgui example source code
+        ImGui::End();
+      }
+
+
+      // Draw Configuration panel
+      if (ImGui::Begin("Scene Data"))
+      {
+        if(ImGui::Checkbox("Ambient Occlussion Texture", &mUseOcclussionTexture))
+        {
+          mRenderer.setAmbientOcclussion(mUseOcclussionTexture);
+        }
+
+        if (ImGui::Checkbox("Normal Texture", &mUseNormalTexture))
+        {
+          mRenderer.setNormalMapUse(mUseNormalTexture);
+        }
+
+        if (ImGui::Checkbox("Rotate Model", &mRotateModel))
+        {
+          mRenderer.updateScene();
+        }
+
+        ImGui::SliderFloat("Movement Speed", &player.moveSpeed(), 1, 10, "%.1");
+
+
+        // TODO getrenderScale should be deleted
         //ImGui::SliderFloat("Render Scale", mRenderer.getRenderScale(), 0.2f, 1.0f);
+        //ImGui::Checkbox("Ambient Occlussion Texture", bool *v);
         // ImGui::Text("Selected Effect: %s", selected->Name());
         // ImGui::SliderInt("Efect Index", &currentBackgroundEffect, 0, mPipelines.size() - 1);
         // ImGui::InputFloat4("Data1", (float*)& mPushConstants[currentBackgroundEffect].data1);
         // ImGui::InputFloat4("Data2", (float*)& mPushConstants[currentBackgroundEffect].data2);
         // ImGui::InputFloat4("Data3", (float*)& mPushConstants[currentBackgroundEffect].data3);
         // ImGui::InputFloat4("Data4", (float*)& mPushConstants[currentBackgroundEffect].data4);
-        ImGui::SliderFloat("Movement Speed", &player.moveSpeed(), 1, 10);
-        ImGui::Text("Frame time: %f ms", mRenderer.stats.frametime);
-        ImGui::Text("Average FPS: %i", mRenderer.stats.fpsAvg);
-        ImGui::Text("Draw time: %f ms", mRenderer.stats.meshDrawTime);
-        ImGui::Text("Update time: %f ms", mRenderer.stats.sceneUpdateTime);
-        ImGui::Text("Triangles rendered: %i", mRenderer.stats.triangleCount);
-        ImGui::Text("Total objects rendered: %i", mRenderer.stats.objectsRendered);
 
-        int relX, relY;
-        mInput.RelativeMousePosition(relX, relY);
-        ImGui::Text("Mouse X pos: %i", mInput.getMouseX());
-        ImGui::Text("Mouse Y pos: %i", mInput.getMouseY());
-
-
-        // TODO check the official way to use ImGui via the imgui example source code
+        // ??
+	//ImGui::EndFrame();
         ImGui::End();
-        //ImGui::EndFrame();
 
         // make ImGui calculate internal draw structures
         ImGui::Render();
@@ -431,13 +464,13 @@ namespace fc
 
       //mRenderer.drawBillboards(camera.Position(), frame, mUbo);
 
-       //mRenderer.drawUI(mUItextList, frame);
+      //mRenderer.drawUI(mUItextList, frame);
 
       mRenderer.drawBackground(mPushConstants[currentBackgroundEffect]);
 
       mRenderer.drawGeometry();
 
-       mRenderer.endFrame(swapchainImgIndex);
+      mRenderer.endFrame(swapchainImgIndex);
 
     } // _END_ while(!shouldClose);
   }

@@ -626,7 +626,6 @@ namespace fc
      // Determine if we should build a graphics pipeline or a compute
     if (pipelineConfig.shaders[0].stageFlag == VK_SHADER_STAGE_COMPUTE_BIT)
     {
-      fcLog("Creating Compute Pipeline");
       VkComputePipelineCreateInfo computePipelineInfo = {};
       computePipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
       computePipelineInfo.layout = mPipelineLayout;
@@ -677,7 +676,6 @@ namespace fc
        // index of pipeline being created to derive from (for optimisation of creating multiple pipelines)
       graphicsPipelineInfo.basePipelineIndex = -1;
 
-      fcLog("Creating Graphics Pipeline");
        // it's easy to error out on the create graphics pipeline call so handle better
       if (vkCreateGraphicsPipelines(pDevice, VK_NULL_HANDLE, 1, &graphicsPipelineInfo, nullptr, &mPipeline)
           != VK_SUCCESS)

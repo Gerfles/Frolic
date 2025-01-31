@@ -44,11 +44,11 @@ namespace fc
 
     FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
 
-    pipelineConfig.addDescriptorSetLayout(sceneDescriptorLayout);
     mDescriptorLayout = descClerk.createDescriptorSetLayout(bindInfo);
-    pipelineConfig.addDescriptorSetLayout(mDescriptorLayout);
-
     mDescriptor = descClerk.createDescriptorSet(mDescriptorLayout, bindInfo);
+
+    pipelineConfig.addDescriptorSetLayout(sceneDescriptorLayout);
+    pipelineConfig.addDescriptorSetLayout(mDescriptorLayout);
 
     // enable the vertex input attributes (position only here)
     pipelineConfig.setCubemapVertexInput();

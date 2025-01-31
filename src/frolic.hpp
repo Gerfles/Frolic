@@ -50,6 +50,12 @@ namespace fc
       // ComputePushConstants gradientPushConstants{};
       // ComputePushConstants skyPushConstants{};
 
+     // Note these do not necessarily enable the feature -> ONLY when it is already included in glTF
+     bool mUseOcclussionTexture {true};
+     bool mUseNormalTexture {true};
+     bool mUsePrimitiveTangents {true};
+     bool mRotateModel{false};
+
       // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   (END) NEW   -**-*-*-*-*-*-*-*-*-*-*-*-*- //
      FcRenderer mRenderer;
      FcInput mInput;

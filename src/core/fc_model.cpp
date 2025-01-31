@@ -90,12 +90,17 @@ namespace fc {
 
     std::cout << "Loading GLTF file: " << filepath << std::endl;
 
-    fastgltf::Parser parser{};
+    constexpr fastgltf::Extensions extensions = fastgltf::Extensions::KHR_materials_clearcoat
+                                                | fastgltf::Extensions::KHR_materials_transmission;
 
-    constexpr auto gltfOptions = fastgltf::Options::DontRequireValidAssetMember
-                                 | fastgltf::Options::AllowDouble
-                                 | fastgltf::Options::LoadExternalBuffers;
-//                               | fastgltf::Options::LoadExternalImages;
+    fastgltf::Parser parser{extensions};
+
+    constexpr fastgltf::Options gltfOptions = fastgltf::Options::DontRequireValidAssetMember
+                                              | fastgltf::Options::AllowDouble
+                                              | fastgltf::Options::LoadExternalBuffers;
+    //                               | fastgltf::Options::LoadExternalImages;
+
+
 
     // Now that we know the file is valid, load the data
     fastgltf::Expected<fastgltf::GltfDataBuffer> data = fastgltf::GltfDataBuffer::FromPath(filepath);
@@ -120,17 +125,23 @@ namespace fc {
     // TODO test that this loads both Json and binary
     fastgltf::Expected<fastgltf::Asset> load = parser.loadGltf(data.get(), parentPath, gltfOptions);
 
-    if (load.error() == fastgltf::Error::None)
-    {
-      gltf = std::move(load.get());
-    }
-    else
+    if (load.error() != fastgltf::Error::None)
     {
       std::cout << "Failed to load glTF (" << fastgltf::to_underlying(load.error())
                 << "): " << fastgltf::getErrorName(load.error())
                 << " - " << fastgltf::getErrorMessage(load.error()) << std::endl;
       // TODO still need a way to return null or empty
-      //return{};
+      return; //{}
+    }
+    else
+    {
+      std::cout << "Extensions Used in glTF file: ";
+      for (size_t i = 0; i < gltf.extensionsUsed.size(); i++)
+      {
+        std:: cout << gltf.extensionsUsed[i] << std::endl;
+      }
+
+      gltf = std::move(load.get());
     }
 
     // we can estimate the descriptors we will need accurately
@@ -192,7 +203,6 @@ namespace fc {
       }
     }
 
-
     // Create buffer to hold the material data
     mMaterialDataBuffer.allocateBuffer(
       sizeof(MaterialConstants) * gltf.materials.size()
@@ -200,7 +210,8 @@ namespace fc {
 
     int dataIndex = 0;
     // ?? do we need to also duplicate here??
-    MaterialConstants* sceneMaterialConstants = static_cast <MaterialConstants*>(mMaterialDataBuffer.getAddres());
+    MaterialConstants* sceneMaterialConstants = static_cast
+                                                <MaterialConstants*>(mMaterialDataBuffer.getAddres());
 
     for (fastgltf::Material& material : gltf.materials)
     {
@@ -215,6 +226,10 @@ namespace fc {
       constants.colorFactors.y = material.pbrData.baseColorFactor[1];
       constants.colorFactors.z = material.pbrData.baseColorFactor[2];
       constants.colorFactors.w = material.pbrData.baseColorFactor[3];
+
+
+
+
 
 
       // TODO look into specular colors... These checks fail w/ seg fault on material.specular
@@ -236,9 +251,6 @@ namespace fc {
       // emmisive factors
       constants.emmisiveFactors = glm::vec4(material.emissiveFactor.x(), material.emissiveFactor.y()
                                             , material.emissiveFactor.z(), material.emissiveStrength);
-
-      // // Write material parameter to buffer.
-      // sceneMaterialConstants[dataIndex] = constants;
 
       MaterialPass passType = MaterialPass::MainColor;
       if (material.alphaMode == fastgltf::AlphaMode::Blend)
@@ -264,7 +276,7 @@ namespace fc {
       materialResources.emissiveSampler = renderer->mDefaultSamplerLinear;
       // Default Factors
       //TODO check what to set as
-      constants.occlusionFactor = 0.0f;
+      constants.occlusionFactor = 1.0f;
 
 
       // Set the uniform buffer for the material data
@@ -274,7 +286,7 @@ namespace fc {
       // grab textures from the glTF file
       if (material.pbrData.baseColorTexture.has_value())
       {
-        constants.flags |= MaterialFeatures::ColorTexture;
+        constants.flags |= MaterialFeatures::HasColorTexture;
 
         size_t index = material.pbrData.baseColorTexture.value().textureIndex;
         size_t fcImage = gltf.textures[index].imageIndex.value();
@@ -286,9 +298,10 @@ namespace fc {
 
       if (material.pbrData.metallicRoughnessTexture.has_value())
       {
-        constants.flags |= MaterialFeatures::RoughMetalTexture;
+        constants.flags |= MaterialFeatures::HasRoughMetalTexture;
 
         std::cout << "Model has metal/roughness texture..." << std::endl;
+
         size_t index = material.pbrData.metallicRoughnessTexture.value().textureIndex;
         size_t imageIndex = gltf.textures[index].imageIndex.value();
         size_t samplerIndex = gltf.textures[index].samplerIndex.value();
@@ -300,9 +313,11 @@ namespace fc {
 
       if (material.normalTexture.has_value())
       {
-        constants.flags |= MaterialFeatures::NormalTexture;
+        constants.flags |= MaterialFeatures::HasNormalTexture;
 
-        std::cout << "Model has Normal Map Texture..." << std::endl;
+        std::cout << "Model has Normal Map Texture: (Scale = "
+                  << material.normalTexture->scale << ")" << std::endl;
+
         size_t index = material.normalTexture.value().textureIndex;
         size_t imageIndex = gltf.textures[index].imageIndex.value();
         size_t samplerIndex = gltf.textures[index].samplerIndex.value();
@@ -314,9 +329,12 @@ namespace fc {
 
       if (material.occlusionTexture.has_value())
       {
-        constants.flags |= MaterialFeatures::OcclusionTexture;
+        constants.flags |= MaterialFeatures::HasOcclusionTexture;
 
-        std::cout << "Model has Ambient Occlusion Map Texture..." << std::endl;
+        std::cout << "Model has Occlusion Map Texture: (Scale = "
+                  << material.occlusionTexture->strength
+                  << ", Default = 1)" << std::endl;
+
         size_t index = material.occlusionTexture.value().textureIndex;
         size_t imageIndex = gltf.textures[index].imageIndex.value();
         size_t samplerIndex = gltf.textures[index].samplerIndex.value();
@@ -330,7 +348,7 @@ namespace fc {
 
       if (material.emissiveTexture.has_value())
       {
-        constants.flags |= MaterialFeatures::EmissiveTexture;
+        constants.flags |= MaterialFeatures::HasEmissiveTexture;
 
         std::cout << "Model has Emmision Map Texture..." << std::endl;
         size_t index = material.emissiveTexture.value().textureIndex;
@@ -341,7 +359,52 @@ namespace fc {
         materialResources.emissiveSampler = mSamplers[samplerIndex];
       }
 
-      // Write material parameter to buffer.
+      // *-*-*-*-*-*-*-*-*-*-   UNIMPLEMENTED MATERIAL PROPERTIES   *-*-*-*-*-*-*-*-*-*- //
+      std::cout << "--------------------------------------------------------------\n";
+      std::cout << "Unimplemented properties for material - " << material.name << " :\n";
+      if (material.alphaMode == fastgltf::AlphaMode::Mask)
+      {
+        fcLog("AlphaMode Mask");
+      }
+      if (material.sheen != nullptr)
+      {
+        fcLog("Sheen Data");
+        if (material.sheen->sheenColorTexture.has_value())
+        {
+          fcLog("Sheen Color Texture");
+        }
+      }
+      if (material.alphaCutoff != 0.0)
+      {
+        std::cout << "AlphaCutoff: " << material.alphaCutoff << "\n";
+      }
+      if (material.transmission != nullptr)
+      {
+        if (material.transmission->transmissionTexture.has_value())
+        {
+          fcLog("Transmission Data");
+        }
+
+        float transmission = material.transmission->transmissionFactor;
+        std::cout << "transmission factor: " << transmission << std::endl;
+      }
+      if (material.clearcoat != nullptr)
+      {
+        fcLog("Clearcoat Data");
+      }
+      if (material.anisotropy != nullptr)
+      {
+        fcLog("Anisotropy Data");
+      }
+      if (material.iridescence != nullptr)
+      {
+        fcLog("Iridescence Data");
+      }
+      std::cout << "--------------------------------------------------------------" << std::endl;
+
+
+
+      // Write material parameters to buffer.
       sceneMaterialConstants[dataIndex] = constants;
 
       // Build material
@@ -349,7 +412,6 @@ namespace fc {
       newMaterial->data = renderer->mMetalRoughMaterial.writeMaterial(pDevice, passType, materialResources);
 
       dataIndex++;
-      fcLog("A");
     }
 
     // use the same vectors for all meshes so that memory doesnt reallocate as often
@@ -436,7 +498,9 @@ namespace fc {
           {
             // Let our shaders know we have vertex tangets available
             sceneMaterialConstants[primitive.materialIndex.value()].flags
-				              |= MaterialFeatures::VertexTangentAttribute;
+              |= MaterialFeatures::HasVertexTangentAttribute;
+
+            std::cout << "Vertex Primitives have Tangents" << std::endl;
           }
 
           fastgltf::iterateAccessorWithIndex<glm::vec4>(gltf, gltf.accessors[(*tangents).accessorIndex],
@@ -455,7 +519,7 @@ namespace fc {
           if (primitive.materialIndex.has_value())
           {
             sceneMaterialConstants[primitive.materialIndex.value()].flags
-              					|= MaterialFeatures::VertexTextureCoordinates;
+              |= MaterialFeatures::HasVertexTextureCoordinates;
           }
 
           fastgltf::iterateAccessorWithIndex<glm::vec2>(gltf, gltf.accessors[(*uv).accessorIndex]
@@ -494,7 +558,7 @@ namespace fc {
         glm::vec3 minPos = vertices[initialVertex].position;
         glm::vec3 maxPos = vertices[initialVertex].position;
 
-        for (int i = initialVertex; i < vertices.size(); i++)
+        for (int i = initialVertex + 1; i < vertices.size(); i++)
         {
           minPos = glm::min(minPos, vertices[i].position);
           maxPos = glm::max(maxPos, vertices[i].position);
@@ -579,6 +643,15 @@ namespace fc {
         node->refreshTransform(glm::mat4{1.f});
       }
     }
+
+    uint32_t transparentCount{0};
+    for (auto& material : materials)
+    {
+      if (material->data.passType == MaterialPass::Transparent)
+        transparentCount++;
+    }
+    std::cout << "Transparent Objects: " << transparentCount << std::endl;
+    std::cout << "Opaque Objects: " << materials.size() - transparentCount << std::endl;
   }
 
 

@@ -34,6 +34,8 @@ namespace fc
         int moveLeft = SDL_SCANCODE_LEFT;
      };
 
+     bool mEnableLookAround{false};
+
      KeyBindings keys{};
      float mMoveSpeed{5.f};
      float mLookSpeed{0.01f};

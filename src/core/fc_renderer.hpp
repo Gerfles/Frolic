@@ -115,8 +115,6 @@ namespace fc
       // window is small, or scale it up if the window is bigger. As we arent reallocating but just
       // rendering into a corner, we can also use this same logic to perform dynamic resolution, which is
       // a useful way of scaling performance, and can be handy for debugging.
-
-     // ?? TODO should this be handled by the swapchain even though its used by compute
      FcImage mDrawImage;
       // TODO try and delete the following
 
@@ -138,7 +136,6 @@ namespace fc
      VkPipeline pDrawPipeline;
      VkPipelineLayout pDrawPipelineLayout;
      VkExtent2D mDrawExtent;
-     float renderScale = 1.f;
      FcTextureAtlas textureAtlas;
      //FcModel testModel;
 
@@ -190,9 +187,16 @@ namespace fc
      // FcPipeline mSkyPipeline;
 
      void initDefaults(FcBuffer& sceneDataBuffer, SceneData* sceneData);
-     float* getRenderScale() { return &renderScale; }
      void attachPipeline(FcPipeline* pipeline);
+
+
+     void setAmbientOcclussion(bool enable);
+     void setNormalMapUse(bool enable);
+
+
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
+
 
      // Constructors, etc. - Prevent copying or altering -
      FcRenderer() = default;
@@ -215,6 +219,7 @@ namespace fc
       // - GETTERS -
      GLTFMetallicRoughness* getMetalRoughMaterial() { return &mMetalRoughMaterial; }
      VkDescriptorSetLayout getSceneDescriptorLayout() { return mSceneDataDescriptorLayout; }
+     VkDescriptorSetLayout SkyboxDescriptorLayout() { return mSkybox.DescriptorLayout(); }
       // TODO delete this probably and place background pipeline in renderer
      VkDescriptorSetLayout getBackgroundDescriptorLayout() { return mBackgroundDescriptorlayout; }
      VkDescriptorSetLayout getSingleImageDescriptorLayout() { return mSingleImageDescriptorLayout; }
@@ -222,6 +227,7 @@ namespace fc
       // ?? is this used often enough to merit a member variable?
      float ScreenWidth() { return mWindow.ScreenSize().width; }
      float ScreenHeight() { return mWindow.ScreenSize().height; }
+     SDL_Window* Window() { return mWindow.SDLwindow(); }
      float AspectRatio() { return (float)mSwapchain.getSurfaceExtent().width / (float)mSwapchain.getSurfaceExtent().height; }
      VkRenderPass RenderPass() { return mSwapchain.getRenderPass(); }
      uint32_t BufferCount() const { return mBufferCount; }

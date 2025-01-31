@@ -260,13 +260,10 @@ namespace fc
       //                                                              , descriptorBindInfo);
     }
 
-
-    // mSceneDataDescriptor = descClerk.createDescriptorSet(mSceneDataDescriptorLayout, sceneDescriptorBinding);
-    // // TODO think about destroying layout here
-
-
-    mMetalRoughMaterial.buildPipelines(this);
-
+    //
+    mSkybox.loadTextures("..//models//skybox", ".jpg");
+    // TODO should be more descriptive in name to show this has to happen after loadTextures
+    mSkybox.init(mSceneDataDescriptorLayout);
 
     // // set the uniform buffer for the material data
     materialConstants.allocateBuffer(sizeof(MaterialConstants), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
@@ -294,29 +291,27 @@ namespace fc
     materialResources.emissiveSampler = mDefaultSamplerLinear;
     materialResources.dataBufferOffset = 0;
 
+    // // TODO think about destroying layout here
+    mMetalRoughMaterial.buildPipelines(this);
     defaultMaterialData = mMetalRoughMaterial.writeMaterial(pDevice, MaterialPass::MainColor
                                                             , materialResources);
 
     // TODO implement with std::optional
     // TODO move to frolic.cpp
-    // structure.loadGltf(this, "..//models//MosquitoInAmber.glb");
+    //structure.loadGltf(this, "..//models//MosquitoInAmber.glb");
     //structure.loadGltf(this, "..//models//MaterialsVariantsShoe.glb");
-    //structure.loadGltf(this, "..//models//helmet//DamagedHelmet.gltf");
+    structure.loadGltf(this, "..//models//helmet//DamagedHelmet.gltf");
     //structure.loadGltf(this, "..//models//SheenWoodLeatherSofa.glb");
-    //structure.loadGltf(this, "..//models//structure.glb");
+    //structure.loadGltf(this, "..//models//GlassHurricaneCandleHolder.glb");
+    //structure.loadGltf(this, "..//models//ToyCar.glb");
     //structure.loadGltf(this, "..//models//structure_mat.glb");
 
-    structure.loadGltf(this, "..//models//sponza//Sponza.gltf");
+    //structure.loadGltf(this, "..//models//sponza//Sponza.gltf");
     // // NOTE: This moves the object not the camera/lights/etc...
     // glm::mat4 drawMat{1.f};
     // glm::vec3 translate{30.f, -00.f, 85.f};
     // drawMat = glm::translate(drawMat, translate);
     // structure.update(drawMat);
-
-    //
-    mSkybox.loadTextures("..//models//skybox", ".jpg");
-    // TODO should be more descriptive in name to show this has to happen after loadTextures
-    mSkybox.init(mSceneDataDescriptorLayout);
 
     // TODO remove at some point but prefer to leave in while debugging
     vkDeviceWaitIdle(pDevice);
@@ -404,6 +399,56 @@ namespace fc
       throw std::runtime_error("Failed to create ImGui Fonts");
     }
   }
+
+
+
+  void FcRenderer::setAmbientOcclussion(bool enable)
+  {
+    // Get the address for the buffer of material constant data being refd by the shader
+    MaterialConstants* changed = static_cast<MaterialConstants*>(structure.mMaterialDataBuffer.getAddres());
+
+    // TODO need to this for all "structures"
+    int numMaterial = structure.mMaterials.size();
+    if (enable)
+    {
+      for (size_t i = 0; i < numMaterial; i++)
+      {
+        changed->flags &= ~MaterialFeatures::HasOcclusionTexture;
+      }
+    }
+    else
+    {
+      for (size_t i = 0; i < numMaterial; i++)
+      {
+        changed->flags |= MaterialFeatures::HasOcclusionTexture;
+      }
+    }
+  }
+
+
+  void FcRenderer::setNormalMapUse(bool enable)
+  {
+    // Get the address for the buffer of material constant data being refd by the shader
+    MaterialConstants* changed = static_cast<MaterialConstants*>(structure.mMaterialDataBuffer.getAddres());
+
+    // TODO need to this for all "structures"
+    int numMaterial = structure.mMaterials.size();
+    if (enable)
+    {
+      for (size_t i = 0; i < numMaterial; i++)
+      {
+        changed->flags |= MaterialFeatures::HasNormalTexture;
+      }
+    }
+    else
+    {
+      for (size_t i = 0; i < numMaterial; i++)
+      {
+        changed->flags &= ~MaterialFeatures::HasNormalTexture;
+      }
+    }
+  }
+
 
 
 
@@ -943,6 +988,7 @@ namespace fc
 
 
   void FcRenderer::drawGeometry() {
+
     // TODO should consider sorting outside the drawGeometry perhaps, unless something changes
     // or perhaps just inserting objects into draw via a hashmap. One thing to consider though
     // is that we also perform visibility checks before we sort
@@ -956,7 +1002,10 @@ namespace fc
     for (uint32_t i = 0; i < mainDrawContext.opaqueSurfaces.size(); i++)
     {
       // BUG the bounding boxes are excluding visible objects for some reason
-      if (true)//mainDrawContext.opaqueSurfaces[i].isVisible(pSceneData->viewProj))
+      // May only be on the sponza gltf...
+      // BUG also when no objects are rendered, causes an error in seting the scissors and viewport
+      // TODO implement normal arrows and bounding boxes
+      if (mainDrawContext.opaqueSurfaces[i].isVisible(pSceneData->viewProj))
       {
         sortedOpaqueReferences.push_back(i);
       }
@@ -1033,7 +1082,6 @@ namespace fc
     renderInfo.pDepthAttachment = &depthAttachment;
     renderInfo.pStencilAttachment = nullptr;
 
-
     vkCmdBeginRendering(cmd, &renderInfo);
 
     // defined outside of the draw function, this is the state we will try to skip
@@ -1041,33 +1089,9 @@ namespace fc
     MaterialInstance* lastMaterial = nullptr;
     VkBuffer lastIndexBuffer = VK_NULL_HANDLE;
 
-
- // // TODO see about seting these once and only after they change
- //           VkViewport viewport = {};
- //           viewport.x = 0;
- //           viewport.y = 0;
- //           viewport.width = mDrawExtent.width;
- //           viewport.height = mDrawExtent.height;
- //           viewport.minDepth = 0.f;
- //           viewport.maxDepth = 1.f;
-
- //           VkRect2D scissors = {};
- //           scissors.offset.x = 0;
- //           scissors.offset.y = 0;
- //           scissors.extent.width = viewport.width;
- //           scissors.extent.height = viewport.height;
-
- //           vkCmdSetViewport(cmd, 0, 1, &viewport);
- //           vkCmdSetScissor(cmd, 0, 1, &scissors);
- //       mSkybox.draw(cmd, &getCurrentFrame().sceneDataDescriptorSet);
-
-    //
+    // define a lambda that will be responsible for rendering all loaded models
     auto draw = [&](const RenderObject& model)
      {
-
-
-
-
        if (model.material != lastMaterial)
        {
          lastMaterial = model.material;
@@ -1080,27 +1104,11 @@ namespace fc
 
            model.bindPipeline(cmd);
            model.bindDescriptorSet(cmd, getCurrentFrame().sceneDataDescriptorSet, 0);
-
-           // TODO see about seting these once and only after they change
-           VkViewport viewport = {};
-           viewport.x = 0;
-           viewport.y = 0;
-           viewport.width = mDrawExtent.width;
-           viewport.height = mDrawExtent.height;
-           viewport.minDepth = 0.f;
-           viewport.maxDepth = 1.f;
-
-           VkRect2D scissors = {};
-           scissors.offset.x = 0;
-           scissors.offset.y = 0;
-           scissors.extent.width = viewport.width;
-           scissors.extent.height = viewport.height;
-
-           vkCmdSetViewport(cmd, 0, 1, &viewport);
-           vkCmdSetScissor(cmd, 0, 1, &scissors);
+           model.bindDescriptorSet(cmd, mSkybox.Descriptor(), 1);
          }
 
-         model.bindDescriptorSet(cmd, model.material->materialSet, 1);
+
+         model.bindDescriptorSet(cmd, model.material->materialSet, 2);
        }
 
        // Only bind index buffer if it has changed
@@ -1127,22 +1135,38 @@ namespace fc
        stats.triangleCount += model.indexCount / 3;
      };
 
+    // TODO see about seting these once and only after they change
+    VkViewport viewport = {};
+    viewport.x = 0;
+    viewport.y = 0;
+    viewport.width = mDrawExtent.width;
+    viewport.height = mDrawExtent.height;
+    viewport.minDepth = 0.f;
+    viewport.maxDepth = 1.f;
 
-    // First draw the opaque objects
-    for (auto& model : sortedOpaqueReferences)
+    VkRect2D scissors = {};
+    scissors.offset.x = 0;
+    scissors.offset.y = 0;
+    scissors.extent.width = viewport.width;
+    scissors.extent.height = viewport.height;
+
+    vkCmdSetViewport(cmd, 0, 1, &viewport);
+    vkCmdSetScissor(cmd, 0, 1, &scissors);
+
+
+    // First draw the opaque objects using the captured Lambda
+    for (auto& modelIndex : sortedOpaqueReferences)
     {
-      draw(mainDrawContext.opaqueSurfaces[model]);
+      draw(mainDrawContext.opaqueSurfaces[modelIndex]);
     }
 
-    // Afterwards, we can draw the transparent ones
+    // Afterwards, we can draw the transparent ones using the captured Lambda
     for (auto& model : mainDrawContext.transparentSurfaces)
     {
       draw(model);
     }
 
-
     mSkybox.draw(cmd, &getCurrentFrame().sceneDataDescriptorSet);
-
 
     vkCmdEndRendering(cmd);
 
@@ -1272,9 +1296,9 @@ namespace fc
     }
 
     mDrawExtent.height = std::min(mSwapchain.getSurfaceExtent().height
-                                  , mDrawImage.getExtent().height) * renderScale;
+                                  , mDrawImage.getExtent().height);// * renderScale;
     mDrawExtent.width = std::min(mSwapchain.getSurfaceExtent().width
-                                 , mDrawImage.getExtent().width) * renderScale;
+                                 , mDrawImage.getExtent().width);// * renderScale;
 
     // manully un-signal (close) the fence ONLY when we are sure we're submitting work (result == VK_SUCESS)
     vkResetFences(pDevice, 1, &getCurrentFrame().renderFence);
@@ -1596,6 +1620,7 @@ namespace fc
 
 
     //loadedScenes.clear();
+    structure.clearAll();
 
     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DEFAULTS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     vkDestroySampler(pDevice, mDefaultSamplerLinear, nullptr);

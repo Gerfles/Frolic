@@ -20,9 +20,12 @@ layout(location = 0) out vec3 outUVW;
 void main()
 {
   outUVW = vertPos;
-  outUVW.z *= -1.0;
+//  outUVW.z *= -1.0;
 
   vec4 position = sceneData.proj * mat4(mat3(sceneData.view)) * vec4(vertPos, 1.0);
+
+  // set z to min depth so we can write to depthbuffer and draw skycube last, that
+  // way we are not drawing a fragment for every pixel in the screen.
   position.z = 0.0;
-  gl_Position = position;//(position.x, position.y, 0.0, position.w);
+  gl_Position = position;
 }

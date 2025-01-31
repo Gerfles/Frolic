@@ -92,7 +92,7 @@ namespace fc
     }
     if (header != "")
     {
-      std::cout << "--*--*--*--*  " << header
+      std::cout << "FC-LOG: --*--*--*--*  " << header
                 << std::right << ":\tLog Count: "<< logCount++ << std::endl;
     }
     else

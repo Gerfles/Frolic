@@ -33,9 +33,10 @@ namespace fc {
   struct LoadedGLTF : public IRenderable
   {
    private:
-     void clearAll();
+
 
    public:
+     void clearAll();
      // storage for all the data on a given glTF file
      std::unordered_map<std::string, std::shared_ptr<FcMesh>> mMeshes;
      std::unordered_map<std::string, std::shared_ptr<Node>> mNodes;
@@ -52,7 +53,8 @@ namespace fc {
      FcRenderer* pCreator;
 //     std::optional<std::shared_ptr<LoadedGLTF>> loadedFile;
 //     std::shared_ptr<LoadedGLTF> scene;
-     ~LoadedGLTF() { clearAll(); }
+     // TODO implement better destructor
+     //~LoadedGLTF() { clearAll(); }
 
      //virtual void draw(const glm::mat4& topMatrix, DrawContext& ctx);
      virtual void draw(DrawContext& ctx);

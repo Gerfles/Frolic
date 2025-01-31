@@ -23,6 +23,8 @@ namespace fc
      bool mouseKeys[3];
      bool prevMouseKeys[3];
 
+     //
+     SDL_Window* pWindow; // Track if the mouse is within window
      int mMouseX {0};
      int mMouseY {0};
      int mPrevMouseX {0};
@@ -40,11 +42,12 @@ namespace fc
 
    public:
       //?? perhaps forego these to use SDL_BUTTON(x)
-     static const int MOUSE_LEFT = 1;
-     static const int MOUSE_MIDDLE = 2;
-     static const int MOUSE_RIGHT = 3;
+     // NOTE that we have to subtract one to alingn the button index with our array index
+     static const int MOUSE_LEFT = SDL_BUTTON_LEFT - 1;
+     static const int MOUSE_MIDDLE = SDL_BUTTON_MIDDLE - 1;
+     static const int MOUSE_RIGHT = SDL_BUTTON_RIGHT - 1;
 
-     void init();
+     void init(SDL_Window* window);
      void setMouseDeadzone(int radiusInPixels, int screenWidth, int screenHeight);
      void update();
      void kill();
@@ -56,8 +59,9 @@ namespace fc
      bool mouseDown(int key);
      bool mouseHit(int key);
      bool mouseUp(int key);
+     bool mouseInWindow();
 
-     void setMousePos(SDL_Window* win, int x, int y);
+     void setMousePos(int x, int y);
      void hideCursor(bool hide = true);
 
      void RelativeMousePosition(int &mouseX, int &mouseY);

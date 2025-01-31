@@ -4,12 +4,14 @@
 #include "SDL2/SDL_keycode.h"
 #include "SDL2/SDL_scancode.h"
 #include "SDL2/SDL_stdinc.h"
+#include "core/utilities.hpp"
 #include <cstring>
 
 namespace fc
 {
-  void FcInput::init()
+  void FcInput::init(SDL_Window* window)
   {
+    pWindow = window;
      // initiallize the arrays that carry the state of the keyboard keys
     std::memset(keyStates1, false, sizeof(keyStates1[0]) * SDL_NUM_SCANCODES);
     std::memset(keyStates2, false, sizeof(keyStates2[0]) * SDL_NUM_SCANCODES);
@@ -26,6 +28,11 @@ namespace fc
 
     m_hasTextUpdated = false;
     p_text = NULL;
+  }
+
+  bool FcInput::mouseInWindow()
+  {
+    return (SDL_GetMouseFocus() == pWindow);
   }
 
 
@@ -63,7 +70,8 @@ namespace fc
     for (int i = 0; i < 3; i++)
     {
       prevMouseKeys[i] = mouseKeys[i];
-      mouseKeys[i] = mouseState & SDL_BUTTON(i);
+      // SDL_BUTTON starts at 1 (for left button) and goes to 3 (right button)
+      mouseKeys[i] = mouseState & SDL_BUTTON(i + 1);
     }
   }
 
@@ -222,7 +230,6 @@ namespace fc
       relativeLength *= 0.333f;
     }
 
-
     if (relativeLength > 0)
     {
       float scaleFactor = relativeLength / length;
@@ -238,9 +245,9 @@ namespace fc
 
 
 
-  void FcInput::setMousePos(SDL_Window* win, int x, int y)
+  void FcInput::setMousePos(int x, int y)
   {
-    SDL_WarpMouseInWindow(win, x, y);
+    SDL_WarpMouseInWindow(pWindow, x, y);
   }
 
 
@@ -248,5 +255,7 @@ namespace fc
   void FcInput::hideCursor(bool hide)
   {
     (hide) ? SDL_ShowCursor(SDL_DISABLE) : SDL_ShowCursor(SDL_ENABLE);
+    // TRY
+    //SDL_SetRelativeMouseMode(SDL_TRUE);
   }
 }
