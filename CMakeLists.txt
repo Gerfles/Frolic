@@ -441,7 +441,8 @@ file(COPY shaders/compile_shaders.sh DESTINATION ${CMAKE_BINARY_DIR})
 
 # compile shaders
 set(SHADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shaders)
-file(GLOB SHADERS ${SHADER_DIR}/*.vert ${SHADER_DIR}/*.frag ${SHADER_DIR}/*.comp)
+file(GLOB SHADERS ${SHADER_DIR}/*.vert ${SHADER_DIR}/*.frag ${SHADER_DIR}/*.comp
+${SHADER_DIR}/*.geom)
 
 foreach(SHADER ${SHADERS})
   get_filename_component(FILENAME ${SHADER} NAME)

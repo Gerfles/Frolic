@@ -39,6 +39,9 @@ namespace fc
      // TODO could add some features like a print function, etc.
   };
 
+  // TODO Can incrementally update push constants according to:
+  // https://docs.vulkan.org/guide/latest/push_constants.html
+  // May provide some benefits if done correctly
   struct DrawPushConstants
   {
      glm::mat4 worldMatrix;
@@ -70,8 +73,8 @@ namespace fc
      std::weak_ptr<Node> parent;
      std::vector<std::shared_ptr<Node>> children;
 
-     glm::mat4 localTransform;
-     glm::mat4 worldTransform;
+     glm::mat4 localTransform {1.0f};
+     glm::mat4 worldTransform {1.0f};
      void refreshTransform(const glm::mat4& parentMatrix);
      virtual void draw(DrawContext& context);
      virtual void update(const glm::mat4& topMatrix);
@@ -102,8 +105,8 @@ namespace fc
      VkBuffer indexBuffer;
 
      MaterialInstance* material;
-     glm::mat4 transform;
-     glm::mat4 invModelMatrix;
+     glm::mat4 transform {1.0f};
+     glm::mat4 invModelMatrix {1.0f};
      Bounds bounds;
      VkDeviceAddress vertexBufferAddress;
      void bindPipeline(VkCommandBuffer cmd) const {  material->pPipeline->bind(cmd); }

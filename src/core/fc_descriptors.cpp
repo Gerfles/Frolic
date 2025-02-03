@@ -133,7 +133,6 @@ namespace fc
   FcDescriptorClerk::createDescriptorSetLayout(FcDescriptorBindInfo& bindingInfo
                                                , VkDescriptorSetLayoutCreateFlags flags)
   {
-
     // create descriptor set layout with given bindings
     VkDescriptorSetLayoutCreateInfo layoutCreateInfo{};
     layoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -148,7 +147,6 @@ namespace fc
     {
       throw std::runtime_error("Failed to create a Vulkan Descriptor Set Layout!");
     }
-
     return descriptorLayout;
   }
 

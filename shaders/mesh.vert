@@ -59,18 +59,17 @@ void main()
   vec4 positionWorld = PushConstants.renderMatrix * vec4(v.position, 1.0f);
   outPosWorld = positionWorld.xyz;
 
+  //gl_Position = sceneData.proj * sceneData.view * PushConstants.renderMatrix * vec4(v.position, 1.0f);
   gl_Position = sceneData.viewProj * positionWorld;
+  //gl_Position = sceneData.proj * sceneData.view * positionWorld;
 
-  //outNormal = (PushConstants.renderMatrix * vec4(v.normal, 0.f)).xyz;
-  // TODO might be slightly faster but might be incorrect
-  //outNormal = mat3(PushConstants.renderMatrix) * v.normal;
-
-  // TODO pass in inverses for uniforms but I think the below is the proper transform
-  // ?? one that deals with non-uniform scaling
-  outNormal = mat3(PushConstants.normalTransform) * v.normal;
+  // outNormal = mat3(sceneData.proj * sceneData.view * PushConstants.normalTransform) * v.normal;
+   outNormal = mat3(PushConstants.normalTransform) * v.normal;
+  // outNormal = mat3(inverse(transpose(PushConstants.renderMatrix))) * v.normal;
 
   outUV.x = v.uv_x;
   outUV.y = v.uv_y;
 
   outTangent = v.tangent;
+
 }

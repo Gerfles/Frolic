@@ -40,7 +40,11 @@ namespace fc {
      // storage for all the data on a given glTF file
      std::unordered_map<std::string, std::shared_ptr<FcMesh>> mMeshes;
      std::unordered_map<std::string, std::shared_ptr<Node>> mNodes;
-     std::unordered_map<std::string, std::shared_ptr<GLTFMaterial>> mMaterials;
+     std::vector<std::shared_ptr<GLTFMaterial>> mMaterials;
+     //std::unordered_map<std::string, std::shared_ptr<GLTFMaterial>> mMaterials;
+
+
+
      //std::unordered_map<std::string, FcImage> mImages;
      //std::unordered_map<uint32_t, FcImage> mImages;
      std::vector<FcImage> mImages;

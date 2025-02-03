@@ -241,8 +241,10 @@ namespace fc
     // descriptorSet and layout on the fly and destroy layout if not needed
     // TODO see if layout is not needed.
     FcDescriptorBindInfo sceneDescriptorBinding{};
-    sceneDescriptorBinding.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
-                                      , VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+    sceneDescriptorBinding.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT
+                                      | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_GEOMETRY_BIT);
+    // TODO find out if there is any cost associated with binding to multiple un-needed stages...
+    //, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
 
     sceneDescriptorBinding.attachBuffer(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, sceneDataBuffer
                                         , sizeof(SceneData), 0);
@@ -300,11 +302,13 @@ namespace fc
     // TODO move to frolic.cpp
     //structure.loadGltf(this, "..//models//MosquitoInAmber.glb");
     //structure.loadGltf(this, "..//models//MaterialsVariantsShoe.glb");
-    structure.loadGltf(this, "..//models//helmet//DamagedHelmet.gltf");
-    //structure.loadGltf(this, "..//models//SheenWoodLeatherSofa.glb");
+    //structure.loadGltf(this, "..//models//helmet//DamagedHelmet.gltf");
+    //
+    //
+    //structure.loadGltf(this, "..//models//Box.gltf");
     //structure.loadGltf(this, "..//models//GlassHurricaneCandleHolder.glb");
     //structure.loadGltf(this, "..//models//ToyCar.glb");
-    //structure.loadGltf(this, "..//models//structure_mat.glb");
+    structure.loadGltf(this, "..//models//structure_mat.glb");
 
     //structure.loadGltf(this, "..//models//sponza//Sponza.gltf");
     // // NOTE: This moves the object not the camera/lights/etc...
@@ -312,6 +316,14 @@ namespace fc
     // glm::vec3 translate{30.f, -00.f, 85.f};
     // drawMat = glm::translate(drawMat, translate);
     // structure.update(drawMat);
+
+    // BUG investigate why this file doesn't load
+    //structure.loadGltf(this, "..//models//monkey.glb");
+
+    // FIXME requires enabling one or more extensions in fastgltf
+    //structure.loadGltf(this, "..//models//SheenWoodLeatherSofa.glb");
+
+    initNormalDrawPipeline(sceneDataBuffer);
 
     // TODO remove at some point but prefer to leave in while debugging
     vkDeviceWaitIdle(pDevice);
@@ -400,54 +412,58 @@ namespace fc
     }
   }
 
-
-
-  void FcRenderer::setAmbientOcclussion(bool enable)
+  void FcRenderer::updateUseFlags(MaterialFeatures featureToUpdate, bool enable)
   {
-    // Get the address for the buffer of material constant data being refd by the shader
+        // Get the address for the buffer of material constant data being refd by the shader
     MaterialConstants* changed = static_cast<MaterialConstants*>(structure.mMaterialDataBuffer.getAddres());
 
     // TODO need to this for all "structures"
     int numMaterial = structure.mMaterials.size();
+    std::cout << "numMaterials = " << numMaterial << std::endl;
     if (enable)
     {
       for (size_t i = 0; i < numMaterial; i++)
       {
-        changed->flags &= ~MaterialFeatures::HasOcclusionTexture;
+        changed->flags |= featureToUpdate;
+        changed++;
       }
     }
     else
     {
       for (size_t i = 0; i < numMaterial; i++)
       {
-        changed->flags |= MaterialFeatures::HasOcclusionTexture;
+        changed->flags &= ~featureToUpdate;
+        changed++;
       }
     }
   }
 
+  void FcRenderer::setColorTextureUse(bool enable)
+  {
+    updateUseFlags(MaterialFeatures::HasColorTexture, enable);
+  }
+
+  void FcRenderer::setRoughMetalUse(bool enable)
+  {
+    updateUseFlags(MaterialFeatures::HasRoughMetalTexture, enable);
+  }
+
+  void FcRenderer::setAmbientOcclussionUse(bool enable)
+  {
+    updateUseFlags(MaterialFeatures::HasOcclusionTexture, enable);
+  }
 
   void FcRenderer::setNormalMapUse(bool enable)
   {
-    // Get the address for the buffer of material constant data being refd by the shader
-    MaterialConstants* changed = static_cast<MaterialConstants*>(structure.mMaterialDataBuffer.getAddres());
-
-    // TODO need to this for all "structures"
-    int numMaterial = structure.mMaterials.size();
-    if (enable)
-    {
-      for (size_t i = 0; i < numMaterial; i++)
-      {
-        changed->flags |= MaterialFeatures::HasNormalTexture;
-      }
-    }
-    else
-    {
-      for (size_t i = 0; i < numMaterial; i++)
-      {
-        changed->flags &= ~MaterialFeatures::HasNormalTexture;
-      }
-    }
+    updateUseFlags(MaterialFeatures::HasNormalTexture, enable);
   }
+
+  void FcRenderer::setEmissiveTextureUse(bool enable)
+  {
+    updateUseFlags(MaterialFeatures::HasEmissiveTexture, enable);
+  }
+
+
 
 
 
@@ -715,9 +731,15 @@ namespace fc
     mainDrawContext.transparentSurfaces.clear();
 //    loadedNodes["Suzanne"]->draw(glm::mat4{1.f}, mainDrawContext);
 
-    // rotationMatrix = glm::rotate(rotationMatrix, rotationSpeed * glm::pi<float>(), {0.f, -1.f, 0.f});
-    // structure.update(rotationMatrix);
+    rotationMatrix = glm::rotate(rotationMatrix
+                                 , rotationSpeed * .0001f * glm::pi<float>(), {0.f, -1.f, 0.f});
 
+    // TODO alter the independence of these two separate calls
+    // Might be better to combine them but also a waste when considering that many objects are
+    // stationary and therefore do not require an update. Probably better to have static & dynamic
+    // objects be "drawn differently" also hate that this functio is called draw just because
+    // it adds the meshNodes to the drawContext...
+    structure.update(rotationMatrix);
     structure.draw(mainDrawContext);
 
     //loadedScenes["structure"]->draw(glm::mat4{1.f}, mainDrawContext);
@@ -790,7 +812,6 @@ namespace fc
           vkCmdBindDescriptorSets(getCurrentFrame().commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS
                                   , mModelPipeline.Layout(), 0, static_cast<uint32_t>(descriptorSets.size())
                                   , descriptorSets.data() , 0, nullptr);
-
           // execute pipeline
           //vkCmdDrawIndexed(getCurrentFrame().commandBuffer, currMesh.indexCount(), 1, 0, 0, 0);
         }
@@ -951,40 +972,83 @@ namespace fc
     mDrawImage.transitionImage(cmd, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
 
-    // vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pDrawPipeline);
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pDrawPipeline);
 
-    // // bind the descriptorClerk set containing the draw image for the compute
-    // // pipeline
-    // FcDescriptorClerk& descriptorClerk = FcLocator::DescriptorClerk();
+    // bind the descriptorClerk set containing the draw image for the compute
+    // pipeline
+    FcDescriptorClerk& descriptorClerk = FcLocator::DescriptorClerk();
 
-    // //		drawImGui(cmd,
-    // //mSwapchain.getFcImage(swapchainImgIndex).ImageView());
-    // std::array<VkDescriptorSet, 1> ds{mDrawImageDescriptor};
+    //		drawImGui(cmd,
+    //mSwapchain.getFcImage(swapchainImgIndex).ImageView());
+    std::array<VkDescriptorSet, 1> ds{mDrawImageDescriptor};
 
-    // vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE,
-    //                         pDrawPipelineLayout, 0, 1, ds.data(), 0, nullptr);
-    // // vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE
-    // //                         , pDrawPipelineLayout, 0, 1,
-    // //                         &getCurrentFrame().sceneDataDescriptorSet, 0,
-    // //                         nullptr);
-    // //                            , pDrawPipelineLayout, 0, 1,
-    // //                            descriptorClerk.vkDescriptor(), 0, nullptr);
+    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE,
+                            pDrawPipelineLayout, 0, 1, ds.data(), 0, nullptr);
 
-    // // inject the push constants
-    // // ComputePushConstants pc;
-    // // pc.data1 = glm::vec4(1,0,0,1);
-    // // pc.data2 = glm::vec4(0,0,1,1);
+    // vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE
+    //                         , pDrawPipelineLayout, 0, 1,
+    //                         &getCurrentFrame().sceneDataDescriptorSet, 0,
+    //                         nullptr);
+    //                            , pDrawPipelineLayout, 0, 1,
+    //                            descriptorClerk.vkDescriptor(), 0, nullptr);
 
-    // vkCmdPushConstants(cmd, pDrawPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
-    //                    sizeof(ComputePushConstants), &pushConstants);
+    // inject the push constants
+    // ComputePushConstants pc;
+    // pc.data1 = glm::vec4(1,0,0,1);
+    // pc.data2 = glm::vec4(0,0,1,1);
 
-    // // execute the compute pipeline dispatch.
-    // vkCmdDispatch(cmd, std::ceil(mDrawImage.size().width / 16.0),
-    //               std::ceil(mDrawImage.size().height / 16.0), 1);
+    vkCmdPushConstants(cmd, pDrawPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
+                       sizeof(ComputePushConstants), &pushConstants);
 
-
-
+    // execute the compute pipeline dispatch.
+    vkCmdDispatch(cmd, std::ceil(mDrawImage.size().width / 16.0),
+                  std::ceil(mDrawImage.size().height / 16.0), 1);
   }
+
+
+  void FcRenderer::initNormalDrawPipeline(FcBuffer& sceneDataBuffer)
+  {
+    FcPipelineConfig pipelineConfig{3};
+    pipelineConfig.name = "Normal Draw Pipeline";
+    pipelineConfig.shaders[0].filename = "normal_display.vert.spv";
+    pipelineConfig.shaders[0].stageFlag = VK_SHADER_STAGE_VERTEX_BIT;
+    pipelineConfig.shaders[1].filename = "normal_display.geom.spv";
+    pipelineConfig.shaders[1].stageFlag = VK_SHADER_STAGE_GEOMETRY_BIT;
+    pipelineConfig.shaders[2].filename = "normal_display.frag.spv";
+    pipelineConfig.shaders[2].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    // add push constants
+    VkPushConstantRange matrixRange;
+    matrixRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    matrixRange.offset = 0;
+    matrixRange.size = sizeof(DrawPushConstants);
+
+    pipelineConfig.addPushConstants(matrixRange);
+
+    pipelineConfig.addDescriptorSetLayout(mSceneDataDescriptorLayout);
+
+    pipelineConfig.setColorAttachment(VK_FORMAT_R16G16B16A16_SFLOAT);
+    pipelineConfig.setDepthFormat(VK_FORMAT_D32_SFLOAT);
+    pipelineConfig.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+    pipelineConfig.setPolygonMode(VK_POLYGON_MODE_FILL);
+    // TODO front face
+    pipelineConfig.setCullMode(VK_CULL_MODE_FRONT_AND_BACK, VK_FRONT_FACE_CLOCKWISE);
+    pipelineConfig.setMultiSampling(FcLocator::Gpu().Properties().maxMsaaSamples);
+    // TODO prefer config via:
+    //pipelineConfig.enableMultiSampling(VK_SAMPLE_COUNT_1_BIT);
+    //pipelineConfig.disableMultiSampling();
+    //pipelineConfig.disableBlending();
+    //pipelineConfig.enableBlendingAlpha();
+    //pipelineConfig.enableBlendingAdditive();
+    pipelineConfig.enableDepthtest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
+
+    //pipelineConfig.disableBlending();
+    //pipelineConfig.disableDepthtest();
+
+    mNormalDrawPipeline.create(pipelineConfig);
+  }
+
+
 
 
   void FcRenderer::drawGeometry() {
@@ -995,8 +1059,8 @@ namespace fc
     // TODO should also make sure to sort using more than one thread
     // Sort rendered objects according to material type and if the same sorted by indexBuffer
     // A lot of big game engines do this to reduce the number of pipeline/descriptor set binds
-    std::vector<uint32_t> sortedOpaqueReferences;
-    sortedOpaqueReferences.reserve(mainDrawContext.opaqueSurfaces.size());
+    std::vector<uint32_t> sortedOpaqueIndices;
+    sortedOpaqueIndices.reserve(mainDrawContext.opaqueSurfaces.size());
 
     // Only place the meshes whose bounding box is within the view frustrum
     for (uint32_t i = 0; i < mainDrawContext.opaqueSurfaces.size(); i++)
@@ -1007,7 +1071,7 @@ namespace fc
       // TODO implement normal arrows and bounding boxes
       if (mainDrawContext.opaqueSurfaces[i].isVisible(pSceneData->viewProj))
       {
-        sortedOpaqueReferences.push_back(i);
+        sortedOpaqueIndices.push_back(i);
       }
     }
 
@@ -1015,10 +1079,10 @@ namespace fc
     // and keep drawn object in linked list every iteration (unless removed manually) instead
     // of clearing the draw list every update...
 
-    // TODO sort algorithm could be improved by calculating a sort key, and then our sortedOpaqueReferences
+    // TODO sort algorithm could be improved by calculating a sort key, and then our sortedOpaqueIndices
     // would be something like 20bits draw index and 44 bits for sort key/hash
     // sort the opaque surfaces by material and mesh
-    std::sort(sortedOpaqueReferences.begin(), sortedOpaqueReferences.end(), [&](const auto& iA, const auto& iB)
+    std::sort(sortedOpaqueIndices.begin(), sortedOpaqueIndices.end(), [&](const auto& iA, const auto& iB)
      {
        const RenderObject& A = mainDrawContext.opaqueSurfaces[iA];
        const RenderObject& B = mainDrawContext.opaqueSurfaces[iB];
@@ -1058,7 +1122,6 @@ namespace fc
     colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     //		colorAttachment.loadOp = clear ? VK_ATTACHMENT_LOAD_OP_CLEAR :
     //VK_ATTACHMENT_LOAD_OP_LOAD;
-
     colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
@@ -1071,7 +1134,6 @@ namespace fc
     depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     depthAttachment.clearValue.depthStencil.depth = 0.f;
 
-
     //
     VkRenderingInfo renderInfo{};
     renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
@@ -1083,57 +1145,6 @@ namespace fc
     renderInfo.pStencilAttachment = nullptr;
 
     vkCmdBeginRendering(cmd, &renderInfo);
-
-    // defined outside of the draw function, this is the state we will try to skip
-    FcPipeline* lastPipeline = nullptr;
-    MaterialInstance* lastMaterial = nullptr;
-    VkBuffer lastIndexBuffer = VK_NULL_HANDLE;
-
-    // define a lambda that will be responsible for rendering all loaded models
-    auto draw = [&](const RenderObject& model)
-     {
-       if (model.material != lastMaterial)
-       {
-         lastMaterial = model.material;
-
-         // Only rebind pipeline and material descriptors if the material changed
-         // TODO have each object track state of its own descriptorSets
-         if (model.material->pPipeline != lastPipeline)
-         {
-           lastPipeline = model.material->pPipeline;
-
-           model.bindPipeline(cmd);
-           model.bindDescriptorSet(cmd, getCurrentFrame().sceneDataDescriptorSet, 0);
-           model.bindDescriptorSet(cmd, mSkybox.Descriptor(), 1);
-         }
-
-
-         model.bindDescriptorSet(cmd, model.material->materialSet, 2);
-       }
-
-       // Only bind index buffer if it has changed
-       if (model.indexBuffer != lastIndexBuffer)
-       {
-         lastIndexBuffer = model.indexBuffer;
-         model.bindIndexBuffer(cmd);
-       }
-
-       // Calculate final mesh matrix
-       DrawPushConstants pushConstants;
-       pushConstants.vertexBuffer = model.vertexBufferAddress;
-       pushConstants.worldMatrix = model.transform;
-       pushConstants.normalTransform = model.invModelMatrix;
-
-       vkCmdPushConstants(cmd, model.material->pPipeline->Layout(),
-                          VK_SHADER_STAGE_VERTEX_BIT, 0,
-                          sizeof(DrawPushConstants), &pushConstants);
-
-       vkCmdDrawIndexed(cmd, model.indexCount, 1, model.firstIndex, 0, 0);
-
-       // add counters for triangles and draws calls
-       stats.objectsRendered++;
-       stats.triangleCount += model.indexCount / 3;
-     };
 
     // TODO see about seting these once and only after they change
     VkViewport viewport = {};
@@ -1153,17 +1164,31 @@ namespace fc
     vkCmdSetViewport(cmd, 0, 1, &viewport);
     vkCmdSetScissor(cmd, 0, 1, &scissors);
 
+    // Reset the previously used draw instruments for the new draw call
+    // defined outside of the draw function, this is the state we will try to skip
+    lastUsedPipeline = nullptr;
+    lastUsedMaterial = nullptr;
+    lastUsedIndexBuffer = VK_NULL_HANDLE;
 
     // First draw the opaque objects using the captured Lambda
-    for (auto& modelIndex : sortedOpaqueReferences)
+    for (uint32_t surfaceIndex : sortedOpaqueIndices)
     {
-      draw(mainDrawContext.opaqueSurfaces[modelIndex]);
+      drawSurface(cmd, mainDrawContext.opaqueSurfaces[surfaceIndex]);
     }
 
     // Afterwards, we can draw the transparent ones using the captured Lambda
-    for (auto& model : mainDrawContext.transparentSurfaces)
+    for (RenderObject& surface : mainDrawContext.transparentSurfaces)
     {
-      draw(model);
+      drawSurface(cmd, surface);
+    }
+
+    // // Finally draw the Normals for the opaque objects
+    if (drawNormalVectors)
+    {
+      for (uint32_t& surfaceIndex : sortedOpaqueIndices)
+      {
+        drawNormals(cmd, mainDrawContext.opaqueSurfaces[surfaceIndex]);
+      }
     }
 
     mSkybox.draw(cmd, &getCurrentFrame().sceneDataDescriptorSet);
@@ -1173,6 +1198,85 @@ namespace fc
     // ?? elapsed time should already be in ms
     stats.meshDrawTime = mTimer.elapsedTime();
   }
+
+
+
+  void FcRenderer::drawSurface(VkCommandBuffer cmd, const RenderObject& surface)
+  {
+
+    if (surface.material != lastUsedMaterial)
+    {
+      lastUsedMaterial = surface.material;
+
+      // Only rebind pipeline and material descriptors if the material changed
+      // TODO have each object track state of its own descriptorSets
+      if (surface.material->pPipeline != lastUsedPipeline)
+      {
+        lastUsedPipeline = surface.material->pPipeline;
+
+        surface.bindPipeline(cmd);
+        surface.bindDescriptorSet(cmd, getCurrentFrame().sceneDataDescriptorSet, 0);
+        surface.bindDescriptorSet(cmd, mSkybox.Descriptor(), 1);
+      }
+
+      surface.bindDescriptorSet(cmd, surface.material->materialSet, 2);
+    }
+
+    // Only bind index buffer if it has changed
+    if (surface.indexBuffer != lastUsedIndexBuffer)
+    {
+      lastUsedIndexBuffer = surface.indexBuffer;
+      surface.bindIndexBuffer(cmd);
+    }
+
+    // Calculate final mesh matrix
+    DrawPushConstants pushConstants;
+    pushConstants.vertexBuffer = surface.vertexBufferAddress;
+    pushConstants.worldMatrix = surface.transform;
+    pushConstants.normalTransform = surface.invModelMatrix;
+
+    //
+    vkCmdPushConstants(cmd, surface.material->pPipeline->Layout(), VK_SHADER_STAGE_VERTEX_BIT
+                       , 0, sizeof(DrawPushConstants), &pushConstants);
+    // Note here that we have to offset from the initially pushed data since we are really just
+    // filling a range alloted to us in total...
+    vkCmdPushConstants(cmd, surface.material->pPipeline->Layout(), VK_SHADER_STAGE_GEOMETRY_BIT
+                       , sizeof(DrawPushConstants), sizeof(float), &expansionFactor);
+
+    vkCmdDrawIndexed(cmd, surface.indexCount, 1, surface.firstIndex, 0, 0);
+
+    // add counters for triangles and draws calls
+    stats.objectsRendered++;
+    stats.triangleCount += surface.indexCount / 3;
+  }
+
+
+
+  void FcRenderer::drawNormals(VkCommandBuffer cmd, const RenderObject& surface)
+  {
+
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mNormalDrawPipeline.getVkPipeline());
+
+    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mNormalDrawPipeline.Layout()
+                            , 0, 1, &getCurrentFrame().sceneDataDescriptorSet, 0, nullptr);
+
+    surface.bindIndexBuffer(cmd);
+
+    // Calculate final mesh matrix
+    DrawPushConstants pushConstants;
+    pushConstants.vertexBuffer = surface.vertexBufferAddress;
+    pushConstants.worldMatrix = surface.transform;
+    pushConstants.normalTransform = surface.invModelMatrix;
+
+
+    vkCmdPushConstants(cmd, mNormalDrawPipeline.Layout(), VK_SHADER_STAGE_VERTEX_BIT
+                       , 0, sizeof(DrawPushConstants), &pushConstants);
+
+    vkCmdDrawIndexed(cmd, surface.indexCount, 1, surface.firstIndex, 0, 0);
+  }
+
+
+
 
 
 

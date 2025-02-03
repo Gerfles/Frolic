@@ -51,10 +51,14 @@ namespace fc
       // ComputePushConstants skyPushConstants{};
 
      // Note these do not necessarily enable the feature -> ONLY when it is already included in glTF
+     bool mUseColorTexture {true};
+     bool mUseRoughMetalTexture {true};
      bool mUseOcclussionTexture {true};
      bool mUseNormalTexture {true};
      bool mUsePrimitiveTangents {true};
+     bool mUseEmissiveTexture {true};
      bool mRotateModel{false};
+     bool mCycleExpansion{false};
 
       // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   (END) NEW   -**-*-*-*-*-*-*-*-*-*-*-*-*- //
      FcRenderer mRenderer;

@@ -5,9 +5,12 @@
 //#include<SDL2/SDL.h>
 #include <string>
 
-
 namespace fc
 {
+
+  // TODO
+  // Might want to tackle input more directly - refer to
+  // https://discourse.libsdl.org/t/handling-mouse-buttons/27861
   class FcInput
   {
    private:

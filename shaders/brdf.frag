@@ -156,13 +156,12 @@ float heaviside(float v)
 
 void main()
 {
-
-  if (materialData.flags == 0)
-  {
-    outFragColor = vec4(.8, .1, .1, 1.0);
-    return;
-  }
-
+  // Sanity check
+  // if (materialData.flags == 0)
+  // {
+  //   outFragColor = vec4(0.7, 0.3, 0.5, 1.0);
+  //   return;
+  // }
 
   vec3 normalDirection = normalize(inNormal);
 
@@ -176,8 +175,8 @@ void main()
 
     TBN = mat3(tangent, biTangent, normalDirection);
   }
-  else
-  { // -*-*-*-*-*-*-   COMPUTING THE TANGENT WITHOUT VERTEX ATTRIBUTE   -*-*-*-*-*-*- //
+  else // -*-*-*-*-*-*-   COMPUTING THE TANGENT WITHOUT VERTEX ATTRIBUTE   -*-*-*-*-*-*- //
+  {
     //  https://community.khronos.org/t/computing-the-tangent-space-in-the-fragment-shader/52861
     vec3 Q1 = dFdx(inPosWorld);
     vec3 Q2 = dFdy(inPosWorld);
@@ -189,7 +188,7 @@ void main()
 
     // the transpose of texture-to-eye space matrix
     TBN = mat3(T, B, normalDirection);
-  }
+}
 
   // -*-*-*-*-*-*-*-*-*-*-*-*-*-   WORLD CALCULATIONS   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
   // vec3 cameraPosWorld = normalize(inverse(sceneData.view)[3].xyz);
@@ -202,8 +201,8 @@ void main()
   {
     // Normal textures are encoded to [0, 1] but need to be mapped to [-1, 1]
     normalDirection = normalize(texture(normalMap, inUV).rgb * 2.0 - 1.0);
-    //normalDirection = normalize(texture(normalMap, inUV).rgb);
-    //normalDirection.z *= -1;
+    //normalDirection = decode_srgb(normalDirection);
+
     normalDirection = normalize(TBN * normalDirection);
   }
 
@@ -226,13 +225,15 @@ void main()
   // outFragColor = vec4(texture(skybox, refraction).rgb, 1.0);
   // return;
 
-  // float shiftAmount = dot(inNormal, viewDirection);
-  // normalDirection = shiftAmount < 0.0f
-  //                   ? normalDirection + viewDirection * (shiftAmount + 1e-5f) : normalDirection;
+  float shiftAmount = dot(inNormal, viewDirection);
+  normalDirection = shiftAmount < 0.0f
+                    ? normalDirection + viewDirection * (shiftAmount + 1e-5f) : normalDirection;
 
 
   // TODO this might be the case for sun(ambient) light but not for point lights
-  vec3 lightDirection = normalize(-sceneData.sunDirection.xyz);// - inPosWorld);
+  //vec3 lightDirection = normalize(-sceneData.sunDirection.xyz);// - inPosWorld);
+  vec3 lightDirection = normalize(sceneData.sunDirection.xyz);// - inPosWorld);
+//  vec3 lightDirection = normalize(-(2,10,0) + inPosWorld);// - inPosWorld);
 //  vec3 lightDirection = normalize(sceneData.sunDirection.xyz - inPosWorld);
   //vec3 lightDirection = normalize(inPosWorld - sceneData.sunDirection.xyz);
 
@@ -244,9 +245,13 @@ void main()
   float metalness = materialData.MetalRoughFactors.x;
   float roughness = materialData.MetalRoughFactors.y;
 
-  vec4 roughMetal = texture(metalRoughTex, inUV);
-  roughness *= roughMetal.g;
-  metalness *= roughMetal.b;
+  if ((materialData.flags & HasRoughMetalTexture) == HasRoughMetalTexture)
+  {
+    vec4 roughMetal = texture(metalRoughTex, inUV);
+    roughness *= roughMetal.g;
+    metalness *= roughMetal.b;
+  }
+
 
   // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   AMBIENT OCCLUSION   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
   // TODO TEST we could have many conditionals or we could default the textures
@@ -263,9 +268,16 @@ void main()
 
   // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   COLOR   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
   vec4 baseColor = materialData.colorFactors;
-  vec4 albedo = texture(colorTex, inUV);
+  vec4 albedo = baseColor;
+
+  if ((materialData.flags & HasColorTexture) == HasColorTexture)
+  {
+    albedo = texture(colorTex, inUV);
+  }
+
 
   // ?? Not sure if this is computationally expensive or not
+  // TODO do earlier
   if (albedo.a < 0.5)
   {
     discard;
@@ -276,8 +288,13 @@ void main()
 
   // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EMISSION   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
   // ?? where does emmisive strength factor in?
-  vec3 emissive = texture(emissiveMap, inUV).rgb;
-  emissive = decode_srgb(emissive) * vec3(materialData.emissiveFactors);
+  vec3 emissive = vec3(0.f);
+  if ((materialData.flags & HasEmissiveTexture) == HasEmissiveTexture)
+  {
+    emissive = texture(emissiveMap, inUV).rgb;
+    emissive = decode_srgb(emissive) * vec3(materialData.emissiveFactors);
+  }
+
 
 
   // -*-*-*-*-*-*-*-*-*-*-*-*-*-   NORMAL DISTRIBUTION   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -294,8 +311,8 @@ void main()
   float NdotL = dot(normalDirection, lightDirection);
   //float NdotL = clamp( dot(normalDirection, lightDirection), 0.0, 1.0);
   //float NdotL = max( dot(normalDirection, lightDirection), 0.0);
-//  if (NdotL > 1e-5)
-//  {
+ //  if (NdotL > 1e-5)
+ // {
   float NdotV = dot(normalDirection, viewDirection);
   float HdotL = dot(halfDirection, lightDirection);
   float HdotV = dot(halfDirection, viewDirection);
@@ -331,14 +348,11 @@ void main()
                   + mix(materialColor, materialColor * occlusionFactor, materialData.occlusionFactor);
 
   outFragColor = vec4(encode_srgb(materialColor), baseColor.a);
-
-
-
-  // }
-  // else
-  // {
-  //   outFragColor = vec4(baseColor.rgb * 0.1, baseColor.a);
-  // }
+ // }
+ // else
+ // {
+ //   outFragColor = vec4(baseColor.rgb * 0.1, baseColor.a);
+ // }
 
 
 
@@ -431,3 +445,10 @@ void main()
 
 
 // REF:
+
+
+
+
+
+
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   OLD   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //

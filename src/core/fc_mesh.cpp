@@ -90,7 +90,6 @@ namespace fc
   void Node::draw(DrawContext& context)
   {
     // draw children
-    // ?? do we need the & here??
     for (std::shared_ptr<Node>& child : children)
     {
       child->draw(context);
@@ -99,6 +98,7 @@ namespace fc
 
   void Node::update(const glm::mat4& topMatrix)
   {
+    worldTransform = topMatrix * localTransform;
     for (std::shared_ptr<Node>& child : children)
     {
       child->update(topMatrix);
@@ -132,7 +132,6 @@ namespace fc
 
     // recurse down children nodes
     // TODO check the stack frame count to see if this is better handles linearly
-
     Node::draw(context);
   }
 
@@ -140,13 +139,10 @@ namespace fc
   void MeshNode::update(const glm::mat4& topMatrix)
   {
     //localTransform = topMatrix * worldTransform;
-    worldTransform = topMatrix * localTransform;
+    //worldTransform = topMatrix * localTransform;
+
     Node::update(topMatrix);
   }
-
-
-
-
 
 
    // TODO might be better to have as a constructor

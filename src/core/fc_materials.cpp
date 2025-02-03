@@ -18,12 +18,14 @@ namespace fc
     fcLog("Building materials pipeline");
 
      // TODO addshader() func
-    FcPipelineConfig pipelineConfig{2};
+    FcPipelineConfig pipelineConfig{3};
     pipelineConfig.name = "Opaque Pipeline";
     pipelineConfig.shaders[0].filename = "mesh.vert.spv";
     pipelineConfig.shaders[0].stageFlag = VK_SHADER_STAGE_VERTEX_BIT;
     pipelineConfig.shaders[1].filename = "brdf.frag.spv";
     pipelineConfig.shaders[1].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
+    pipelineConfig.shaders[2].filename = "explode.geom.spv";
+    pipelineConfig.shaders[2].stageFlag = VK_SHADER_STAGE_GEOMETRY_BIT;
 
     // add push constants
     VkPushConstantRange matrixRange;
@@ -32,6 +34,14 @@ namespace fc
     matrixRange.size = sizeof(DrawPushConstants);
 
     pipelineConfig.addPushConstants(matrixRange);
+
+    //
+    VkPushConstantRange expansionFactorRange;
+    expansionFactorRange.stageFlags = VK_SHADER_STAGE_GEOMETRY_BIT;
+    expansionFactorRange.offset = sizeof(DrawPushConstants);
+    expansionFactorRange.size = sizeof(float);
+
+    pipelineConfig.addPushConstants(expansionFactorRange);
 
     FcDescriptorBindInfo bindInfo{};
     bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -56,7 +66,8 @@ namespace fc
     pipelineConfig.setDepthFormat(VK_FORMAT_D32_SFLOAT);
     pipelineConfig.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
     pipelineConfig.setPolygonMode(VK_POLYGON_MODE_FILL);
-    pipelineConfig.setCullMode(VK_CULL_MODE_FRONT_BIT, VK_FRONT_FACE_CLOCKWISE);
+    // TODO front face
+    pipelineConfig.setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
     pipelineConfig.setMultiSampling(FcLocator::Gpu().Properties().maxMsaaSamples);
     // TODO prefer config via:
     //pipelineConfig.enableMultiSampling(VK_SAMPLE_COUNT_1_BIT);

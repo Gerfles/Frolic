@@ -290,7 +290,8 @@ namespace fc
 //    mSceneData.ambientLight = glm::vec4(1.0f, 1.0f, 1.0f, 0.3f);
     mSceneData.sunlightColor = glm::vec4(1.f);//, 1.f, 1.f, 1.0);
     //mSceneData.sunlightDirection = glm::vec4(2.f, 10.f, -3.f, 1.f);
-    mSceneData.sunlightDirection = glm::vec4(0.5f, -1.f, -0.5f, 1.f);
+    //mSceneData.sunlightDirection = glm::vec4(2.0f, 2.f, 0.f, 1.f);
+    mSceneData.sunlightDirection = glm::vec4(0.1f, 1.f, 0.05f, 1.f);
 
     // load everything we need for the scene
     //loadUIobjects();
@@ -379,7 +380,7 @@ namespace fc
       // mSceneData.view = glm::translate(glm::vec3{0.f, 0.f, -4.f});
 
 
-      // TODO account for this in camera
+      // TODO pre-calculate  this in camera
       mSceneData.viewProj = mSceneData.projection * mSceneData.view;
 
       mSceneDataBuffer.overwriteData(&mSceneData, sizeof(SceneData));
@@ -420,34 +421,60 @@ namespace fc
         ImGui::End();
       }
 
-
+      // TODO probably best to enable disable this stuff eventually in a dedicated pipeline shader
+      // and then just bind the appropriate pipeline
       // Draw Configuration panel
       if (ImGui::Begin("Scene Data"))
       {
+        if (ImGui::Checkbox("Color Texture", &mUseColorTexture))
+        {
+          mRenderer.setColorTextureUse(mUseColorTexture);
+        }
+
+        if (ImGui::Checkbox("Rough/Metal Texture", &mUseRoughMetalTexture))
+        {
+          mRenderer.setRoughMetalUse(mUseRoughMetalTexture);
+        }
+
         if(ImGui::Checkbox("Ambient Occlussion Texture", &mUseOcclussionTexture))
         {
-          mRenderer.setAmbientOcclussion(mUseOcclussionTexture);
+          mRenderer.setAmbientOcclussionUse(mUseOcclussionTexture);
         }
 
         if (ImGui::Checkbox("Normal Texture", &mUseNormalTexture))
         {
           mRenderer.setNormalMapUse(mUseNormalTexture);
         }
-
-        if (ImGui::Checkbox("Rotate Model", &mRotateModel))
+        if (ImGui::Checkbox("Emissive Texture", &mUseEmissiveTexture))
         {
-          mRenderer.updateScene();
+          mRenderer.setEmissiveTextureUse(mUseEmissiveTexture);
         }
 
-        ImGui::SliderFloat("Movement Speed", &player.moveSpeed(), 1, 10, "%.1");
+        ImGui::Checkbox("Draw Normals", &mRenderer.drawNormalVectors);
 
+        ImGui::SetNextItemWidth(60);
+        ImGui::SliderInt("Model Rotation Speed", &mRenderer.rotationSpeed, -5, 5);
+        ImGui::SetNextItemWidth(60);
+        ImGui::SliderFloat("Movement Speed", &player.moveSpeed(), 1, 10, "%.1f");
+        ImGui::Checkbox("Cycle", &mCycleExpansion);
+
+        if (mCycleExpansion)
+        {
+          float time = SDL_GetTicks() / 1000.0f;
+          mRenderer.expansionFactor = sin(time) + 1.0f;
+        }
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(60);
+        ImGui::SliderFloat("Expansion Factor", &mRenderer.expansionFactor, -1.f, 2.f);
+        //ImGui::SetNextItemWidth(60);
+        ImGui::SliderFloat4("Sunlight", (float*)&mSceneData.sunlightDirection, -1.f, 1.f);
 
         // TODO getrenderScale should be deleted
         //ImGui::SliderFloat("Render Scale", mRenderer.getRenderScale(), 0.2f, 1.0f);
         //ImGui::Checkbox("Ambient Occlussion Texture", bool *v);
         // ImGui::Text("Selected Effect: %s", selected->Name());
         // ImGui::SliderInt("Efect Index", &currentBackgroundEffect, 0, mPipelines.size() - 1);
-        // ImGui::InputFloat4("Data1", (float*)& mPushConstants[currentBackgroundEffect].data1);
+
         // ImGui::InputFloat4("Data2", (float*)& mPushConstants[currentBackgroundEffect].data2);
         // ImGui::InputFloat4("Data3", (float*)& mPushConstants[currentBackgroundEffect].data3);
         // ImGui::InputFloat4("Data4", (float*)& mPushConstants[currentBackgroundEffect].data4);
@@ -459,7 +486,7 @@ namespace fc
         // make ImGui calculate internal draw structures
         ImGui::Render();
       }
-
+      mSceneDataBuffer.overwriteData(&mSceneData, sizeof(SceneData));
       //mRenderer.drawModels(swapchainImgIndex, mUbo);
 
       //mRenderer.drawBillboards(camera.Position(), frame, mUbo);

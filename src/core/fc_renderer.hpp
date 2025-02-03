@@ -65,7 +65,11 @@ namespace fc
   class FcRenderer
   {
    private:
-
+    // defined outside of the draw function, this is the state we will try to skip
+     FcPipeline* lastUsedPipeline = nullptr;
+     MaterialInstance* lastUsedMaterial = nullptr;
+     VkBuffer lastUsedIndexBuffer = VK_NULL_HANDLE;
+    // define a lambda that will be responsible for rendering all loaded models
       // TODO determine if buffer count is necessary since we can just call mSwapchain.imageCount();
      int mBufferCount {0};
      FrameData mFrames[MAX_FRAME_DRAWS];
@@ -106,7 +110,7 @@ namespace fc
      void createCommandPools();
 //     void recordCommands(uint32_t currentFrame);
      void createSynchronization();
-
+     void updateUseFlags(MaterialFeatures feature, bool enable);
       // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
       // Right now we only have one draw image and depth image, but on a more developed engine it could be
@@ -133,7 +137,8 @@ namespace fc
       // TODO think about integrating into descriptorClerk
      VkDescriptorPool mImgGuiDescriptorPool;
       //std::vector<ComputeEffect> backgroundEffects;
-     VkPipeline pDrawPipeline;
+     VkPipeline pDrawPipeline; // ?? Delete
+     FcPipeline mNormalDrawPipeline;
      VkPipelineLayout pDrawPipelineLayout;
      VkExtent2D mDrawExtent;
      FcTextureAtlas textureAtlas;
@@ -143,6 +148,8 @@ namespace fc
      // TODO try this single one instead of one in each frame
      VkDescriptorSet mSceneDataDescriptor;
      VkDescriptorSetLayout mSceneDataDescriptorLayout;
+     VkDescriptorSetLayout mSceneDataDescriptorLayout2;
+     VkDescriptorSet mSceneDataDescriptor2;
      VkDescriptorSetLayout mSingleImageDescriptorLayout;
      VkDescriptorSetLayout mBackgroundDescriptorlayout;
      SceneData* pSceneData;
@@ -171,7 +178,9 @@ namespace fc
      std::unordered_map<std::string, std::shared_ptr<LoadedGLTF>> loadedScenes;
      LoadedGLTF structure;
      glm::mat4 rotationMatrix{1.0f};
-     float rotationSpeed{.0001};
+     int rotationSpeed{0};
+     float expansionFactor{0};
+     bool drawNormalVectors {false};
 
      void updateScene();
      float aspectRatio() { return static_cast<float>(mWindow.ScreenSize().width)
@@ -189,10 +198,14 @@ namespace fc
      void initDefaults(FcBuffer& sceneDataBuffer, SceneData* sceneData);
      void attachPipeline(FcPipeline* pipeline);
 
-
-     void setAmbientOcclussion(bool enable);
+     void setColorTextureUse(bool enable);
+     void setRoughMetalUse(bool enable);
+     void setAmbientOcclussionUse(bool enable);
      void setNormalMapUse(bool enable);
-
+     void setEmissiveTextureUse(bool enable);
+     void initNormalDrawPipeline(FcBuffer& sceneDataBuffer);
+     void drawNormals(VkCommandBuffer cmd, const RenderObject& surface);
+     void drawSurface(VkCommandBuffer cmd, const RenderObject& surface);
 
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 

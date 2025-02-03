@@ -64,6 +64,7 @@ namespace fc
    private:
      FcPipeline mOpaquePipeline;
      FcPipeline mTransparentPipeline;
+     FcPipeline mNormalDrawPipeline;
      VkDescriptorSetLayout mMaterialDescriptorLayout;
    public:
      // FIXME should use pointers to resources I believe

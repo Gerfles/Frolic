@@ -179,7 +179,7 @@ namespace fc {
     std::vector<std::shared_ptr<FcMesh>> meshes;
     std::vector<std::shared_ptr<Node>> nodes;
     std::vector<FcImage> images;
-    std::vector<std::shared_ptr<GLTFMaterial>> materials;
+    //std::vector<std::shared_ptr<GLTFMaterial>> materials;
 
     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   LOAD ALL TEXTURES   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     // FIXME don't create 3 images!!
@@ -216,8 +216,9 @@ namespace fc {
     for (fastgltf::Material& material : gltf.materials)
     {
       std::shared_ptr<GLTFMaterial> newMaterial = std::make_shared<GLTFMaterial>();
-      materials.push_back(newMaterial);
-      mMaterials[material.name.c_str()] = newMaterial;
+      //materials.push_back(newMaterial);
+      mMaterials.push_back(newMaterial);
+      //mMaterials[material.name.c_str()] = newMaterial;
 
       // TODO could sort here by materials and also perhaps alphaMode/alphaCutoff
 
@@ -543,9 +544,9 @@ namespace fc {
 
         if (primitive.materialIndex.has_value())
         {
-          newSurface.material = materials[primitive.materialIndex.value()];
+          newSurface.material = mMaterials[primitive.materialIndex.value()];
         } else  {
-          newSurface.material = materials[0];
+          newSurface.material = mMaterials[0];
 
           // Signal flags as to which attributes this material can expect from the vertices
           // ?? not sure if we could have a material that associated with two different
@@ -640,18 +641,20 @@ namespace fc {
       if (node->parent.lock() == nullptr)
       {
         mTopNodes.push_back(node);
+        // ??Not sure why we would need this?? I think it's just an initialization thing
+        // if so, better done in class
         node->refreshTransform(glm::mat4{1.f});
       }
     }
 
     uint32_t transparentCount{0};
-    for (auto& material : materials)
+    for (auto& material : mMaterials)
     {
       if (material->data.passType == MaterialPass::Transparent)
         transparentCount++;
     }
     std::cout << "Transparent Objects: " << transparentCount << std::endl;
-    std::cout << "Opaque Objects: " << materials.size() - transparentCount << std::endl;
+    std::cout << "Opaque Objects: " << mMaterials.size() - transparentCount << std::endl;
   }
 
 
