@@ -374,6 +374,7 @@ namespace fc
       //camera.setViewTarget(glm::vec3{0,0,4.0}, glm::vec3{0,0,-1});
       mSceneData.eye = camera.Position();
       mSceneData.view = camera.getViewMatrix();//View();
+      // TODO probably no longer need inverseview
       mSceneData.inverseView = camera.InverseView();
       //mSceneData.view = glm::scale(mSceneData.view, glm::vec3(15.0f, 15.0f, 15.0f));
       //mSceneData.view = camera.View();
@@ -394,7 +395,7 @@ namespace fc
 
       // test ImGui UI
       // Left here to add a demo windo that names all the features for (handy for searching)
-      // ImGui::ShowDemoWindow();
+      //ImGui::ShowDemoWindow();
 
       // Create Statistics window that spans the frame
       if (ImGui::Begin("Frolic Stats", NULL, ImGuiWindowFlags_NoTitleBar))
@@ -451,6 +452,10 @@ namespace fc
         }
 
         ImGui::Checkbox("Draw Normals", &mRenderer.mDrawNormalVectors);
+        ImGui::Checkbox("Box Bounds", &mRenderer.mDrawBoundingBoxes);
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(80);
+        ImGui::InputInt("Box ID", &mRenderer.mBoundingBoxId);
 
         ImGui::SetNextItemWidth(60);
         ImGui::SliderInt("Model Rotation Speed", &mRenderer.rotationSpeed, -5, 5);
@@ -466,7 +471,8 @@ namespace fc
         ImGui::SameLine();
         ImGui::SetNextItemWidth(60);
         ImGui::SliderFloat("Expansion Factor", &mRenderer.expansionFactor, -1.f, 2.f);
-        //ImGui::SetNextItemWidth(60);
+
+	//ImGui::SetNextItemWidth(60);
         ImGui::SliderFloat4("Sunlight", (float*)&mSceneData.sunlightDirection, -1.f, 1.f);
 
         // TODO getrenderScale should be deleted

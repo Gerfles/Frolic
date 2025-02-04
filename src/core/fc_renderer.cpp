@@ -882,7 +882,6 @@ namespace fc
       // glm::vec4 col = billboards[index->second]->Push().color;
       // printVec(col, "color");
 
-
       vkCmdPushConstants(currCommandBuffer, mBillboardPipeline.Layout()
                          , VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(BillboardPushComponent)
                          , &billboards[index->second]->PushComponent());
@@ -1079,11 +1078,13 @@ namespace fc
     void FcRenderer::initBoundingBoxPipeline(FcBuffer& sceneDataBuffer)
   {
     FcPipelineConfig pipelineConfig{3};
-    pipelineConfig.name = "Normal Draw Pipeline";
+    pipelineConfig.name = "Bounding Box Draw";
     pipelineConfig.shaders[0].filename = "bounding_box.vert.spv";
     pipelineConfig.shaders[0].stageFlag = VK_SHADER_STAGE_VERTEX_BIT;
-    pipelineConfig.shaders[1].filename = "bounding_box.frag.spv";
-    pipelineConfig.shaders[1].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
+    pipelineConfig.shaders[1].filename = "bounding_box.geom.spv";
+    pipelineConfig.shaders[1].stageFlag = VK_SHADER_STAGE_GEOMETRY_BIT;
+    pipelineConfig.shaders[2].filename = "bounding_box.frag.spv";
+    pipelineConfig.shaders[2].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
 
     // add push constants
     VkPushConstantRange pushConstantRange;
@@ -1097,6 +1098,8 @@ namespace fc
 
     pipelineConfig.setColorAttachment(VK_FORMAT_R16G16B16A16_SFLOAT);
     pipelineConfig.setDepthFormat(VK_FORMAT_D32_SFLOAT);
+    // ?? Would be better to implement with line primitives but not sure if all implementations
+    // can use lines... triangles seem to be guaranteed
     pipelineConfig.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
     pipelineConfig.setPolygonMode(VK_POLYGON_MODE_FILL);
     // TODO front face
@@ -1106,7 +1109,7 @@ namespace fc
     //pipelineConfig.enableMultiSampling(VK_SAMPLE_COUNT_1_BIT);
     //pipelineConfig.disableMultiSampling();
     //pipelineConfig.disableBlending();
-    //pipelineConfig.enableBlendingAlpha();
+    pipelineConfig.enableBlendingAlpha();
     //pipelineConfig.enableBlendingAdditive();
     pipelineConfig.enableDepthtest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
 
@@ -1239,9 +1242,25 @@ namespace fc
     // Draw the bounding box around the object if enabled
     if (mDrawBoundingBoxes)
     {
-      for (uint32_t& surfaceIndex : sortedOpaqueIndices)
+      // Draw all bounding boxes if signaled (default value = -1)
+      if (mBoundingBoxId < 0)
       {
-        drawBoundingBoxes(cmd, mainDrawContext.opaqueSurfaces[surfaceIndex]);
+        for (RenderObject& surface : mainDrawContext.opaqueSurfaces)
+        {
+          drawBoundingBox(cmd, surface);
+        }
+      }
+      else // otherwise, just draw the object that we are told to
+      {
+        // make sure we don't try and draw a bounding box that doesn't exist
+        if (mBoundingBoxId >= mainDrawContext.opaqueSurfaces.size())
+        {
+          mBoundingBoxId = -1;
+        }
+        else
+        {
+          drawBoundingBox(cmd, mainDrawContext.opaqueSurfaces[mBoundingBoxId]);
+        }
       }
     }
 
@@ -1331,7 +1350,6 @@ namespace fc
     pushConstants.worldMatrix = surface.transform;
     pushConstants.normalTransform = surface.invModelMatrix;
 
-
     vkCmdPushConstants(cmd, mNormalDrawPipeline.Layout(), VK_SHADER_STAGE_VERTEX_BIT
                        , 0, sizeof(DrawPushConstants), &pushConstants);
 
@@ -1340,13 +1358,23 @@ namespace fc
 
 
 
-  void FcRenderer::drawBoundingBoxes(VkCommandBuffer cmd, const RenderObject& surface)
+  void FcRenderer::drawBoundingBox(VkCommandBuffer cmd, const RenderObject& surface)
   {
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mBoundingBoxPipeline.getVkPipeline());
 
+    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mBoundingBoxPipeline.Layout()
+                            , 0, 1, &getCurrentFrame().sceneDataDescriptorSet, 0, nullptr);
 
     // Send the bounding box to the shaders
+    BoundingBoxPushConstants pushConstants;
+    pushConstants.modelMatrix = surface.transform;
+    pushConstants.origin = glm::vec4(surface.bounds.origin, 1.f);
+    pushConstants.extents = glm::vec4(surface.bounds.extents, 0.f);
 
+    vkCmdPushConstants(cmd, mBoundingBoxPipeline.Layout(), VK_SHADER_STAGE_VERTEX_BIT
+                       , 0, sizeof(BoundingBoxPushConstants), &pushConstants);
+
+    vkCmdDraw(cmd, 36, 1, 0, 0);
   }
 
 

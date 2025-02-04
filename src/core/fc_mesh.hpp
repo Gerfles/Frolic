@@ -51,9 +51,9 @@ namespace fc
 
   struct BoundingBoxPushConstants
   {
-     glm::vec3 origin;
-     glm::vec3 extents;
      glm::mat4 modelMatrix;
+     glm::vec4 origin;
+     glm::vec4 extents;
   };
 
   // TODO get rid of this and keep in FcModel
@@ -112,7 +112,7 @@ namespace fc
      VkBuffer indexBuffer;
 
      MaterialInstance* material;
-     glm::mat4 transform {1.0f};
+     glm::mat4 transform;// {1.0f};
      glm::mat4 invModelMatrix {1.0f};
      Bounds bounds;
      VkDeviceAddress vertexBufferAddress;

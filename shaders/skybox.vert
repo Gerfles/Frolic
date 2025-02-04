@@ -23,7 +23,7 @@ void main()
 //  outUVW.z *= -1.0;
 
   vec4 position = sceneData.proj * mat4(mat3(sceneData.view)) * vec4(vertPos, 1.0);
-
+  //vec4 position = vec4(mat3(sceneData.viewProj) * vertPos, 1.0);
   // set z to min depth so we can write to depthbuffer and draw skycube last, that
   // way we are not drawing a fragment for every pixel in the screen.
   position.z = 0.0;

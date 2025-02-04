@@ -179,10 +179,11 @@ namespace fc
      std::unordered_map<std::string, std::shared_ptr<LoadedGLTF>> loadedScenes;
      LoadedGLTF structure;
      glm::mat4 rotationMatrix{1.0f};
-     int rotationSpeed{0};
+     int rotationSpeed{};
      float expansionFactor{0};
      bool mDrawNormalVectors {false};
-     bool mDrawBoundingBoxes {false};
+     bool mDrawBoundingBoxes {true};
+     int mBoundingBoxId {-1};
 
      void updateScene();
      float aspectRatio() { return static_cast<float>(mWindow.ScreenSize().width)
@@ -208,7 +209,7 @@ namespace fc
      void initNormalDrawPipeline(FcBuffer& sceneDataBuffer);
      void initBoundingBoxPipeline(FcBuffer& sceneDataBuffer);
      void drawNormals(VkCommandBuffer cmd, const RenderObject& surface);
-     void drawBoundingBoxes(VkCommandBuffer cmd, const RenderObject& surface);
+     void drawBoundingBox(VkCommandBuffer cmd, const RenderObject& surface);
      void drawSurface(VkCommandBuffer cmd, const RenderObject& surface);
 
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //

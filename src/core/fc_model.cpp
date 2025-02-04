@@ -562,7 +562,7 @@ namespace fc {
           maxPos = glm::max(maxPos, vertices[i].position);
         }
 
-        // calculate origin and extents from the min/max use extent length for radius
+         // calculate origin and extents from the min/max use extent length for radius
         newSurface.bounds.origin = (maxPos + minPos) * 0.5f;
         newSurface.bounds.extents = (maxPos - minPos) * 0.5f;
         newSurface.bounds.sphereRadius = glm::length(newSurface.bounds.extents);
