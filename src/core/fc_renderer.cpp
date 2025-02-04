@@ -2,21 +2,12 @@
 
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-//#include "core/fc_billboard_render_system.hpp"
-//#include "core/fc_model.hpp"
-//#include "fc_materials.hpp"
-//#include "core/fc_descriptors.hpp"
-//#include "core/fc_font.hpp"
 #include "core/fc_game_object.hpp"
 #include "core/fc_locator.hpp"
-//#include "core/fc_model_render_system.hpp"
-//#include "core/fc_pipeline.hpp"
-//#include "core/fc_swapChain.hpp"
 #include "core/fc_mesh.hpp"
 #include "core/platform.hpp"
 #include "utilities.hpp"
 #include "fc_debug.hpp"
-//#include "fc_camera.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "SDL2/SDL_stdinc.h"
 #include <SDL_events.h>
@@ -127,13 +118,6 @@ namespace fc
       // create the command pool for later allocating command from. Also create the command buffers
       createCommandPools();
 
-      // initialze the dynamic viewport and scissors
-      mDynamicViewport.x = 0.0f;
-      mDynamicViewport.y = 0.0f;
-      mDynamicViewport.minDepth = 0.0f;
-      mDynamicViewport.maxDepth = 1.0f;
-      //
-      mDynamicScissors.offset = {0, 0};
 
       // create the graphics pipeline && create/attach descriptors
       // create the uniform buffers & initialize the descriptor sets that tell the pipeline about our uniform buffers
@@ -171,6 +155,18 @@ namespace fc
       // UIcamera.setOrthographicProjection(-1, 1, -1, 1, .1f, 100.f);
       // mBillboardUbo.view = UIcamera.Projection();       // TODO combine this into one function
 
+      // initialze the dynamic mDynamicViewport and mDynamicScisors
+      mDynamicViewport.x = 0;
+      mDynamicViewport.y = 0;
+      mDynamicViewport.width = mDrawExtent.width;
+      mDynamicViewport.height = mDrawExtent.height;
+      mDynamicViewport.minDepth = 0.0f;
+      mDynamicViewport.maxDepth = 1.0f;
+
+      mDynamicScissors.offset = {0, 0};
+      mDynamicScissors.extent.width = mDrawExtent.width;
+      mDynamicScissors.extent.height = mDrawExtent.height;
+
 
       // FcModel model;
       // model.createModel("models/smooth_vase.obj", mPipeline, mGpu);
@@ -188,6 +184,10 @@ namespace fc
 
   void FcRenderer::initDefaults(FcBuffer& sceneDataBuffer, SceneData* sceneData)
   {
+
+
+
+
     pSceneData = sceneData;
     // -*-*-*-*-   3 DEFAULT TEXTURES--WHITE, GREY, BLACK AND CHECKERBOARD   -*-*-*-*- //
     uint32_t white = glm::packUnorm4x8(glm::vec4(1.f, 1.f, 1.f, 1.f));
@@ -308,9 +308,9 @@ namespace fc
     //structure.loadGltf(this, "..//models//Box.gltf");
     //structure.loadGltf(this, "..//models//GlassHurricaneCandleHolder.glb");
     //structure.loadGltf(this, "..//models//ToyCar.glb");
-    structure.loadGltf(this, "..//models//structure_mat.glb");
+    //structure.loadGltf(this, "..//models//structure_mat.glb");
 
-    //structure.loadGltf(this, "..//models//sponza//Sponza.gltf");
+    structure.loadGltf(this, "..//models//sponza//Sponza.gltf");
     // // NOTE: This moves the object not the camera/lights/etc...
     // glm::mat4 drawMat{1.f};
     // glm::vec3 translate{30.f, -00.f, 85.f};
@@ -324,7 +324,7 @@ namespace fc
     //structure.loadGltf(this, "..//models//SheenWoodLeatherSofa.glb");
 
     initNormalDrawPipeline(sceneDataBuffer);
-
+    initBoundingBoxPipeline(sceneDataBuffer);
     // TODO remove at some point but prefer to leave in while debugging
     vkDeviceWaitIdle(pDevice);
   }
@@ -576,6 +576,9 @@ namespace fc
     mDrawImage.create(drawImgExtent, VK_FORMAT_R16G16B16A16_SFLOAT, imgUse
                       , VK_IMAGE_ASPECT_COLOR_BIT, FcLocator::Gpu().Properties().maxMsaaSamples);
 
+
+
+
     // *-*-*-*-*-*-*-*-*-*-*-   CREATE DRAW IMAGE DESCRIPTOR   *-*-*-*-*-*-*-*-*-*-*- //
     // TODO some redundancy that might be able to be eliminated
     FcDescriptorBindInfo bindingInfo;
@@ -594,6 +597,25 @@ namespace fc
     imgUse = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
     mDepthImage.create(drawImgExtent, VK_FORMAT_D32_SFLOAT, imgUse
                        , VK_IMAGE_ASPECT_DEPTH_BIT, FcLocator::Gpu().Properties().maxMsaaSamples);
+
+
+    // TODO provide for these to change if VK_ERROR_OUT_OF_DATE_KHR, etc.
+    mDrawExtent.height = std::min(mSwapchain.getSurfaceExtent().height
+                                  , mDrawImage.getExtent().height);// * renderScale;
+    mDrawExtent.width = std::min(mSwapchain.getSurfaceExtent().width
+                                 , mDrawImage.getExtent().width);// * renderScale;
+
+      // initialze the dynamic mDynamicViewport and mDynamicScisors
+      mDynamicViewport.x = 0;
+      mDynamicViewport.y = 0;
+      mDynamicViewport.width = mDrawExtent.width;
+      mDynamicViewport.height = mDrawExtent.height;
+      mDynamicViewport.minDepth = 0.0f;
+      mDynamicViewport.maxDepth = 1.0f;
+
+      mDynamicScissors.offset = {0, 0};
+      mDynamicScissors.extent.width = mDrawExtent.width;
+      mDynamicScissors.extent.height = mDrawExtent.height;
   }
 
 
@@ -649,6 +671,8 @@ namespace fc
     {
       throw std::runtime_error("Failed to allocate a Vulkan Command Buffer!");
     }
+
+
 
   } // --- FcRenderer::createCommandPools (_) --- (END)
 
@@ -724,6 +748,9 @@ namespace fc
 
   void FcRenderer::updateScene()
   {
+
+
+
     mTimer.start();
     // TODO this is calling the destructor for all objects in draw, should flatten more
     // to just the necessary AND changing parameters...
@@ -965,7 +992,6 @@ namespace fc
   //
   void FcRenderer::drawBackground(ComputePushConstants& pushConstants)
   {
-
     VkCommandBuffer cmd = getCurrentFrame().commandBuffer;
 
     // transition our main draw image into general layout so we can write into it
@@ -1050,8 +1076,51 @@ namespace fc
 
 
 
+    void FcRenderer::initBoundingBoxPipeline(FcBuffer& sceneDataBuffer)
+  {
+    FcPipelineConfig pipelineConfig{3};
+    pipelineConfig.name = "Normal Draw Pipeline";
+    pipelineConfig.shaders[0].filename = "bounding_box.vert.spv";
+    pipelineConfig.shaders[0].stageFlag = VK_SHADER_STAGE_VERTEX_BIT;
+    pipelineConfig.shaders[1].filename = "bounding_box.frag.spv";
+    pipelineConfig.shaders[1].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-  void FcRenderer::drawGeometry() {
+    // add push constants
+    VkPushConstantRange pushConstantRange;
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    pushConstantRange.offset = 0;
+    pushConstantRange.size = sizeof(BoundingBoxPushConstants);
+
+    pipelineConfig.addPushConstants(pushConstantRange);
+
+    pipelineConfig.addDescriptorSetLayout(mSceneDataDescriptorLayout);
+
+    pipelineConfig.setColorAttachment(VK_FORMAT_R16G16B16A16_SFLOAT);
+    pipelineConfig.setDepthFormat(VK_FORMAT_D32_SFLOAT);
+    pipelineConfig.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+    pipelineConfig.setPolygonMode(VK_POLYGON_MODE_FILL);
+    // TODO front face
+    pipelineConfig.setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE);
+    pipelineConfig.setMultiSampling(FcLocator::Gpu().Properties().maxMsaaSamples);
+    // TODO prefer config via:
+    //pipelineConfig.enableMultiSampling(VK_SAMPLE_COUNT_1_BIT);
+    //pipelineConfig.disableMultiSampling();
+    //pipelineConfig.disableBlending();
+    //pipelineConfig.enableBlendingAlpha();
+    //pipelineConfig.enableBlendingAdditive();
+    pipelineConfig.enableDepthtest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
+
+    //pipelineConfig.disableBlending();
+    //pipelineConfig.disableDepthtest();
+
+    mBoundingBoxPipeline.create(pipelineConfig);
+  }
+
+
+
+
+  void FcRenderer::drawGeometry()
+  {
 
     // TODO should consider sorting outside the drawGeometry perhaps, unless something changes
     // or perhaps just inserting objects into draw via a hashmap. One thing to consider though
@@ -1146,23 +1215,8 @@ namespace fc
 
     vkCmdBeginRendering(cmd, &renderInfo);
 
-    // TODO see about seting these once and only after they change
-    VkViewport viewport = {};
-    viewport.x = 0;
-    viewport.y = 0;
-    viewport.width = mDrawExtent.width;
-    viewport.height = mDrawExtent.height;
-    viewport.minDepth = 0.f;
-    viewport.maxDepth = 1.f;
-
-    VkRect2D scissors = {};
-    scissors.offset.x = 0;
-    scissors.offset.y = 0;
-    scissors.extent.width = viewport.width;
-    scissors.extent.height = viewport.height;
-
-    vkCmdSetViewport(cmd, 0, 1, &viewport);
-    vkCmdSetScissor(cmd, 0, 1, &scissors);
+    vkCmdSetViewport(cmd, 0, 1, &mDynamicViewport);
+    vkCmdSetScissor(cmd, 0, 1, &mDynamicScissors);
 
     // Reset the previously used draw instruments for the new draw call
     // defined outside of the draw function, this is the state we will try to skip
@@ -1182,8 +1236,17 @@ namespace fc
       drawSurface(cmd, surface);
     }
 
+    // Draw the bounding box around the object if enabled
+    if (mDrawBoundingBoxes)
+    {
+      for (uint32_t& surfaceIndex : sortedOpaqueIndices)
+      {
+        drawBoundingBoxes(cmd, mainDrawContext.opaqueSurfaces[surfaceIndex]);
+      }
+    }
+
     // // Finally draw the Normals for the opaque objects
-    if (drawNormalVectors)
+    if (mDrawNormalVectors)
     {
       for (uint32_t& surfaceIndex : sortedOpaqueIndices)
       {
@@ -1277,7 +1340,14 @@ namespace fc
 
 
 
+  void FcRenderer::drawBoundingBoxes(VkCommandBuffer cmd, const RenderObject& surface)
+  {
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mBoundingBoxPipeline.getVkPipeline());
 
+
+    // Send the bounding box to the shaders
+
+  }
 
 
   void FcRenderer::drawImGui(VkCommandBuffer cmd, VkImageView targetImageView)
@@ -1399,10 +1469,26 @@ namespace fc
       throw std::runtime_error("Failed to acquire Vulkan Swap Chain image!");
     }
 
-    mDrawExtent.height = std::min(mSwapchain.getSurfaceExtent().height
-                                  , mDrawImage.getExtent().height);// * renderScale;
-    mDrawExtent.width = std::min(mSwapchain.getSurfaceExtent().width
-                                 , mDrawImage.getExtent().width);// * renderScale;
+
+
+
+
+    // // initialze the dynamic mDynamicViewport and mDynamicScisors
+    // mDynamicViewport.x = 0;
+    // mDynamicViewport.y = 0;
+    // mDynamicViewport.width = mDrawExtent.width;
+    // mDynamicViewport.height = mDrawExtent.height;
+    // mDynamicViewport.minDepth = 0.0f;
+    // mDynamicViewport.maxDepth = 1.0f;
+
+    // mDynamicScissors.offset = {0, 0};
+    // mDynamicScissors.extent.width = mDrawExtent.width;
+    // mDynamicScissors.extent.height = mDrawExtent.height;
+
+
+
+
+
 
     // manully un-signal (close) the fence ONLY when we are sure we're submitting work (result == VK_SUCESS)
     vkResetFences(pDevice, 1, &getCurrentFrame().renderFence);

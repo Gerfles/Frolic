@@ -450,7 +450,7 @@ namespace fc
           mRenderer.setEmissiveTextureUse(mUseEmissiveTexture);
         }
 
-        ImGui::Checkbox("Draw Normals", &mRenderer.drawNormalVectors);
+        ImGui::Checkbox("Draw Normals", &mRenderer.mDrawNormalVectors);
 
         ImGui::SetNextItemWidth(60);
         ImGui::SliderInt("Model Rotation Speed", &mRenderer.rotationSpeed, -5, 5);

@@ -105,7 +105,8 @@ namespace fc
     }
   }
 
-
+  // TODO change name
+  // TODO find a way to not update if already current
   void MeshNode::draw(DrawContext& context)
   {
     for (const Surface& surface : mesh->mSurfaces)
@@ -117,7 +118,6 @@ namespace fc
       renderObj.material = &surface.material->data;
       renderObj.bounds = surface.bounds;
       renderObj.transform = worldTransform;
-      // could refrain from calculating invWorldTransform until here and...
       renderObj.invModelMatrix = glm::inverse(glm::transpose(worldTransform));
       renderObj.vertexBufferAddress = mesh->VertexBufferAddress();
 
@@ -176,7 +176,7 @@ namespace fc
                             , VK_BUFFER_USAGE_TRANSFER_DST_BIT
                             | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
                             | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
-                             // | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
+                            | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
                             );
 
      // find the address fo the vertex buffer

@@ -467,12 +467,6 @@ namespace fc {
                                                          {
                                                            Vertex newVtx;
                                                            newVtx.position = v;
-                                                           // TODO don't think we need to set defaults??
-                                                           // Should do in Vertex
-                                                           newVtx.normal = {1, 0, 0};
-                                                           newVtx.tangent = {0, 0, 0, 0};
-                                                           newVtx.uv_x = 0;
-                                                           newVtx.uv_y = 0;
                                                            vertices[initialVertex + index] = newVtx;
                                                          });
         }
@@ -530,17 +524,20 @@ namespace fc {
                                                            vertices[initialVertex + index].uv_y = vec.y;
                                                          });
         }
-        // ?? Not sure that we need a vertex colors with BRDF since it's in the brdf.colorFactors
+
         // -*-*-*-*-*-*-*-*-*-*-*-*-*-   LOAD VERTEX COLORS   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
-        // auto colors = primitive.findAttribute("COLOR_0");
-        // if (colors != primitive.attributes.end())
-        // {
-        //   fastgltf::iterateAccessorWithIndex<glm::vec4>(gltf, gltf.accessors[(*colors).accessorIndex]
-        //                                                 , [&](glm::vec4 vec, size_t index)
-        //                                                  {
-        //                                                    vertices[initialVertex + index].color = vec;
-        //                                                  });
-        // }
+        // Note: most assets do not color their vertices since the color is generally provided by textures
+        // We leave this attribute off but could be easily implemented
+        auto colors = primitive.findAttribute("COLOR_0");
+        if (colors != primitive.attributes.end())
+        {
+          fcLog("Model has un-utilized colors per vertex");
+          // fastgltf::iterateAccessorWithIndex<glm::vec4>(gltf, gltf.accessors[(*colors).accessorIndex]
+          //                                               , [&](glm::vec4 vec, size_t index)
+          //                                                {
+          //                                                  vertices[initialVertex + index].color = vec;
+          //                                                });
+        }
 
         if (primitive.materialIndex.has_value())
         {
@@ -860,15 +857,17 @@ namespace fc {
                                                         });
         }
 
+        // TODO add color back in
         // -*-*-*-*-*-*-*-*-*-*-*-*-*-   LOAD VERTEX COLORS   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
-        // auto colors = primitive.findAttribute("COLOR_0");
-        // if (colors != primitive.attributes.end())
-        // {
-        //   fastgltf::iterateAccessorWithIndex<glm::vec4>(gltf, gltf.accessors[(*colors).accessorIndex]
-        //                                                 , [&](glm::vec4 vec, size_t index) {
-        //                                                   vertices[initialVertex + index].color = vec;
-        //                                                 });
-        // }
+        auto colors = primitive.findAttribute("COLOR_0");
+        if (colors != primitive.attributes.end())
+        {
+          fastgltf::iterateAccessorWithIndex<glm::vec4>(gltf, gltf.accessors[(*colors).accessorIndex]
+                                                        , [&](glm::vec4 vec, size_t index) {
+                                                          printVec(vec, "Color");
+                                                          //vertices[initialVertex + index].color = vec;
+                                                        });
+        }
 
         // newMesh.mSurfaces.push_back(newSurface);
       }

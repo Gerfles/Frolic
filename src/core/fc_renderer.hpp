@@ -80,8 +80,8 @@ namespace fc
      FcGpu mGpu;
 //     FcDescriptor mDescriptorManager;
      FcSwapChain mSwapchain;
-     VkViewport mDynamicViewport;
-     VkRect2D mDynamicScissors;
+     VkViewport mDynamicViewport{};
+     VkRect2D mDynamicScissors{};
       // TODO delete (now in FrameData)
      // std::vector<VkSemaphore> mImageReadySemaphores;
      // std::vector<VkSemaphore> mRenderFinishedSemaphores;
@@ -139,6 +139,7 @@ namespace fc
       //std::vector<ComputeEffect> backgroundEffects;
      VkPipeline pDrawPipeline; // ?? Delete
      FcPipeline mNormalDrawPipeline;
+     FcPipeline mBoundingBoxPipeline;
      VkPipelineLayout pDrawPipelineLayout;
      VkExtent2D mDrawExtent;
      FcTextureAtlas textureAtlas;
@@ -180,7 +181,8 @@ namespace fc
      glm::mat4 rotationMatrix{1.0f};
      int rotationSpeed{0};
      float expansionFactor{0};
-     bool drawNormalVectors {false};
+     bool mDrawNormalVectors {false};
+     bool mDrawBoundingBoxes {false};
 
      void updateScene();
      float aspectRatio() { return static_cast<float>(mWindow.ScreenSize().width)
@@ -204,7 +206,9 @@ namespace fc
      void setNormalMapUse(bool enable);
      void setEmissiveTextureUse(bool enable);
      void initNormalDrawPipeline(FcBuffer& sceneDataBuffer);
+     void initBoundingBoxPipeline(FcBuffer& sceneDataBuffer);
      void drawNormals(VkCommandBuffer cmd, const RenderObject& surface);
+     void drawBoundingBoxes(VkCommandBuffer cmd, const RenderObject& surface);
      void drawSurface(VkCommandBuffer cmd, const RenderObject& surface);
 
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //

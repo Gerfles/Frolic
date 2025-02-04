@@ -30,12 +30,12 @@ namespace fc
 //to touch the relevant half of the data.
   struct Vertex
   {
-     glm::vec3 position;
-     float uv_x;
-     glm::vec3 normal;
-     float uv_y;
+     glm::vec3 position {0.f, 0.f, 0.f};
+     float uv_x {0.f};
+     glm::vec3 normal {1.f, 0.f, 0.f};
+     float uv_y {0.f};
      //glm::vec4 color; // not needed with pbr
-     glm::vec4 tangent;
+     glm::vec4 tangent {0.f, 0.f, 0.f, 0.f};
      // TODO could add some features like a print function, etc.
   };
 
@@ -49,6 +49,13 @@ namespace fc
      VkDeviceAddress vertexBuffer;
   };
 
+  struct BoundingBoxPushConstants
+  {
+     glm::vec3 origin;
+     glm::vec3 extents;
+     glm::mat4 modelMatrix;
+  };
+
   // TODO get rid of this and keep in FcModel
   // must be in a struct for the Uniform buffer or push constant to use
   // struct ModelMatrix
@@ -58,11 +65,11 @@ namespace fc
 
 
   // base class for a renderable dynamic object
-  class IRenderable
-  {
-     virtual void draw(DrawContext& ctx) = 0;
-     virtual void update(const glm::mat4& topMatrix) = 0;
-  };
+    class IRenderable
+    {
+       virtual void draw(DrawContext& ctx) = 0;
+       virtual void update(const glm::mat4& topMatrix) = 0;
+    };
 
   // implementation of a drawable scene node. The scene node can hold Children and will also keep
   // a transform to propagate to them
