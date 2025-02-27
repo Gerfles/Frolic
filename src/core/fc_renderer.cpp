@@ -45,7 +45,6 @@
 #include <vector>
 #include <iostream>
 
-
 // TODO (note may no longer be relevant) All of the helper functions that submit commands so far
 // have been set up to execute synchronously by waiting for the queue to become idle. For practical
 // applications it is recommended to combine these operations in a single command buffer and execute
@@ -55,8 +54,6 @@
 // that have been recorded so far. It's best to do this after the texture mapping works to check if
 // the texture resources are still set up correctly.
 
-
-
 namespace fc
 {
   // FcRenderer::FcRenderer()
@@ -64,7 +61,6 @@ namespace fc
   //    // TODO allow a passed struct that will initialize the window and app "stuff"
   //    // including a pointer to a VK_STRUCTURE type appinfo
   // }
-
 
   int FcRenderer::init(VkApplicationInfo& appInfo, VkExtent2D screenSize)
   {
@@ -118,7 +114,7 @@ namespace fc
       // create the command pool for later allocating command from. Also create the command buffers
       createCommandPools();
 
-
+      mShadowMap.init(this);
       // create the graphics pipeline && create/attach descriptors
       // create the uniform buffers & initialize the descriptor sets that tell the pipeline about our uniform buffers
       // here we want to create a descriptor set for each swapchain image we have
@@ -184,10 +180,6 @@ namespace fc
 
   void FcRenderer::initDefaults(FcBuffer& sceneDataBuffer, SceneData* sceneData)
   {
-
-
-
-
     pSceneData = sceneData;
     // -*-*-*-*-   3 DEFAULT TEXTURES--WHITE, GREY, BLACK AND CHECKERBOARD   -*-*-*-*- //
     uint32_t white = glm::packUnorm4x8(glm::vec4(1.f, 1.f, 1.f, 1.f));
@@ -302,15 +294,17 @@ namespace fc
     // TODO move to frolic.cpp
     //structure.loadGltf(this, "..//models//MosquitoInAmber.glb");
     //structure.loadGltf(this, "..//models//MaterialsVariantsShoe.glb");
-    //structure.loadGltf(this, "..//models//helmet//DamagedHelmet.gltf");
-    //
-    //
+    structure.loadGltf(this, "..//models//helmet//DamagedHelmet.gltf");
+    //structure2.loadGltf(this, "..//models//helmet//DamagedHelmet.gltf");
     //structure.loadGltf(this, "..//models//Box.gltf");
     //structure.loadGltf(this, "..//models//GlassHurricaneCandleHolder.glb");
     //structure.loadGltf(this, "..//models//ToyCar.glb");
     //structure.loadGltf(this, "..//models//structure_mat.glb");
 
-    structure.loadGltf(this, "..//models//sponza//Sponza.gltf");
+    structure2.loadGltf(this, "..//models//sponza//Sponza.gltf");
+
+
+
     // // NOTE: This moves the object not the camera/lights/etc...
     // glm::mat4 drawMat{1.f};
     // glm::vec3 translate{30.f, -00.f, 85.f};
@@ -322,6 +316,8 @@ namespace fc
 
     // FIXME requires enabling one or more extensions in fastgltf
     //structure.loadGltf(this, "..//models//SheenWoodLeatherSofa.glb");
+
+
 
     initNormalDrawPipeline(sceneDataBuffer);
     initBoundingBoxPipeline(sceneDataBuffer);
@@ -598,24 +594,24 @@ namespace fc
     mDepthImage.create(drawImgExtent, VK_FORMAT_D32_SFLOAT, imgUse
                        , VK_IMAGE_ASPECT_DEPTH_BIT, FcLocator::Gpu().Properties().maxMsaaSamples);
 
-
     // TODO provide for these to change if VK_ERROR_OUT_OF_DATE_KHR, etc.
     mDrawExtent.height = std::min(mSwapchain.getSurfaceExtent().height
                                   , mDrawImage.getExtent().height);// * renderScale;
     mDrawExtent.width = std::min(mSwapchain.getSurfaceExtent().width
                                  , mDrawImage.getExtent().width);// * renderScale;
 
-      // initialze the dynamic mDynamicViewport and mDynamicScisors
-      mDynamicViewport.x = 0;
-      mDynamicViewport.y = 0;
-      mDynamicViewport.width = mDrawExtent.width;
-      mDynamicViewport.height = mDrawExtent.height;
-      mDynamicViewport.minDepth = 0.0f;
-      mDynamicViewport.maxDepth = 1.0f;
+    // TODO create a function for allowing viewport and scisors to change
+    // initialze the dynamic mDynamicViewport and mDynamicScisors
+    mDynamicViewport.x = 0;
+    mDynamicViewport.y = 0;
+    mDynamicViewport.width = mDrawExtent.width;
+    mDynamicViewport.height = mDrawExtent.height;
+    mDynamicViewport.minDepth = 0.0f;
+    mDynamicViewport.maxDepth = 1.0f;
 
-      mDynamicScissors.offset = {0, 0};
-      mDynamicScissors.extent.width = mDrawExtent.width;
-      mDynamicScissors.extent.height = mDrawExtent.height;
+    mDynamicScissors.offset = {0, 0};
+    mDynamicScissors.extent.width = mDrawExtent.width;
+    mDynamicScissors.extent.height = mDrawExtent.height;
   }
 
 
@@ -671,9 +667,6 @@ namespace fc
     {
       throw std::runtime_error("Failed to allocate a Vulkan Command Buffer!");
     }
-
-
-
   } // --- FcRenderer::createCommandPools (_) --- (END)
 
 
@@ -748,9 +741,6 @@ namespace fc
 
   void FcRenderer::updateScene()
   {
-
-
-
     mTimer.start();
     // TODO this is calling the destructor for all objects in draw, should flatten more
     // to just the necessary AND changing parameters...
@@ -766,94 +756,25 @@ namespace fc
     // stationary and therefore do not require an update. Probably better to have static & dynamic
     // objects be "drawn differently" also hate that this functio is called draw just because
     // it adds the meshNodes to the drawContext...
-    structure.update(rotationMatrix);
+    glm::mat4 translationMat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 3.0f, 0.0f));
+    structure.update(translationMat * rotationMatrix);
     structure.draw(mainDrawContext);
 
-    //loadedScenes["structure"]->draw(glm::mat4{1.f}, mainDrawContext);
+    // glm::mat4 translationMat = glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 0.0f, 18.0f));
+    // structure2.update(translationMat);
+     structure2.draw(mainDrawContext);
+
+
 
     // ?? elapsed time should already be in ms
     stats.sceneUpdateTime = mTimer.elapsedTime();
   }
 
 
-
-  //TODO change current frame to currentFrameBuffer
-  void FcRenderer::drawModels(uint32_t swapchainImageIndex, GlobalUbo& ubo)
-  {
-    //
-    auto gameObjects = FcLocator::GameObjects();
-
-    // bind pipeline to be used in render pass
-    mModelPipeline.bind(getCurrentFrame().commandBuffer);
-
-    // now make sure to record commands for all of our objects (meshes)
-    for (size_t i = 0; i < gameObjects.size(); ++i)
-    {
-      auto currModel = gameObjects[i]->pModel;
-
-      // draw only the game objects that have an associated model
-      if (gameObjects[i]->pModel != nullptr)
-      {
-        ModelPushConstantData push{};
-        push.modelMatrix = gameObjects[i]->transform.mat4();
-        push.normalMatrix = gameObjects[i]->transform.normalMatrix();
-
-        vkCmdPushConstants(getCurrentFrame().commandBuffer, mModelPipeline.Layout()
-                           , VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT
-                           , 0, sizeof(ModelPushConstantData), &push);
-
-        for (size_t j = 0; j < currModel->MeshCount(); ++j)
-        {
-          FcMesh& currMesh = currModel->Mesh(j);
-
-          //VkBuffer vertexBuffers[] = { currMesh.VertexBuffer() };// buffers to bind
-          VkDeviceSize offsets[] = { 0 }; // offsets into buffers being bound
-
-          // Bind all the necessary resources to our pipeline
-          //SDL_Log("%d times ", currMesh.VertexCount());
-          // bind vertex buffer before drawing
-          vkCmdBindVertexBuffers(getCurrentFrame().commandBuffer, 0, 1, &currModel->Mesh(j).VertexBuffer(), offsets);
-          vkCmdBindIndexBuffer(getCurrentFrame().commandBuffer, currMesh.IndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
-          // dynamic offset ammount (SAVED FOR REFERENCE)
-          // uint32_t dynamicOffset = static_cast<uint32_t>(mPipeline.ModelUniformAlignment()) * j;
-          // vkCmdBindDescriptorSets(mCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS
-          // , mPipeline.Layout(), 0, 1, mPipeline.DescriptorSet(currentFrame), 1, &dynamicOffset);
-
-          // TODO don't update UBO unless changed (may still need to do just because of frame set)
-          FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
-
-          // TODO use sceneData per frame instead
-          //descClerk.update(swapchainImageIndex, &ubo);
-
-
-          // TODO find out if there's a way to auto bind the DSs to the pipeline and only change
-          // the set that changes...
-          // Bind descriptor sets
-
-          std::array<VkDescriptorSet, 2> descriptorSets;
-          descriptorSets[0] = mFrames[swapchainImageIndex].sceneDataDescriptorSet;
-          descriptorSets[1] = currModel->getDescriptorSet(currMesh.DescriptorId());
-          // std::array<VkDescriptorSet, 2> descriptorSets = { descClerk.UboDescriptorSet(swapchainImageIndex)
-          //                                                 , descClerk.SamplerDescriptorSet(currMesh.DescriptorId()) };
-
-          vkCmdBindDescriptorSets(getCurrentFrame().commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS
-                                  , mModelPipeline.Layout(), 0, static_cast<uint32_t>(descriptorSets.size())
-                                  , descriptorSets.data() , 0, nullptr);
-          // execute pipeline
-          //vkCmdDrawIndexed(getCurrentFrame().commandBuffer, currMesh.indexCount(), 1, 0, 0, 0);
-        }
-      }
-
-    } // _END_ FOR draw models in model list
-  } // --- FcRenderer::drawModels (_) --- (END)
-
-
   // ?? TODO do we need camera position
-  void FcRenderer::drawBillboards(glm::vec3 cameraPosition, uint32_t swapchainImageIndex, GlobalUbo& ubo)
+  void FcRenderer::drawBillboards(glm::vec3 cameraPosition, uint32_t swapchainImageIndex, SceneData& ubo)
   {
     std::vector<FcBillboard* >& billboards = FcLocator::Billboards();
-
-    // std::cout << "billboards size: " << billboards.size() << std::endl;
 
     // sort the billboards by distance to the camera
     // TODO sort within update instead
@@ -861,11 +782,9 @@ namespace fc
     for (size_t i = 0; i < billboards.size(); ++i)
     {
       // calculate distance
-      // TODO check that distance is computed correctly with the w component being 1
-      auto distance = glm::vec4(cameraPosition, 1.f) - billboards[i]->PushComponent().position;
+      auto distance = ubo.eye - billboards[i]->PushComponent().position;
       float distanceSquared = glm::dot(distance, distance);
       sortedIndices.insert(std::pair(distanceSquared, i));
-      //billboards[i]->Push().color =
     }
 
     VkCommandBuffer currCommandBuffer = getCurrentFrame().commandBuffer;
@@ -876,12 +795,8 @@ namespace fc
     // draw text box
 
     // iterate through billboards in reverse order (to draw them back to front)
-    //    std::cout << "sortedIndices size : " << sortedIndices.size() << std::endl;
     for (auto index = sortedIndices.rbegin(); index != sortedIndices.rend(); ++index )
     {
-      // glm::vec4 col = billboards[index->second]->Push().color;
-      // printVec(col, "color");
-
       vkCmdPushConstants(currCommandBuffer, mBillboardPipeline.Layout()
                          , VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(BillboardPushComponent)
                          , &billboards[index->second]->PushComponent());
@@ -890,9 +805,7 @@ namespace fc
       // vkCmdBindVertexBuffers(mCommandBuffers[swapChainImageIndex], 0, 1, &font.VertexBuffer(), offsets);
       // vkCmdBindIndexBuffer(mCommandBuffers[swapChainImageIndex], font.IndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
-      // TODO don't update UBO unless changed
       FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
-
 
       // TODO  update the global Ubo only once per frame, not each draw call
       // descClerk.update(swapchainImageIndex, &ubo);
@@ -900,47 +813,14 @@ namespace fc
       std::array<VkDescriptorSet, 2> descriptorSets;
       descriptorSets[0] =  mFrames[swapchainImageIndex].sceneDataDescriptorSet;
       descriptorSets[1] = billboards[index->second]->getDescriptor();
-      //, descClerk.SamplerDescriptorSet(loopCount) };
 
       vkCmdBindDescriptorSets(currCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS
                               , mBillboardPipeline.Layout(), 0, static_cast<uint32_t>(descriptorSets.size())
                               , descriptorSets.data() , 0, nullptr);
 
       //vkCmdDrawIndexed(mCommandBuffers[swapChainImageIndex], font.IndexCount(), 1, 0, 0, 0);
-      //TODO find out if there's a better way to dispatch all draws simultaneously
       vkCmdDraw(currCommandBuffer, 6, 1, 0, 0);
     }
-
-
-
-
-    // bind pipeline to be used in render pass
-    // mBillboardPipeline.bind(getCurrentFrame().commandBuffer);
-    //  // DRAW ALL UI COMPONENTS (LAST)
-    //  // draw text box
-    // vkCmdPushConstants(getCurrentFrame().commandBuffer, mBillboardPipeline.Layout()
-    //                    , VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(BillboardPushConstants), &font.Push());
-
-    // VkDeviceSize offsets[] = { 0 };
-    // // vkCmdBindVertexBuffers(mCommandBuffers[swapChainImageIndex], 0, 1, &font.VertexBuffer(), offsets);
-    // // vkCmdBindIndexBuffer(mCommandBuffers[swapChainImageIndex], font.IndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
-
-    //      // TODO don't update UBO unless changed
-    // mDescriptorManager.update(swapchainImageIndex, &mBillboardUbo);
-
-    // std::array<VkDescriptorSet, 2> descriptorSets = { mDescriptorManager.UboDescriptorSet(swapchainImageIndex)
-    //                                                 , mDescriptorManager.SamplerDescriptorSet(font.TextureId()) };
-
-    // vkCmdBindDescriptorSets(getCurrentFrame().commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS
-    //                         , mBillboardPipeline.Layout(), 0, static_cast<uint32_t>(descriptorSets.size())
-    //                         , descriptorSets.data() , 0, nullptr);
-
-    //  //vkCmdDrawIndexed(mCommandBuffers[swapChainImageIndex], font.IndexCount(), 1, 0, 0, 0);
-    // vkCmdDraw(getCurrentFrame().commandBuffer, 6, 1, 0, 0);
-
-
-
-    //    mBillboardRenderer.draw(cameraPosition, getCurrentFrame().commandBuffer, swapchainImageIndex);
   }
 
 
@@ -1010,18 +890,6 @@ namespace fc
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE,
                             pDrawPipelineLayout, 0, 1, ds.data(), 0, nullptr);
 
-    // vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE
-    //                         , pDrawPipelineLayout, 0, 1,
-    //                         &getCurrentFrame().sceneDataDescriptorSet, 0,
-    //                         nullptr);
-    //                            , pDrawPipelineLayout, 0, 1,
-    //                            descriptorClerk.vkDescriptor(), 0, nullptr);
-
-    // inject the push constants
-    // ComputePushConstants pc;
-    // pc.data1 = glm::vec4(1,0,0,1);
-    // pc.data2 = glm::vec4(0,0,1,1);
-
     vkCmdPushConstants(cmd, pDrawPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
                        sizeof(ComputePushConstants), &pushConstants);
 
@@ -1062,13 +930,8 @@ namespace fc
     // TODO prefer config via:
     //pipelineConfig.enableMultiSampling(VK_SAMPLE_COUNT_1_BIT);
     //pipelineConfig.disableMultiSampling();
-    //pipelineConfig.disableBlending();
-    //pipelineConfig.enableBlendingAlpha();
-    //pipelineConfig.enableBlendingAdditive();
-    pipelineConfig.enableDepthtest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
 
-    //pipelineConfig.disableBlending();
-    //pipelineConfig.disableDepthtest();
+    pipelineConfig.enableDepthtest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
 
     mNormalDrawPipeline.create(pipelineConfig);
   }
@@ -1099,32 +962,20 @@ namespace fc
     pipelineConfig.setColorAttachment(VK_FORMAT_R16G16B16A16_SFLOAT);
     pipelineConfig.setDepthFormat(VK_FORMAT_D32_SFLOAT);
     // ?? Would be better to implement with line primitives but not sure if all implementations
-    // can use lines... triangles seem to be guaranteed
+    // can use lines... triangles are pretty much guaranteed
     pipelineConfig.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
     pipelineConfig.setPolygonMode(VK_POLYGON_MODE_FILL);
-    // TODO front face
-    pipelineConfig.setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE);
+    pipelineConfig.setCullMode(VK_CULL_MODE_FRONT_AND_BACK, VK_FRONT_FACE_CLOCKWISE);
     pipelineConfig.setMultiSampling(FcLocator::Gpu().Properties().maxMsaaSamples);
-    // TODO prefer config via:
-    //pipelineConfig.enableMultiSampling(VK_SAMPLE_COUNT_1_BIT);
-    //pipelineConfig.disableMultiSampling();
-    //pipelineConfig.disableBlending();
-    pipelineConfig.enableBlendingAlpha();
-    //pipelineConfig.enableBlendingAdditive();
     pipelineConfig.enableDepthtest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
-
-    //pipelineConfig.disableBlending();
-    //pipelineConfig.disableDepthtest();
+    pipelineConfig.disableBlending();
 
     mBoundingBoxPipeline.create(pipelineConfig);
   }
 
 
-
-
   void FcRenderer::drawGeometry()
   {
-
     // TODO should consider sorting outside the drawGeometry perhaps, unless something changes
     // or perhaps just inserting objects into draw via a hashmap. One thing to consider though
     // is that we also perform visibility checks before we sort
@@ -1141,10 +992,12 @@ namespace fc
       // May only be on the sponza gltf...
       // BUG also when no objects are rendered, causes an error in seting the scissors and viewport
       // TODO implement normal arrows and bounding boxes
-      if (mainDrawContext.opaqueSurfaces[i].isVisible(pSceneData->viewProj))
-      {
-        sortedOpaqueIndices.push_back(i);
-      }
+      // if (mainDrawContext.opaqueSurfaces[i].isVisible(pSceneData->viewProj))
+      // {
+      //   sortedOpaqueIndices.push_back(i);
+      // }
+
+      sortedOpaqueIndices.push_back(i);
     }
 
     // ?? couldn't we sort drawn meshes into a set of vectors that're already sorted by material
@@ -1180,11 +1033,11 @@ namespace fc
     //std::cout << "drawExtent: " << mDrawExtent.width << " x " << mDrawExtent.height << std::endl;
     // transition draw image from compute shader write optimal to best format
     // for graphics pipeline writeable
-    mDrawImage.transitionImage(cmd, VK_IMAGE_LAYOUT_GENERAL,
+    mDrawImage.transitionImage(cmd, VK_IMAGE_LAYOUT_UNDEFINED,
                                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
     //
     mDepthImage.transitionImage(cmd, VK_IMAGE_LAYOUT_UNDEFINED,
-                                VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+                                VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
 
     // TODO extract into builder...
     // begin a render pass connected to our draw image
@@ -1194,7 +1047,9 @@ namespace fc
     colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     //		colorAttachment.loadOp = clear ? VK_ATTACHMENT_LOAD_OP_CLEAR :
     //VK_ATTACHMENT_LOAD_OP_LOAD;
-    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+
+    // TODO Should use LOAD_OP_DONT_CARE here if we know the entire image will be written over
+    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
     // depth
@@ -1228,10 +1083,15 @@ namespace fc
     lastUsedIndexBuffer = VK_NULL_HANDLE;
 
     // First draw the opaque objects using the captured Lambda
+
     for (uint32_t surfaceIndex : sortedOpaqueIndices)
     {
+      // if (surfaceIndex == 12)
+      // {
       drawSurface(cmd, mainDrawContext.opaqueSurfaces[surfaceIndex]);
+      // }
     }
+
 
     // Afterwards, we can draw the transparent ones using the captured Lambda
     for (RenderObject& surface : mainDrawContext.transparentSurfaces)
@@ -1282,6 +1142,61 @@ namespace fc
   }
 
 
+  void FcRenderer::drawShadowMap(bool drawDebug)
+  {
+    VkCommandBuffer cmd = getCurrentFrame().commandBuffer;
+    //loadedScenes["structure"]->draw(glm::mat4{1.f}, mainDrawContext);
+    mShadowMap.generateMap(cmd, mainDrawContext);
+
+    //std::cout << "drawExtent: " << mDrawExtent.width << " x " << mDrawExtent.height << std::endl;
+    // transition draw image from compute shader write optimal to best format
+    // for graphics pipeline writeable
+    mDrawImage.transitionImage(cmd, VK_IMAGE_LAYOUT_UNDEFINED,
+                               VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    //
+    // mDepthImage.transitionImage(cmd, VK_IMAGE_LAYOUT_UNDEFINED,
+    //                             VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+
+    // TODO extract into builder...
+    // begin a render pass connected to our draw image
+    VkRenderingAttachmentInfo colorAttachment{};
+    colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+    colorAttachment.imageView = mDrawImage.ImageView();
+    colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    //		colorAttachment.loadOp = clear ? VK_ATTACHMENT_LOAD_OP_CLEAR :
+    //VK_ATTACHMENT_LOAD_OP_LOAD;
+    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+
+    //
+    VkRenderingInfo renderInfo{};
+    renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+    renderInfo.renderArea = VkRect2D{VkOffset2D{0, 0}, mDrawExtent};
+    renderInfo.layerCount = 1;
+    renderInfo.colorAttachmentCount = 1;
+    renderInfo.pColorAttachments = &colorAttachment;
+    renderInfo.pStencilAttachment = nullptr;
+
+    vkCmdBeginRendering(cmd, &renderInfo);
+
+    vkCmdSetViewport(cmd, 0, 1, &mDynamicViewport);
+    vkCmdSetScissor(cmd, 0, 1, &mDynamicScissors);
+
+    // draw the quad that we'll map the shadow map to
+    if (drawDebug)
+    {
+      mShadowMap.drawDebugMap(cmd);
+      vkCmdEndRendering(cmd);
+    }
+    else
+    {
+      vkCmdEndRendering(cmd);
+      drawGeometry();
+    }
+  }
+
+
 
   void FcRenderer::drawSurface(VkCommandBuffer cmd, const RenderObject& surface)
   {
@@ -1299,9 +1214,10 @@ namespace fc
         surface.bindPipeline(cmd);
         surface.bindDescriptorSet(cmd, getCurrentFrame().sceneDataDescriptorSet, 0);
         surface.bindDescriptorSet(cmd, mSkybox.Descriptor(), 1);
+        surface.bindDescriptorSet(cmd, mShadowMap.Descriptor(), 2);
       }
 
-      surface.bindDescriptorSet(cmd, surface.material->materialSet, 2);
+      surface.bindDescriptorSet(cmd, surface.material->materialSet, 3);
     }
 
     // Only bind index buffer if it has changed
@@ -1407,7 +1323,6 @@ namespace fc
     ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
 
     vkCmdEndRendering(cmd);
-
   }
 
 
@@ -1478,7 +1393,6 @@ namespace fc
     getCurrentFrame().janitor.flush();
 
 
-
     // 1. get the next available image to draw to and set to signal the semaphore when we're finished with it
     uint32_t swapchainImageIndex;
     VkResult result = vkAcquireNextImageKHR(pDevice, mSwapchain.vkSwapchain(), maxWaitTime
@@ -1496,27 +1410,6 @@ namespace fc
     {
       throw std::runtime_error("Failed to acquire Vulkan Swap Chain image!");
     }
-
-
-
-
-
-    // // initialze the dynamic mDynamicViewport and mDynamicScisors
-    // mDynamicViewport.x = 0;
-    // mDynamicViewport.y = 0;
-    // mDynamicViewport.width = mDrawExtent.width;
-    // mDynamicViewport.height = mDrawExtent.height;
-    // mDynamicViewport.minDepth = 0.0f;
-    // mDynamicViewport.maxDepth = 1.0f;
-
-    // mDynamicScissors.offset = {0, 0};
-    // mDynamicScissors.extent.width = mDrawExtent.width;
-    // mDynamicScissors.extent.height = mDrawExtent.height;
-
-
-
-
-
 
     // manully un-signal (close) the fence ONLY when we are sure we're submitting work (result == VK_SUCESS)
     vkResetFences(pDevice, 1, &getCurrentFrame().renderFence);
@@ -1542,12 +1435,12 @@ namespace fc
     // let vulkan know that we intend to only use this buffer once
     bufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-
-
     if (vkBeginCommandBuffer(commandBuffer, &bufferBeginInfo) != VK_SUCCESS)
     {
       throw std::runtime_error("Failed to start recording a Vulkan Command Buffer!");
     }
+
+
     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROM OLD METHOD   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
     // TODO would this make more sense to relocate to window resize?
@@ -1563,12 +1456,12 @@ namespace fc
     // -*-*-*-*-*-*-*-*-*-*-*-*-*-   END FROM OLD METHOD   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
 
-    VkImageSubresourceRange clearRange {};
-    clearRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    clearRange.baseMipLevel = 0;
-    clearRange.levelCount = VK_REMAINING_MIP_LEVELS;
-    clearRange.baseArrayLayer = 0;
-    clearRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+    // VkImageSubresourceRange clearRange {};
+    // clearRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    // clearRange.baseMipLevel = 0;
+    // clearRange.levelCount = VK_REMAINING_MIP_LEVELS;
+    // clearRange.baseArrayLayer = 0;
+    // clearRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
 
     //  //make a clear-color from frame number. This will flash with a 120 frame period.
 
@@ -1580,10 +1473,6 @@ namespace fc
     /* vkCmdClearColorImage(commandBuffer, mDrawImage.Image(), VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clearRange); */
     /* vkCmdClearDepthStencilImage(cmd, mSwapchain., VkImageLayout imageLayout, const VkClearDepthStencilValue *pDepthStencil, uint32_t rangeCount, const VkImageSubresourceRange *pRanges) */
     // bind the compute pipeline
-
-
-
-
 
     // ?? not sure this is what we want to return
     return swapchainImageIndex;
@@ -1685,8 +1574,6 @@ namespace fc
     waitSemaphorInfo.semaphore = getCurrentFrame().imageAvailableSemaphore;
     waitSemaphorInfo.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
     waitSemaphorInfo.value = 1;
-    // TODO delete the following line (shouldn't need)
-    // waitSemaphorInfo.deviceIndex = 0;
 
     VkSemaphoreSubmitInfo signalSemaphorInfo = {};
     signalSemaphorInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
@@ -1737,71 +1624,6 @@ namespace fc
     mFrameNumber++;
   }
 
-
-
-
-  // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   OLD METHOD   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-  // void FcRenderer::endFrame(uint32_t swapchainImageIndex)
-  //   {
-
-  //     VkCommandBuffer commandBuffer = getCurrentFrame().commandBuffer;
-
-  //      // transition the swapchain image into writeable mode before rendering
-  //     mSwapchain.transitionImage(commandBuffer, swapchainImageIndex
-  //                                , VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-
-  //      // end render pass
-  //     vkCmdEndRenderPass(commandBuffer);
-
-  //      // stop recording to command buffer
-  //     if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
-  //     {
-  //       throw std::runtime_error("Failed to stop recording a Vulkan Command Buffer!");
-  //     }
-
-  //      // 2. submit command buffer to queue for rendering, making sure it waits for the image to be signalled as
-  //      // available before drawing and signals when it has finished rendering
-  //     VkSubmitInfo submitInfo{};
-  //     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-  //     submitInfo.waitSemaphoreCount = 1;                         // number of semaphores to wait on
-  //     submitInfo.pWaitSemaphores = &mImageReadySemaphores[mCurrentFrame];             // list of semaphores to wait on
-  //     VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-  //     submitInfo.pWaitDstStageMask = waitStages;                 // stages to check semaphores at
-  //     submitInfo.commandBufferCount = 1;                         // number of command buffers to submit
-  //     submitInfo.pCommandBuffers = &mCommandBuffers[swapChainImageIndex]; // command buffer to submit
-  //     submitInfo.signalSemaphoreCount = 1;                       // number of semaphores to signal
-  //     submitInfo.pSignalSemaphores = &mRenderFinishedSemaphores[mCurrentFrame];           // semaphores to signal when command buffer finishes
-
-  //      // Submit the command buffer to the queue
-  //     if (vkQueueSubmit(mGpu.graphicsQueue(), 1, &submitInfo, mDrawFences[mCurrentFrame]) != VK_SUCCESS)
-  //     {
-  //       throw std::runtime_error("Failed to submit Vulkan Command Buffer to the queue!");
-  //     }
-
-  //      // 3. present image to screen when it has signalled finished rendering
-  //     VkPresentInfoKHR presentInfo{};
-  //     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-  //     presentInfo.waitSemaphoreCount = 1;                  // Number of semaphores to wait on
-  //     presentInfo.pWaitSemaphores = &mRenderFinishedSemaphores[mCurrentFrame];      // semaphore to wait on
-  //     presentInfo.swapchainCount = 1;                      // number of swapchains to present to
-  //     presentInfo.pSwapchains = &mSwapchain.vkSwapchain(); // swapchain to present images to
-  //     presentInfo.pImageIndices = &swapChainImageIndex;             //index of images in swapchains to present
-
-  //     VkResult result = vkQueuePresentKHR(mGpu.presentQueue(), &presentInfo);
-
-  //     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || mWindow.wasWindowResized())
-  //     {
-  //       mWindow.resetWindowResizedFlag();
-  //       handleWindowResize();
-  //     }
-  //     else if (result != VK_SUCCESS)
-  //     {
-  //       throw std::runtime_error("Faled to submit image to Vulkan Present Queue!");
-  //     }
-
-  //      // get next frame (use % MAX_FRAME_DRAWS to keep value below the number of frames we have in flight
-  //     mCurrentFrame = (mCurrentFrame + 1) % MAX_FRAME_DRAWS;
-  //   }
 
 
   void FcRenderer::handleWindowResize()
@@ -1873,7 +1695,6 @@ namespace fc
       vkDestroySemaphore(pDevice, frame.renderFinishedSemaphore, nullptr);
       vkDestroyFence(pDevice, frame.renderFence, nullptr);
     }
-
 
 
     // -*-*-*-*-*-*-*-*-*-*-   IMMEDIATE COMMAND ARCHITECTURE   -*-*-*-*-*-*-*-*-*-*- //

@@ -112,7 +112,7 @@ namespace fc
      VkBuffer indexBuffer;
 
      MaterialInstance* material;
-     glm::mat4 transform;// {1.0f};
+     glm::mat4 transform {1.0f};
      glm::mat4 invModelMatrix {1.0f};
      Bounds bounds;
      VkDeviceAddress vertexBufferAddress;

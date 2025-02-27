@@ -494,8 +494,6 @@ namespace fc {
             // Let our shaders know we have vertex tangets available
             sceneMaterialConstants[primitive.materialIndex.value()].flags
               |= MaterialFeatures::HasVertexTangentAttribute;
-
-            std::cout << "Vertex Primitives have Tangents" << std::endl;
           }
 
           fastgltf::iterateAccessorWithIndex<glm::vec4>(gltf, gltf.accessors[(*tangents).accessorIndex],
@@ -707,6 +705,7 @@ namespace fc {
 
   void LoadedGLTF::update(const glm::mat4& topMatrix)
   {
+
     for (std::shared_ptr<Node>& node : mTopNodes)
     {
       node->update(topMatrix);

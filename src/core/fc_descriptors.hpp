@@ -1,6 +1,4 @@
 #pragma once
-
-
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_light.hpp"
 #include "fc_buffer.hpp"
@@ -38,24 +36,13 @@ namespace fc
    //    alignas(8) int numLights {5};
    // };
 
-   // TODO combine with SceneData
-  struct GlobalUbo
-  {
-     glm::mat4 projection {1.f};
-     glm::mat4 view {1.f};
-     glm::mat4 invView {1.f};
-     glm::vec4 ambientLightColor {1.f, 1.f, 1.f, 0.1f}; // w is light intensity
-     PointLight pointLights[10];
-     int numLights{0};
-  };
-
   struct SceneData
   {
      glm::vec4 eye {0.0};
      glm::mat4 view {1.f};
      glm::mat4 projection {1.f};
      glm::mat4 viewProj{1.f};
-     glm::vec4 inverseView {1.f};
+     glm::mat4 lighSpaceTransform{1.f};
      glm::vec4 ambientLight {1.f, 1.f, 1.f, 0.1f}; // w is light intensity
      glm::vec4 sunlightDirection; // w for power
      glm::vec4 sunlightColor;
@@ -89,14 +76,9 @@ namespace fc
   {
    private:
      size_t mModelUniformAlignment;
-      // NO LONGER NEED but left as reference for dynamic uniform buffer objects
-      //Model* pModelTransferSpace;
-     void allocateDynamicBufferTransferSpace();
      VkDevice pDevice;
      // ?? Could use as an atlas if wanted/needed
       //std::vector<VkDescriptorSetLayout> mLayouts;
-     // ?? Could have multiple pools
-      // VkDescriptorPool mDescriptorPool2;
      std::vector<PoolSizeRatio> mPoolRatios;
      std::vector<VkDescriptorPool> mFullPools;
      std::vector<VkDescriptorPool> mReadyPools;
@@ -108,9 +90,7 @@ namespace fc
      FcDescriptorClerk(FcDescriptorClerk&&) = delete;
      FcDescriptorClerk& operator=(const FcBuffer&) = delete;
      FcDescriptorClerk& operator=(FcDescriptorClerk&&) = delete;
-      // TODO rename to something more descriptive ie initDescriptorPools..
      void initDescriptorPools(uint32_t maxSets, std::span<PoolSizeRatio> poolRatios);
-
      VkDescriptorSetLayout createDescriptorSetLayout(FcDescriptorBindInfo& bindingInfo
                                                      , VkDescriptorSetLayoutCreateFlags flags = 0);
      VkDescriptorSet createDescriptorSet(VkDescriptorSetLayout layout, FcDescriptorBindInfo& bindInfo);
@@ -125,4 +105,4 @@ namespace fc
      void destroy();
   };
 
-}//namespace lve _END_
+}// --- namespace fc --- (END)

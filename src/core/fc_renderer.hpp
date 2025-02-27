@@ -2,6 +2,7 @@
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "core/fc_mesh.hpp"
+#include "shadow_map.hpp"
 #include "fc_skybox.hpp"
 #include "fc_billboard_render_system.hpp"
 #include "fc_camera.hpp"
@@ -33,6 +34,7 @@
 namespace fc
 {
 
+
   struct FrolicStats
   {
      float frametime;
@@ -51,6 +53,7 @@ namespace fc
      VkCommandBuffer commandBuffer;
      VkSemaphore imageAvailableSemaphore;
      VkSemaphore renderFinishedSemaphore;
+
      VkFence renderFence;
      VkDescriptorSet sceneDataDescriptorSet;
      fcJanitor janitor;
@@ -124,6 +127,7 @@ namespace fc
 
      VkDescriptorSet mDrawImageDescriptor;
      FcImage mDepthImage; // <--Normally in the swapchain
+
       //Fc[...]renderSystem m[...]Renderer;
      bool mShouldWindowResize{false};
      int mFrameNumber {0};
@@ -134,6 +138,7 @@ namespace fc
      VkCommandPool mImmediateCommandPool;
      VkCommandBuffer mImmediateCmdBuffer;
      VkDevice pDevice;
+
       // TODO think about integrating into descriptorClerk
      VkDescriptorPool mImgGuiDescriptorPool;
       //std::vector<ComputeEffect> backgroundEffects;
@@ -153,6 +158,7 @@ namespace fc
      VkDescriptorSet mSceneDataDescriptor2;
      VkDescriptorSetLayout mSingleImageDescriptorLayout;
      VkDescriptorSetLayout mBackgroundDescriptorlayout;
+
      SceneData* pSceneData;
 
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DEFAULTS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -163,6 +169,9 @@ namespace fc
      std::unordered_map<std::string, std::shared_ptr<Node>> loadedNodes;
 
    public:
+
+     FcShadowMap mShadowMap;
+     void drawShadowMap(bool drawDebug);
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   PROFILING   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      FcTimer mTimer;
      FrolicStats stats;
@@ -178,12 +187,14 @@ namespace fc
      GLTFMetallicRoughness mMetalRoughMaterial;
      std::unordered_map<std::string, std::shared_ptr<LoadedGLTF>> loadedScenes;
      LoadedGLTF structure;
+     LoadedGLTF structure2;
      glm::mat4 rotationMatrix{1.0f};
      int rotationSpeed{};
      float expansionFactor{0};
      bool mDrawNormalVectors {false};
-     bool mDrawBoundingBoxes {true};
+     bool mDrawBoundingBoxes {false};
      int mBoundingBoxId {-1};
+
 
      void updateScene();
      float aspectRatio() { return static_cast<float>(mWindow.ScreenSize().width)
@@ -229,8 +240,7 @@ namespace fc
      uint32_t beginFrame();
      void endFrame(uint32_t swapchainImgIndex);
 
-     void drawModels(uint32_t swapchainImgIndex, GlobalUbo& ubo);
-     void drawBillboards(glm::vec3 cameraPosition, uint32_t swapchainImgIndex, GlobalUbo& ubo);
+     void drawBillboards(glm::vec3 cameraPosition, uint32_t swapchainImgIndex, SceneData& ubo);
      void drawUI(std::vector<FcText>& UIelements, uint32_t swapchainImgIndex);
      void drawBackground(ComputePushConstants& pushConstans);
      void drawGeometry();

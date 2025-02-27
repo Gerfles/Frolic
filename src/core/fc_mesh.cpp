@@ -23,19 +23,19 @@ namespace fc
   // TODO swap this function for a faster visibility check algorithm so we can do faster frustum culling
   bool RenderObject::isVisible(const glm::mat4& viewProj)
   {
-    std::array<glm::vec3, 8> corners { glm::vec3{1, 1, 1}
-                                     , glm::vec3{1, 1, -1}
-                                     , glm::vec3{1, -1, 1}
-                                     , glm::vec3{1, -1, -1}
-                                     , glm::vec3{-1, 1, 1}
-                                     , glm::vec3{-1, 1, -1}
-                                     , glm::vec3{-1, -1, 1}
-                                     , glm::vec3{-1, -1, -1} };
+    std::array<glm::vec3, 8> corners { glm::vec3{1.0f, 1.0f, 1.0f}
+                                     , glm::vec3{1.0f, 1.0f, -1.0f}
+                                     , glm::vec3{1.0f, -1.0f, 1.0f}
+                                     , glm::vec3{1.0f, -1.0f, -1.0f}
+                                     , glm::vec3{-1.0f, 1.0f, 1.0f}
+                                     , glm::vec3{-1.0f, 1.0f, -1.0f}
+                                     , glm::vec3{-1.0f, -1.0f, 1.0f}
+                                     , glm::vec3{-1.0f, -1.0f, -1.0f} };
 
     glm::mat4 matrix = viewProj * transform;
 
-    glm::vec3 min = {1.5, 1.5, 1.5};
-    glm::vec3 max = {-1.5, -1.5, -1.5};
+    glm::vec3 min = {1.5f, 1.5f, 1.5f};
+    glm::vec3 max = {-1.5f, -1.5f, -1.5f};
 
     for (int corner = 0; corner < 8; corner++)
     {
@@ -43,9 +43,9 @@ namespace fc
       glm::vec4 vector = matrix * glm::vec4(bounds.origin + corners[corner] * bounds.extents, 1.f);
 
       // perspective correction
-      vector.x = vector.x / vector.w;
-      vector.y = vector.y / vector.w;
-      vector.z = vector.z / vector.w;
+       vector.x = vector.x / vector.w;
+       vector.y = vector.y / vector.w;
+       vector.z = vector.z / vector.w;
 
       min = glm::min(glm::vec3 {vector.x, vector.y, vector.z}, min);
       max = glm::max(glm::vec3 {vector.x, vector.y, vector.z}, max);
@@ -117,7 +117,7 @@ namespace fc
       renderObj.indexBuffer = mesh->IndexBuffer();
       renderObj.material = &surface.material->data;
       renderObj.bounds = surface.bounds;
-      renderObj.transform = worldTransform;
+      renderObj.transform = worldTransform;//localTransform;
       renderObj.invModelMatrix = glm::inverse(glm::transpose(worldTransform));
       renderObj.vertexBufferAddress = mesh->VertexBufferAddress();
 

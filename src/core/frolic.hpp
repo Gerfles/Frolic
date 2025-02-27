@@ -23,7 +23,6 @@ namespace fc
   class Frolic
   {
    private:
-
       // TODO should consider making some/all these cenntral to the engine and not the app
      static constexpr float MAX_FRAME_TIME = 0.05f;
      static constexpr int MAX_FRAME_SAMPLES = 1000;
@@ -34,8 +33,6 @@ namespace fc
      float mFrameTimeList[MAX_FRAME_SAMPLES];
 
       // note: order of declaration matters (member variables are allocated top to bottom and destroyed in the reverse order)
-     // TODO delete
-     //GlobalUbo mUbo;
 
       // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      // TODO delete these pipelines and add a default to FcRenderer
@@ -60,7 +57,6 @@ namespace fc
      bool mUseEmissiveTexture {true};
      bool mRotateModel{false};
      bool mCycleExpansion{false};
-     bool mDebugShadowMap{false};
 
       // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   (END) NEW   -**-*-*-*-*-*-*-*-*-*-*-*-*- //
      FcRenderer mRenderer;

@@ -18,7 +18,7 @@ layout(std140, set = 0, binding = 0) uniform SceneData
   mat4 view;
   mat4 proj;
   mat4 viewProj;
-  vec4 invView;
+  mat4 lightSpaceTransform;
   vec4 ambientColor;
   vec4 sunDirection;
   vec4 sunColor;
@@ -27,9 +27,10 @@ layout(std140, set = 0, binding = 0) uniform SceneData
 
 
 layout(set = 1, binding = 0) uniform samplerCube skybox;
+//layout(input_attachment_index = 0, set = 2, binding = 0) uniform subpassInput shadowMap;
+layout(set = 2, binding = 0) uniform sampler2D shadowMap;
 
-
-layout(std140, set = 2, binding = 0) uniform MaterialConstants
+layout(std140, set = 3, binding = 0) uniform MaterialConstants
 {
   vec4 colorFactors;
   vec4 MetalRoughFactors;
@@ -41,11 +42,11 @@ layout(std140, set = 2, binding = 0) uniform MaterialConstants
 } materialData;
 
 
-layout(set = 2, binding = 1) uniform sampler2D colorTex;
-layout(set = 2, binding = 2) uniform sampler2D metalRoughTex;
-layout(set = 2, binding = 3) uniform sampler2D normalMap;
-layout(set = 2, binding = 4) uniform sampler2D occlusionMap;
-layout(set = 2, binding = 5) uniform sampler2D emissiveMap;
+layout(set = 3, binding = 1) uniform sampler2D colorTex;
+layout(set = 3, binding = 2) uniform sampler2D metalRoughTex;
+layout(set = 3, binding = 3) uniform sampler2D normalMap;
+layout(set = 3, binding = 4) uniform sampler2D occlusionMap;
+layout(set = 3, binding = 5) uniform sampler2D emissiveMap;
 
 
 // TODO
@@ -54,11 +55,14 @@ layout (location = 0) in vec3 inNormal;
 layout (location = 1) in vec4 inTangent;
 layout (location = 2) in vec2 inUV;
 layout (location = 3) in vec3 inPosWorld; // vertPosition
+layout (location = 4) in vec4 inPosLightSpace;
 
 const float PI = 3.14159265358;
 
+
 layout (location = 0) out vec4 outFragColor;
 
+float shadowCalculation(vec4 posLightSpace, vec3 normal, vec3 lightDirection);
 
 // Normal Distribution Functions
 float TrowbridgeReitzNormalDistribution(float NdotH, float roughnessSquared)
@@ -156,14 +160,26 @@ float heaviside(float v)
 
 void main()
 {
-  // Sanity check
-  // if (materialData.flags == 0)
-  // {
-  //   outFragColor = vec4(0.7, 0.3, 0.5, 1.0);
-  //   return;
-  // }
+  // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   COLOR   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+  // calculate color first since it may be discarded immediately if alpha < 0.5
+  vec4 baseColor = materialData.colorFactors;
+  vec4 albedo = baseColor;
+
+  if ((materialData.flags & HasColorTexture) == HasColorTexture)
+  {
+    albedo = texture(colorTex, inUV);
+    baseColor.rgb *= decode_srgb(albedo.rgb);
+    baseColor.a *= albedo.a;
+  }
+
+  if (albedo.a < 0.5)
+  {
+    discard;
+  }
+
 
   vec3 normalDirection = normalize(inNormal);
+  vec3 preNormal = normalDirection;
 
   // -*-*-*-*-*-*-*-*-*-*-*-*-   USING PASSED IN TANGENT   -*-*-*-*-*-*-*-*-*-*-*-*- //
   mat3 TBN = mat3(1.0f);
@@ -175,7 +191,7 @@ void main()
 
     TBN = mat3(tangent, biTangent, normalDirection);
   }
-  else // -*-*-*-*-*-*-   COMPUTING THE TANGENT WITHOUT VERTEX ATTRIBUTE   -*-*-*-*-*-*- //
+  else // -*-*-*-*-*-*-   COMPUTING THE TANGENT W/O VERTEX ATTRIBUTE   -*-*-*-*-*-*- //
   {
     //  https://community.khronos.org/t/computing-the-tangent-space-in-the-fragment-shader/52861
     vec3 Q1 = dFdx(inPosWorld);
@@ -188,13 +204,7 @@ void main()
 
     // the transpose of texture-to-eye space matrix
     TBN = mat3(T, B, normalDirection);
-}
-
-  // -*-*-*-*-*-*-*-*-*-*-*-*-*-   WORLD CALCULATIONS   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
-  // vec3 cameraPosWorld = normalize(inverse(sceneData.view)[3].xyz);
-  // mat4 inverseView = inverse(sceneData.view);
-  // vec3 cameraPosWorld = inverseView[3].xyz;
-  // vec3 viewDirection = normalize(cameraPosWorld - inPosWorld);
+  }
 
   // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NORMAL MAP   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
   if ((materialData.flags & HasNormalTexture) == HasNormalTexture)
@@ -206,30 +216,11 @@ void main()
     normalDirection = normalize(TBN * normalDirection);
   }
 
-  //
+  // -*-*-*-*-*-*-*-*-*-*-*-*-*-   WORLD CALCULATIONS   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
+  // vec3 cameraPosWorld = normalize(inverse(sceneData.view)[3].xyz);
+  // mat4 inverseView = inverse(sceneData.view);
+  // vec3 cameraPosWorld = inverseView[3].xyz;
   vec3 viewDirection = normalize(sceneData.eye.xyz - inPosWorld);
-
-  // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CHROME   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-  // // Get reflected view ray from the surface to calculate cube map reflection
-  // //TODO do in one call
-  // vec3 incident = -viewDirection;
-  // vec3 reflection = reflect(incident, normalDirection);
-  // vec4 reflectedColor = vec4(texture(skybox, reflection).rgb, 1.0);
-  // outFragColor = reflectedColor;
-  // return;
-
-  // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   GLASS/WATER/ETC   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-  // float iorRatio = 1.00 / 1.309;
-  // vec3 incident = -viewDirection;
-  // vec3 refraction = refract(incident, normalDirection, iorRatio);
-  // outFragColor = vec4(texture(skybox, refraction).rgb, 1.0);
-  // return;
-
-  float shiftAmount = dot(inNormal, viewDirection);
-  normalDirection = shiftAmount < 0.0f
-                    ? normalDirection + viewDirection * (shiftAmount + 1e-5f) : normalDirection;
-
-
   // TODO this might be the case for sun(ambient) light but not for point lights
   //vec3 lightDirection = normalize(-sceneData.sunDirection.xyz);// - inPosWorld);
   vec3 lightDirection = normalize(sceneData.sunDirection.xyz);// - inPosWorld);
@@ -240,8 +231,28 @@ void main()
   //vec3 lightDirection = normalize(mix(sceneData.sun))
   vec3 halfDirection = normalize(viewDirection + lightDirection);
 
+  // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CHROME EFFECT   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+  // // Get reflected view ray from the surface to calculate cube map reflection
+  // //TODO do in one call
+  // vec3 incident = -viewDirection;
+  // vec3 reflection = reflect(incident, normalDirection);
+  // vec4 reflectedColor = vec4(texture(skybox, reflection).rgb, 1.0);
+  // outFragColor = reflectedColor;
+  // return;
 
-  // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   PBR   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+  // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   GLASS/WATER/ETC EFFECT   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+  // float iorRatio = 1.00 / 1.309;
+  // vec3 incident = -viewDirection;
+  // vec3 refraction = refract(incident, normalDirection, iorRatio);
+  // outFragColor = vec4(texture(skybox, refraction).rgb, 1.0);
+  // return;
+
+  // -*-*-*-*-*-*-*-*-*-*-*-*-*-   CORRECTION FACTORS   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
+  float shiftAmount = dot(inNormal, viewDirection);
+  normalDirection = shiftAmount < 0.0f
+                    ? normalDirection + viewDirection * (shiftAmount + 1e-5f) : normalDirection;
+
+  // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   PBR CONSTANTS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
   float metalness = materialData.MetalRoughFactors.x;
   float roughness = materialData.MetalRoughFactors.y;
 
@@ -251,7 +262,6 @@ void main()
     roughness *= roughMetal.g;
     metalness *= roughMetal.b;
   }
-
 
   // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   AMBIENT OCCLUSION   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
   // TODO TEST we could have many conditionals or we could default the textures
@@ -266,36 +276,13 @@ void main()
     occlusionFactor = texture(occlusionMap, inUV).r;
   }
 
-  // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   COLOR   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-  vec4 baseColor = materialData.colorFactors;
-  vec4 albedo = baseColor;
-
-  if ((materialData.flags & HasColorTexture) == HasColorTexture)
-  {
-    albedo = texture(colorTex, inUV);
-  }
-
-
-  // ?? Not sure if this is computationally expensive or not
-  // TODO do earlier
-  if (albedo.a < 0.5)
-  {
-    discard;
-  }
-
-  baseColor.rgb *= decode_srgb(albedo.rgb);
-  baseColor.a *= albedo.a;
-
   // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EMISSION   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-  // ?? where does emmisive strength factor in?
   vec3 emissive = vec3(0.f);
   if ((materialData.flags & HasEmissiveTexture) == HasEmissiveTexture)
   {
     emissive = texture(emissiveMap, inUV).rgb;
     emissive = decode_srgb(emissive) * vec3(materialData.emissiveFactors);
   }
-
-
 
   // -*-*-*-*-*-*-*-*-*-*-*-*-*-   NORMAL DISTRIBUTION   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
   // https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html#specular-brdf
@@ -307,16 +294,14 @@ void main()
   float distDenom = NdotHsquared * (alphaSquared - 1.0) + 1.0;
   float distribution = (alphaSquared * heaviside(NdotH)) / (PI * distDenom * distDenom);
 
-
   float NdotL = dot(normalDirection, lightDirection);
   //float NdotL = clamp( dot(normalDirection, lightDirection), 0.0, 1.0);
   //float NdotL = max( dot(normalDirection, lightDirection), 0.0);
- //  if (NdotL > 1e-5)
- // {
+  //  if (NdotL > 1e-5)
+  // {
   float NdotV = dot(normalDirection, viewDirection);
   float HdotL = dot(halfDirection, lightDirection);
   float HdotV = dot(halfDirection, viewDirection);
-
 
   float visibility = heaviside(HdotL)
                      / (abs(NdotL) + sqrt(alphaSquared + (1.0 - alphaSquared) * (NdotL * NdotL)));
@@ -325,16 +310,17 @@ void main()
 
   float specularBRDF = visibility * distribution;
 
-  //vec3 diffuseBRDF = (1.0 / PI) * baseColor.rgb;//baseColor.a;
-  vec3 diffuseBRDF = (1.0 / PI) * baseColor.rgb * baseColor.a;
-  // if (metalness > 0.6)
-  // {
-  //   //diffuseBRDF *= 0.5;
-  //   diffuseBRDF = (reflectedColor).xyz * baseColor.a;
-  // }
+  vec3 diffuseBRDF = (1.0 / PI) * baseColor.rgb;// * baseColor.a;
+
+  // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   SHADOW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+  float shadow = shadowCalculation(inPosLightSpace, preNormal, lightDirection);
+
+  // // TODO calculate via input ambient color perhaps
+  diffuseBRDF = diffuseBRDF * shadow;
+  specularBRDF = specularBRDF * shadow;
 
   // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FRESNEL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-  vec3 conductorFresnel = specularBRDF * (baseColor.rgb + (1.0 - baseColor.rgb) * pow(1.0 - abs(HdotV), 5));
+  vec3 conductorFresnel =  specularBRDF * (baseColor.rgb + (1.0 - baseColor.rgb) * pow(1.0 - abs(HdotV), 5));
 
 //    float f0 = 0.04; // pow((1 - ior) / (1 + ior), 2);
   // TODO maybe even calc and pass in fr
@@ -344,58 +330,69 @@ void main()
   vec3 materialColor = mix(fresnelMix, conductorFresnel, metalness);
 
   // TODO pass this in
-  materialColor = emissive
-                  + mix(materialColor, materialColor * occlusionFactor, materialData.occlusionFactor);
+  materialColor = emissive +
+                  mix(materialColor, materialColor * occlusionFactor, materialData.occlusionFactor);
 
   outFragColor = vec4(encode_srgb(materialColor), baseColor.a);
- // }
- // else
- // {
- //   outFragColor = vec4(baseColor.rgb * 0.1, baseColor.a);
- // }
+}
 
+#define offsetBias 0.005
+float textureProj(vec4 shadowCoord, vec2 off);
+float shadowCalculation(vec4 posLightSpace, vec3 normal, vec3 lightDirection)
+{
+  // perform perspective divide (not necessary for orthographic projection but since w = 1 this is okay)
+  vec3 coordsFromLight = posLightSpace.xyz / posLightSpace.w;
 
+  // Make sure the shadow is not present when outside the far plane region of the lights frustrum
+  if (coordsFromLight.z > 1.0)
+  {
+    return 0.0;
+  }
 
-  // // diffuse color calculations
-  // // ??
-  // //vec3 indirectDiffuse = texture(colorTex, inUV).xyz;
-  // vec3 indirectDiffuse = sceneData.ambientColor.xyz * color;
+  // transform NDC from [-1, 1] to [0,1] range since depthmap is in that range
+  // note that coordsFromLight.z is alread in [0,1] range for Vulkan NDC
+  coordsFromLight.x = coordsFromLight.x * 0.5 + 0.5;
+  coordsFromLight.y = coordsFromLight.y * 0.5 + 0.5;
 
-  // vec3 diffuseColor = inColor * (1.0f - metalness);
-  // float f0 = F0(NdotL, NdotV, HdotL, materialData.MetalRoughFactors.y);
-  // diffuseColor *= f0;
-  // diffuseColor += indirectDiffuse;
+  // get closest depth value from light's perspective
+  float maxLightReach = texture(shadowMap, coordsFromLight.xy).r;
 
-  // // Specular calculations
-  // // ??
-  // // vec3 specularColor = color;
-  // // specularColor = mix(specularColor.xyz, color.xyz, metalic * 0.5f);
-  // vec3 specularColor = mix(vec3(1.0f, 1.0f, 1.0f), color.xyz, metalness * 0.5f);
+  // calculate offset of depth in order to reduce shadow acne
+//  vec3 lightDirection = vec3(0.0,0.0,0.0);//normalize(lightPos - inPosWorld);
+  float depthBias = max(0.05 * (1.0 - dot(normal, lightDirection)), 0.005);
 
-  // vec3 specularDistribution = specularColor;
-  // float GeometricShadow = 1;
-  // vec3 FresnelFunction = specularColor;
+  // get depth of current fragment from light's perspective
+  float fragDistanceFromLight = coordsFromLight.z - depthBias;
 
-  // // Normal Distribution Function
-  // // Trowbridge algorithm implementation
-  // specularDistribution *= TrowbridgeReitzNormalDistribution(NdotH, alphaSquared);
+  // check whether current frag is in shadow or not
+  //float shadow = maxLightReach < fragDistanceFromLight? 1.0 : 0.0;
 
-  // // Calculate the Geometric Shadowing light attenuation
-  // GeometricShadow *= SchlickGeometricShadowingFunction(NdotL, NdotV, alphaSquared);
+  // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   PCF   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+  float shadow = 0.0;
+  float ambientLight = 0.25;
+  vec2 texelSize = 0.5 / textureSize(shadowMap, 0);
 
-  // float Ior = 1.5;
-  // // Calculate the Fresnel effect
-  // FresnelFunction *= SchlickIORFresnelFunction(Ior, HdotL);
-
-  // vec3 specularity = (specularDistribution * FresnelFunction * GeometricShadow) / (4.0f * (NdotL * NdotV));
-  // vec3 lightingModel = (diffuseColor + specularity);
-  // lightingModel *= NdotL;
-
-  // vec3 attenuationColor = vec3(1.0f, 1.0f, 1.f) * 0.8f;
-  // vec4 finalDiffuse = vec4(lightingModel * attenuationColor, 1.0f);
-
-  // outFragColor = texture(colorTex, inUV) * finalDiffuse;
-
+  // sample distance from the adjacent texels
+  for(int x = -1; x <= 1; ++x)
+  {
+    for(int y = -1; y <= 1; ++y)
+    {
+      float maxLightReach = texture(shadowMap, coordsFromLight.xy + vec2(x, y) * texelSize).r;
+      if (fragDistanceFromLight <= maxLightReach)
+      {
+        shadow += 1.0;
+      }
+      else
+      {
+        shadow += ambientLight;
+      }
+      //shadow += fragDistanceFromLight > maxLightReach ? 1.0 : 0.0;
+    }
+  }
+  // Take the average of all 9 sourounding texels
+  shadow /= 9.0;
+  return shadow;
+}
 
 // // Trowbridgel-Reitz/GGX distribution
 //   //float roughness = materialData.MetalRoughFactors.y;
@@ -438,17 +435,3 @@ void main()
 //   outFragColor = vec4(lightingModel * attenColor, 1.0f);
 
 //   //vec3 color = inColor * texture(colorTex, inUV).xyz; // * sceneData.ambientColor.xyz;
-
-}
-
-
-
-
-// REF:
-
-
-
-
-
-
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   OLD   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //

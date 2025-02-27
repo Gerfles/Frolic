@@ -30,7 +30,8 @@ namespace fc
     mImage = image;
   }
 
-
+  // TODO create a create() function that allows us to pass a VkImageCreateInfo, etc...
+  // for highly specialized image creation
   // ?? assuming there's a reason we need vkExtent 3D and not 2D
   void FcImage::create(VkExtent3D imgExtent, VkFormat format
                        , VkImageUsageFlags useFlags, VkImageAspectFlags aspectFlags
@@ -61,7 +62,6 @@ namespace fc
     imageInfo.format = format;
 //    imageInfo.tiling = tiling;
     imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-    // ?? Not sure if this is even required for most things
     imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     imageInfo.usage = useFlags;
     imageInfo.samples = msaaSampleCount;
@@ -69,7 +69,7 @@ namespace fc
 
     VmaAllocationCreateInfo allocInfo = {};
     allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-    allocInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT ;
+    allocInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
     // TODO probably need to allow passage of a specific bit to account for vmaMemory.requiredFlags
     // may no longer be necessary however with vma having usage auto set
     allocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
@@ -148,10 +148,10 @@ namespace fc
     imageViewInfo.image = mImage;
     imageViewInfo.viewType = imageViewType;
     imageViewInfo.format = imageFormat;
-    imageViewInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY; // allows remapping of rgba component to other values
-    imageViewInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-    imageViewInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-    imageViewInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+    imageViewInfo.components.r = VK_COMPONENT_SWIZZLE_R; // allows remapping of rgba component to other values
+    imageViewInfo.components.g = VK_COMPONENT_SWIZZLE_G;
+    imageViewInfo.components.b = VK_COMPONENT_SWIZZLE_B;
+    imageViewInfo.components.a = VK_COMPONENT_SWIZZLE_A;
 
     // Subresources allow the view to view only a part of an image
     imageViewInfo.subresourceRange.aspectMask = aspectFlags; // which aspect of image to view (eg COLOR_BIT for viewing color)
@@ -171,7 +171,8 @@ namespace fc
   // TODO  may also want to create TEST using this method without first invoking a command buffer
   // an immediate transition image function (transitionAndSubmit) to eliminate command buffer stuff
   void FcImage::transitionImage(VkCommandBuffer commandBuffer, VkImageLayout currentLayout
-                                , VkImageLayout newLayout, uint32_t mipLevels)
+                                , VkImageLayout newLayout, VkImageAspectFlags aspectFlags
+                                ,  uint32_t mipLevels)
   {
     VkImageMemoryBarrier2 imageBarrier{};
     imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
@@ -181,21 +182,46 @@ namespace fc
 
     // TODO try uncommenting the following
     // Queue family to transition from - IGNORED means don't bother transferring to a different queue
-    // imageBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    // imageBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    imageBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    imageBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
-    // TODO
-    // This is how it's done in vulkan 1.3 with extension... but this implementation is inefficient. This will stall the GPU
-    // to wait for all stages and if we want post-processing, we should be more precise about when and which stages should be set
-    // great documentation: https://github.com/KhronosGroup/Vulkan-Docs/wiki/Synchronization-Examples
-    imageBarrier.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-    imageBarrier.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT;
-    imageBarrier.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-    imageBarrier.dstAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_MEMORY_READ_BIT;
+    // TODO consider storing in image
+    imageBarrier.subresourceRange.aspectMask = aspectFlags;
 
-    // set aspect of image being altered to color image (default) unless new layout required is depth image
-    imageBarrier.subresourceRange.aspectMask = (newLayout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL)
-                                               ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+
+    // if (newLayout == VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR)
+    // {
+    //   imageBarrier.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR;
+    //   imageBarrier.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR;
+    //   imageBarrier.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT_KHR;
+    // }
+    if (currentLayout == VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL && aspectFlags == VK_IMAGE_ASPECT_DEPTH_BIT)
+    {
+      imageBarrier.srcStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT_KHR | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT_KHR;
+      imageBarrier.srcAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT_KHR;
+      imageBarrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT_KHR;
+      imageBarrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT_KHR;
+      imageBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+    }
+    else
+    {
+      // TODO
+      // This is how it's done in vulkan 1.3 with extension... but this implementation is inefficient. This will stall the GPU
+      // to wait for all stages and if we want post-processing, we should be more precise about when and which stages should be set
+      // great documentation: https://github.com/KhronosGroup/Vulkan-Docs/wiki/Synchronization-Examples
+      imageBarrier.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+      imageBarrier.srcAccessMask = VK_ACCESS_2_MEMORY_READ_BIT | VK_ACCESS_2_MEMORY_WRITE_BIT;
+      imageBarrier.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+      imageBarrier.dstAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_MEMORY_READ_BIT;
+
+      // set aspect of image being altered to color image (default) unless new layout required is depth image
+
+    }
+
+
+    // (newLayout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL
+    //                                           || currentLayout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL)
+    //                                          ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
 
     // TODO
     // We are currently targeting all layers and mipmap levels and this could potentially be better implemented by targeting less
@@ -626,7 +652,7 @@ namespace fc
   // basically seems like we can reuse the same sampler for all simpler images??
   void FcImage::createTextureSampler()
   {
-    FcGpu& gpu = FcLocator::Gpu();
+
 
     VkSamplerCreateInfo samplerInfo{};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -657,6 +683,7 @@ namespace fc
     samplerInfo.anisotropyEnable = VK_TRUE;
     // TODO should allow this to be user definable or at least profiled at install/runtime
     // Amount of anisotropic samples being taken
+    FcGpu& gpu = FcLocator::Gpu();
     samplerInfo.maxAnisotropy = gpu.Properties().maxSamplerAnisotropy;
 
     if (vkCreateSampler(gpu.getVkDevice(), &samplerInfo, nullptr, &mTextureSampler) != VK_SUCCESS)
@@ -867,7 +894,7 @@ namespace fc
     VkCommandBuffer cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
 
     transitionImage(cmdBuffer, VK_IMAGE_LAYOUT_UNDEFINED
-                    , VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mMipLevels);
+                    , VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT,  mMipLevels);
 
     FcLocator::Renderer().submitCommandBuffer();
 

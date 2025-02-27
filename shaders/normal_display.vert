@@ -10,7 +10,7 @@ layout(std140, set = 0, binding = 0) uniform SceneData
   mat4 view;
   mat4 proj;
   mat4 viewProj;
-  vec4 invView;
+  mat4 lightSpaceTransform;
   vec4 ambientColor;
   vec4 sunDirection;
   vec4 sunColor;

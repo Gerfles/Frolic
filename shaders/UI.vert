@@ -64,7 +64,7 @@ void main()
   // vec3 positionWorld = push.position.xyz
   //                      + push.width * cornerVertex.x * cameraRightWorld
   //                      + push.height * cornerVertex.y * cameraUpWorld;
-   
+
   // gl_Position = ubo.projection * ubo.view * vec4(positionWorld, 1.0);
 
   // IMPROVED Method
@@ -77,14 +77,14 @@ void main()
   // vec4 boxCorner = vec4(cornerVertex.x + push.width, cornerVertex.y + push.height, 0.0, 1.0);
 
 
-  
+
   // //vec4 boxCorner = vec4(cornerVertex.x * push.width, cornerVertex.y * push.position.y, 0.0, 1.0);
   // //vec4 boxCorner = vec4(cornerVertex / 2, 0.0, 1.0);
 
-  
+
   //  // first transform billboard position to camera space
   //  //  vec4 billboardCenter = ubo.view * vec4(push.position.xzy, 1.0);
-  
+
   // // now apply the offsets in camera space
   // // vec4 billboardCorner = billboardCenter + push.width * vec4(cornerVertex.x, 0.0, 0.0, 0.0)
   // //                        + push.height * vec4(0.0, cornerVertex.y, 0.0, 0.0);
@@ -96,5 +96,5 @@ void main()
   texCoords = UV_COORDS[gl_VertexIndex];
 
   fragColor = push.color;
-  
+
 }

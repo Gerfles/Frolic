@@ -8,13 +8,11 @@
 
 
 
-
 namespace fc
 {
   void GLTFMetallicRoughness::buildPipelines(FcRenderer *renderer)
   {
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   OPAQUE PIPELINE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
     fcLog("Building materials pipeline");
 
      // TODO addshader() func
@@ -35,6 +33,7 @@ namespace fc
 
     pipelineConfig.addPushConstants(matrixRange);
 
+
     //
     VkPushConstantRange expansionFactorRange;
     expansionFactorRange.stageFlags = VK_SHADER_STAGE_GEOMETRY_BIT;
@@ -50,13 +49,15 @@ namespace fc
     bindInfo.addBinding(3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
     bindInfo.addBinding(4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
     bindInfo.addBinding(5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-     // create the descriptor set layout for the material
-    // TODO check to see if we even need a member variable for the below?? could it be temporary
-    mMaterialDescriptorLayout = FcLocator::DescriptorClerk().createDescriptorSetLayout(bindInfo);
 
     // place the scene descriptor layout in the first slot (0), the cubemap and material next (1,2)
     pipelineConfig.addDescriptorSetLayout(renderer->getSceneDescriptorLayout());
     pipelineConfig.addDescriptorSetLayout(renderer->SkyboxDescriptorLayout());
+    pipelineConfig.addDescriptorSetLayout(renderer->mShadowMap.DescriptorLayout());
+
+         // create the descriptor set layout for the material
+    // TODO check to see if we even need a member variable for the below?? could it be temporary
+    mMaterialDescriptorLayout = FcLocator::DescriptorClerk().createDescriptorSetLayout(bindInfo);
     pipelineConfig.addDescriptorSetLayout(mMaterialDescriptorLayout);
 
 
@@ -67,8 +68,9 @@ namespace fc
     pipelineConfig.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
     pipelineConfig.setPolygonMode(VK_POLYGON_MODE_FILL);
     // TODO front face
-    pipelineConfig.setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+    pipelineConfig.setCullMode(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
     pipelineConfig.setMultiSampling(FcLocator::Gpu().Properties().maxMsaaSamples);
+
     // TODO prefer config via:
     //pipelineConfig.enableMultiSampling(VK_SAMPLE_COUNT_1_BIT);
     //pipelineConfig.disableMultiSampling();

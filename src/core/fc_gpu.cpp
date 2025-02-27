@@ -35,7 +35,7 @@ namespace fc
     // first couple the window instance to the GPU (needed for surface stuff)
     pWindow = &window;
 
-    const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+    const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME, VK_KHR_DYNAMIC_RENDERING_LOCAL_READ_EXTENSION_NAME};
     // TODO Make sure the extensions and layers are added to specific OSs
     //I believe the following is needed by MacOS
     //, "VK_KHR_portability_subset"};
@@ -244,6 +244,12 @@ namespace fc
     features1_3.synchronization2 = VK_TRUE;
     features1_3.pNext = &features1_2;
 
+    VkPhysicalDeviceDynamicRenderingLocalReadFeaturesKHR dynamicRenderingFeatures{};
+    dynamicRenderingFeatures.sType =
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_LOCAL_READ_FEATURES_KHR;
+    dynamicRenderingFeatures.dynamicRenderingLocalRead = VK_TRUE;
+    dynamicRenderingFeatures.pNext = &features1_3;
+
     VkDeviceCreateInfo deviceInfo{};
     deviceInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     deviceInfo.queueCreateInfoCount = static_cast<uint32_t>(queueFamilyIndices.size());
@@ -255,7 +261,7 @@ namespace fc
     deviceInfo.ppEnabledLayerNames = nullptr;
     // finally attach our required version features
     deviceInfo.pEnabledFeatures = &deviceFeatures;
-    deviceInfo.pNext = &features1_3;
+    deviceInfo.pNext = &dynamicRenderingFeatures;
 
     // createt the "logical" device
     if (vkCreateDevice(mPhysicalGPU, &deviceInfo, nullptr, &mLogicalGPU) != VK_SUCCESS)

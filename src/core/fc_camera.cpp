@@ -1,5 +1,7 @@
 #include "fc_camera.hpp"
 
+
+#include "platform.hpp"
 #include "fc_player.hpp"
 #include "core/utilities.hpp"
 #include <limits>
@@ -10,14 +12,7 @@
 
 namespace fc
 {
-  void FcCamera::update(FcPlayer& player)
-  {
-    mPosition = player.position();
-    mVelocity = player.velocity();
-    mCameraRotation = player.rotationMatrix();
-    // glm::mat4 cameraRotation = getRotationMatrix();
-    // mPosition += glm::vec3(cameraRotation * glm::vec4(mVelocity * 0.5f, 0.f));
-  }
+
 
   glm::mat4 FcCamera::getViewMatrix()
   {
@@ -25,36 +20,48 @@ namespace fc
     // to the camera. So first create camera model matrix, then invert
     glm::mat4 cameraTranslation = glm::translate(glm::mat4(1.f), mPosition);
     // glm::mat4 cameraRotation = getRotationMatrix();
-    glm::mat4 inverseViewMatrix = (cameraTranslation * mCameraRotation);
-
-
-    // COOL
-    // inverseViewMatrix[1][1] *= -1;
+    glm::mat4 inverseViewMatrix = (mCameraRotation * cameraTranslation);
 
     //glm::vec3
-    mInverseView = inverseViewMatrix[3];
+    //mInverseView = inverseViewMatrix[3];
     //mInverseView = glm::vec3(inverseViewMatrix[3].x, inverseViewMatrix[3].y, inverseViewMatrix[3].z);
     //glm::vec3 mInverseView = glm::vec3(0,0,0);
-    return glm::inverse(inverseViewMatrix);
-    //return glm::inverse(cameraTranslation * mCameraRotation);
+
+    //return glm::inverse(inverseViewMatrix);
+    glm::mat4 viewMatrix = glm::inverse(cameraTranslation * mCameraRotation);
+
+    return viewMatrix;
+    // TRY
+    //return glm::inverse(mCameraRotation * cameraTranslation);
+    //return inverseViewMatrix;
   }
+
+
+  glm::mat4 FcCamera::getUvnViewMatrix()
+  {
+    return mViewMatrix;
+  }
+
+
 
   [[deprecated("use FcPlayer to update camera")]]
   glm::mat4 FcCamera::getRotationMatrix()
   {
     // fairly typical FPS style camera. We join the pitch and yaw rotations into
     // the final rotation matrix
-    glm::quat pitchRotation = glm::angleAxis(mPitch, glm::vec3{1.f, 0.f, 0.f});
-    glm::quat yawRotation = glm::angleAxis(mYaw, glm::vec3{0.f, -1.f, 0.f});
+    // glm::quat pitchRotation = glm::angleAxis(mPitch, glm::vec3{1.f, 0.f, 0.f});
+    // glm::quat yawRotation = glm::angleAxis(mYaw, glm::vec3{0.f, -1.f, 0.f});
 
-    return glm::toMat4(yawRotation) * glm::toMat4(pitchRotation);
+    // return glm::toMat4(yawRotation) * glm::toMat4(pitchRotation);
+    return glm::mat4{1.0f};
   }
 
 
+  // TODO consolidate
   void FcCamera::setOrthographicProjection(float left, float right, float top
                                            , float bottom, float near, float far)
   {
-     // TODO compbine into one fcall
+    // TODO compbine into one fcall
     mProjectionMatrix = glm::mat4{1.0f};
     mProjectionMatrix[0][0] = 2.f / (right - left);
     mProjectionMatrix[1][1] = 2.f / (bottom - top);
@@ -63,27 +70,66 @@ namespace fc
     mProjectionMatrix[3][1] = -(bottom + top) / (bottom - top);
     mProjectionMatrix[3][2] = -near / (far - near);
 
+
+    glm::mat4 orthographicProjectionMatrix = {
+      // Column 1
+      2.0f / (right - left),
+      0.0f,
+      0.0f,
+      0.0f,
+      // Column 2
+      0.0f,
+      -2.0f / (bottom - top),
+      0.0f,
+      0.0f,
+	// Column 3
+      0.0f,
+      0.0f,
+      1.0f / (near - far),
+      0.0f,
+	// Column 4
+      -(right + left) / (right - left),
+      -(bottom + top) / (bottom - top),
+      near / (near - far),
+      1.0f
+    };
+
+    mProjectionMatrix = orthographicProjectionMatrix;
+
+    // TEST
+    //mProjectionMatrix = glm::ortho(left, right, bottom, top, near, far);
   }
 
 
-  void FcCamera::setPerspectiveProjection(float fovY, float aspect, float near, float far)
+  void FcCamera::setPerspectiveProjection(float fovDegrees, float width, float height, float near, float far)
   {
-    assert(glm::abs(aspect - std::numeric_limits<float>::epsilon() > 0.0f));
+    // assert(glm::abs(aspect - std::numeric_limits<float>::epsilon() > 0.0f));
 
-    float g = 1.0f / tan(fovY * 0.5);
-    float k = far / (far - near);
+    // OpenGL or...
+    // float g = 1.0f / tan(fovY * 0.5);
+    // float k = far / (far - near);
 
-    mProjectionMatrix = glm::mat4(g / aspect,  0.0f,   0.0f,   0.0f,
-                                  0.0f,  g,      0.0f,   0.0f,
-                                  0.0f,  0.0f,   k,     1.0f,
-                                  0.0f,  0.0f,    -near * k,   0.0f);
+    // mProjectionMatrix = glm::mat4(g / aspect,  0.0f,   0.0f,   0.0f,
+    //                               0.0f,  g,      0.0f,   0.0f,
+    //                               0.0f,  0.0f,   k,     1.0f,
+    //                               0.0f,  0.0f,    -near * k,   0.0f);
+
+    // Vulkan Specific
+    float oneOverTanX = 1.0f / tan(fovDegrees * DEG_TO_RAD_OVER_TWO_FACTOR);
+    float negFarOverDepth = -far / (far - near);
+
+    // TODO disable auto formatting
+    mProjectionMatrix =  glm::mat4{
+      height * oneOverTanX / width, 0, 0, 0
+             , 0, -oneOverTanX, 0, 0
+                      , 0, 0, negFarOverDepth, -1
+                               , 0, 0, near * negFarOverDepth, 0 };
   }
 
 
 // TODO set and return camera matrices in once function call
   void FcCamera::setViewDirection(glm::vec3 position, glm::vec3 target, glm::vec3 up)
   {
-     // NOTE1: this originally had--const glm::vec3 w{glm::normalize(target)};
     const glm::vec3 w{glm::normalize(target - position)};
     const glm::vec3 u{glm::normalize(glm::cross(w, up))};
     const glm::vec3 v{glm::cross(w, u)};

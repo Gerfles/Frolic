@@ -13,6 +13,8 @@ namespace fc
   constexpr float PI = 3.14159265358f;
   constexpr float TWO_PI = PI * 2.0f;
   constexpr float PI_OVER_TWO = PI / 2.0f;
+  constexpr float DEG_TO_RAD_FACTOR = PI / 180.0f;
+  constexpr float DEG_TO_RAD_OVER_TWO_FACTOR = PI_OVER_TWO / 180.f;
 
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   MACROS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #define ArraySize(array) (sizeof(array) / sizeof((array)[0]))

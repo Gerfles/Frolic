@@ -13,8 +13,7 @@ namespace fc {
   LogService              s_log_service;
 
   static constexpr u32    k_string_buffer_size = 1024 * 1024;
-  static char             log_buffer[k_string_buffer_size];
-
+  static char log_buffer[k_string_buffer_size];
   static void output_console( char* log_buffer_ ) {
     printf( "%s", log_buffer_ );
   }

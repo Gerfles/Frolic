@@ -37,7 +37,7 @@ namespace fc
      VkImage mImage{VK_NULL_HANDLE};
      VkImageView mImageView{VK_NULL_HANDLE};
      VmaAllocation mAllocation{nullptr};
-
+     VkImageAspectFlags mAspectFlag;
 
      // TODO get rid of or simply have as pointer to texture cache
      VkSampler mTextureSampler{VK_NULL_HANDLE};
@@ -86,8 +86,9 @@ namespace fc
 
      // TODO eliminate one of the following
       //void transitionImageLayout(VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels);
-     void transitionImage(VkCommandBuffer cmd, VkImageLayout oldLayout
-                          , VkImageLayout newLayout, uint32_t mipLevels = 1);
+     void transitionImage(VkCommandBuffer cmd, VkImageLayout oldLayout, VkImageLayout newLayout
+                          , VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT
+                          , uint32_t mipLevels = 1);
 
      void copyFromBuffer(FcBuffer& srcBuffer, VkDeviceSize bufferSize
                          , VkDeviceSize offset = 0, uint32_t arrayLayer = 0);

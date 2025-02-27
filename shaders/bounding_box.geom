@@ -3,7 +3,7 @@
 #version 450
 
 layout (triangles) in;
-layout (line_strip, max_vertices = 3) out;
+layout (line_strip, max_vertices = 2) out;
 
 void main()
 {

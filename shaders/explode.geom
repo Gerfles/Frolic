@@ -9,11 +9,13 @@ layout (location = 0) in vec3 inNormal[];
 layout (location = 1) in vec4 inTangent[];
 layout (location = 2) in vec2 inUV[];
 layout (location = 3) in vec3 inPosWorld[];
+layout (location = 4) in vec4 inPosLightSpace[];
 
 layout (location = 0) out vec3 outNormal;
 layout (location = 1) out vec4 outTangent;
 layout (location = 2) out vec2 outUV;
 layout (location = 3) out vec3 outPosWorld;
+layout (location = 4) out vec4 outPosLightSpace;
 
 
 layout(push_constant) uniform constants
@@ -36,6 +38,7 @@ void main()
   outPosWorld = inPosWorld[0];
   outTangent = inTangent[0];
   outNormal = inNormal[0];
+  outPosLightSpace = inPosLightSpace[0];
   EmitVertex();
 
   gl_Position = gl_in[1].gl_Position + vec4(normal * pushUniform.expansionFactor, 0.0);
@@ -43,6 +46,7 @@ void main()
   outPosWorld = inPosWorld[1];
   outTangent = inTangent[1];
   outNormal = inNormal[1];
+  outPosLightSpace = inPosLightSpace[1];
   EmitVertex();
 
   gl_Position = gl_in[2].gl_Position + vec4(normal * pushUniform.expansionFactor, 0.0);
@@ -50,6 +54,7 @@ void main()
   outPosWorld = inPosWorld[2];
   outTangent = inTangent[2];
   outNormal = inNormal[2];
+  outPosLightSpace = inPosLightSpace[2];
   EmitVertex();
 
   EndPrimitive();

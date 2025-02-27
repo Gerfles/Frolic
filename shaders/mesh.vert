@@ -1,6 +1,6 @@
 #version 450
 
-#extension GL_GOOGLE_include_directive : require
+//#extension GL_GOOGLE_include_directive : require
 #extension GL_EXT_buffer_reference : require
 
 //#include "input_structures.glsl"
@@ -12,7 +12,7 @@ layout(std140, set = 0, binding = 0) uniform SceneData
   mat4 view;
   mat4 proj;
   mat4 viewProj;
-  vec4 invView;
+  mat4 lightSpaceTransform;
   vec4 ambientColor;
   vec4 sunDirection;
   vec4 sunColor;
@@ -23,6 +23,7 @@ layout (location = 0) out vec3 outNormal;
 layout (location = 1) out vec4 outTangent;
 layout (location = 2) out vec2 outUV;
 layout (location = 3) out vec3 outPosWorld;
+layout (location = 4) out vec4 outPosLightSpace;
 
 struct Vertex
 {
@@ -40,12 +41,22 @@ layout (buffer_reference, std430) readonly buffer VertexBuffer
 };
 
 // push constants block
-layout(push_constant) uniform constants
+layout(push_constant) uniform PushConstants
 {
   mat4 renderMatrix;
   mat4 normalTransform;
   VertexBuffer vertexBuffer;
-} PushConstants;
+} model;
+
+
+const mat4 biasMat = mat4(
+	0.5, 0.0, 0.0, 0.0,
+	0.0, 0.5, 0.0, 0.0,
+	0.0, 0.0, 1.0, 0.0,
+	0.5, 0.5, 0.0, 1.0 );
+
+
+
 
 void main()
 {
@@ -54,22 +65,29 @@ void main()
   // alignas(16) MaterialData
   // MaterialData MaterialConstant.model
 
-  Vertex v = PushConstants.vertexBuffer.vertices[gl_VertexIndex];
+  Vertex v = model.vertexBuffer.vertices[gl_VertexIndex];
 
-  vec4 positionWorld = PushConstants.renderMatrix * vec4(v.position, 1.0f);
+  vec4 positionWorld = model.renderMatrix * vec4(v.position, 1.0);
   outPosWorld = positionWorld.xyz;
 
-  //gl_Position = sceneData.proj * sceneData.view * PushConstants.renderMatrix * vec4(v.position, 1.0f);
+  //gl_Position = sceneData.proj * sceneData.view * model.renderMatrix * vec4(v.position, 1.0f);
+
   gl_Position = sceneData.viewProj * positionWorld;
+
+  //gl_Position = vec4(v.position, 1.0);
+
   //gl_Position = sceneData.proj * sceneData.view * positionWorld;
 
-  // outNormal = mat3(sceneData.proj * sceneData.view * PushConstants.normalTransform) * v.normal;
-   outNormal = mat3(PushConstants.normalTransform) * v.normal;
-  // outNormal = mat3(inverse(transpose(PushConstants.renderMatrix))) * v.normal;
+  // TODO verify equivalence
+//  outPosLightSpace = sceneData.lightSpaceTransform * positionWorld;
+  outPosLightSpace = (sceneData.lightSpaceTransform * model.renderMatrix) * vec4(v.position, 1.0);
+
+  // outNormal = mat3(sceneData.proj * sceneData.view * model.normalTransform) * v.normal;
+  outNormal = mat3(model.normalTransform) * v.normal;
+  // outNormal = mat3(inverse(transpose(model.renderMatrix))) * v.normal;
 
   outUV.x = v.uv_x;
   outUV.y = v.uv_y;
 
   outTangent = v.tangent;
-
 }

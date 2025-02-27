@@ -73,6 +73,33 @@ namespace fc
   }
 
 
+  // void FcDescriptorBindInfo::attachInput(uint32_t bindSlot, VkDescriptorType type
+  //                     ,const FcImage& image, VkImageLayout layout, VkSampler imageSampler)
+  // {
+  //   VkDescriptorImageInfo& imageInfo =
+  //       imageInfos.emplace_back(VkDescriptorImageInfo{
+  //           .sampler = imageSampler,
+  //           .imageView = image.ImageView(),
+  //           .imageLayout = layout } );
+
+
+  //   VkWriteDescriptorSet descriptorWrite{};
+  //   descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+  //   descriptorWrite.descriptorType = type;
+  //   descriptorWrite.dstBinding = bindSlot;
+  //   descriptorWrite.descriptorCount = 1;
+
+
+  //   // leave blank for now until it's time to write descriptor set
+  //   descriptorWrite.dstSet = VK_NULL_HANDLE;
+  //   descriptorWrite.pBufferInfo = VK_NULL_HANDLE;
+  //   descriptorWrite.pImageInfo = &imageInfo;
+  //   //
+  //   descriptorWrites.push_back(descriptorWrite);
+  // }
+
+
+
   void FcDescriptorBindInfo::attachImage(uint32_t bindSlot, VkDescriptorType type
                       ,const FcImage& image, VkImageLayout layout, VkSampler imageSampler)
   {
@@ -318,27 +345,6 @@ VkDescriptorSet FcDescriptorClerk::allocateDescriptorSet(VkDescriptorSetLayout l
 //       throw std::runtime_error("Failed to create a Vulkan Descriptor Pool!");
 //     }
 
-  }
-
-
-  void FcDescriptorClerk::allocateDynamicBufferTransferSpace()
-  {
-     // collect specifications of our physical deviece to determine how to align(space out) our dynamic UBOs
-    VkPhysicalDeviceProperties deviceProperties;
-
-
-     //vkGetPhysicalDeviceProperties(FcLocator::vkPhysicalDevice(), &deviceProperties);
-
-     // return the memory allignment minimum for our UBOs
-    VkDeviceSize uniformBufferOffsetMinimum = deviceProperties.limits.minUniformBufferOffsetAlignment;
-
-     // Calculate the proper alignment of model data
-    // mModelUniformAlignment = (sizeof(ModelMatrix) + uniformBufferOffsetMinimum - 1)
-    //                          & ~(uniformBufferOffsetMinimum - 1);
-
-     // REFERENCE FOR DYNAMIC UBOs
-     // create space in memory to hold dynamic buffer that is aligned to our required alignment and holds MAX_OBJECTS
-     //pModelTransferSpace = (Model *)aligned_alloc(mModelUniformAlignment, MAX_OBJECTS * mModelUniformAlignment);
   }
 
 

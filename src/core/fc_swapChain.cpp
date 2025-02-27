@@ -221,11 +221,13 @@ namespace fc
    // TODO print the current present mode
   VkPresentModeKHR FcSwapChain::choosePresentMode(const std::vector<VkPresentModeKHR>& presentModes)
   {
+    return VK_PRESENT_MODE_MAILBOX_KHR;
+
     for (const auto& presentMode : presentModes)
     {
        // TODO  we prefer mailbox mode as that reduces tearing and helps performance
       if (presentMode == VK_PRESENT_MODE_MAILBOX_KHR)
-         //if (presentMode == VK_PRESENT_MODE_IMMEDIATE_KHR)
+        //if (presentMode == VK_PRESENT_MODE_IMMEDIATE_KHR)
       {
         return VK_PRESENT_MODE_MAILBOX_KHR;
          //return VK_PRESENT_MODE_IMMEDIATE_KHR;

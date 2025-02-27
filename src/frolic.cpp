@@ -168,24 +168,24 @@ namespace fc
 
       light->setPosition(glm::vec3(rotateLight * glm::vec4(-1.f, -1.3f, 2.3f, 0.f)));
 
-      mUbo.pointLights[i] = light->generatePointLight();
+      //mUbo.pointLights[i] = light->generatePointLight();
     }
 
-    mUbo.numLights = lightColors.size();
+    //mUbo.numLights = lightColors.size();
 
 
      // add the sun
     FcLight* sun = new FcLight(7.0f, 0.4f, {1.0f, 1.0f, 1.0f});
     sun->setPosition({0.0f, -4.5f, 0.0f});
-    mUbo.pointLights[mUbo.numLights] = sun->generatePointLight();
-    mUbo.numLights += 1;
+    // mUbo.pointLights[mUbo.numLights] = sun->generatePointLight();
+    // mUbo.numLights += 1;
 
   } // --- Frolic::loadGameObjects (_) --- (END)
 
 
   void Frolic::initPipelines()
   {
-
+    //TODO remove
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   GRADIENT PIPELINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 //    Make sure to initialize the FcPipelineCreateInfo with the number of stages we want
     FcPipelineConfig pipelineConfig{1};
@@ -221,62 +221,45 @@ namespace fc
     mPushConstants[0].data1 = glm::vec4{0.1, 0.2, 0.4, 0.97};
     mPushConstants[1].data1 = glm::vec4(1,0,0,1);
     mPushConstants[1].data2 = glm::vec4(0,1,0,1);
-
-    // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   MESH PIPELINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    // FcPipelineConfig meshConfig{2};
-    // meshConfig.name = "Mesh";
-    // meshConfig.shaders[0].filename = "colored_triangle_mesh.vert.spv";
-    // meshConfig.shaders[0].stageFlag = VK_SHADER_STAGE_VERTEX_BIT;
-    // meshConfig.shaders[1].filename = "tex_image.frag.spv";
-    // meshConfig.shaders[1].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-    // // addBinding() not needed since there's alread a descriptorSetLayout for pipeline
-    // meshConfig.addDescriptorSetLayout(mRenderer.getSingleImageDescriptorLayout());
-
-    // // add push constants
-    // VkPushConstantRange vertexPushConstantRange;
-    // vertexPushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    // vertexPushConstantRange.offset = 0;
-    // vertexPushConstantRange.size = sizeof(DrawPushConstants);
-
-    // meshConfig.addPushConstants(vertexPushConstantRange);
-
-    // // basic config
-    // meshConfig.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
-    // meshConfig.setPolygonMode(VK_POLYGON_MODE_FILL);
-    // meshConfig.setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE);
-    // meshConfig.setMultiSampling(VK_SAMPLE_COUNT_1_BIT);
-    // meshConfig.enableBlendingAlpha();
-
-    // // meshConfig.disableDepthtest();
-    // meshConfig.enableDepthtest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
-
-    //  // TODO find a way to do this systematically with the format of the draw/depth image
-    //  // ... probably by adding a pipeline builder to renderer and calling from frolic
-    // meshConfig.setColorAttachment(VK_FORMAT_R16G16B16A16_SFLOAT);
-    // meshConfig.setDepthFormat(VK_FORMAT_D32_SFLOAT);
-
-    // meshPipeline.create3(meshConfig);
-
-    // fcLog("Finished intializing all Pipelines!");
   }
-
-
 
 
   void Frolic::run()
   {
     // Initialize player controls and position
     FcPlayer player{mInput};
+    FcPlayer uvnPlayer{mInput};
     //player.setPosition(glm::vec3(30.f, -00.f, -85.f));
-    player.setPosition(glm::vec3(0.f, 0.f, 2.0f));
+    //player.setPosition(glm::vec3(-5.f, 5.5f, .20f));
+    /* player.setPosition(glm::vec3(0.f, 0.f, 2.f)); */
+    player.setPosition(glm::vec3(-2.5f, 8.4f, -0.28f));
+
+    uvnPlayer.setPosition(glm::vec3(0.f, 0.f, 2.f));
+
+    player.Camera().setPerspectiveProjection(66.0f, FcLocator::ScreenDims().width
+                                             , FcLocator::ScreenDims().height, 500.f, 0.1f);
+
+    /* player.Camera().setOrthographicProjection(-5.f, 5.f, -5.f, 5.f, 30.f, 0.1f); */
+
+    // uvnPlayer.Camera().setPerspectiveProjection(66.0f, FcLocator::ScreenDims().width
+    //                                 , FcLocator::ScreenDims().height, 500.f, 0.1f);
 
     // Initialize simple first person camera
-    FcCamera camera;
-    mSceneData.projection = glm::perspective(glm::radians(70.0f), mRenderer.aspectRatio(), 1000.f, 0.01f);
-    //mSceneData.projection = glm::perspective(glm::radians(70.0f), mRenderer.aspectRatio(), 10000.f, 0.1f);
-    mSceneData.projection[1][1] *= -1;
-    // camera.setViewTarget(glm::vec3{0,0,5}, glm::vec3{0,0,-1})
+    // FcCamera camera;
+    // FcCamera uvnCamera;
+
+    //    mSceneData.projection = glm::perspective(glm::radians(70.0f), mRenderer.aspectRatio(), 0.01f, 1000.f);
+    //    mSceneData.projection = glm::perspective(glm::radians(70.0f), mRenderer.aspectRatio(), .1f, 30.f);
+    //mSceneData.projection = glm::ortho(0.0f, 1350.0f, 900.0f, 0.0f, 0.1f, 1000.0f);
+    // mSceneData.projection = glm::orthoRH_ZO(0.0f, 1350.0f, 900.0f, 0.0f, 1111.1f, 0.10f);
+    // mSceneData.projection = glm::perspective(glm::radians(70.0f), mRenderer.aspectRatio(), 500.0f, 0.1f);
+    // mSceneData.projection[1][1] *= -1;
+    //
+    mSceneData.projection = player.Camera().Projection();
+
+    // mSceneData.projection = orthographic(-1.f, 1.f,
+    //                                     -1.f, 1.f,  100.f, 0.1f);
+    //camera.setViewTarget(glm::vec3{0,0,5}, glm::vec3{0,0,-1});
 
     int currentBackgroundEffect{0};
 
@@ -284,8 +267,8 @@ namespace fc
     // SDL_ShowCursor(SDL_DISABLE);
 
     // default lighting parameters
-//    mSceneData.ambientLight = glm::vec4(1.0f, 0.05f, 0.05f, .5f);
-    //mSceneData.ambientLight = glm::vec4(1.0f, 0.05f, 0.05f, .3f);
+    // mSceneData.ambientLight = glm::vec4(1.0f, 0.05f, 0.05f, .5f);
+    // mSceneData.ambientLight = glm::vec4(1.0f, 0.05f, 0.05f, .3f);
     mSceneData.ambientLight = glm::vec4(0.2f);
 //    mSceneData.ambientLight = glm::vec4(1.0f, 1.0f, 1.0f, 0.3f);
     mSceneData.sunlightColor = glm::vec4(1.f);//, 1.f, 1.f, 1.0);
@@ -351,6 +334,7 @@ namespace fc
         {
           mRenderer.handleWindowResize();
         }
+
         // Send SDL event to imGUi for handling
         ImGui_ImplSDL2_ProcessEvent(&mEvent);
       }
@@ -363,30 +347,33 @@ namespace fc
       // now re-start the time so that the start time is the start of each frame
       mTimer.start();
 
-
       // update keyboard and game controller state and use that to mover the player (and thus camera)
       mInput.update();
+
+      // Move the player with the updated input, which will automatically update the camera
       player.move(deltaTime);
-      camera.update(player);
+      uvnPlayer.moveNew(deltaTime);
+
       //update(deltaTime);
 
       // TODO not robust as getview must happen before inverseView
       //camera.setViewTarget(glm::vec3{0,0,4.0}, glm::vec3{0,0,-1});
-      mSceneData.eye = camera.Position();
-      mSceneData.view = camera.getViewMatrix();//View();
-      // TODO probably no longer need inverseview
-      mSceneData.inverseView = camera.InverseView();
+      mSceneData.eye = glm::vec4(player.Camera().Position(), 1.0f);
+      mSceneData.view = player.Camera().getViewMatrix();//View();
+
       //mSceneData.view = glm::scale(mSceneData.view, glm::vec3(15.0f, 15.0f, 15.0f));
       //mSceneData.view = camera.View();
       // mSceneData.view = glm::translate(glm::vec3{0.f, 0.f, -4.f});
 
-
       // TODO pre-calculate  this in camera
       mSceneData.viewProj = mSceneData.projection * mSceneData.view;
-
-      mSceneDataBuffer.overwriteData(&mSceneData, sizeof(SceneData));
+      mSceneData.lighSpaceTransform = mRenderer.mShadowMap.LightSpaceMatrix();
+//      mSceneDataBuffer.overwriteData(&mSceneData, sizeof(SceneData));
 
       // -*-*-*-*-*-*-*-*-*-*-*-*-*-   START THE NEW FRAME   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
+      // mRenderer.generateShadowMap();
+
+
       uint32_t swapchainImgIndex = mRenderer.beginFrame();
 
       FcPipeline* selected = mPipelines[currentBackgroundEffect];
@@ -395,7 +382,7 @@ namespace fc
 
       // test ImGui UI
       // Left here to add a demo windo that names all the features for (handy for searching)
-      //ImGui::ShowDemoWindow();
+      // ImGui::ShowDemoWindow();
 
       // Create Statistics window that spans the frame
       if (ImGui::Begin("Frolic Stats", NULL, ImGuiWindowFlags_NoTitleBar))
@@ -409,10 +396,12 @@ namespace fc
         ImGui::SameLine(0.f, 10.f);
         ImGui::Text("| Update time: %fms", mRenderer.stats.sceneUpdateTime);
         ImGui::SameLine(0.f, 10.f);
+        glm::vec4 pos = mSceneData.eye;
+        ImGui::Text("| Position: <%.3f,%.3f,%.3f>", pos.x, pos.y, pos.z);
+        ImGui::SameLine(0.f, 10.f);
         ImGui::Text("| Triangles rendered: %i", mRenderer.stats.triangleCount);
         ImGui::SameLine(0.f, 10.f);
         ImGui::Text("| Total objects rendered: %i", mRenderer.stats.objectsRendered);
-
         // int relX, relY;
         // mInput.RelativeMousePosition(relX, relY);
         // ImGui::Text("Mouse X pos: %i", mInput.getMouseX());
@@ -425,6 +414,7 @@ namespace fc
       // TODO probably best to enable disable this stuff eventually in a dedicated pipeline shader
       // and then just bind the appropriate pipeline
       // Draw Configuration panel
+      // BUG collapsing the control panel kills the program
       if (ImGui::Begin("Scene Data"))
       {
         if (ImGui::Checkbox("Color Texture", &mUseColorTexture))
@@ -452,6 +442,7 @@ namespace fc
         }
 
         ImGui::Checkbox("Draw Normals", &mRenderer.mDrawNormalVectors);
+
         ImGui::Checkbox("Box Bounds", &mRenderer.mDrawBoundingBoxes);
         ImGui::SameLine();
         ImGui::SetNextItemWidth(80);
@@ -473,8 +464,58 @@ namespace fc
         ImGui::SliderFloat("Expansion Factor", &mRenderer.expansionFactor, -1.f, 2.f);
 
 	//ImGui::SetNextItemWidth(60);
-        ImGui::SliderFloat4("Sunlight", (float*)&mSceneData.sunlightDirection, -1.f, 1.f);
+        if(ImGui::SliderFloat4("Sunlight", (float*)&mSceneData.sunlightDirection, -1.f, 1.f))
+        {
+          glm::vec4 lightPos = mSceneData.sunlightDirection - mSceneData.eye;
+          mRenderer.mShadowMap.updateLightSource(lightPos, glm::vec3(0.f, 0.f, 0.f));
+        }
+        ImGui::Checkbox("Draw Shadow Map", &mDebugShadowMap);
+        if(ImGui::SliderFloat("Left", &mRenderer.mShadowMap.Frustum().left, -20.f, 20.f))
+        {
+          mRenderer.mShadowMap.updateLightSpaceTransform();
+        }
+        if(ImGui::SliderFloat("Right", &mRenderer.mShadowMap.Frustum().right, -20.f, 20.f))
+        {
+          mRenderer.mShadowMap.updateLightSpaceTransform();
+        }
+        if(ImGui::SliderFloat("Top", &mRenderer.mShadowMap.Frustum().top, -20.f, 20.f))
+        {
+          mRenderer.mShadowMap.updateLightSpaceTransform();
+        }
+        if(ImGui::SliderFloat("Bottom", &mRenderer.mShadowMap.Frustum().bottom, -20.f, 20.f))
+        {
+          mRenderer.mShadowMap.updateLightSpaceTransform();
+        }
+        if(ImGui::SliderFloat("Near", &mRenderer.mShadowMap.Frustum().near, -.01f, 10.f))
+        {
+          mRenderer.mShadowMap.updateLightSpaceTransform();
+        }
+        if(ImGui::SliderFloat("Far", &mRenderer.mShadowMap.Frustum().far, 1.f, 100.f))
+        {
+          mRenderer.mShadowMap.updateLightSpaceTransform();
+        }
 
+        if (ImGui::Button("Display View Matrix"))
+        {
+          ImGui::OpenPopup("MatrixView");
+        }
+        if (ImGui::BeginPopup("MatrixView"))
+        {
+          glm::mat4 mat = player.Camera().getViewMatrix();
+          glm::mat4 mat2 = uvnPlayer.Camera().getViewMatrix();
+
+          ImGui::Text("Quaternion View Matrix");
+          ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat[0][0], mat[1][0], mat[2][0], mat[3][0]);
+          ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat[0][1], mat[1][1], mat[2][1], mat[3][1]);
+          ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat[0][2], mat[1][2], mat[2][2], mat[3][2]);
+          ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat[0][3], mat[1][3], mat[2][3], mat[3][3]);
+          ImGui::Text("UVN View Matrix");
+          ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat2[0][0], mat2[1][0], mat2[2][0], mat2[3][0]);
+          ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat2[0][1], mat2[1][1], mat2[2][1], mat2[3][1]);
+          ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat2[0][2], mat2[1][2], mat2[2][2], mat2[3][2]);
+          ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat2[0][3], mat2[1][3], mat2[2][3], mat2[3][3]);
+          ImGui::EndPopup();
+        }
         // TODO getrenderScale should be deleted
         //ImGui::SliderFloat("Render Scale", mRenderer.getRenderScale(), 0.2f, 1.0f);
         //ImGui::Checkbox("Ambient Occlussion Texture", bool *v);
@@ -492,6 +533,7 @@ namespace fc
         // make ImGui calculate internal draw structures
         ImGui::Render();
       }
+
       mSceneDataBuffer.overwriteData(&mSceneData, sizeof(SceneData));
       //mRenderer.drawModels(swapchainImgIndex, mUbo);
 
@@ -499,9 +541,9 @@ namespace fc
 
       //mRenderer.drawUI(mUItextList, frame);
 
-      mRenderer.drawBackground(mPushConstants[currentBackgroundEffect]);
+      //mRenderer.drawBackground(mPushConstants[currentBackgroundEffect]);
 
-      mRenderer.drawGeometry();
+      mRenderer.drawShadowMap(mDebugShadowMap);
 
       mRenderer.endFrame(swapchainImgIndex);
 
@@ -578,7 +620,7 @@ namespace fc
       lights[i]->setPosition(rotateMat * v);
 
       // copy light to ubo
-      mUbo.pointLights[i] = lights[i]->generatePointLight();
+      // mUbo.pointLights[i] = lights[i]->generatePointLight();
     }
 
      // TODO put timer and FPS stuff in Renderer

@@ -2,6 +2,20 @@
 
 #version 450
 
+const vec3 SCREEN_CORNERS[8] =
+  vec3[]
+  (
+    vec3(1.0, 1.0, 1.0),
+    vec3(1.0, 1.0, -1.0),
+    vec3(1.0, -1.0, 1.0),
+    vec3(1.0, -1.0, -1.0),
+    vec3(-1.0, 1.0, 1.0),
+    vec3(-1.0, 1.0, -1.0),
+    vec3(-1.0, -1.0, 1.0),
+    vec3(-1.0, -1.0, -1.0)
+   );
+
+
 const vec3 CUBE_VERTICES[36] =
   vec3[]
   (
@@ -57,7 +71,7 @@ layout(std140, set = 0, binding = 0) uniform SceneData
   mat4 view;
   mat4 proj;
   mat4 viewProj;
-  vec4 invView;
+  mat4 lightSpaceTransform;
   vec4 ambientColor;
   vec4 sunDirection;
   vec4 sunColor;
@@ -76,5 +90,10 @@ void main()
 {
   vec4 cornerVertex = vec4(box.origin.xyz + (CUBE_VERTICES[gl_VertexIndex] * box.extents.xyz), 1.0);
 
+  cornerVertex = cornerVertex / cornerVertex.w;
+
   gl_Position =  sceneData.viewProj * box.modelMatrix * cornerVertex;
+
+
+
 }

@@ -34,8 +34,10 @@ namespace fc
 
 
 // TODO see if we can eliminate this from the utilities header
-  const std::vector<const char*> deviceExtensions = {
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+  // const std::vector<const char*> deviceExtensions = {
+  //   VK_KHR_SWAPCHAIN_EXTENSION_NAME, };
+
+      const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME, VK_KHR_DYNAMIC_RENDERING_LOCAL_READ_EXTENSION_NAME};
   // More MacOS dependent stuff (I think)
   // "VK_KHR_portability_subset"};
 
@@ -67,8 +69,9 @@ namespace fc
   void printVec(glm::vec3 vector, const char* title);
   void printVec(glm::vec4 vector, const char* title);
   void initEnv();
-
-  std::vector<char> readFile(const std::string& filname);
+  glm::mat4 perspective(float fovDegrees, float width, float height, float near, float far);
+  glm::mat4 orthographic(float left, float right, float bottom, float top, float near, float far );
+  std::vector<char> readFile(const std::string& filename);
 
 
   template <typename TP>

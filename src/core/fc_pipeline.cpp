@@ -160,6 +160,7 @@ namespace fc
   }
 
 
+  // TODO verify that sample_count_1_bit is enabled by default
   void FcPipelineConfig::setMultiSampling(VkSampleCountFlagBits sampleCount)
   {
     multiSamplingInfo.sampleShadingEnable = VK_TRUE;
@@ -187,6 +188,7 @@ namespace fc
   void FcPipelineConfig::setDepthFormat(VkFormat format)
   {
     renderInfo.depthAttachmentFormat = format;
+    //renderInfo.stencilAttachmentFormat = format;
   }
 
 
@@ -209,10 +211,12 @@ namespace fc
     depthStencilInfo.depthTestEnable = VK_TRUE;
     depthStencilInfo.depthWriteEnable = depthWriteEnable;
     depthStencilInfo.depthCompareOp = op;
-    depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
-    depthStencilInfo.stencilTestEnable = VK_FALSE;
-    depthStencilInfo.front = {};
-    depthStencilInfo.back = {};
+    depthStencilInfo.back.compareOp = VK_COMPARE_OP_ALWAYS;
+//    depthStencilInfo.front.compareOp = VK_COMPARE_OP_ALWAYS;
+//    depthStencilInfo.depthBoundsTestEnable = VK_TRUE;
+    //  depthStencilInfo.stencilTestEnable = VK_FALSE;
+    // depthStencilInfo.front = {};
+    // depthStencilInfo.back = {};
     depthStencilInfo.minDepthBounds = 0.f;
     depthStencilInfo.maxDepthBounds = 1.f;
   }
@@ -651,8 +655,6 @@ namespace fc
       dynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
       dynamicStateInfo.pDynamicStates = &state[0];
       dynamicStateInfo.dynamicStateCount = 2;
-
-
 
        // -*-*-*-*-*-*-*-*-*-*-*-   GRAPHICS PIPELINE CREATION   -*-*-*-*-*-*-*-*-*-*-*- //
       VkGraphicsPipelineCreateInfo graphicsPipelineInfo{};

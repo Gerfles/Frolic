@@ -1,7 +1,8 @@
 #pragma once
 
 // core
-#include "core/fc_camera.hpp"
+#include "core/platform.hpp"
+#include "fc_camera.hpp"
 #include "fc_input.hpp"
 #include "fc_game_object.hpp"
 // libs
@@ -14,6 +15,8 @@ namespace fc
   class FcPlayer
   {
    private:
+
+
      struct KeyBindings
      {
         int moveLeft = SDL_SCANCODE_A;
@@ -35,32 +38,36 @@ namespace fc
      };
 
      bool mEnableLookAround{false};
-
      KeyBindings keys{};
      float mMoveSpeed{5.f};
      float mLookSpeed{0.01f};
      FcInput& mInput;
-     glm::vec3 mPosition{0.f,0.f,0.f};
-     glm::vec3 mVelocity{0.f,0.f,0.f};
-     float mYaw{0};
-     float mPitch{0};
-     glm::mat4 mRotationMatrix;
+     glm::vec3 mPosition{0.f, 0.f, 0.f};
+     glm::vec3 mForwardDir{0.f, 0.f, 0.f};
+     glm::vec3 mVelocity{0.f, 0.f, 0.f};
+     float mYaw{0.f};
+     float mPitch{0.f};
+     glm::mat4 mRotationMatrix {1.0f};
+     FcCamera mCamera{mRotationMatrix, mPosition, mPosition, mPosition};
      // TODO get rid of Transformcomponent -> not lightweight
-     TransformComponent mTransform{};
+//     TransformComponent mTransform{};
 
 
 public:
      FcPlayer(FcInput& input) : mInput{input} {}
       //
      void move(float dt);
+     void moveNew(float dt);
      void moveOLD(float dt);
+     FcCamera& Camera() { return mCamera; }
      void setPosition(const glm::vec3& position);
      const glm::vec3 position() const { return mPosition; }
      const glm::vec3 velocity() const { return mVelocity; }
      float& moveSpeed() { return mMoveSpeed; }
      float& lookSpeed() { return mLookSpeed; }
      const glm::mat4 rotationMatrix() const { return mRotationMatrix; }
+
   };
 
 
-} /// NAMESPACE lve ///
+}// --- namespace fc --- (END)
