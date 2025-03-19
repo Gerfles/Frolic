@@ -20,7 +20,7 @@ namespace fc
     // TODO this image should be device local only since no need to map for CPU... check that's the case
     // on this and all other images created with vma allocation
     VkImageUsageFlags imgUse{};
-
+    // TODO allow this to be set (sent in)
     depthFormat = VK_FORMAT_D32_SFLOAT;
 
     imgUse = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -44,13 +44,13 @@ namespace fc
 
   void FcShadowMap::initPipelines()
   {
-    // TODO have addStage instead of size initialization or keep as optional but add checks for segfaults
-    FcPipelineConfig pipelineConfig{2};
-    pipelineConfig.name = "Shadow pipeline";
-    pipelineConfig.shaders[0].filename = "shadow_map.vert.spv";
-    pipelineConfig.shaders[0].stageFlag = VK_SHADER_STAGE_VERTEX_BIT;
-    pipelineConfig.shaders[1].filename = "shadow_map.frag.spv";
-    pipelineConfig.shaders[1].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
+    // TODO have addStage instead of size initialization or keep as optional but add checks for segfaults and also create better default values for pipeline configurations
+    FcPipelineConfig shadowPipeline{2};
+    shadowPipeline.name = "Shadow pipeline";
+    shadowPipeline.shaders[0].filename = "shadow_map.vert.spv";
+    shadowPipeline.shaders[0].stageFlag = VK_SHADER_STAGE_VERTEX_BIT;
+    shadowPipeline.shaders[1].filename = "shadow_map.frag.spv";
+    shadowPipeline.shaders[1].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
 
     // add push constants
     VkPushConstantRange matrixRange;
@@ -58,20 +58,20 @@ namespace fc
     matrixRange.offset = 0;
     matrixRange.size = sizeof(ShadowPushConstants);
 
-    pipelineConfig.addPushConstants(matrixRange);
+    shadowPipeline.addPushConstants(matrixRange);
 
     //
-    pipelineConfig.setDepthFormat(depthFormat);
-    pipelineConfig.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
-    pipelineConfig.setPolygonMode(VK_POLYGON_MODE_FILL);
-    pipelineConfig.setCullMode(VK_CULL_MODE_FRONT_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
-    pipelineConfig.setMultiSampling(VK_SAMPLE_COUNT_1_BIT);
-//    pipelineConfig.disableDepthtest();
-    pipelineConfig.enableDepthtest(VK_TRUE, VK_COMPARE_OP_GREATER_OR_EQUAL);
-    pipelineConfig.disableBlending();
+    shadowPipeline.setDepthFormat(depthFormat);
+    shadowPipeline.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+    shadowPipeline.setPolygonMode(VK_POLYGON_MODE_FILL);
+    shadowPipeline.setCullMode(VK_CULL_MODE_FRONT_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+    shadowPipeline.setMultiSampling(VK_SAMPLE_COUNT_1_BIT);
+//    shadowPipeline.disableDepthtest();
+    shadowPipeline.enableDepthtest(VK_TRUE, VK_COMPARE_OP_GREATER_OR_EQUAL);
+    shadowPipeline.disableBlending();
 
     // Create the pipeline used to generate the shadow map
-    mShadowPipeline.create(pipelineConfig);
+    mShadowPipeline.create(shadowPipeline);
 
     // TODO delete parts of redundant pipeline config -> just have one config
     // Create the debug pipeline (used to draw the shadow map to a flat quad)
@@ -108,9 +108,11 @@ namespace fc
     bindInfo.attachImage(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, mShadowMapImage
                          , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, mShadowSampler);
 
+    // TODO make Layout a temp object instead of class object
     FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
     mShadowMapDescriptorLayout = descClerk.createDescriptorSetLayout(bindInfo);
-    mShadowMapDescriptorSet = descClerk.createDescriptorSet(mShadowMapDescriptorLayout, bindInfo);
+    mShadowMapDescriptorSet = descClerk.createDescriptorSet(mShadowMapDescriptorLayout
+                                                            , bindInfo);
 
     //attachMap();
     // Now create the descriptor set layout used by opaque pipeline and draw debug
@@ -186,6 +188,7 @@ namespace fc
 
   void FcShadowMap::updateLightSpaceTransform()
   {
+    // TODO should maybe incorporate clip into orthographic function
     const glm::mat4 clip = glm::mat4(1.0f, 0.0f, 0.0f, 0.0f,
                                      0.0f,-1.0f, 0.0f, 0.0f,
                                      0.0f, 0.0f, 0.5f, 0.0f,

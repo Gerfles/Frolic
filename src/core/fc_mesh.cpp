@@ -162,13 +162,65 @@ namespace fc
 //background thread, whose sole job is to execute uploads like this one, and deleting/reusing the
 //staging buffers.
 
-  void FcMesh::uploadMesh2(std::span<Vertex> vertices, std::span<uint32_t> indices)
+  // Typical instantiation of upload mesh
+  template void FcMesh::uploadMesh<Vertex>(std::span<Vertex> vertices
+                                           , std::span<uint32_t> indices);
+  // Instantiation of mesh utilized by loading height map
+  template void FcMesh::uploadMesh<glm::vec3>(std::span<glm::vec3> vertices
+                                              , std::span<uint32_t> indices);
+  // Instantiation of mesh utilized by terrain generation
+  template void FcMesh::uploadMesh<SimpleVertex>(std::span<SimpleVertex> vertices
+                                                 , std::span<uint32_t> indices);
+
+  template <typename T> void FcMesh::uploadMesh(std::span<T> vertices, std::span<uint32_t> indices)
   {
     // mName = name;
 
+    // *-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE VERTEX BUFFER   *-*-*-*-*-*-*-*-*-*-*-*-*- //
+    // get buffer size needed to store vertices
+    mIndexCount = indices.size();
+    VkDeviceSize bufferSize = sizeof(T) * vertices.size();
+
+    // map memory to vertex buffer (copy vertex data into buffer)
+    // Now create the buffer in GPU memory so we can transfer our RAM data there
+    mVertexBuffer.storeData(vertices.data(), bufferSize
+                            , VK_BUFFER_USAGE_TRANSFER_DST_BIT
+                            | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
+                            | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
+                            | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
+                            );
+
+    // find the address fo the vertex buffer
+    VkBufferDeviceAddressInfo deviceAddressInfo{};
+    deviceAddressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+    deviceAddressInfo.buffer = mVertexBuffer.getVkBuffer();
+
+    mVertexBufferAddress = vkGetBufferDeviceAddress(FcLocator::Device(), &deviceAddressInfo);
+    //mVertexBufferAddress = mVertexBuffer.getAddres();
+
+    // TODO could condense this into one "create() function and just pass both vertices and indices"
+    // could also combine with a transferToGpu() function in buffer
+
+    // -*-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE INDEX BUFFER   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    // get buffer size needed to store indices
+    bufferSize = sizeof(uint32_t) * static_cast<uint32_t>(indices.size());
+
+    // Now write the data to the buffer
+    mIndexBuffer.storeData(indices.data(), bufferSize
+                           , VK_BUFFER_USAGE_TRANSFER_DST_BIT
+                           | VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+  }
+
+
+  // DELETE
+  void FcMesh::uploadMeshExtra(std::span<glm::vec4> vertices, std::span<uint32_t> indices)
+  {
+    fcLog("\n\nNumber of indices:");
+    std::cout << vertices.size() << std::endl;
+
      // *-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE VERTEX BUFFER   *-*-*-*-*-*-*-*-*-*-*-*-*- //
      // get buffer size needed to store vertices
-    VkDeviceSize bufferSize = sizeof(Vertex) * vertices.size();
+    VkDeviceSize bufferSize = sizeof(glm::vec4) * vertices.size();
 
      // map memory to vertex buffer (copy vertex data into buffer)
      // Now create the buffer in GPU memory so we can transfer our RAM data there

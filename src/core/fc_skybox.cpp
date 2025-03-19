@@ -1,9 +1,8 @@
-// fc_skybox.cpp
 #include "fc_skybox.hpp"
+
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_descriptors.hpp"
 #include "fc_locator.hpp"
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <stb_image.h>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <array>
 #include <iostream>
@@ -36,6 +35,10 @@ namespace fc
     pipelineConfig.shaders[1].filename = "skybox.frag.spv";
     pipelineConfig.shaders[1].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
 
+    // add the scene descriptor set layout (eye, view, proj, etc.)
+    pipelineConfig.addDescriptorSetLayout(sceneDescriptorLayout);
+
+    // create and then add the second descriptor set
     FcDescriptorBindInfo bindInfo{};
     //bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
     bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -47,11 +50,11 @@ namespace fc
     mDescriptorLayout = descClerk.createDescriptorSetLayout(bindInfo);
     mDescriptor = descClerk.createDescriptorSet(mDescriptorLayout, bindInfo);
 
-    pipelineConfig.addDescriptorSetLayout(sceneDescriptorLayout);
+
     pipelineConfig.addDescriptorSetLayout(mDescriptorLayout);
 
     // enable the vertex input attributes (position only here)
-    pipelineConfig.setCubemapVertexInput();
+    pipelineConfig.setVertexInputPositionOnly();
 
     pipelineConfig.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
     pipelineConfig.setPolygonMode(VK_POLYGON_MODE_FILL);

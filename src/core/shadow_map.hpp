@@ -29,9 +29,11 @@ namespace fc
      float right;
      float top;
      float bottom;
-     void setAll(float near, float far, float left, float right, float top, float bottom) {
-       this->near = near; this->far = far; this->left = left;
-       this->right = right; this->top = top; this->bottom = bottom; }
+     void setAll(float near, float far, float left, float right, float top, float bottom)
+      {
+        this->near = near; this->far = far; this->left = left;
+        this->right = right; this->top = top; this->bottom = bottom;
+      }
   };
 
 

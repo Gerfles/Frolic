@@ -1,6 +1,6 @@
 #include "fc_image.hpp"
 
-// Frolic Engine
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "core/fc_buffer.hpp"
 #include "core/fc_descriptors.hpp"
 #include "core/fc_locator.hpp"
@@ -8,19 +8,18 @@
 #include "core/utilities.hpp"
 #include "fc_gpu.hpp"
 #include "fc_pipeline.hpp"
-#include <cmath>
-#include <cstddef>
-#include <cstdint>
-#include <ratio>
-// external libraries
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 // TODO place all implementation header defines into one header file??
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 #include "vulkan/vulkan_core.h"
-// std libraries
+#include "ktxvulkan.h"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <stdexcept>
-
-
+#include <cstddef>
+#include <cstdint>
+#include <ratio>
+#include <cmath>
 
 namespace fc
 {
@@ -40,6 +39,7 @@ namespace fc
   {
     //VkDevice device = FcLocator::Device();
     mImageExtent = imgExtent;
+    mFormat = format;
 
     // TODO might be able to eliminate passing bool option here since that's really more for
     // textures in which case you would just use createTexture(...)
@@ -54,12 +54,12 @@ namespace fc
     VkImageCreateInfo imageInfo{};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     imageInfo.imageType = VK_IMAGE_TYPE_2D;
-    imageInfo.extent = imgExtent;
+    imageInfo.extent = mImageExtent;
     imageInfo.mipLevels = mMipLevels;
-    imageInfo.flags = createFlags;
+    imageInfo.flags = createFlags; //??
     // just use one array layer unless we're creating a cube map image
     imageInfo.arrayLayers = (createFlags != VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT) ? 1 : 6;
-    imageInfo.format = format;
+    imageInfo.format = format; //??
 //    imageInfo.tiling = tiling;
     imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
     imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -70,14 +70,18 @@ namespace fc
     VmaAllocationCreateInfo allocInfo = {};
     allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
     allocInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+
     // TODO probably need to allow passage of a specific bit to account for vmaMemory.requiredFlags
     // may no longer be necessary however with vma having usage auto set
     allocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
-    if(vmaCreateImage(FcLocator::Gpu().getAllocator(), &imageInfo, &allocInfo, &mImage, &mAllocation, nullptr)
-       != VK_SUCCESS)
+    VkResult result;
+    result = vmaCreateImage(FcLocator::Gpu().getAllocator(), &imageInfo, &allocInfo
+                            , &mImage, &mAllocation, nullptr);
+    if(result != VK_SUCCESS)
     {
-      throw std::runtime_error("Failed to allocate a Vulkan image!");
+      std::cout << "Result: " << result << std::endl;
+      throw std::runtime_error("Failed to allocate a Vulkan image!: ");
     }
 
     createImageView(format, aspectFlags);
@@ -293,17 +297,122 @@ namespace fc
   //   gpu.submitCommandBuffer(commandBuffer);
   // }
 
+  // TODO update to use texture2 structure
+  // using the Khronos texture format
+  void FcImage::loadKtx(std::filesystem::path& filename)
+  {
+    ktxTexture* texture;
+
+    KTX_error_code result;
+
+    result = ktxTexture_CreateFromNamedFile(filename.c_str()
+                                            , KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT
+                                            , &texture);
+
+    if (texture == nullptr || result != KTX_SUCCESS)
+    {
+      throw std::runtime_error("Failed to load KTX format image!");
+    }
+
+    // TODO might want to separate here so we're only setting height and width seperately
+    mImageExtent = {texture->baseWidth, texture->baseHeight, texture->numLayers};
+    // TODO
+    mMipLevels = texture->numLevels;
+    //mMipLevels = 1;
+
+    // TODO add support for linear tilling
+    // most tools save in sRGB so assume that's the correct format but provide in future rev.
+    mFormat = VK_FORMAT_R8G8B8A8_SRGB;
+
+    createTexture(mImageExtent, texture->pData, texture->dataSize,
+                  false , mFormat);
+
+    // Note here that we have to cast to
+    ktxTexture_Destroy((ktxTexture*)texture);
+  }
+
+  void FcImage::copyToCPUAddress(FcBuffer& buffer)
+  {
+    VkCommandBuffer cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
+    transitionImage(cmdBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+
+    // TODO must create a separate image memory barrier for this type of transition
+    FcLocator::Renderer().submitCommandBuffer();
+
+
+    VkCommandBuffer cmdBuffer2 = FcLocator::Renderer().beginCommandBuffer();
+
+    // TODO rename to simply mExtent
+    VkDeviceSize imageMemSize = mImageExtent.width * mImageExtent.height * 4;
+    buffer.allocateBuffer(imageMemSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+
+    VkBufferImageCopy imageCopyRegion{};
+    imageCopyRegion.imageExtent = mImageExtent;
+    imageCopyRegion.imageOffset = {0, 0, 0};
+    imageCopyRegion.bufferOffset = 0;
+    // for calculating data spacing (row length of data)
+    imageCopyRegion.bufferRowLength = 0;
+    imageCopyRegion.bufferImageHeight = 0;
+    imageCopyRegion.imageSubresource.mipLevel = 0;
+    imageCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    imageCopyRegion.imageSubresource.layerCount = 1;
+    imageCopyRegion.imageSubresource.baseArrayLayer = 0;
+
+
+    vkCmdCopyImageToBuffer(cmdBuffer2, mImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+                           , buffer.getVkBuffer(), 1, &imageCopyRegion);
+
+
+
+
+    transitionImage(cmdBuffer2, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
+                    , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+    FcLocator::Renderer().submitCommandBuffer();
+
+    // void* mCpuCopyMemAddress;
+    // VmaAllocator allocator = FcLocator::Gpu().getAllocator();
+
+    // if (vmaMapMemory(allocator, mAllocation, &mCpuCopyMemAddress) != VK_SUCCESS)
+    // {
+    //   throw std::runtime_error("Failed to map Image memory!");
+    // }
+
+    // cpuCopyMemAddress = (char*)cpuCopyMemAddress + offset;
+    // memcpy(cpuCopyMemAddress, sourceData, dataSize);
+  }
+
+
+  void FcImage::destroyCpuCopy()
+  {
+    //vmaUnmapMemory(FcLocator::Gpu().getAllocator(), mAllocation);
+    // VkCommandBuffer cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
+    // transitionImage(cmdBuffer, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
+    //                 , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    // FcLocator::Renderer().submitCommandBuffer();
+  }
+
+
+
+  // TODO should be type agnostic or get that info from somewhere since this could
+  // be RGBA_8 or R16 or D32 etc.
+  int FcImage::fetchPixel(const uint32_t x, const uint32_t y)
+  {
+    return -1;
+    //return *(data + (x + y * mImageExtent.width));
+  }
+
 
   void FcImage::loadTexture(std::filesystem::path& filename)
   {
     // load image file
-    // TODO determine if there's a better way to use stbi_load with VkExtent
-    int width, height;
+    // Note that we must pass channels in but we will not use since most GPUs
+    // require 4 channels per pixel (RGBA)
+    int width, height, channels;
 
-    // number of channels image uses --Not using but tutorial has for future
-    int channels;
-
-    stbi_uc* imageData = stbi_load(filename.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+    stbi_uc* imageData = stbi_load(filename.c_str(), &width, &height, &channels
+                                   , BYTES_PER_PIXEL);
 
     if (!imageData)
     {
@@ -312,8 +421,9 @@ namespace fc
 
     VkExtent3D extent{static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1};
 
+    // TODO pass mipmap bool in by funcall
     // using the image data from the loaded file, create the hardware texture used by the GPU
-    createTexture(extent, imageData, true);
+    createTexture(extent, imageData, width * height * BYTES_PER_PIXEL, false);
 
     // free original image data
     stbi_image_free(imageData);
@@ -325,10 +435,8 @@ namespace fc
   {
     // load image file
     // TODO determine if there's a better way to use stbi_load with VkExtent
-    int width, height;
+    int width, height, numChannels;
 
-    // number of channels image uses --Not using but tutorial has for future
-    int channels;
     VkDeviceSize layerSize;
     VkDeviceSize imageSize;
     // create staging buffer to hold loaded data, ready to copy to device
@@ -336,7 +444,11 @@ namespace fc
 
     for (size_t i = 0; i < 6; ++i)
     {
-      stbi_uc* pixels = stbi_load(filenames[i].c_str(), &width, &height, &channels, STBI_rgb_alpha);
+      // When loading with stbi we require 4 numChannels/pixel--even though the image itself
+      // has only 3 (R8G8B8) since that is the format within vulkan that we're using to
+      // store the image. Note that most GPUs don't actually support 3 channel images
+      stbi_uc* pixels = stbi_load(filenames[i].c_str(), &width, &height, &numChannels
+                                  , BYTES_PER_PIXEL);
 
       if (!pixels)
       {
@@ -344,7 +456,9 @@ namespace fc
       }
 
       // Copy data to a staging buffer first in order to transition the image and send it to the gpu
-      layerSize = width * height * STBI_rgb_alpha;
+      // Note that we don't want to use numChannels here since our image only has 3 channels
+      // (RGB) and our Vulkan image format will have 4 (RGBA)
+      layerSize = width * height * BYTES_PER_PIXEL;
 
       // Create the image on the first iteration.
       if (i == 0)
@@ -354,6 +468,8 @@ namespace fc
         mImageExtent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1};
         imageSize = layerSize * 6;
         mMipLevels = 1;
+
+        //
         create(mImageExtent , VK_FORMAT_R8G8B8A8_UNORM
                , VK_IMAGE_USAGE_TRANSFER_DST_BIT
                // TODO this may need to be removed from the other implementation of loading textures
@@ -400,8 +516,6 @@ namespace fc
 
 
 
-
-
   // TODO make sure to test each of the 3 cases!!
   void FcImage::loadTexture(std::filesystem::path& parentPath, fastgltf::Asset& asset, fastgltf::Image& image)
   {
@@ -423,14 +537,15 @@ namespace fc
              const std::string path {parentPath.c_str() + std::string{"//"}
                                    + std::string{filepath.uri.path().begin(), filepath.uri.path().end()}};
 
-             stbi_uc* imageData = stbi_load(path.c_str(), &width, &height, &numChannels, STBI_rgb_alpha);
+             stbi_uc* imageData = stbi_load(path.c_str(), &width, &height, &numChannels
+                                            , BYTES_PER_PIXEL);
 
              if (imageData)
              {
-               VkExtent3D imageSize{static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1};
+               VkExtent3D imageExtent{static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1};
 
                // using the image data from the loaded file, create the hardware texture used by the GPU
-               createTexture(imageSize, imageData, true);
+               createTexture(imageExtent, imageData, width * height * BYTES_PER_PIXEL, true);
 
                // free original image data
                stbi_image_free(imageData);
@@ -446,10 +561,11 @@ namespace fc
                                                         &width, &height, &numChannels, STBI_rgb_alpha);
              if (imageData)
              {
-               VkExtent3D imageSize{static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1};
+               VkExtent3D imageExtent{static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1};
 
                // using the image data from the loaded file, create the hardware texture used by the GPU
-               createTexture(imageSize, imageData, true);
+
+               createTexture(imageExtent, imageData, width * height * BYTES_PER_PIXEL, true);
 
                // free original image data
                stbi_image_free(imageData);
@@ -474,12 +590,14 @@ namespace fc
                                                                  (array.bytes.data() + bufferView.byteOffset),
                                                                  static_cast<int>(bufferView.byteLength),
                                                                  &width, &height, &numChannels
-                                                                 , STBI_rgb_alpha);
+                                                                 , BYTES_PER_PIXEL);
                       if (imageData)
                       {
-                        VkExtent3D imageSize{static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1};
+                        VkExtent3D imageExtent{static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1};
 
-                        createTexture(imageSize, imageData, true);
+                        createTexture(imageExtent, imageData
+                                      , width * height * BYTES_PER_PIXEL
+                                      , true);
 
                         // free original image data
                         stbi_image_free(imageData);
@@ -736,7 +854,7 @@ namespace fc
   }
 
 
-  // TODO should consider the use case for when we want to make this operation part of an existing cmdBuffer
+  // TODO should consider the use case for when we want to make this operation part of an existing cmdBuffer using nullptr default should make that pretty easy to implement
   // TODO TRY passing in a command buffer for this copy
   void FcImage::copyFromBuffer(FcBuffer& srcBuffer, VkDeviceSize bufferSize
                                , VkDeviceSize offset, uint32_t arrayLayer)
@@ -822,12 +940,18 @@ namespace fc
   // TODO require an init function or remove the pGpu parameter... this function doesn't use it and
   // I think other functions doen't need it either--but it's confusing and errore prone to keep an
   // unitialized pointer around
-  void FcImage::createTexture(VkExtent3D extent, void* pixelData, bool generateMipmaps)
+  void FcImage::createTexture(VkExtent3D extent, void* pixelData, VkDeviceSize size
+                              , bool generateMipmaps, VkFormat format)
   {
     // TODO determine if having member dimensions is useful
+    // TODO see if this can always be set sooner, like from loadTexture()
     mImageExtent = extent;
-    writeToTexture(pixelData, generateMipmaps);
 
+    writeToTexture(pixelData, size, generateMipmaps, format);
+
+    // TODO DELETE -> texture sampler created elsewhere and should be part of texture atlas
+    // ?? Could however, keep the atlas in image class, accessible to any image or
+    // external image with create function
     // create the texture sampler
     createTextureSampler();
 
@@ -836,6 +960,7 @@ namespace fc
     // TODO try to transition all mipLevels after mipmaps are generated
     if (generateMipmaps)
     {
+      // transition image and submit command buffer within GenerateMipMaps()
       generateMipMaps();
     }
     else
@@ -849,16 +974,18 @@ namespace fc
 
 
 
-  void FcImage::writeToTexture(void* pixelData, bool generateMipmaps)
+  void FcImage::writeToTexture(void* pixelData, VkDeviceSize size
+                               , bool generateMipmaps, VkFormat format)
   {
     // Copy data to a staging buffer first in order to transition the image and send it to the gpu
-    VkDeviceSize imageSize = mImageExtent.width * mImageExtent.height * STBI_rgb_alpha;
-
+    mFormat = format;
+    // VkDeviceSize imageSize = mImageExtent.width * mImageExtent.height * BYTES_PER_PIXEL;
+    // std::cout << "image size: " << imageSize << std::endl;
     // create staging buffer to hold loaded data, ready to copy to device
     FcBuffer stagingBuffer;
     // copy the actual image data into the staging buffer.
 
-    stagingBuffer.storeData(pixelData, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+    stagingBuffer.storeData(pixelData, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
 
     // TODO check if static cast is recommended
     // stagingBuffer.overwriteData(pixelData, static_cast<size_t>(imageSize));
@@ -885,7 +1012,7 @@ namespace fc
     // TODO load VK_SAMPLE_COUNT from GPU.properties
 
     //VkSampleCountFlagBits sampleCount = FcLocator::Gpu().Properties().maxMsaaSamples;
-    create(mImageExtent, VK_FORMAT_R8G8B8A8_UNORM
+    create(mImageExtent, format
            , VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
            , VK_IMAGE_ASPECT_COLOR_BIT, VK_SAMPLE_COUNT_1_BIT, generateMipmaps);
 
@@ -898,11 +1025,8 @@ namespace fc
 
     FcLocator::Renderer().submitCommandBuffer();
 
-    //DEL
-    //transitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);
-
     // copy data to image
-    copyFromBuffer(stagingBuffer, imageSize);
+    copyFromBuffer(stagingBuffer, size);
 
     // no longer need staging buffer so get rid of
     stagingBuffer.destroy();

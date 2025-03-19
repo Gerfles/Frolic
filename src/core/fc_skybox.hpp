@@ -13,14 +13,14 @@
 
 namespace fc
 {
-
-  struct CubeVertex
-  {
-     glm::vec3 position;
-     //glm::vec3 normal;
-     //glm::vec4 color; // not needed with pbr
-     // TODO could add some features like a print function, etc.
-  };
+  // DEL
+  // struct CubeVertex
+  // {
+  //    glm::vec3 position;
+  //    //glm::vec3 normal;
+  //    //glm::vec4 color; // not needed with pbr
+  //    // TODO could add some features like a print function, etc.
+  // };
 
 
 

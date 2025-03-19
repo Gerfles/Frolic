@@ -22,11 +22,21 @@ namespace fc {
 
   bool FcWindow::initWindow(uint32_t width, uint32_t height, bool isFullscreen, std::string name)
   {
-     //TODO not sure this is even necessary to store the window extent?
-     //mScreenSize = {width, height};
-     // SDL_Init() initializes assertions and crash protection
-     // and then calls SDL_InitSubSystem(). TODO bypass those protections
-     // by calling SDL_InitSubSystem() directly for release.
+    // TODO allow application parameter to choose set.
+    // TODO some work must be done in order for x11 to run corectly
+    if (false)
+    {
+      if (!SDL_SetHint(SDL_HINT_VIDEODRIVER, "x11"))
+      {
+        std::cout << "Failed to set x11 override hint";
+      }
+    }
+
+    //TODO not sure this is even necessary to store the window extent?
+    //mScreenSize = {width, height};
+    // SDL_Init() initializes assertions and crash protection
+    // and then calls SDL_InitSubSystem(). TODO bypass those protections
+    // by calling SDL_InitSubSystem() directly for release.
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) < 0)
     {
       std::ostringstream errorMsg;
@@ -36,9 +46,9 @@ namespace fc {
       return false;
     }
 
-     // create fullscreen window
-     // TODO On MacOS NSHighResolutionCapable must be set to true in the
-     // application Info.plist for SDL_WINDOW_ALLOW_HIGHDPI to have any effect
+    // create fullscreen window
+    // TODO On MacOS NSHighResolutionCapable must be set to true in the
+    // application Info.plist for SDL_WINDOW_ALLOW_HIGHDPI to have any effect
     if (isFullscreen)
     {
       mWindow = SDL_CreateWindow(name.c_str(), SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED

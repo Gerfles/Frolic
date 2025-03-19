@@ -15,10 +15,11 @@
 #include <fastgltf/core.hpp>
 #include <fastgltf/glm_element_traits.hpp>
 #include <fastgltf/tools.hpp>
-//#include <fastgltf/parser.hpp>
-//#include "fastgltf/types.hpp"l
-//#include "fastgltf/util.hpp"
-// GLM
+// #include <fastgltf/parser.hpp>
+// #include "fastgltf/types.hpp"l
+// #include "fastgltf/util.hpp"
+//  GLM
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 #include <glm/ext/vector_float4.hpp>
@@ -210,8 +211,8 @@ namespace fc {
 
     int dataIndex = 0;
     // ?? do we need to also duplicate here??
-    MaterialConstants* sceneMaterialConstants = static_cast
-                                                <MaterialConstants*>(mMaterialDataBuffer.getAddres());
+    MaterialConstants* sceneMaterialConstants =
+      static_cast<MaterialConstants*>(mMaterialDataBuffer.getAddres());
 
     for (fastgltf::Material& material : gltf.materials)
     {
@@ -227,10 +228,6 @@ namespace fc {
       constants.colorFactors.y = material.pbrData.baseColorFactor[1];
       constants.colorFactors.z = material.pbrData.baseColorFactor[2];
       constants.colorFactors.w = material.pbrData.baseColorFactor[3];
-
-
-
-
 
 
       // TODO look into specular colors... These checks fail w/ seg fault on material.specular
@@ -256,7 +253,7 @@ namespace fc {
       MaterialPass passType = MaterialPass::MainColor;
       if (material.alphaMode == fastgltf::AlphaMode::Blend)
       {
-        std::cout << "Adding transparent material" << std::endl;
+        //std::cout << "Adding transparent material" << std::endl;
         passType = MaterialPass::Transparent;
       }
 
@@ -301,7 +298,7 @@ namespace fc {
       {
         constants.flags |= MaterialFeatures::HasRoughMetalTexture;
 
-        std::cout << "Model has metal/roughness texture..." << std::endl;
+        //std::cout << "Model has metal/roughness texture..." << std::endl;
 
         size_t index = material.pbrData.metallicRoughnessTexture.value().textureIndex;
         size_t imageIndex = gltf.textures[index].imageIndex.value();
@@ -316,8 +313,8 @@ namespace fc {
       {
         constants.flags |= MaterialFeatures::HasNormalTexture;
 
-        std::cout << "Model has Normal Map Texture: (Scale = "
-                  << material.normalTexture->scale << ")" << std::endl;
+        //std::cout << "Model has Normal Map Texture: (Scale = "
+        //<< material.normalTexture->scale << ")" << std::endl;
 
         size_t index = material.normalTexture.value().textureIndex;
         size_t imageIndex = gltf.textures[index].imageIndex.value();
@@ -361,8 +358,8 @@ namespace fc {
       }
 
       // *-*-*-*-*-*-*-*-*-*-   UNIMPLEMENTED MATERIAL PROPERTIES   *-*-*-*-*-*-*-*-*-*- //
-      std::cout << "--------------------------------------------------------------\n";
-      std::cout << "Unimplemented properties for material - " << material.name << " :\n";
+      // std::cout << "--------------------------------------------------------------\n";
+      // std::cout << "Unimplemented properties for material - " << material.name << " :\n";
       if (material.alphaMode == fastgltf::AlphaMode::Mask)
       {
         fcLog("AlphaMode Mask");
@@ -459,8 +456,8 @@ namespace fc {
         // *-*-*-*-*-*-*-*-*-*-*-*-*-   LOAD VERTEX POSITIONS   *-*-*-*-*-*-*-*-*-*-*-*-*- //
         {
           // This will always be present in glTF so no need to check
-          fastgltf::Accessor& positionAccessor = gltf.accessors
-                                                 [primitive.findAttribute("POSITION")->accessorIndex];
+          fastgltf::Accessor& positionAccessor =
+            gltf.accessors[primitive.findAttribute("POSITION")->accessorIndex];
           vertices.resize(vertices.size() + positionAccessor.count);
           fastgltf::iterateAccessorWithIndex<glm::vec3>(gltf, positionAccessor,
                                                         [&](glm::vec3 v, size_t index)
@@ -572,7 +569,9 @@ namespace fc {
 
       // TODO check that we're not causing superfluous calls to copy constructor / destructors
       // TODO start here with optimizations, including a new constructor with name
-      newMesh->uploadMesh2(vertices, indices);
+      // TODO consider goin back to vector refererence from span since we can mandate that...
+      // however, this limit future implementations that prefer arrays, etc.
+      newMesh->uploadMesh(std::span(vertices), std::span(indices));
       //meshes.emplace_back(std::make_shared<FcMesh>(std::move(newMesh)));
       // TODO create constructor for mesh so we can emplace it in place
 
@@ -888,7 +887,7 @@ namespace fc {
       newMesh.mName = mesh.name;
 
       // TODO create constructor for mesh so we can emplace it in place
-      newMesh.uploadMesh2(vertices, indices);
+      newMesh.uploadMesh(std::span(vertices), std::span(indices));
       //mMeshList.emplace_back(std::move(newMesh));
 
       // TODO try and implement with shared pointers to meshes

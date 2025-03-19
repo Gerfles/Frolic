@@ -119,16 +119,21 @@ namespace fc
 
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DEPTH STENCIL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     depthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   DYNAMIC RENDERING   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
+    // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   DYNAMIC RENDERING   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     renderInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
 
-  }// --------------------------------------------------------- PipelineBuilder::buildPipeline (_) --- (END)//
+    // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   TESSELLATION   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    tessellationInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
+
+  }// --- FcPipelineConfig::init (_) --- (END)
 
 
 
-
-
-
+  void FcPipelineConfig::enableTessellationShader(uint32_t patchControlPoints)
+  {
+    tessellationInfo.patchControlPoints = patchControlPoints;
+  }
 
    // NOTE: this will copy each push constant range
    // TODO sub for more efficient emplace
@@ -271,9 +276,16 @@ namespace fc
     //colorBlendInfo.pAttachments = &colorBlendAttachment;
   }
 
+  // void FcPipelineConfig::setDefaultVertexInput()
+  // {
 
+  // }
+
+
+
+  // TODO rename to fit extension buffer or no buffer scheme
   // how data for a single vertex (such as position, color, texture coords, normals, etc) is as a whole
-  void FcPipelineConfig::setDefaultVertexInput()
+  void FcPipelineConfig::setVertexInputAttributes()
   {
     // make sure we update the vertext binding count from 0 to 1
     vertexInputInfo.vertexBindingDescriptionCount = 1;
@@ -329,12 +341,13 @@ namespace fc
 
 
 
-  void FcPipelineConfig::setCubemapVertexInput()
+  void FcPipelineConfig::setVertexInputPositionOnly()
   {
     // can bind multiple streams of data, this defines which one
     bindingDescription.binding = 0;
     // size of a single vertex object
-    bindingDescription.stride = sizeof(CubeVertex);
+    // TODO see if glm::vec3 works instead
+    bindingDescription.stride = sizeof(glm::vec3);
     // how to move between data after each vertex
     bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
     // VK_VERTEX_INPUT_RATE_VERTEX : move on to the next vertex
@@ -343,19 +356,21 @@ namespace fc
     // How the data for an attribute is defined within a vertex
     attributeDescriptions.resize(1);
 
-     // position attribute
-     // which binding the data is at (should be the same as above unless you have multiple streams of data)
+	// position attribute
+     // which binding the data is at (same as above unless there's multiple streams of data)
     attributeDescriptions[0].binding = 0;
      // location in shader where data will be read from
     attributeDescriptions[0].location = 0;
     // format the data will take (also helps define the size of the data)
     attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
     // where this attribute is defined in the data for a single vertex
-    attributeDescriptions[0].offset = offsetof(CubeVertex, position);
+    attributeDescriptions[0].offset = 0;
+    // DELETE
+    //offsetof(SimpleVertex, position);
 
     // make sure we update the vertext binding count from 0 to 1
     vertexInputInfo.vertexBindingDescriptionCount = 1;
-    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+    vertexInputInfo.vertexAttributeDescriptionCount = 		static_cast<uint32_t>(attributeDescriptions.size());
     vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
   }
 
@@ -573,15 +588,15 @@ namespace fc
    // * TODO * Preferred method! Destroy all other methods and configs
   void FcPipeline::create(FcPipelineConfig& pipelineConfig)
   {
-     // TODO CREATE SOME ASSERTS!!!
+    // TODO CREATE SOME ASSERTS!!!
 
     std::cout << "Creating Pipeline: " << pipelineConfig.name << std::endl;
-     // -*-*-*-*-*-*-*-*-*-*-*-*-   CREATE PIPELINE LAYOUT   -*-*-*-*-*-*-*-*-*-*-*-*- //
+    // -*-*-*-*-*-*-*-*-*-*-*-*-   CREATE PIPELINE LAYOUT   -*-*-*-*-*-*-*-*-*-*-*-*- //
 
-     // save a pointer to the device instance
+    // save a pointer to the device instance
     VkDevice pDevice = FcLocator::Device();
 
-     // Create the pipeline layout
+    // Create the pipeline layout
     VkPipelineLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     layoutInfo.pushConstantRangeCount = static_cast<uint32_t>(pipelineConfig.pushConstantsInfo.size());
@@ -589,7 +604,7 @@ namespace fc
     layoutInfo.setLayoutCount = static_cast<uint32_t>(pipelineConfig.descriptorlayouts.size());
     layoutInfo.pSetLayouts = pipelineConfig.descriptorlayouts.data();
 
-     // check it was created properly
+    // check it was created properly
     if (vkCreatePipelineLayout(pDevice, &layoutInfo, nullptr, &mPipelineLayout) != VK_SUCCESS)
     {
       throw std::runtime_error("Failed to create Pipeline Layout!");
@@ -597,37 +612,37 @@ namespace fc
 
     mName = pipelineConfig.name;
 
-     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE SHADERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE SHADERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
-     // read in SPIR-V code of shaders
-     // TODO add ability to specify filename as relative path and load the absolute path or
-     // perhaps a small loader program that finds file paths for everything
-     // allocate and initialize ( = {}) enough shader state create infos for each stage
+    // read in SPIR-V code of shaders
+    // TODO add ability to specify filename as relative path and load the absolute path or
+    // perhaps a small loader program that finds file paths for everything
+    // allocate and initialize ( = {}) enough shader state create infos for each stage
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages(pipelineConfig.shaders.size()
                                                               , VkPipelineShaderStageCreateInfo{});
 
     std::vector<VkShaderModule> shaderModules(shaderStages.size());
 
-     // TODO provide the ability to add any stages and figure out systematically
+    // TODO provide the ability to add any stages and figure out systematically
     for (uint32_t i = 0; i < shaderStages.size(); i++)
     {
-       // create the shader modules from our SPIR-V code
+      // create the shader modules from our SPIR-V code
       auto shaderCode = readFile("shaders/" + pipelineConfig.shaders[i].filename);
       shaderModules[i] = createShaderModule(shaderCode);
 
-       // populate the shader stage create info
+      // populate the shader stage create info
       shaderStages[i].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
       shaderStages[i].stage = pipelineConfig.shaders[i].stageFlag;
       shaderStages[i].module = shaderModules[i];
       shaderStages[i].pName = "main";
     }
 
-     // TODO check to see if this is necessary to accomplish that an empty binding/attribute vector uses null for vertexInputInfo
-     // auto& bindingDescriptions = pipelineConfig.bindingDescriptions;
-     // auto& attributeDescriptions = pipelineConfig.attributeDescriptions;
+    // TODO check to see if this is necessary to accomplish that an empty binding/attribute vector uses null for vertexInputInfo
+    // auto& bindingDescriptions = pipelineConfig.bindingDescriptions;
+    // auto& attributeDescriptions = pipelineConfig.attributeDescriptions;
 
-     // TODO might be best to just create separate call for compute pipeline
-     // Determine if we should build a graphics pipeline or a compute
+    // TODO might be best to just create separate call for compute pipeline
+    // Determine if we should build a graphics pipeline or a compute
     if (pipelineConfig.shaders[0].stageFlag == VK_SHADER_STAGE_COMPUTE_BIT)
     {
       VkComputePipelineCreateInfo computePipelineInfo = {};
@@ -643,12 +658,12 @@ namespace fc
 
       mBindPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
     }
-     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   GRAPHICS PIPELINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   GRAPHICS PIPELINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     else
     {
-       //mBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+      //mBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 
-       // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DYNAMIC STATE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DYNAMIC STATE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
       VkDynamicState state[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 
       VkPipelineDynamicStateCreateInfo dynamicStateInfo{};
@@ -656,7 +671,7 @@ namespace fc
       dynamicStateInfo.pDynamicStates = &state[0];
       dynamicStateInfo.dynamicStateCount = 2;
 
-       // -*-*-*-*-*-*-*-*-*-*-*-   GRAPHICS PIPELINE CREATION   -*-*-*-*-*-*-*-*-*-*-*- //
+      // -*-*-*-*-*-*-*-*-*-*-*-   GRAPHICS PIPELINE CREATION   -*-*-*-*-*-*-*-*-*-*-*- //
       VkGraphicsPipelineCreateInfo graphicsPipelineInfo{};
       graphicsPipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
       graphicsPipelineInfo.pNext = &pipelineConfig.renderInfo;
@@ -670,26 +685,33 @@ namespace fc
       graphicsPipelineInfo.pMultisampleState = &pipelineConfig.multiSamplingInfo;
       graphicsPipelineInfo.pColorBlendState = &pipelineConfig.colorBlendInfo;
       graphicsPipelineInfo.pDepthStencilState = &pipelineConfig.depthStencilInfo;
+      // Only attach tessellation state if has been enabled (has set num patch control points)
+      if (pipelineConfig.tessellationInfo.patchControlPoints > 0)
+      {
+        graphicsPipelineInfo.pTessellationState = &pipelineConfig.tessellationInfo;
+      }
+
       graphicsPipelineInfo.layout = mPipelineLayout;
 
 
-       // TODO Can create multiple pipelines that derive from one another for optimisation
+
+      // TODO Can create multiple pipelines that derive from one another for optimisation
       graphicsPipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-       // index of pipeline being created to derive from (for optimisation of creating multiple pipelines)
+      // index of pipeline being created to derive from (for optimisation of creating multiple pipelines)
       graphicsPipelineInfo.basePipelineIndex = -1;
 
-       // it's easy to error out on the create graphics pipeline call so handle better
+      // it's easy to error out on the create graphics pipeline call so handle better
       if (vkCreateGraphicsPipelines(pDevice, VK_NULL_HANDLE, 1, &graphicsPipelineInfo, nullptr, &mPipeline)
           != VK_SUCCESS)
       {
         std::cout << "failed to create pipeline" << std::endl;
-         //       return  VK_NULL_HANDLE; or -1, etc.
-         //throw std::runtime_error("Failed to create Vulkan Graphics Pipeline!");
+        //       return  VK_NULL_HANDLE; or -1, etc.
+        //throw std::runtime_error("Failed to create Vulkan Graphics Pipeline!");
       }
 
 
     }
-     // Destroy shader modules, no longer needed after pipeline created
+    // Destroy shader modules, no longer needed after pipeline created
     for (uint32_t i = 0; i < shaderStages.size(); i++)
     {
       vkDestroyShaderModule(pDevice, shaderModules[i], nullptr);

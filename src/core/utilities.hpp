@@ -5,7 +5,9 @@
 
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <cstddef>
-#include <vulkan/vulkan.hpp>
+// TODO remove any vulkan initialization stuff from here and relocate if need be
+#include <vulkan/vulkan.h>
+#include <functional>
 #include <glm/vec3.hpp>
 #include <glm/mat4x4.hpp>
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -68,7 +70,11 @@ namespace fc
   void printMat(glm::mat3& mat);
   void printVec(glm::vec3 vector, const char* title);
   void printVec(glm::vec4 vector, const char* title);
+  // DELETE or move
   void initEnv();
+
+
+  void printIOtable(std::vector<glm::ivec2>& input, std::function<int(glm::ivec2)> PFN_func);
   glm::mat4 perspective(float fovDegrees, float width, float height, float near, float far);
   glm::mat4 orthographic(float left, float right, float bottom, float top, float near, float far );
   std::vector<char> readFile(const std::string& filename);

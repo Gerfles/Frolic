@@ -47,13 +47,13 @@ namespace fc
      // make sure nothing is getting written to or read before we re-create our swap chain
     vkDeviceWaitIdle(pGpu->getVkDevice());
 
-     // toss out old swap chain stuff
-    clearSwapChain();
+    //  // toss out old swap chain stuff
+    // clearSwapChain();
 
-    // create new swap chain stuff
-    createSwapChain(windowSize, true);
-    createDepthBufferImage();
-    createFrameBuffers();
+    // // create new swap chain stuff
+    // createSwapChain(windowSize, true);
+    // createDepthBufferImage();
+    // createFrameBuffers();
   }
 
 
@@ -221,7 +221,8 @@ namespace fc
    // TODO print the current present mode
   VkPresentModeKHR FcSwapChain::choosePresentMode(const std::vector<VkPresentModeKHR>& presentModes)
   {
-    return VK_PRESENT_MODE_MAILBOX_KHR;
+    //return VK_PRESENT_MODE_MAILBOX_KHR;
+    return VK_PRESENT_MODE_IMMEDIATE_KHR;
 
     for (const auto& presentMode : presentModes)
     {
@@ -509,12 +510,14 @@ namespace fc
 
       VkFramebufferCreateInfo frameBufferInfo{};
       frameBufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-      frameBufferInfo.renderPass = mRenderPass;                                    // layout pass the framebuffer will be used with
-      frameBufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size()); //
-      frameBufferInfo.pAttachments = attachments.data();                           // list of attachments (1:1 with render pass)
-      frameBufferInfo.width = mSurfaceExtent.width;                                // framebuffer width
-      frameBufferInfo.height = mSurfaceExtent.height;                              // framebuffer height
-      frameBufferInfo.layers = 1;                                                  // framebuffer layers
+      // layout pass the framebuffer will be used with
+      frameBufferInfo.renderPass = mRenderPass;
+      frameBufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+      // list of attachments (1:1 with render pass)
+      frameBufferInfo.pAttachments = attachments.data();
+      frameBufferInfo.width = mSurfaceExtent.width;
+      frameBufferInfo.height = mSurfaceExtent.height;
+      frameBufferInfo.layers = 1;
 
       if (vkCreateFramebuffer(pGpu->getVkDevice(), &frameBufferInfo, nullptr, &mSwapChainFramebuffers[i]) != VK_SUCCESS)
       {

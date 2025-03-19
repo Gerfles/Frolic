@@ -227,6 +227,7 @@ namespace fc
     deviceFeatures.sampleRateShading = VK_TRUE;
     // TODO test for this feature first
     deviceFeatures.geometryShader = VK_TRUE;
+    deviceFeatures.tessellationShader = VK_TRUE;
 
     // TODO abstract this out into a builder structure
     // vulkan features to request from version 1.2

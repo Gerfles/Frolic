@@ -43,7 +43,7 @@ namespace fc
      std::vector<VkDescriptorSetLayout> descriptorlayouts;
      const char* name; // ?? might want to remove but then may serve as good identifier (hashmap)
 
-     // Only used when binding vertex buffer
+     // Only used when binding vertex buffer not when using GPU vertex buffer via address
      VkVertexInputBindingDescription bindingDescription;
      std::vector<VkVertexInputAttributeDescription> attributeDescriptions{};
 
@@ -58,6 +58,7 @@ namespace fc
      VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
      VkPipelineViewportStateCreateInfo viewportInfo{};
      VkPipelineColorBlendStateCreateInfo colorBlendInfo{};
+     VkPipelineTessellationStateCreateInfo tessellationInfo{};
       //VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
      VkFormat colorAttachmentFormat{};
       // std::vector<VkDynamicState> dynamicStateEnables{};
@@ -71,7 +72,7 @@ namespace fc
      FcPipelineConfig(const FcPipelineConfig&) = delete;
      FcPipelineConfig& operator=(const FcPipelineConfig&) = delete;
      void init();
-     void addBinding(uint32_t bindSlot, VkDescriptorType type, VkShaderStageFlags stages);
+     //void addBinding(uint32_t bindSlot, VkDescriptorType type, VkShaderStageFlags stages);
      void addPushConstants(VkPushConstantRange pushConstant);
      void addDescriptorSetLayout(VkDescriptorSetLayout layout) { descriptorlayouts.push_back(layout);}
      void setInputTopology(VkPrimitiveTopology topology);
@@ -80,8 +81,11 @@ namespace fc
      void setMultiSampling(VkSampleCountFlagBits sampleCount);
      void setColorAttachment(VkFormat format);
      void setDepthFormat(VkFormat format);
-     void setDefaultVertexInput();
-     void setCubemapVertexInput();
+
+     // TODO combine
+     void setVertexInputAttributes();
+     void setVertexInputPositionOnly();
+
      void disableDepthtest();
      void enableDepthtest(bool depthWriteEnable, VkCompareOp op);
       //void disableVertexRendering();
@@ -89,6 +93,9 @@ namespace fc
      void disableBlending();
      void enableBlendingAdditive();
      void enableBlendingAlpha();
+
+     void enableTessellationShader(uint32_t patchControlPoints);
+
      void clear();
   }; // ---   struct FcPipelineConfigInfo2 --- (END)
 

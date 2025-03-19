@@ -102,7 +102,7 @@ namespace  fc
      // -*-*-*-*-*-*-*-*-*-   SIMPLE BUFFER STORED TO HOST MEMORY   -*-*-*-*-*-*-*-*-*- //
 
      // TODO should verify which mem types should be directly stored and which transferred to GPU
-     // First check if this is we want to store this data to GPU memory
+     // First check if we want to store this data to GPU memory
     if ((useFlags & VK_BUFFER_USAGE_TRANSFER_SRC_BIT) == VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
     {
        // This appears to be a simple buffer request so just create buffer and store data to it
@@ -223,7 +223,8 @@ namespace  fc
     // in a more robust manner -- though it may be a bit slower, this also flushes
     // memory when needed so should really look into.
     //vmaCopyMemoryToAllocation(allocator, sourceData, mAllocation, offset, dataSize);
-     // TODO SHould we just use this ??
+
+    // TODO also, SHould we just use this ??
      //mAllocation->GetMappedData();
     memAddress = (char*)memAddress + offset;
 

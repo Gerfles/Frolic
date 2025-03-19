@@ -13,8 +13,6 @@ namespace fc
   void GLTFMetallicRoughness::buildPipelines(FcRenderer *renderer)
   {
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   OPAQUE PIPELINE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    fcLog("Building materials pipeline");
-
      // TODO addshader() func
     FcPipelineConfig pipelineConfig{3};
     pipelineConfig.name = "Opaque Pipeline";
@@ -25,37 +23,41 @@ namespace fc
     pipelineConfig.shaders[2].filename = "explode.geom.spv";
     pipelineConfig.shaders[2].stageFlag = VK_SHADER_STAGE_GEOMETRY_BIT;
 
-    // add push constants
+    // add push constants for the model & normal matrices and address of vertex buffer
     VkPushConstantRange matrixRange;
     matrixRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     matrixRange.offset = 0;
     matrixRange.size = sizeof(DrawPushConstants);
-
+    //
     pipelineConfig.addPushConstants(matrixRange);
 
-
-    //
+    // Add push for the amount to expand the polygons
     VkPushConstantRange expansionFactorRange;
     expansionFactorRange.stageFlags = VK_SHADER_STAGE_GEOMETRY_BIT;
     expansionFactorRange.offset = sizeof(DrawPushConstants);
     expansionFactorRange.size = sizeof(float);
-
+    //
     pipelineConfig.addPushConstants(expansionFactorRange);
 
-    FcDescriptorBindInfo bindInfo{};
-    bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
-    bindInfo.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-    bindInfo.addBinding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-    bindInfo.addBinding(3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-    bindInfo.addBinding(4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-    bindInfo.addBinding(5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-
-    // place the scene descriptor layout in the first slot (0), the cubemap and material next (1,2)
+    // place the scene descriptor layout in the first set (0), then cubemap, then material
     pipelineConfig.addDescriptorSetLayout(renderer->getSceneDescriptorLayout());
     pipelineConfig.addDescriptorSetLayout(renderer->SkyboxDescriptorLayout());
     pipelineConfig.addDescriptorSetLayout(renderer->mShadowMap.DescriptorLayout());
 
-         // create the descriptor set layout for the material
+    // create the descriptor set layout for the material
+    FcDescriptorBindInfo bindInfo{};
+    bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+    bindInfo.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+                        , VK_SHADER_STAGE_FRAGMENT_BIT);
+    bindInfo.addBinding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+                        , VK_SHADER_STAGE_FRAGMENT_BIT);
+    bindInfo.addBinding(3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+                        , VK_SHADER_STAGE_FRAGMENT_BIT);
+    bindInfo.addBinding(4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+                        , VK_SHADER_STAGE_FRAGMENT_BIT);
+    bindInfo.addBinding(5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+                        , VK_SHADER_STAGE_FRAGMENT_BIT);
+
     // TODO check to see if we even need a member variable for the below?? could it be temporary
     mMaterialDescriptorLayout = FcLocator::DescriptorClerk().createDescriptorSetLayout(bindInfo);
     pipelineConfig.addDescriptorSetLayout(mMaterialDescriptorLayout);
@@ -83,7 +85,7 @@ namespace fc
     mOpaquePipeline.create(pipelineConfig);
 
     // *-*-*-*-*-*-*-*-*-*-*-*-*-   TRANSPARENTE PIPELINE   *-*-*-*-*-*-*-*-*-*-*-*-*- //
-    // using the same pipeline config, alter slightly for transparent pipeline
+    // using the same pipeline config, alter slightly for transparent models
     pipelineConfig.name = "Transparent Pipeline";
     pipelineConfig.enableBlendingAdditive();
     pipelineConfig.enableDepthtest(false, VK_COMPARE_OP_GREATER_OR_EQUAL);
@@ -132,6 +134,7 @@ namespace fc
                          , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, resources.occlusionSampler);
     bindInfo.attachImage(5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, resources.emissiveTexture
                          , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, resources.emissiveSampler);
+
 
     matData.materialSet = FcLocator::DescriptorClerk().createDescriptorSet(mMaterialDescriptorLayout, bindInfo);
 

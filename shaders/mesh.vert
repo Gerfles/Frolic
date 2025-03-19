@@ -40,6 +40,7 @@ layout (buffer_reference, std430) readonly buffer VertexBuffer
   Vertex vertices[];
 };
 
+// TODO too much to pass via PCs since normal limit is ~128 bytes
 // push constants block
 layout(push_constant) uniform PushConstants
 {
@@ -55,9 +56,6 @@ const mat4 biasMat = mat4(
 	0.0, 0.0, 1.0, 0.0,
 	0.5, 0.5, 0.0, 1.0 );
 
-
-
-
 void main()
 {
   // try 1000.0f instead of 10000.0f in persp...
@@ -68,7 +66,9 @@ void main()
   Vertex v = model.vertexBuffer.vertices[gl_VertexIndex];
 
   vec4 positionWorld = model.renderMatrix * vec4(v.position, 1.0);
+  // TODO find out which version is correct
   outPosWorld = positionWorld.xyz;
+//  outPosWorld = (sceneData.view * vec4(positionWorld.xyz, 1.0)).xyz;
 
   //gl_Position = sceneData.proj * sceneData.view * model.renderMatrix * vec4(v.position, 1.0f);
 

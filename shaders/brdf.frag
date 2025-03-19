@@ -337,7 +337,8 @@ void main()
 }
 
 #define offsetBias 0.005
-float textureProj(vec4 shadowCoord, vec2 off);
+
+
 float shadowCalculation(vec4 posLightSpace, vec3 normal, vec3 lightDirection)
 {
   // perform perspective divide (not necessary for orthographic projection but since w = 1 this is okay)
@@ -378,7 +379,7 @@ float shadowCalculation(vec4 posLightSpace, vec3 normal, vec3 lightDirection)
     for(int y = -1; y <= 1; ++y)
     {
       float maxLightReach = texture(shadowMap, coordsFromLight.xy + vec2(x, y) * texelSize).r;
-      if (fragDistanceFromLight <= maxLightReach)
+      if (fragDistanceFromLight < maxLightReach)
       {
         shadow += 1.0;
       }

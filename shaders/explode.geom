@@ -23,8 +23,7 @@ layout(push_constant) uniform constants
   // Not well documented but the offset here is because we can really only have
   // one push constant for the pipeline (command buffer) and within that push constant
   // we must rely on accessing specific ranges of it.
-  layout(offset = 136)
-  float expansionFactor;
+  layout(offset = 136) float expansionFactor;
 } pushUniform;
 
 

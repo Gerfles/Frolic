@@ -36,6 +36,7 @@ namespace fc
    //    alignas(8) int numLights {5};
    // };
 
+  // TODO unitialize maybe
   struct SceneData
   {
      glm::vec4 eye {0.0};
@@ -46,22 +47,28 @@ namespace fc
      glm::vec4 ambientLight {1.f, 1.f, 1.f, 0.1f}; // w is light intensity
      glm::vec4 sunlightDirection; // w for power
      glm::vec4 sunlightColor;
-      // PointLight pointLights[10];
-      // int numLights{0};
   };
 
-  struct FcDescriptorBindInfo
+  // TODO separate this out from above to pass separately
+  struct modelData
   {
-     std::vector<VkWriteDescriptorSet> descriptorWrites;
-     std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
-     std::deque<VkDescriptorBufferInfo> bufferInfos;
-     std::deque<VkDescriptorImageInfo> imageInfos;
-     void attachBuffer(uint32_t bindSlot, VkDescriptorType type
-                       ,const FcBuffer& buffer, VkDeviceSize size, VkDeviceSize offset);
-     void attachImage(uint32_t bindSlot, VkDescriptorType type
-                      ,const FcImage& image, VkImageLayout layout, VkSampler imageSampler);
-     void addBinding(uint32_t bindSlot, VkDescriptorType type, VkShaderStageFlags shaderStages);
+     glm::mat4 model{1.f};
+     glm::mat4 viewProj{1.f};
   };
+
+
+    struct FcDescriptorBindInfo
+    {
+       std::vector<VkWriteDescriptorSet> descriptorWrites;
+       std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
+       std::deque<VkDescriptorBufferInfo> bufferInfos;
+       std::deque<VkDescriptorImageInfo> imageInfos;
+       void attachBuffer(uint32_t bindSlot, VkDescriptorType type
+                         ,const FcBuffer& buffer, VkDeviceSize size, VkDeviceSize offset);
+       void attachImage(uint32_t bindSlot, VkDescriptorType type
+                        ,const FcImage& image, VkImageLayout layout, VkSampler imageSampler);
+       void addBinding(uint32_t bindSlot, VkDescriptorType type, VkShaderStageFlags shaderStages);
+    };
 
   // TODO make this struct a public struct defined within FcDescriptorClerk so it would be
   // declared as FcDescriptorClerk::PoolSizeRatio

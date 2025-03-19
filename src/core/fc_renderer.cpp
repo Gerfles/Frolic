@@ -12,7 +12,8 @@
 #include "SDL2/SDL_stdinc.h"
 #include <SDL_events.h>
 // #define GLM_FORCE_RADIANS
-//#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+// #define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
@@ -114,7 +115,10 @@ namespace fc
       // create the command pool for later allocating command from. Also create the command buffers
       createCommandPools();
 
-      mShadowMap.init(this);
+
+
+
+
       // create the graphics pipeline && create/attach descriptors
       // create the uniform buffers & initialize the descriptor sets that tell the pipeline about our uniform buffers
       // here we want to create a descriptor set for each swapchain image we have
@@ -173,6 +177,7 @@ namespace fc
       return EXIT_FAILURE;
     }
 
+
     return EXIT_SUCCESS;
   }
 
@@ -183,13 +188,13 @@ namespace fc
     pSceneData = sceneData;
     // -*-*-*-*-   3 DEFAULT TEXTURES--WHITE, GREY, BLACK AND CHECKERBOARD   -*-*-*-*- //
     uint32_t white = glm::packUnorm4x8(glm::vec4(1.f, 1.f, 1.f, 1.f));
-    mWhiteTexture.createTexture(VkExtent3D{1,1,1}, static_cast<void*>(&white));
+    mWhiteTexture.createTexture(VkExtent3D{1,1,1}, static_cast<void*>(&white), sizeof(white));
 
     uint32_t grey = glm::packUnorm4x8(glm::vec4(0.36f, 0.36f, 0.36f, 1.f));
-    mGreyTexture.createTexture(VkExtent3D{1,1,1}, static_cast<void*>(&grey));
+    mGreyTexture.createTexture(VkExtent3D{1,1,1}, static_cast<void*>(&grey), sizeof(grey));
 
     uint32_t black = glm::packUnorm4x8(glm::vec4(0.f, 0.f, 0.f, 1.f));
-    mBlackTexture.createTexture(VkExtent3D{1,1,1}, static_cast<void*>(&black));
+    mBlackTexture.createTexture(VkExtent3D{1,1,1}, static_cast<void*>(&black), sizeof(black));
 
     // checkerboard image
     uint32_t checkerColor = glm::packUnorm4x8(glm::vec4(1.f, 0.f, 1.f, 1.f));
@@ -201,8 +206,7 @@ namespace fc
         pixels[y * 16 + x] = ((x % 2) ^ (y % 2)) ? checkerColor : black;
       }
     }
-    mCheckerboardTexture.createTexture({16, 16, 1}, static_cast<void*>(&pixels));
-
+    mCheckerboardTexture.createTexture({16, 16, 1}, static_cast<void*>(&pixels), pixels.size() * sizeof(pixels[0]));
 
     VkSamplerCreateInfo samplerInfo{};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -233,8 +237,12 @@ namespace fc
     // descriptorSet and layout on the fly and destroy layout if not needed
     // TODO see if layout is not needed.
     FcDescriptorBindInfo sceneDescriptorBinding{};
-    sceneDescriptorBinding.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT
-                                      | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_GEOMETRY_BIT);
+    sceneDescriptorBinding.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
+                                      , VK_SHADER_STAGE_VERTEX_BIT
+                                      // TODO DELETE after separating model from scene
+                                      | VK_SHADER_STAGE_FRAGMENT_BIT
+                                      | VK_SHADER_STAGE_GEOMETRY_BIT
+                                      | VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
     // TODO find out if there is any cost associated with binding to multiple un-needed stages...
     //, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
 
@@ -248,24 +256,34 @@ namespace fc
     // Allocate a descriptorSet to each frame buffer
     for (FrameData& frame : mFrames)
     {
-      frame.sceneDataDescriptorSet = descClerk.createDescriptorSet(mSceneDataDescriptorLayout
-                                                                   , sceneDescriptorBinding);
+      frame.sceneDataDescriptorSet = descClerk.createDescriptorSet(
+        mSceneDataDescriptorLayout, sceneDescriptorBinding);
       // frame.sceneDataDescriptorSet = descClerk.createDescriptorSet(mSingleImageDescriptorLayout
       //                                                              , descriptorBindInfo);
     }
 
-    //
+    // TODO these should all be a part of frolic or game class, not the renderer
     mSkybox.loadTextures("..//models//skybox", ".jpg");
     // TODO should be more descriptive in name to show this has to happen after loadTextures
     mSkybox.init(mSceneDataDescriptorLayout);
 
+    mShadowMap.init(this);
+
+    //
+    //mTerrain.init(this, "..//maps/simple.png");
+    mTerrain.init(this, "..//maps/metalplate01_rgba.ktx");
+    //mTerrain.init(this, "..//maps/terrain_heightmap_r16.ktx");
+    // BUG may need render fence or semaphor
+    // mTerrain.init(this, "..//maps/iceland_heightmap.png");
+    // vkDeviceWaitIdle(pDevice);
+
     // // set the uniform buffer for the material data
-    materialConstants.allocateBuffer(sizeof(MaterialConstants), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+    materialConstants.allocateBuffer(sizeof(MaterialConstants)
+                                     , VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 
     // write the buffer
     MaterialConstants* materialUniformData =
       (MaterialConstants*)materialConstants.getAddres();
-
 
     materialUniformData->colorFactors = glm::vec4{1,1,1,1};
     materialUniformData->metalRoughFactors = glm::vec4{1, 0.5, 0, 0};
@@ -287,8 +305,9 @@ namespace fc
 
     // // TODO think about destroying layout here
     mMetalRoughMaterial.buildPipelines(this);
+
     defaultMaterialData = mMetalRoughMaterial.writeMaterial(pDevice, MaterialPass::MainColor
-                                                            , materialResources);
+                                                          , materialResources);
 
     // TODO implement with std::optional
     // TODO move to frolic.cpp
@@ -316,6 +335,7 @@ namespace fc
 
     // FIXME requires enabling one or more extensions in fastgltf
     //structure.loadGltf(this, "..//models//SheenWoodLeatherSofa.glb");
+
 
 
 
@@ -671,7 +691,7 @@ namespace fc
 
 
   // TODO stage beginInfo, submit info, etc.
-  // TODO SHOULD speed this up would be to run it on a different queue than the graphics queue so
+  // TODO SHOULD speed this up would by running on different queue than graphics queue so
   // we could overlap the execution from this with the main render loop
   VkCommandBuffer FcRenderer::beginCommandBuffer()
   {
@@ -722,12 +742,6 @@ namespace fc
     submitInfo.commandBufferInfoCount = 1;
     submitInfo.pCommandBufferInfos = &cmdBufferSubmitInfo;
 
-    // Queue submission information
-    // VkSubmitInfo submitInfo{};
-    // submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    // submitInfo.commandBufferCount = 1;
-    // submitInfo.pCommandBuffers = &commandBuffer;
-
     // Submit the command buffer to the queue
     // TODO assert, don't check like this
     if (vkQueueSubmit2(mGpu.graphicsQueue(), 1, &submitInfo, mImmediateFence) != VK_SUCCESS)
@@ -746,7 +760,6 @@ namespace fc
     // to just the necessary AND changing parameters...
     mainDrawContext.opaqueSurfaces.clear();
     mainDrawContext.transparentSurfaces.clear();
-//    loadedNodes["Suzanne"]->draw(glm::mat4{1.f}, mainDrawContext);
 
     rotationMatrix = glm::rotate(rotationMatrix
                                  , rotationSpeed * .0001f * glm::pi<float>(), {0.f, -1.f, 0.f});
@@ -996,8 +1009,8 @@ namespace fc
       // {
       //   sortedOpaqueIndices.push_back(i);
       // }
-
       sortedOpaqueIndices.push_back(i);
+
     }
 
     // ?? couldn't we sort drawn meshes into a set of vectors that're already sorted by material
@@ -1134,6 +1147,7 @@ namespace fc
     }
 
     mSkybox.draw(cmd, &getCurrentFrame().sceneDataDescriptorSet);
+    mTerrain.draw(cmd, &getCurrentFrame().sceneDataDescriptorSet);
 
     vkCmdEndRendering(cmd);
 
@@ -1178,7 +1192,7 @@ namespace fc
     renderInfo.pColorAttachments = &colorAttachment;
     renderInfo.pStencilAttachment = nullptr;
 
-    vkCmdBeginRendering(cmd, &renderInfo);
+   vkCmdBeginRendering(cmd, &renderInfo);
 
     vkCmdSetViewport(cmd, 0, 1, &mDynamicViewport);
     vkCmdSetScissor(cmd, 0, 1, &mDynamicScissors);
@@ -1234,11 +1248,13 @@ namespace fc
     pushConstants.normalTransform = surface.invModelMatrix;
 
     //
-    vkCmdPushConstants(cmd, surface.material->pPipeline->Layout(), VK_SHADER_STAGE_VERTEX_BIT
+    vkCmdPushConstants(cmd, surface.material->pPipeline->Layout()
+                       , VK_SHADER_STAGE_VERTEX_BIT
                        , 0, sizeof(DrawPushConstants), &pushConstants);
-    // Note here that we have to offset from the initially pushed data since we are really just
-    // filling a range alloted to us in total...
-    vkCmdPushConstants(cmd, surface.material->pPipeline->Layout(), VK_SHADER_STAGE_GEOMETRY_BIT
+    // Note here that we have to offset from the initially pushed data since we
+    // are really just filling a range alloted to us in total...
+    vkCmdPushConstants(cmd, surface.material->pPipeline->Layout()
+                       , VK_SHADER_STAGE_GEOMETRY_BIT
                        , sizeof(DrawPushConstants), sizeof(float), &expansionFactor);
 
     vkCmdDrawIndexed(cmd, surface.indexCount, 1, surface.firstIndex, 0, 0);
@@ -1290,6 +1306,7 @@ namespace fc
     vkCmdPushConstants(cmd, mBoundingBoxPipeline.Layout(), VK_SHADER_STAGE_VERTEX_BIT
                        , 0, sizeof(BoundingBoxPushConstants), &pushConstants);
 
+    // TODO update to utilize sascha method for quads
     vkCmdDraw(cmd, 36, 1, 0, 0);
   }
 
@@ -1385,13 +1402,14 @@ namespace fc
     // TODO define in constants
     uint64_t maxWaitTime = std::numeric_limits<uint64_t>::max();
 
+
     // don't keep adding images to the queue or commands to the buffer until last draw has finished
     vkWaitForFences(pDevice, 1, &getCurrentFrame().renderFence, VK_TRUE, maxWaitTime);
 
     // delete any per frame resources no longer needed now the that frame has finished rendering
     // ?? this seems to be the wrong location for this, just by observation: test
-    getCurrentFrame().janitor.flush();
 
+    getCurrentFrame().janitor.flush();
 
     // 1. get the next available image to draw to and set to signal the semaphore when we're finished with it
     uint32_t swapchainImageIndex;

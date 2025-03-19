@@ -2,6 +2,7 @@
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "core/fc_mesh.hpp"
+#include "fc_terrain.hpp"
 #include "shadow_map.hpp"
 #include "fc_skybox.hpp"
 #include "fc_billboard_render_system.hpp"
@@ -150,7 +151,7 @@ namespace fc
      FcTextureAtlas textureAtlas;
      //FcModel testModel;
 
-
+     FcTerrain mTerrain;
      // TODO try this single one instead of one in each frame
      VkDescriptorSet mSceneDataDescriptor;
      VkDescriptorSetLayout mSceneDataDescriptorLayout;

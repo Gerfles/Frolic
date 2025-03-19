@@ -44,7 +44,7 @@ namespace fc
     // should only be one texture that we alter accordingly
      // create the default texture that will be used to fill the text box
     VkExtent3D extent{static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1};
-    mTextImage.createTexture(extent, pixels);
+    mTextImage.createTexture(extent, pixels, width * height * 4);
      // BUG must create descriptorset
      // create the actual billboard that text will get rendered to
      //mTextBoxMesh.createMesh(pGpu, vertices, indices, 0);

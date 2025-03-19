@@ -3,9 +3,9 @@
 
 // - FROLIC ENGINE -
 //#include "fc_pipeline.hpp"
+#include "core/utilities.hpp"
 #include "core/fc_materials.hpp"
 //#include "core/fc_model.hpp"
-#include "core/utilities.hpp"
 #include "fc_buffer.hpp"
 // - EXTERNAL LIBRARIES -
 #include "glm/mat4x4.hpp"
@@ -28,14 +28,25 @@ namespace fc
 //I've seen recommendations to have a binding for anything needed for calculating gl_Position, and a
 //second binding for everything else. So hardware that does a pre-pass to bin by position only has
 //to touch the relevant half of the data.
+  struct SimpleVertex
+  {
+     glm::vec3 position;
+     float uv_x;
+     glm::vec3 padding;
+     float uv_y;
+     //glm::vec3 normal;
+     //glm::vec4 color; // not needed with pbr
+  };
+
+  // TEST see if initialization is necessary since usually we know they must be set
   struct Vertex
   {
-     glm::vec3 position {0.f, 0.f, 0.f};
-     float uv_x {0.f};
-     glm::vec3 normal {1.f, 0.f, 0.f};
-     float uv_y {0.f};
+     glm::vec3 position;
+     float uv_x;
+     glm::vec3 normal;
+     float uv_y;
      //glm::vec4 color; // not needed with pbr
-     glm::vec4 tangent {0.f, 0.f, 0.f, 0.f};
+     glm::vec4 tangent;
      // TODO could add some features like a print function, etc.
   };
 
@@ -49,12 +60,19 @@ namespace fc
      VkDeviceAddress vertexBuffer;
   };
 
-  struct BoundingBoxPushConstants
+  struct VertexBufferPCs
   {
-     glm::mat4 modelMatrix;
-     glm::vec4 origin;
-     glm::vec4 extents;
+     VkDeviceAddress address;
+     VkDeviceAddress padding;
   };
+
+
+    struct BoundingBoxPushConstants
+    {
+       glm::mat4 modelMatrix;
+       glm::vec4 origin;
+       glm::vec4 extents;
+    };
 
   // TODO get rid of this and keep in FcModel
   // must be in a struct for the Uniform buffer or push constant to use
@@ -137,7 +155,7 @@ namespace fc
      std::shared_ptr<GLTFMaterial> material;
   };
 
-  // FIXME Should think about lightening this class or making it a wrapper class for a struct with quickly
+  // FIXME Should think about lightening this class or making it a wrapper class for a struct with easily
   // accessible variables, etc.
   class FcMesh// : public Node
   {
@@ -145,18 +163,14 @@ namespace fc
      // TODO As it appears that both VkDevice and vkphysicaldevice are both just "opaque handles"
      // we should be able to avoid using pointers to them (since they are already pointers...)
      //  ModelMatrix mUboModel;
-     // TODO DELETE as we are no longer accessing a desriptor set but may need for texture atlas
+     // TODO DELETE as we are no longer accessing a desriptor set but may need for texture atlas if implemented
      uint32_t mDescriptorID{0};
      FcBuffer mVertexBuffer;
      FcBuffer mIndexBuffer;
      VkDeviceAddress mVertexBufferAddress{};
-     //
-
-     //
+     uint32_t mIndexCount{0};
 
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
-
      void createVertexBuffer(std::vector<Vertex>& vertices);
      void createIndexBuffer(std::vector<uint32_t>& indices);
      // ?? not sure if we will eventually require this name at the mesh level, may want to delete
@@ -173,7 +187,9 @@ namespace fc
      // ?? ?? for some reason we cant call the following class with fastgltf::mesh.name
      // since it uses an std::pmr::string that only seems to be able to bind to a public
      // class member?? TODO researce PMR
-     void uploadMesh2(std::span<Vertex> vertices, std::span<uint32_t> indices);
+     template <typename T> void uploadMesh(std::span<T> vertices, std::span<uint32_t> indices);
+
+     void uploadMeshExtra(std::span<glm::vec4> vertices, std::span<uint32_t> indices);
 
      //void setIndexCounts(uint32_t start, uint32_t count);
      //uint32_t getStartIndex(int ) { return mSurfaces; }
@@ -195,8 +211,11 @@ namespace fc
      // TODO should both be const and probably not referenct since VkBuffer is just pointer
      const VkBuffer& VertexBuffer() { return mVertexBuffer.getVkBuffer(); }
      const VkBuffer IndexBuffer() { return mIndexBuffer.getVkBuffer(); }
+     const uint32_t IndexCount() { return mIndexCount; }
      uint32_t DescriptorId() const { return mDescriptorID; }
      VkDeviceAddress VertexBufferAddress() { return mVertexBufferAddress; }
+     VkDeviceAddress* VertexBufferAddress2() { return &mVertexBufferAddress; }
+
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CLEANUP   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      void destroy();
      //~FcMesh() = default;

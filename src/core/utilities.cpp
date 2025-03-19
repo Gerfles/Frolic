@@ -8,7 +8,9 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <fstream>
+#include <functional>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <ios>
 #include <stdexcept>
@@ -105,6 +107,23 @@ namespace fc
   }
 
 
+  void printIOtable(std::vector<glm::ivec2>& input, std::function<int(glm::ivec2)> PFN_func)
+  {
+    // print columns
+    std::cout << "[Input (x,y)]"
+              << "\t[Output (x,y)]\n---------------------------------------\n";
+
+    // print values
+    for(size_t i = 0; i < input.size(); ++i)
+    {
+      int result = PFN_func(input[i]);
+      std::cout << std::setw(4) << "(" << input[i].x << ", " << input[i].y << ")" << "   -->"
+                << std::setw(6) << result << "\n";
+      //
+    }
+    std::cout << std::endl;
+  }
+
 
   void printMat(glm::mat4& mat)
   {
@@ -178,15 +197,15 @@ namespace fc
      // transfer and use soln from
      // https://stackoverflow.com/questions/8591762/ifdef-debug-with-cmake-independent-from-platform
 #ifndef NDEBUG
-    std::printf("\n---- DEBUG ----\n");
+    std::printf("\n---- DEBUG BUILD ----\n");
 #else
-    std::printf("\n---- RELEASE ----\n");
+    std::printf("\n---- RELEASE BUILD ----\n");
 #endif
 
 // Good method to differentiate between different compositors in within linux
-    if (strcmp(secure_getenv("XDG_SESSION_TYPE"), "wayland") == 0) {
+    if (std::strcmp(secure_getenv("XDG_SESSION_TYPE"), "wayland") == 0) {
       printf("We're on wayland.\n");
-    } else if (strcmp(secure_getenv("XDG_SESSION_TYPE"), "x11") == 0) {
+    } else if (std::strcmp(secure_getenv("XDG_SESSION_TYPE"), "x11") == 0) {
       printf("We're on X11.\n");
     } else {
       printf("NOT IDENTIFIED ?\n");

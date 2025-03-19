@@ -8,6 +8,7 @@
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
 #include "vk_mem_alloc.h"
+#include "ktx.h"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 //#include <fastgltf/types.hpp>
 #include <filesystem>
@@ -22,13 +23,10 @@ namespace fastgltf
 
 namespace fc
 {
-
-  class FcBuffer;
-
    // TODO create new texture class that inherits from image
    // FORWARD DECLARATIONS
 //  class FcPipeline;
-
+  class FcBuffer;
 
   class FcImage
   {
@@ -38,7 +36,7 @@ namespace fc
      VkImageView mImageView{VK_NULL_HANDLE};
      VmaAllocation mAllocation{nullptr};
      VkImageAspectFlags mAspectFlag;
-
+     VkFormat mFormat;
      // TODO get rid of or simply have as pointer to texture cache
      VkSampler mTextureSampler{VK_NULL_HANDLE};
 
@@ -48,6 +46,10 @@ namespace fc
       // TODO create a synced state variable to track current image layout
       // VkImageLayout mCurrentLayout{VK_IMAGE_LAYOUT_UNDEFINED};
      VkExtent3D mImageExtent;
+     int mNumChannels;
+
+     // ?? may want to store image memory size since mipmaps and layers, etc will affect this
+
      uint32_t mMipLevels{1};
 
      // void extracted(VkImageLayout& oldLayout,
@@ -56,8 +58,10 @@ namespace fc
      void generateMipMaps();
      void createTextureSampler();
      void createCubeMapSampler();
-     void writeToTexture(void* pixelData, bool generateMipmaps);
+     void writeToTexture(void* pixelData, VkDeviceSize size
+                         , bool generateMipmaps, VkFormat format);
    public:
+     static constexpr int BYTES_PER_PIXEL = 4;
       // - CTORS -
      FcImage(std::filesystem::path& filename) { loadTexture(filename); }
      FcImage() = default;
@@ -96,11 +100,20 @@ namespace fc
      void clear(VkCommandBuffer cmdBuffer, VkClearColorValue* pColor);
       // TEXTURE FUNCTIONS
      void loadTexture(std::filesystem::path& filename);
+     void loadKtx(std::filesystem::path& filename);
      void loadTexture(std::filesystem::path& path, fastgltf::Asset& asset, fastgltf::Image& image);
      void loadCubeMap(std::array<std::filesystem::path, 6>& filenames);
-     void createTexture(VkExtent3D extent, void* pixelData, bool generateMipmaps = false);
+     void createTexture(VkExtent3D extent, void* pixelData
+                        , VkDeviceSize storageSize
+                        , bool generateMipmaps = false
+                        , VkFormat format = VK_FORMAT_R8G8B8A8_UNORM);
+
       //void overwriteTexture(void* pixelData, uint32_t mipLevel = 1);
       // GETTERS
+     void copyToCPUAddress(FcBuffer& buffer);
+     void destroyCpuCopy();
+     int fetchPixel(const uint32_t x, const uint32_t y);
+
      const bool isValid() const { return mImage != VK_NULL_HANDLE; }
      const VkImageView& ImageView() const { return mImageView; }
      VkSampler TextureSampler() { return mTextureSampler; }

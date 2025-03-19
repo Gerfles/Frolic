@@ -163,7 +163,8 @@ namespace fc
      // TODO DELETE
     VkExtent3D temp = {imageWidth, tallestChar, 1};
      // TODO upload texture as a transfer_dst_optimal since we won't be drawing to it once it's rendered
-    mRasterTexture.createTexture(temp, imageBuffer);
+    // TODO 4 here (and elsewhere) seems a little mysterious -> change to enum
+    mRasterTexture.createTexture(temp, imageBuffer, imageSize * 4);
 
      // after raster image is created, transition layout so it's in the best format for being blitted from
     VkCommandBuffer cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
