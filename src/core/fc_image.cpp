@@ -184,14 +184,13 @@ namespace fc
     imageBarrier.newLayout = newLayout; // layout to transition to
     imageBarrier.image = mImage;        // image being accessed and modifies as part of barrier
 
-    // TODO try uncommenting the following
+
     // Queue family to transition from - IGNORED means don't bother transferring to a different queue
     imageBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     imageBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
     // TODO consider storing in image
     imageBarrier.subresourceRange.aspectMask = aspectFlags;
-
 
     // if (newLayout == VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR)
     // {
@@ -219,7 +218,6 @@ namespace fc
       imageBarrier.dstAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_MEMORY_READ_BIT;
 
       // set aspect of image being altered to color image (default) unless new layout required is depth image
-
     }
 
 
@@ -297,57 +295,102 @@ namespace fc
   //   gpu.submitCommandBuffer(commandBuffer);
   // }
 
-  // TODO update to use texture2 structure
-  // using the Khronos texture format
+
+  // TODO add support for linear tilling
+  // TODO perhaps find a better way to use some C++ features here like decltype, function ptrs, etc
   void FcImage::loadKtx(std::filesystem::path& filename)
   {
-    ktxTexture* texture;
-
     KTX_error_code result;
 
-    result = ktxTexture_CreateFromNamedFile(filename.c_str()
-                                            , KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT
-                                            , &texture);
-
-    if (texture == nullptr || result != KTX_SUCCESS)
+    if (filename.extension() == ".ktx2")
     {
-      throw std::runtime_error("Failed to load KTX format image!");
+      ktxTexture2* texture;
+
+      result = ktxTexture2_CreateFromNamedFile(filename.c_str()
+                                               , KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT
+                                               , &texture);
+
+      if (texture == nullptr || result != KTX_SUCCESS)
+      {
+        throw std::runtime_error("Failed to load KTX format image!");
+      }
+
+
+      // TODO might want to separate here so we're only setting height and width seperately
+      mImageExtent = {texture->baseWidth, texture->baseHeight, texture->numLayers};
+      mMipLevels = texture->numLevels;
+
+      mFormat = VkFormat(texture->vkFormat);
+      // BUG set properly
+      // mBytesPerPixel = texture->kvDataLen;
+      // std::cout << "bytes per pixel: " << mBytesPerPixel << std::endl;
+
+      createTexture(mImageExtent, texture->pData, texture->dataSize,
+                    false , mFormat);
+
+      // Note here that we have to cast to
+      ktxTexture_Destroy((ktxTexture*)texture);
     }
+    else // This appears to be a v.1 ktxTexture
+    {
+      ktxTexture* texture;
 
-    // TODO might want to separate here so we're only setting height and width seperately
-    mImageExtent = {texture->baseWidth, texture->baseHeight, texture->numLayers};
-    // TODO
-    mMipLevels = texture->numLevels;
-    //mMipLevels = 1;
+      result = ktxTexture_CreateFromNamedFile(filename.c_str()
+                                              , KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT
+                                              , &texture);
 
-    // TODO add support for linear tilling
-    // most tools save in sRGB so assume that's the correct format but provide in future rev.
-    mFormat = VK_FORMAT_R8G8B8A8_SRGB;
+      if (texture == nullptr || result != KTX_SUCCESS)
+      {
+        throw std::runtime_error("Failed to load KTX format image!");
+      }
 
-    createTexture(mImageExtent, texture->pData, texture->dataSize,
-                  false , mFormat);
+      mImageExtent = {texture->baseWidth, texture->baseHeight, texture->numLayers};
+      mMipLevels = texture->numLevels;
 
-    // Note here that we have to cast to
-    ktxTexture_Destroy((ktxTexture*)texture);
+      // Most tools export to this format so make this assumption for now (could allow
+      // for passing in but most ktx files should be ktx2 instead since its an easy conversion
+      // using CLI tool > ktx2ktx2 -b [ktx1_filename_to_convert] )
+      mFormat = VK_FORMAT_R8G8B8A8_SRGB;
+
+
+      createTexture(mImageExtent, texture->pData, texture->dataSize,
+                    false , mFormat);
+
+      // Note here that we have to cast since libktx has not written Destroy for ktx2
+      ktxTexture_Destroy((ktxTexture*)texture);
+    }
   }
 
-  void FcImage::copyToCPUAddress(FcBuffer& buffer)
+
+
+
+  // TODO ?? find out if copying to image would be preferable to buffer copy
+  void FcImage::copyToCPUAddress()
   {
+    // Must use shared pointer here since we have default copy/assignment operators
+    // TODO could change if we implement our own
+    // TODO imageMemSize should be determined programatically
+    localCopy = std::make_shared<FcBuffer>();
+    VkDeviceSize imageMemSize = mImageExtent.width * mImageExtent.height * 2;
+    localCopy->allocateBuffer(imageMemSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT
+                              , VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
+                              | VMA_ALLOCATION_CREATE_MAPPED_BIT);
+
+    // store a copy of our buffer memory location in the class for quick access
+    localCopyAddress = localCopy->getAddres();
+
     VkCommandBuffer cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
+
+    // TODO handle the cases where transition of image is not known,
+    // Probably need to store current layout in image
+    // TODO might want to create a separate image memory barrier for this type of transition
     transitionImage(cmdBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                     VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 
-    // TODO must create a separate image memory barrier for this type of transition
-    FcLocator::Renderer().submitCommandBuffer();
-
-
-    VkCommandBuffer cmdBuffer2 = FcLocator::Renderer().beginCommandBuffer();
-
-    // TODO rename to simply mExtent
-    VkDeviceSize imageMemSize = mImageExtent.width * mImageExtent.height * 4;
-    buffer.allocateBuffer(imageMemSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+    // TODO handle the case where the buffer being passed is allready allocated
 
     VkBufferImageCopy imageCopyRegion{};
+    // TODO rename to simply mExtent
     imageCopyRegion.imageExtent = mImageExtent;
     imageCopyRegion.imageOffset = {0, 0, 0};
     imageCopyRegion.bufferOffset = 0;
@@ -359,48 +402,100 @@ namespace fc
     imageCopyRegion.imageSubresource.layerCount = 1;
     imageCopyRegion.imageSubresource.baseArrayLayer = 0;
 
+    vkCmdCopyImageToBuffer(cmdBuffer, mImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
+                           , localCopy->getVkBuffer(), 1, &imageCopyRegion);
 
-    vkCmdCopyImageToBuffer(cmdBuffer2, mImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-                           , buffer.getVkBuffer(), 1, &imageCopyRegion);
-
-
-
-
-    transitionImage(cmdBuffer2, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
+    transitionImage(cmdBuffer, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
                     , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     FcLocator::Renderer().submitCommandBuffer();
-
-    // void* mCpuCopyMemAddress;
-    // VmaAllocator allocator = FcLocator::Gpu().getAllocator();
-
-    // if (vmaMapMemory(allocator, mAllocation, &mCpuCopyMemAddress) != VK_SUCCESS)
-    // {
-    //   throw std::runtime_error("Failed to map Image memory!");
-    // }
-
-    // cpuCopyMemAddress = (char*)cpuCopyMemAddress + offset;
-    // memcpy(cpuCopyMemAddress, sourceData, dataSize);
   }
 
 
   void FcImage::destroyCpuCopy()
   {
-    //vmaUnmapMemory(FcLocator::Gpu().getAllocator(), mAllocation);
-    // VkCommandBuffer cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
-    // transitionImage(cmdBuffer, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
-    //                 , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-    // FcLocator::Renderer().submitCommandBuffer();
+    vmaUnmapMemory(FcLocator::Gpu().getAllocator(), localCopy->getAllocation());
+    localCopy->destroy();
+    localCopy.reset();
+    localCopyAddress = nullptr;
   }
 
 
-
+  // TODO implement for the non GPU images->anything that is vmaAllocate-able
   // TODO should be type agnostic or get that info from somewhere since this could
   // be RGBA_8 or R16 or D32 etc.
-  int FcImage::fetchPixel(const uint32_t x, const uint32_t y)
+  // uint32_t FcImage::fetchPixel(const int x, const int y)
+  // {
+  //   // TODO could check to make sure image is mapped and return error if not
+
+  //   uint32_t xPos = std::clamp(x, 0, static_cast<int>(mImageExtent.width - 1));
+  //   uint32_t yPos = std::clamp(y, 0, static_cast<int>(mImageExtent.height - 1));
+  //   // Doing the below will make this equivalent to Sascha's Method but must pass scale
+  //   /* uint32_t xPos = std::clamp(x, 0, static_cast<int>(mImageExtent.width - scale)); */
+  //   /* uint32_t yPos = std::clamp(y, 0, static_cast<int>(mImageExtent.height - scale)); */
+
+  //   int offset = xPos + yPos * mImageExtent.width;
+  //   // To test pixel location value based on test image
+  //   //uint32_t val = (xPos << 16) + yPos;
+
+  //   int val = *((uint32_t*)localCopyAddress + offset);// + (x + y * mImageExtent.width));
+  //   return val;
+  // }
+
+
+  // Sascha Willems Method
+  // Nearest I can tell, this method will give the nearest pixel value within the
+  // pixel step size, so for instance if passing x:512, y:512, scale:8 - the original
+  // function will fetch pixel at (511, 511) whereas this function will fetch
+  // pixel at (504, 504);
+  uint16_t FcImage::saschaFetchPixel(const int x, const int y, uint32_t scale)
   {
-    return -1;
-    //return *(data + (x + y * mImageExtent.width));
+    uint32_t dim = mImageExtent.width;
+
+    // rpos = (x, y) * (8, 8)
+    glm::ivec2 rpos = glm::ivec2(x, y);
+    // Skipped since this is already accounted for in terrain.cpp
+    // rpos *= glm::ivec2(scale);
+
+    // rpos.x = clamp(rpos.x, 0, 511)
+    rpos.x = std::max(0, std::min(rpos.x, static_cast<int>(dim - 1)));
+    // rpos.x = clamp(rpos.y, 0, 511)
+    rpos.y = std::max(0, std::min(rpos.y, static_cast<int>(dim - 1)));
+
+    // rpos.x / 8 * 8 , rpos.y / 8 * 8 (basically round to nearest scale)
+    // Note: that this can be accomplised by clamping within [0, dim - scale] instead
+    rpos /= glm::ivec2(scale);
+    rpos *= glm::ivec2(scale);
+    // rpos = data[(rpos.x + rpos.y * 512) * 8]
+    return *((uint16_t*)localCopyAddress + (rpos.x + rpos.y * dim));
+  }
+
+
+  // DELETE eventually
+  void FcImage::loadTestImage(uint32_t width, uint32_t height)
+  {
+    mImageExtent = {width, height, 1};
+    int testImageArea = width * height;
+    localCopyAddress = new uint32_t[testImageArea];
+    std::memset(localCopyAddress, 0, testImageArea * sizeof(uint32_t));
+
+    std::vector<uint32_t> testImage(testImageArea);
+    //
+    for(uint32_t x = 0; x < width; ++x)
+    {
+      for(uint32_t y = 0; y < height; ++y)
+      {
+        uint32_t val = (x << 15) + y;
+        testImage[x + y * width] = val;
+      }
+    }
+    std::memcpy(localCopyAddress, testImage.data(), testImage.size() * sizeof(testImage[0]));
+  }
+
+
+  void FcImage::deleteTestImage()
+  {
+    delete[] static_cast<uint32_t*>(localCopyAddress);
   }
 
 
@@ -761,6 +856,41 @@ namespace fc
     if (vkCreateSampler(gpu.getVkDevice(), &samplerInfo, nullptr, &mTextureSampler) != VK_SUCCESS)
     {
       throw std::runtime_error("Failed to create a Vulkan Texture Sampler!");
+    }
+  }
+
+
+
+  void FcImage::setPixelFormat()
+  {
+    switch(mFormat)
+    {
+        case VK_FORMAT_R8G8B8A8_SRGB:
+        {
+          mNumChannels = 4;
+          mBytesPerPixel = 4;
+          break;
+        }
+        case VK_FORMAT_R16_UNORM:
+        {
+          mNumChannels = 1;
+          mBytesPerPixel = 2;
+          break;
+        }
+        case VK_FORMAT_D32_SFLOAT:
+        {
+          mNumChannels = 1;
+          mBytesPerPixel = 4;
+          break;
+        }
+        case VK_FORMAT_D16_UNORM:
+        {
+          mNumChannels = 1;
+          mBytesPerPixel = 2;
+          break;
+        }
+        default:
+          break;
     }
   }
 

@@ -26,7 +26,64 @@
 
 namespace fc
 {
-   // static VKAPI_ATTR VkBool32 VKAPI_CALL
+
+  void FcLog::openLogOutput(const std::string& filename, bool clearContents)
+  {
+    // open stream from give file and tell it to start reading from end
+    if(clearContents)
+    {
+      mFile = std::ofstream(filename, std::ios::out | std::ios::trunc);
+    }
+    else
+    {
+      mFile = std::ofstream(filename, std::ios::out | std::ios::ate |std::ios::app);
+    }
+
+    // verify file opened
+    if(!mFile.is_open())
+    {
+      throw std::runtime_error("Failed to open Log file: " + filename);
+    }
+  }
+
+  // std::ostream& operator <<(std::string& output, const FcLog& log)
+  std::ofstream& FcLog::operator <<(std::string string)
+  {
+    mFile.write(string.c_str(), string.size());
+
+    return mFile;
+  }
+
+  void FcLog::logOutput()
+  {
+    std::string str{"Testing"};
+    mFile.write(str.c_str(), 3);
+  }
+
+
+  void FcLog::closeLogOutput()
+  {
+    // End the provided file and close
+    {
+      mFile << "\n";
+      mFile.close();
+    }
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// static VKAPI_ATTR VkBool32 VKAPI_CALL
    // debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
    //               VkDebugUtilsMessageTypeFlagsEXT messageType,
    //               const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
@@ -237,8 +294,7 @@ namespace fc
     std::time_t file_time =  system_clock::to_time_t(st);
 
     std::cout << filename << " - Last Updated: " << std::asctime(std::localtime(&file_time));
-
-     //  Easier than above but requires C+23
+     //  NOTE: Easier than above but requires C+23
      //std::println("Last Update: {}", fileTime);
 
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   CONTINUE LOADING   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //

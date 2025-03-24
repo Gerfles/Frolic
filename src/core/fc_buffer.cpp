@@ -17,7 +17,8 @@
 namespace  fc
 {
    //
-  void FcBuffer::allocateBuffer(VkDeviceSize bufferSize, VkBufferUsageFlags useFlags)
+  void FcBuffer::allocateBuffer(VkDeviceSize bufferSize, VkBufferUsageFlags useFlags
+                                , VmaAllocationCreateFlags vmaFlags)
   {
     VkBufferCreateInfo bufferInfo{};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -28,7 +29,8 @@ namespace  fc
     VmaAllocationCreateInfo allocInfo = {};
      // TODO performace test different mem type flags
     allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-    allocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+    allocInfo.flags = vmaFlags;
+
 
      // ?? Leaving this out for now as VMA seems to be better at determining but may add back in later for fine grain
      //allocInfo.requiredFlags = properties;
@@ -231,6 +233,23 @@ namespace  fc
     memcpy(memAddress, sourceData, dataSize);
     vmaUnmapMemory(FcLocator::Gpu().getAllocator(), mAllocation);
   } // --- FcBuffer::writeData (_) --- (END)
+
+
+  /* TODO implement */
+  void FcBuffer::fetchData(uint32_t location, size_t dataSize)
+  {
+
+    // void* memAddress;
+    // VmaAllocator allocator = FcLocator::Gpu().getAllocator();
+
+    // if (vmaMapMemory(allocator, mAllocation, &memAddress) != VK_SUCCESS)
+    // {
+    //   throw std::runtime_error("Failed to map VMA buffer memory!");
+    // }
+
+    // return *(memAddress + (x + y * mImageExtent.width))
+  }
+
 
 
   void FcBuffer::copyBuffer(const FcBuffer& srcBuffer, VkDeviceSize bufferSize)

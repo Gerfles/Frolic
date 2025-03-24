@@ -63,7 +63,28 @@ namespace fc
 
   // bool areValidationLayersSupported(std::vector<const char*>& validationLayers);
 
-  static int logCount = 1;
+
+  // TODO relocate all log/print utilities to a full class
+  struct FcLog
+  {
+     // (EXAMPLE)
+    // FcLog log1("log1", true);
+     // log1 << "This is a log value: " << val;
+    // log1.closeLogOutput();
+     std::ofstream mFile;
+     void openLogOutput(const std::string& filename, bool clearContents = false);
+     //
+     FcLog(const std::string& filename, bool clearContents = false)
+      { openLogOutput(filename, clearContents); }
+     std::ofstream& operator <<(std::string string);
+     // variation if more complicated necessary
+     void logOutput();
+     void closeLogOutput();
+
+  };
+
+
+    static int logCount = 1;
   void fcLog(std::string header = "", int resetLogCount = -1);
   void calcFPS(uint64_t latestTick);
   void printMat(glm::mat4& mat);
@@ -76,7 +97,8 @@ namespace fc
 
   void printIOtable(std::vector<glm::ivec2>& input, std::function<int(glm::ivec2)> PFN_func);
   glm::mat4 perspective(float fovDegrees, float width, float height, float near, float far);
-  glm::mat4 orthographic(float left, float right, float bottom, float top, float near, float far );
+  glm::mat4 orthographic(float left, float right, float bottom
+                         , float top, float near, float far);
   std::vector<char> readFile(const std::string& filename);
 
 

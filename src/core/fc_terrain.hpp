@@ -14,6 +14,8 @@ namespace fc
   class FcTerrain
   {
    private:
+     // TODO enum with control points
+
      FcImage mHeightMap;
      // TODO DELETE after creating sampler atlas
      VkSampler mHeightMapSampler;

@@ -47,8 +47,8 @@ namespace fc
      FcBillboard() = default; // { mTextureId = 0; }
      FcBillboard(const FcBillboard&) = delete;
      FcBillboard& operator=(const FcBillboard&) = delete;
-     FcBillboard(FcBillboard&&) = default;
-     FcBillboard& operator=(FcBillboard&&) = default;
+     FcBillboard(FcBillboard&&) = delete;
+     FcBillboard& operator=(FcBillboard&&) = delete;
 
      void placeInHandleTable();
      BillboardPushComponent& PushComponent() { return mPush; }

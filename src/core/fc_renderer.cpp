@@ -266,12 +266,13 @@ namespace fc
     mSkybox.loadTextures("..//models//skybox", ".jpg");
     // TODO should be more descriptive in name to show this has to happen after loadTextures
     mSkybox.init(mSceneDataDescriptorLayout);
-
+    //
     mShadowMap.init(this);
 
     //
     //mTerrain.init(this, "..//maps/simple.png");
-    mTerrain.init(this, "..//maps/metalplate01_rgba.ktx");
+    /* mTerrain.init(this, "..//maps/metalplate01_rgba.ktx"); */
+    mTerrain.init(this, "..//maps/terrain_heightmap_r16.ktx2");
     //mTerrain.init(this, "..//maps/terrain_heightmap_r16.ktx");
     // BUG may need render fence or semaphor
     // mTerrain.init(this, "..//maps/iceland_heightmap.png");

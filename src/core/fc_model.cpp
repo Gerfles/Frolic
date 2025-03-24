@@ -119,7 +119,6 @@ namespace fc {
 
     std::filesystem::path parentPath{filepath};
     parentPath = parentPath.parent_path();
-    std::cout << "parent path:" << parentPath.c_str() << std::endl;
 
     fastgltf::Asset gltf;
 
@@ -195,6 +194,7 @@ namespace fc {
         //images.push_back(fcImage);
         //mImages[gltfImage.name.c_str()] = fcImage;
         mImages.push_back(fcImage);// = fcImage;
+
       }
       else
       { // failed to load image so assign default image so we can continue loading scene
@@ -362,7 +362,12 @@ namespace fc {
       // std::cout << "Unimplemented properties for material - " << material.name << " :\n";
       if (material.alphaMode == fastgltf::AlphaMode::Mask)
       {
-        fcLog("AlphaMode Mask");
+        // TODO implement alpha flag for material and within pipeline (see below)
+        if (material.alphaCutoff != 0.0)
+        {
+          // TODO implement alpha flag for material and within pipeline
+          // TODO check and make sure that this property is always within alphaMode
+        }
       }
       if (material.sheen != nullptr)
       {
@@ -372,10 +377,7 @@ namespace fc {
           fcLog("Sheen Color Texture");
         }
       }
-      if (material.alphaCutoff != 0.0)
-      {
-        std::cout << "AlphaCutoff: " << material.alphaCutoff << "\n";
-      }
+
       if (material.transmission != nullptr)
       {
         if (material.transmission->transmissionTexture.has_value())
@@ -398,9 +400,6 @@ namespace fc {
       {
         fcLog("Iridescence Data");
       }
-      std::cout << "--------------------------------------------------------------" << std::endl;
-
-
 
       // Write material parameters to buffer.
       sceneMaterialConstants[dataIndex] = constants;

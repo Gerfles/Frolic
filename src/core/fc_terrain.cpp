@@ -15,7 +15,6 @@ namespace fc
   void FcTerrain::init(FcRenderer* renderer, std::filesystem::path filename)
   {
     pRenderer = renderer;
-
     // std::vector<glm::ivec2> tests(64 * 64);
     // for(size_t i = 0; i < 64; ++i)
     // {
@@ -77,13 +76,13 @@ namespace fc
     // How to render when image is minified on the screen
     samplerInfo.minFilter = VK_FILTER_LINEAR;
     // How to handle wrap in the U (x) direction
-    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
     // How to handle wrap in the V (y) direction
-    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
     // How to handle wrap in the W (z) direction
-    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
     // Border beyond texture (when clamp to border is used--good for shadow maps)
-    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_WHITE;
+    samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
     // WILL USE NORMALIZED COORD. (coords will be between 0-1)
     samplerInfo.unnormalizedCoordinates = VK_FALSE;
     // Mipmap interpolation mode (between two levels of mipmaps)
@@ -91,6 +90,7 @@ namespace fc
     // used to force vulkan to use lower level of detail and mip level
     samplerInfo.mipLodBias = 0.0f;
     samplerInfo.minLod = 0.0f;
+    samplerInfo.compareOp = VK_COMPARE_OP_NEVER;
 
     // maximum level of detail to pick mip level
     samplerInfo.maxLod = 1.0f;
@@ -177,12 +177,10 @@ namespace fc
   void FcTerrain::loadHeightmap(std::filesystem::path filename, uint32_t numPatches)
   {
     // TODO allow for deleting current height map and loading new one
-    // // TODO use grey instead
-    mHeightMap.loadKtx(filename);
-    //mHeightMap.loadTexture(filename);
+    mHeightMap.loadKtx(filename);//, VK_FORMAT_R16_UNORM);
+    //mHeightMap.loadTestImage(512, 512);
 
-    // TODO pass in
-    mNumPatches = 64;
+    mNumPatches = numPatches;
 
     generateTerrain();
   }
@@ -220,40 +218,58 @@ namespace fc
       for(uint32_t y = 0; y < mNumPatches; ++y)
       {
         index = x + y * mNumPatches;
-        vertices[index].position.x = x * wx + wx / 2.0f - static_cast<float>(mNumPatches) * wx / 2.0f;
-        //     // TODO same y for all verts -> delete
+
+        vertices[index].position.x =
+          x * wx + wx / 2.0f - static_cast<float>(mNumPatches) * wx / 2.0f;
+        // Y is always 0 since it will be determined within the shader
         vertices[index].position.y = 0.0f;
-        vertices[index].position.z = y * wy + wy / 2.0f - static_cast<float>(mNumPatches) * wy / 2.0f;
+
+        vertices[index].position.z =
+          y * wy + wy / 2.0f - static_cast<float>(mNumPatches) * wy / 2.0f;
+
         vertices[index].uv_x = static_cast<float>(x) / mNumPatches * uvScale;
         vertices[index].uv_y = static_cast<float>(y) / mNumPatches * uvScale;
       }
     }
 
     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   CALCULATE NORMALS   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    FcBuffer heightMapBuffer;
-    mHeightMap.copyToCPUAddress(heightMapBuffer);
-
+    mHeightMap.copyToCPUAddress();
+    FcLog log1("log2", true);
 
     // We break the heigt map down into mNumPatches grid and then sample from those patches
-    uint32_t pixelStepLength = mHeightMap.size().width / mNumPatches;
+    int pixelStepLength = mHeightMap.size().width / mNumPatches;
     int offsetX = 0; // the true x coord of pixel we want to sample from
     int offsetY = 0; // the true y coord of pixel we want to sample from
+    uint16_t pixel;
     //
-    for(uint32_t x = 0; x < mNumPatches; ++x)
+    for(int x = 0; x < mNumPatches; ++x)
     {
-      for(uint32_t y = 0; y < mNumPatches; ++y)
+      for(int y = 0; y < mNumPatches; ++y)
       {
         // Get height samples centered around current position using a sobel filter
         float heights[3][3];
-        for(uint32_t hx = -1; hx <= 1; ++hx)
+        for(int hx = -1; hx <= 1; ++hx)
         {
-          for(uint32_t hy = -1; hy <= 1; ++hy)
+          for(int hy = -1; hy <= 1; ++hy)
           {
-            offsetX = (x + hx) * pixelStepLength;
-            offsetY = (y + hy) * pixelStepLength;
-            // BUG?? make sure to check that pixelFetch is working as it should
+            int offsetX = (x + hx) * pixelStepLength;
+            int offsetY = (y + hy) * pixelStepLength;
+
+            mHeightMap.fetchPixel(offsetX, offsetY, pixel);
+            /* pixel = mHeightMap.saschaFetchPixel(offsetX, offsetY, pixelStepLength); */
             // Normalize pixel value to be in [0,1] range
-            heights[hx + 1][hy + 1] = mHeightMap.fetchPixel(offsetX, offsetY) / 65535.0f;
+            heights[hx + 1][hy + 1] = pixel / static_cast<double>(UINT16_MAX);
+
+            // USED FOR TESTING pixel values, DELETE eventually
+            if (true)//pixel != 0)
+            {
+            log1 << "x: " << offsetX << ", y: "  << offsetY
+                 << " | Raw: (" << pixel << ")"
+                 << " | Normalized: (" << heights[hx + 1][hy + 1] << ")"
+              // << " | PixelVal x: " << (pixel >> 16) <<  " y: " << (pixel & UINT16_MAX)
+              << "\n";
+            }
+
           }
         }
         // calculate the normal
@@ -274,7 +290,8 @@ namespace fc
     }
 
     // no longer need the mapped data
-    heightMapBuffer.destroy();
+    mHeightMap.destroyCpuCopy();
+    log1.closeLogOutput();
 
     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   GENERATE INDICES   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     uint32_t w = mNumPatches - 1;
@@ -294,7 +311,7 @@ namespace fc
       }
     }
 
-    // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE MESH   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    // Create the final mesh
     mMesh.uploadMesh(std::span(vertices), std::span(indices));
   }
 
