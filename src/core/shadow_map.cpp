@@ -349,6 +349,7 @@ namespace fc
                             , 0, 1, &mShadowMapDescriptorSet, 0, nullptr);
 
     ShadowPushConstants push;
+    // TODO check if data exceeds typical PC limits
     // Display shadow map does not use model matrix so we use two of the elements of matrix to send znear and zfar
     push.modelMatrix = glm::mat4{1.0f};
     push.modelMatrix[0][0] = mFrustum.near;

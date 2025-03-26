@@ -241,8 +241,8 @@ namespace fc
                                       , VK_SHADER_STAGE_VERTEX_BIT
                                       // TODO DELETE after separating model from scene
                                       | VK_SHADER_STAGE_FRAGMENT_BIT
-                                      | VK_SHADER_STAGE_GEOMETRY_BIT
-                                      | VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
+                                      | VK_SHADER_STAGE_GEOMETRY_BIT);
+
     // TODO find out if there is any cost associated with binding to multiple un-needed stages...
     //, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
 
@@ -754,6 +754,7 @@ namespace fc
   }
 
 
+  // TODO should pass in variables from frolic.cpp here
   void FcRenderer::updateScene()
   {
     mTimer.start();
@@ -773,12 +774,17 @@ namespace fc
     glm::mat4 translationMat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 3.0f, 0.0f));
     structure.update(translationMat * rotationMatrix);
     structure.draw(mainDrawContext);
-
     // glm::mat4 translationMat = glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 0.0f, 18.0f));
     // structure2.update(translationMat);
      structure2.draw(mainDrawContext);
 
-
+     // TODO
+     // could update frustum by sending camera in and then could in turn be sent to
+     // various rendering methods
+     mFrustum.update(pSceneData->projection * pSceneData->view);
+     // TEST if needed
+     mFrustum.normalize();
+     mTerrain.update(mFrustum);
 
     // ?? elapsed time should already be in ms
     stats.sceneUpdateTime = mTimer.elapsedTime();
@@ -1148,7 +1154,8 @@ namespace fc
     }
 
     mSkybox.draw(cmd, &getCurrentFrame().sceneDataDescriptorSet);
-    mTerrain.draw(cmd, &getCurrentFrame().sceneDataDescriptorSet);
+
+    mTerrain.draw(cmd, pSceneData);
 
     vkCmdEndRendering(cmd);
 

@@ -67,11 +67,11 @@ namespace fc
     //   mYaw += TWO_PI;
     // }
 
-    glm::quat pitchRotation = glm::angleAxis(mPitch, glm::vec3{1.f, 0.f, 0.f});
-    glm::quat yawRotation = glm::angleAxis(mYaw, glm::vec3{0.f, -1.f, 0.f});
+    glm::quat pitch = glm::angleAxis(mPitch, glm::vec3{1.f, 0.f, 0.f});
+    glm::quat yaw = glm::angleAxis(mYaw, glm::vec3{0.f, -1.f, 0.f});
 
-    mRotationMatrix = glm::toMat4(yawRotation * pitchRotation);
-
+    mRotationMatrix = glm::toMat4(yaw * pitch);
+    //mRotationMatrix = glm::toMat4(yaw)  * glm::toMat4(pitch);
     mPosition += glm::vec3(mRotationMatrix * glm::vec4(mVelocity * mMoveSpeed, 0.f)) * dt;
   }
 

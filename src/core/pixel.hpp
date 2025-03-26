@@ -18,8 +18,8 @@ namespace fc
   {
    private:
      u64 mValue;
+     u64 mNormalizationFactor;
      int mBytesPerChanel;
-
    public:
      FcPixel(FcImage image);
      float normalize();

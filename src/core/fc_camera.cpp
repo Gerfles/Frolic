@@ -21,8 +21,9 @@ namespace fc
     // to create a correct model view, we need to move the world in the opposite direction
     // to the camera. So first create camera model matrix, then invert
     glm::mat4 cameraTranslation = glm::translate(glm::mat4(1.f), mPosition);
-    // glm::mat4 cameraRotation = getRotationMatrix();
-    glm::mat4 inverseViewMatrix = (mCameraRotation * cameraTranslation);
+
+    //glm::mat4 cameraRotation = getRotationMatrix();
+    //glm::mat4 inverseViewMatrix = (mCameraRotation * cameraTranslation);
 
     //glm::vec3
     //mInverseView = inverseViewMatrix[3];
@@ -30,9 +31,9 @@ namespace fc
     //glm::vec3 mInverseView = glm::vec3(0,0,0);
 
     //return glm::inverse(inverseViewMatrix);
-    glm::mat4 viewMatrix = glm::inverse(cameraTranslation * mCameraRotation);
+    //glm::mat4 viewMatrix =
 
-    return viewMatrix;
+    return glm::inverse(cameraTranslation * mCameraRotation);
     // TRY
     //return glm::inverse(mCameraRotation * cameraTranslation);
     //return inverseViewMatrix;

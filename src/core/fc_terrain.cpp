@@ -8,6 +8,7 @@
 #include <stb_image.h>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
 #include <filesystem>
+#include <glm/ext/matrix_clip_space.hpp>
 
 
 namespace fc
@@ -15,6 +16,7 @@ namespace fc
   void FcTerrain::init(FcRenderer* renderer, std::filesystem::path filename)
   {
     pRenderer = renderer;
+
     // std::vector<glm::ivec2> tests(64 * 64);
     // for(size_t i = 0; i < 64; ++i)
     // {
@@ -59,11 +61,22 @@ namespace fc
 
     // printIOtable(tests, lambda);
 
-
     createSampler();
     loadHeightmap(filename, 64);
     // TODO Must reinitialize pipelines if new heightmap is loaded it seems
     initPipelines();
+
+    // Initialize uniform buffer object
+
+    ubo.tessellationFactor = 0.75f;
+    // TODO allow tess factor to be set to zero to allow passthrough
+    // TODO document -> desired size of the tessellated quad patch edge
+    ubo.tessellatedEdgeSize = 20.0f;
+    ubo.displacementFactor = 32.0f;
+    // TODO clarify screen dim vs screen pix
+    //ubo.viewportDim = {renderer->ScreenWidth(), renderer->ScreenHeight()};
+    ubo.viewportDim = {1200, 900};
+    mModelTransform = glm::mat4{1.0f};
   }
 
   // TODO DELETE after creating sampler atlas
@@ -129,7 +142,8 @@ namespace fc
 
     terrainPipeline.setInputTopology(VK_PRIMITIVE_TOPOLOGY_PATCH_LIST);
     terrainPipeline.setPolygonMode(VK_POLYGON_MODE_FILL);
-    terrainPipeline.setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+    /* terrainPipeline.setPolygonMode(VK_POLYGON_MODE_LINE); */
+    terrainPipeline.setCullMode(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
 
     terrainPipeline.enableDepthtest(VK_TRUE, VK_COMPARE_OP_GREATER_OR_EQUAL);
     terrainPipeline.setMultiSampling(FcLocator::Gpu().Properties().maxMsaaSamples);
@@ -145,6 +159,8 @@ namespace fc
     //
     terrainPipeline.addPushConstants(vertexShaderPCs);
 
+    // TODO should no longer pass model matrix but could pass a different matrix perhaps
+    // and cut down on ubo if that matters
     VkPushConstantRange tessellationShaderPCs;
     tessellationShaderPCs.stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
 
@@ -154,16 +170,27 @@ namespace fc
     terrainPipeline.addPushConstants(tessellationShaderPCs);
 
     // Setup descriptor sets
-    terrainPipeline.addDescriptorSetLayout(pRenderer->getSceneDescriptorLayout());
-
     FcDescriptorBindInfo bindInfo{};
-    bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-                        , VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
 
-    bindInfo.attachImage(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, mHeightMap
+    // set up buffer
+    mUboBuffer.allocateBuffer(sizeof(UBO), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+
+    // TODO do in one functioncall overload if need be but first check to see if ever separate
+    bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
+                        , VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT
+                        | VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
+
+    bindInfo.attachBuffer(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, mUboBuffer, sizeof(UBO), 0);
+
+    bindInfo.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+                        , VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT
+                        | VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
+
+    bindInfo.attachImage(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, mHeightMap
                          , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, mHeightMapSampler);
 
     FcDescriptorClerk& deskClerk = FcLocator::DescriptorClerk();
+    // TODO do in one function call overload
     mHeightMapDescriptorLayout = deskClerk.createDescriptorSetLayout(bindInfo);
     mHeightMapDescriptor = deskClerk.createDescriptorSet(mHeightMapDescriptorLayout
                                                          , bindInfo);
@@ -171,6 +198,8 @@ namespace fc
     terrainPipeline.addDescriptorSetLayout(mHeightMapDescriptorLayout);
 
     mPipeline.create(terrainPipeline);
+
+    // TODO create wireframe pipeline
   }
 
   // TODO place check or automatically delete previously loaded heightmap
@@ -182,13 +211,13 @@ namespace fc
 
     mNumPatches = numPatches;
 
+
     generateTerrain();
   }
 
   // TODO document lots / full class
   void FcTerrain::generateTerrain()
   {
-    // TODO place inside generate terrain
     // // TODO allow to pass in the values for scale and shift during initialization
     // // Height in texel will be in range [0,255], yScale will convert that range to [0.0f,64.0f]
     // float yScale = 64.f / 256.f;
@@ -234,7 +263,7 @@ namespace fc
 
     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   CALCULATE NORMALS   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     mHeightMap.copyToCPUAddress();
-    FcLog log1("log2", true);
+    //FcLog log1("log2", true);
 
     // We break the heigt map down into mNumPatches grid and then sample from those patches
     int pixelStepLength = mHeightMap.size().width / mNumPatches;
@@ -261,15 +290,14 @@ namespace fc
             heights[hx + 1][hy + 1] = pixel / static_cast<double>(UINT16_MAX);
 
             // USED FOR TESTING pixel values, DELETE eventually
-            if (true)//pixel != 0)
-            {
-            log1 << "x: " << offsetX << ", y: "  << offsetY
-                 << " | Raw: (" << pixel << ")"
-                 << " | Normalized: (" << heights[hx + 1][hy + 1] << ")"
-              // << " | PixelVal x: " << (pixel >> 16) <<  " y: " << (pixel & UINT16_MAX)
-              << "\n";
-            }
-
+            // if (true)//pixel != 0)
+            // {
+            // log1 << "x: " << offsetX << ", y: "  << offsetY
+            //      << " | Raw: (" << pixel << ")"
+            //      << " | Normalized: (" << heights[hx + 1][hy + 1] << ")"
+            //   // << " | PixelVal x: " << (pixel >> 16) <<  " y: " << (pixel & UINT16_MAX)
+            //   << "\n";
+            // }
           }
         }
         // calculate the normal
@@ -291,13 +319,12 @@ namespace fc
 
     // no longer need the mapped data
     mHeightMap.destroyCpuCopy();
-    log1.closeLogOutput();
+    //log1.closeLogOutput();
 
     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   GENERATE INDICES   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     uint32_t w = mNumPatches - 1;
     mNumIndices = w * w * 4;
     std::vector<uint32_t> indices(mNumIndices);
-
 
     for(uint32_t x = 0; x < w; ++x)
     {
@@ -316,25 +343,38 @@ namespace fc
   }
 
 
-
-
-
-  void FcTerrain::draw(VkCommandBuffer cmd, VkDescriptorSet* sceneDataDescriptors)
+  void FcTerrain::update(FcFrustum& frustum)
   {
+    // update the frustum after view has potentially changed
+    // TODO make sure we aren't duplicating operations anywhere with m, mv, mvp, vp, etc.
+    memcpy(ubo.frustumPlanes, frustum.Planes().data(), sizeof(glm::vec4) * 6);
+  }
+
+
+  void FcTerrain::draw(VkCommandBuffer cmd, SceneData* pSceneData)
+  {
+
+    ubo.modelView = pSceneData->view;// * mModelTransform;
+    glm::mat4 proj = glm::perspective(60.f, 12.f / 9.f, 512.f, 0.1f);
+    ubo.projection = pSceneData->projection;
+    ubo.modelViewProj = ubo.projection * ubo.modelView;
+    // TODO might prefer to update the frustum here instead
+
+    //printMat(ubo.modelViewProj);
+    mUboBuffer.overwriteData(&ubo, sizeof(UBO));
+
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.getVkPipeline());
 
     // TODO abstract bind descriptor sets to make less error prone!
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.Layout()
-                            , 0, 1, sceneDataDescriptors, 0, nullptr);
-
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.Layout()
-                            , 1, 1, &mHeightMapDescriptor, 0, nullptr);
+                            , 0, 1, &mHeightMapDescriptor, 0, nullptr);
 
     // TODO abstract to mesh class
     vkCmdBindIndexBuffer(cmd, mMesh.IndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
     VertexBufferPCs pushConstants;
     pushConstants.address = mMesh.VertexBufferAddress();
+    // TODO simp
     pushConstants.padding = mMesh.VertexBufferAddress();
 
     // BUG
@@ -344,7 +384,7 @@ namespace fc
     // DELETE and relocate model to sceneData eventually
     glm::mat4 model = glm::mat4(1.0f);
 
-    //
+    // BUG no longer need to pass model here
     vkCmdPushConstants(cmd, mPipeline.Layout()
                        , VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT
                        , sizeof(VertexBufferPCs), sizeof(glm::mat4), &model);

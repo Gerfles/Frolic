@@ -1,7 +1,8 @@
 #pragma once
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "core/fc_mesh.hpp"
+#include "fc_mesh.hpp"
+#include "fc_frustum.hpp"
 #include "fc_terrain.hpp"
 #include "shadow_map.hpp"
 #include "fc_skybox.hpp"
@@ -84,8 +85,11 @@ namespace fc
      FcGpu mGpu;
 //     FcDescriptor mDescriptorManager;
      FcSwapChain mSwapchain;
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   VIEWING   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      VkViewport mDynamicViewport{};
      VkRect2D mDynamicScissors{};
+     FcFrustum mFrustum;
+
       // TODO delete (now in FrameData)
      // std::vector<VkSemaphore> mImageReadySemaphores;
      // std::vector<VkSemaphore> mRenderFinishedSemaphores;
@@ -160,6 +164,7 @@ namespace fc
      VkDescriptorSetLayout mSingleImageDescriptorLayout;
      VkDescriptorSetLayout mBackgroundDescriptorlayout;
 
+     // TODO should probably pass this in each frame
      SceneData* pSceneData;
 
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DEFAULTS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
