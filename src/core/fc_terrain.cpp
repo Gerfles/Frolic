@@ -106,7 +106,7 @@ namespace fc
     samplerInfo.compareOp = VK_COMPARE_OP_NEVER;
 
     // maximum level of detail to pick mip level
-    samplerInfo.maxLod = 1.0f;
+    samplerInfo.maxLod = 0.0f;
     // enable anisotropy
     samplerInfo.anisotropyEnable = VK_FALSE;
     // TODO should allow this to be user definable or at least profiled at install/runtime
@@ -143,7 +143,7 @@ namespace fc
     terrainPipeline.setInputTopology(VK_PRIMITIVE_TOPOLOGY_PATCH_LIST);
     terrainPipeline.setPolygonMode(VK_POLYGON_MODE_FILL);
     /* terrainPipeline.setPolygonMode(VK_POLYGON_MODE_LINE); */
-    terrainPipeline.setCullMode(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+    terrainPipeline.setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE);
 
     terrainPipeline.enableDepthtest(VK_TRUE, VK_COMPARE_OP_GREATER_OR_EQUAL);
     terrainPipeline.setMultiSampling(FcLocator::Gpu().Properties().maxMsaaSamples);
@@ -197,9 +197,17 @@ namespace fc
 
     terrainPipeline.addDescriptorSetLayout(mHeightMapDescriptorLayout);
 
+    // Create the Mesh pipeline
     mPipeline.create(terrainPipeline);
 
-    // TODO create wireframe pipeline
+    // Create wireframe pipeline
+    // TODO check for capability
+    if (true)
+    {
+      terrainPipeline.setPolygonMode(VK_POLYGON_MODE_LINE);
+      mWireframePipeline.create(terrainPipeline);
+    }
+
   }
 
   // TODO place check or automatically delete previously loaded heightmap
@@ -351,11 +359,10 @@ namespace fc
   }
 
 
-  void FcTerrain::draw(VkCommandBuffer cmd, SceneData* pSceneData)
+  void FcTerrain::draw(VkCommandBuffer cmd, SceneData* pSceneData, bool drawWireframe)
   {
 
-    ubo.modelView = pSceneData->view;// * mModelTransform;
-    glm::mat4 proj = glm::perspective(60.f, 12.f / 9.f, 512.f, 0.1f);
+    ubo.modelView = pSceneData->view * mModelTransform;
     ubo.projection = pSceneData->projection;
     ubo.modelViewProj = ubo.projection * ubo.modelView;
     // TODO might prefer to update the frustum here instead
@@ -363,7 +370,16 @@ namespace fc
     //printMat(ubo.modelViewProj);
     mUboBuffer.overwriteData(&ubo, sizeof(UBO));
 
-    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.getVkPipeline());
+    if (drawWireframe)
+    {
+      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS
+                        , mWireframePipeline.getVkPipeline());
+    }
+    else
+    {
+      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS
+                        , mPipeline.getVkPipeline());
+    }
 
     // TODO abstract bind descriptor sets to make less error prone!
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.Layout()

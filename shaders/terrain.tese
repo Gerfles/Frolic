@@ -6,30 +6,32 @@ layout (quads, equal_spacing, cw) in;
 
 // TODO might want to consider a smaller uniform specific to terrain
 // ?? Learn the best practices surrounding this (probably want to break it up into multiple uniforms based on always used vs. somtimes used)
-layout(std140, set = 0, binding = 0) uniform SceneData
-{
-  vec4 eye;
-  mat4 view;
-  mat4 proj;
-  mat4 viewProj;
-  mat4 lightSpaceTransform;
-  vec4 ambientColor;
-  vec4 sunDirection;
-  vec4 sunColor;
-  //
-} scene;
 
-layout(set = 1, binding = 0) uniform sampler2D heightMap;
+layout(std140, set = 0, binding = 0) uniform UBO
+{
+  mat4 projection;
+  mat4 modelView;
+  mat4 modelViewProj;
+  vec4 frustumPlanes[6];
+  float displacementFactor;
+  float tessellationFactor;
+  vec2 viewportDim;
+  float tessellatedEdgeSize;
+} ubo;
+
+layout(set = 0, binding = 1) uniform sampler2D heightMap;
 
 // Input texture coordinates from tessellation control shader
 layout (location = 0) in vec2 inTexCoord[];
 layout (location = 1) in vec3 inNormal[];
+layout (location = 2) in vec4 inColor[];
 
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   OUTPUT   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 // output height to frag shader for coloring
 layout (location = 0) out float height;
 layout (location = 1) out vec2 outTexCoord;
 layout (location = 2) out vec3 outNormal;
+layout (location = 3) out vec4 outColor;
 
 layout(push_constant, std430) uniform constants
 {
@@ -51,6 +53,12 @@ void main()
   vec3 n1 = mix(inNormal[0], inNormal[1], gl_TessCoord.x);
   vec3 n2 = mix(inNormal[3], inNormal[2], gl_TessCoord.x);
   outNormal = mix(n1, n2, gl_TessCoord.y);
+
+  // vec2 color = mix(inColor[0], inColor[1], gl_TessCoord.x);
+  // vec2 texCoord2 = mix(inColor[3], inColor[2], gl_TessCoord.x);
+  // outTexCoord = mix(color1, color1, gl_TessCoord.y);
+  outColor = inColor[0];
+
 
   // // get patch coordinate
   // float u = gl_TessCoord.x;
@@ -76,8 +84,7 @@ void main()
   height = textureLod(heightMap, outTexCoord, 0.0).r * 32.0;
   position.y += height;
 
-
-  gl_Position = scene.viewProj * push.model * position;
+  gl_Position = ubo.modelViewProj * position;
 
 
   // lookup texel at patch coordinate for height and scale + shift as desired

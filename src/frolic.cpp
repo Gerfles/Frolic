@@ -17,12 +17,15 @@
 #include "SDL2/SDL_version.h"
 #include "SDL2/SDL_video.h"
 //
+
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_vulkan.h"
 //
+
 #include "vulkan/vulkan_core.h"
 //
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/transform.hpp>
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <cstdint>
@@ -78,6 +81,7 @@ namespace fc
     if (mRenderer.init(appInfo, screenDims) != EXIT_SUCCESS)
     {
       mShouldClose = true;
+      return;
     }
 
     mSceneDataBuffer.allocateBuffer(sizeof(SceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
@@ -194,6 +198,7 @@ namespace fc
     pipelineConfig.shaders[0].stageFlag = VK_SHADER_STAGE_COMPUTE_BIT;
 
     VkPushConstantRange pushRange;
+
     pushRange.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
     pushRange.offset = 0;
     pushRange.size = sizeof(ComputePushConstants);
@@ -236,8 +241,8 @@ namespace fc
 
     uvnPlayer.setPosition(glm::vec3(0.f, 0.f, 2.f));
 
-    player.Camera().setPerspectiveProjection(66.0f, FcLocator::ScreenDims().width
-                                             , FcLocator::ScreenDims().height, 500.f, 0.1f);
+    player.Camera().setPerspectiveProjection(60.0f, FcLocator::ScreenDims().width
+                                             , FcLocator::ScreenDims().height, 512.f, 0.1f);
 
     /* player.Camera().setOrthographicProjection(-5.f, 5.f, -5.f, 5.f, 30.f, 0.1f); */
 
@@ -417,6 +422,13 @@ namespace fc
       // BUG collapsing the control panel kills the program
       if (ImGui::Begin("Scene Data"))
       {
+        // TODO update all options with bitfields instead of bools
+
+
+        if (ImGui::Checkbox("Wire Frame", &mRenderer.drawWireframe))
+        {
+          // b
+        }
         if (ImGui::Checkbox("Color Texture", &mUseColorTexture))
         {
           mRenderer.setColorTextureUse(mUseColorTexture);
@@ -451,7 +463,7 @@ namespace fc
         ImGui::SetNextItemWidth(60);
         ImGui::SliderInt("Model Rotation Speed", &mRenderer.rotationSpeed, -5, 5);
         ImGui::SetNextItemWidth(60);
-        ImGui::SliderFloat("Movement Speed", &player.moveSpeed(), 1, 10, "%.1f");
+        ImGui::SliderFloat("Movement Speed", &player.moveSpeed(), 1, 50, "%.1f");
         ImGui::Checkbox("Cycle", &mCycleExpansion);
 
         if (mCycleExpansion)

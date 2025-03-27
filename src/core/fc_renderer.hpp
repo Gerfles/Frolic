@@ -199,6 +199,7 @@ namespace fc
      float expansionFactor{0};
      bool mDrawNormalVectors {false};
      bool mDrawBoundingBoxes {false};
+     bool drawWireframe {false};
      int mBoundingBoxId {-1};
 
 

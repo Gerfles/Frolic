@@ -1155,7 +1155,7 @@ namespace fc
 
     mSkybox.draw(cmd, &getCurrentFrame().sceneDataDescriptorSet);
 
-    mTerrain.draw(cmd, pSceneData);
+    mTerrain.draw(cmd, pSceneData, drawWireframe);
 
     vkCmdEndRendering(cmd);
 

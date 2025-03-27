@@ -38,6 +38,8 @@ namespace fc
      VkDescriptorSet mHeightMapDescriptor;
      FcMesh mMesh;
      FcPipeline mPipeline;
+     // wire frame meshes
+     FcPipeline mWireframePipeline;
      FcRenderer* pRenderer;
      uint32_t mNumIndices;
      uint32_t mPixelDensity;
@@ -50,6 +52,6 @@ namespace fc
      void update(FcFrustum& frustum);
      void loadHeightmap(std::filesystem::path filename, uint32_t numPatches);
      void generateTerrain();
-     void draw(VkCommandBuffer cmdBuffer, SceneData* pSceneData);
+     void draw(VkCommandBuffer cmdBuffer, SceneData* pSceneData, bool drawWireFrame);
   };
 }// --- namespace fc --- (END)

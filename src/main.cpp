@@ -1,5 +1,6 @@
 
 //#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_ENABLE_EXPERIMENTAL
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "frolic.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -11,7 +12,6 @@
 #include <stdexcept>
 
 
-
 int main(int argc, char* argv[])
 {
    // Cmake injects the NDEBUG symbols by default
@@ -20,6 +20,8 @@ int main(int argc, char* argv[])
   #else
    std::cout << "\n-Release Build-" << std::endl;
   #endif
+
+   fc::initEnv();
 
    fc::Frolic frolic;
 

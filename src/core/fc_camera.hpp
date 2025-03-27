@@ -4,6 +4,10 @@
 #include "glm/mat4x4.hpp"
 
 // TODO lots of redundancies with fc_player, may want to couple better
+
+// TODO implement an AlignWith function that aligns the view with one of the
+// cardinal axis
+
 namespace fc
 {
   class FcPlayer;
