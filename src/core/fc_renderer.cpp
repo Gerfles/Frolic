@@ -188,13 +188,16 @@ namespace fc
     pSceneData = sceneData;
     // -*-*-*-*-   3 DEFAULT TEXTURES--WHITE, GREY, BLACK AND CHECKERBOARD   -*-*-*-*- //
     uint32_t white = glm::packUnorm4x8(glm::vec4(1.f, 1.f, 1.f, 1.f));
-    mWhiteTexture.createTexture(VkExtent3D{1,1,1}, static_cast<void*>(&white), sizeof(white));
+    mWhiteTexture.createTexture(VkExtent3D{1,1,1}, static_cast<void*>(&white)
+                                , sizeof(white), ImageTypes::Custom);
 
     uint32_t grey = glm::packUnorm4x8(glm::vec4(0.36f, 0.36f, 0.36f, 1.f));
-    mGreyTexture.createTexture(VkExtent3D{1,1,1}, static_cast<void*>(&grey), sizeof(grey));
+    mGreyTexture.createTexture(VkExtent3D{1,1,1}, static_cast<void*>(&grey)
+                               , sizeof(grey), ImageTypes::Custom);
 
     uint32_t black = glm::packUnorm4x8(glm::vec4(0.f, 0.f, 0.f, 1.f));
-    mBlackTexture.createTexture(VkExtent3D{1,1,1}, static_cast<void*>(&black), sizeof(black));
+    mBlackTexture.createTexture(VkExtent3D{1,1,1}, static_cast<void*>(&black)
+                                , sizeof(black), ImageTypes::Custom);
 
     // checkerboard image
     uint32_t checkerColor = glm::packUnorm4x8(glm::vec4(1.f, 0.f, 1.f, 1.f));
@@ -206,7 +209,9 @@ namespace fc
         pixels[y * 16 + x] = ((x % 2) ^ (y % 2)) ? checkerColor : black;
       }
     }
-    mCheckerboardTexture.createTexture({16, 16, 1}, static_cast<void*>(&pixels), pixels.size() * sizeof(pixels[0]));
+    mCheckerboardTexture.createTexture({16, 16, 1}, static_cast<void*>(&pixels)
+                                       , pixels.size() * sizeof(pixels[0])
+                                       , ImageTypes::Custom);
 
     VkSamplerCreateInfo samplerInfo{};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -590,7 +595,9 @@ namespace fc
     imgUse |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
     // hardcoding the draw format to 32 bit float
-    mDrawImage.create(drawImgExtent, VK_FORMAT_R16G16B16A16_SFLOAT, imgUse
+    mDrawImage.create(drawImgExtent, VK_FORMAT_R16G16B16A16_SFLOAT
+                      , ImageTypes::Custom
+                      , imgUse
                       , VK_IMAGE_ASPECT_COLOR_BIT, FcLocator::Gpu().Properties().maxMsaaSamples);
 
 
@@ -612,8 +619,9 @@ namespace fc
 
     // -*-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE DEPTH IMAGE   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
     imgUse = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    mDepthImage.create(drawImgExtent, VK_FORMAT_D32_SFLOAT, imgUse
-                       , VK_IMAGE_ASPECT_DEPTH_BIT, FcLocator::Gpu().Properties().maxMsaaSamples);
+    mDepthImage.create(drawImgExtent, VK_FORMAT_D32_SFLOAT, ImageTypes::Custom
+                       , imgUse, VK_IMAGE_ASPECT_DEPTH_BIT
+                       , FcLocator::Gpu().Properties().maxMsaaSamples);
 
     // TODO provide for these to change if VK_ERROR_OUT_OF_DATE_KHR, etc.
     mDrawExtent.height = std::min(mSwapchain.getSurfaceExtent().height

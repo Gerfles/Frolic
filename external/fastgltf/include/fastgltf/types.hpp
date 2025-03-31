@@ -176,7 +176,7 @@ namespace fastgltf {
         Double          = (7 << 13) | 5130,
     };
 
-    FASTGLTF_EXPORT enum class Filter : std::uint16_t {
+  FASTGLTF_EXPORT enum class Filter : std::uint16_t {
         Nearest = 9728,
         Linear = 9729,
         NearestMipMapNearest = 9984,
@@ -185,7 +185,7 @@ namespace fastgltf {
         LinearMipMapLinear = 9987,
     };
 
-    FASTGLTF_EXPORT enum class Wrap : std::uint16_t {
+  FASTGLTF_EXPORT enum class Wrap : std::uint16_t {
         ClampToEdge = 33071,
         MirroredRepeat = 33648,
         Repeat = 10497,

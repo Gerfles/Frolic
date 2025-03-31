@@ -67,6 +67,7 @@ namespace fc
     mPipeline.create(pipelineConfig);
   }
 
+
   // Must provide a file path and then the load will do the rest assumming things are named correctly as
   // top.jpg or whatever...
   // 1st = right
@@ -91,6 +92,8 @@ namespace fc
       filenames[i] = parentPath + "//" + sides[i] + extension;
     }
 
+
+    // TODO use new ImageType::Cubemap instead
     mCubeImage.loadCubeMap(filenames);
   }
 

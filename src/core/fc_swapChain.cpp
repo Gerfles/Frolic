@@ -371,7 +371,8 @@ namespace fc
          // TODO DELETE
     VkExtent3D temp = {mSurfaceExtent.width, mSurfaceExtent.height, 1};
 
-    mDepthBufferImage.create(temp, depthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
+    mDepthBufferImage.create(temp, depthFormat, ImageTypes::Custom
+                             , VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
                              , VK_IMAGE_ASPECT_DEPTH_BIT, pGpu->Properties().maxMsaaSamples);
   }
 

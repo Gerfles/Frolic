@@ -4,20 +4,18 @@
 // varying input from vertex shader
 layout (location = 0) in vec2 inTexCoord[];
 layout (location = 1) in vec3 inNormal[];
+
 // specify number of control points per patch output, this value controls the size of the I/O arrays
 layout (vertices = 4) out;
-
-// varying output to tesselation evaluation shader
 layout (location = 0) out vec2 outTexCoord[];
 layout (location = 1) out vec3 outNormal[];
-layout (location = 2) out vec4 color[];
-
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
   mat4 projection;
   mat4 modelView;
   mat4 modelViewProj;
+  vec4 lightPos;
   vec4 frustumPlanes[6];
   float displacementFactor;
   float tessellationFactor;
@@ -25,6 +23,7 @@ layout(std140, set = 0, binding = 0) uniform UBO
   float tessellatedEdgeSize;
 } ubo;
 
+// DELETE don't believe its needed here without using sascha method
 layout(set = 0, binding = 1) uniform sampler2D heightMap;
 
 bool checkFrustum();
@@ -35,8 +34,8 @@ const int MIN_TESS_LEVEL = 1;
 const int MAX_TESS_LEVEL = 32;
 // This would be the minimum distance to reduce tessellation, anything closer
 // than that will automatically be at max tessellation level
-const float MIN_DISTANCE = 1.0;
-const float MAX_DISTANCE = 30.0;
+const float MIN_DISTANCE = 15.0;
+const float MAX_DISTANCE = 60.0;
 
 void main()
 {
@@ -44,16 +43,6 @@ void main()
   gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
   outTexCoord[gl_InvocationID] = inTexCoord[gl_InvocationID];
   outNormal[gl_InvocationID] = inNormal[gl_InvocationID];
-
-  ivec2 size = textureSize(heightMap, 0);
-  if (int(inTexCoord[gl_InvocationID].x * size.x) % 64 == 0)
-  {
-    color[gl_InvocationID] = vec4(1.0, 0.0, 0.0, 1.0);
-  }
-  else
-  {
-    color[gl_InvocationID] = vec4(1.0, 1.0, 1.0, 1.0);
-  }
 
   // invocation zero controls tessellation levels for the entire patch
   if (gl_InvocationID == 0)
@@ -121,13 +110,17 @@ void main()
       gl_TessLevelInner[1] = max(tessLevel0, tessLevel2);
       gl_TessLevelInner[0] = max(tessLevel1, tessLevel3);
 
-      // // SASCHA METHOD Doesn't seem to work well close up as the tess levels
+      // SASCHA METHOD Doesn't seem to work well close up as the tess levels
       // change drastically based on your viewing angle
-      // // Outer perimeter tesselation
-      // gl_TessLevelOuter[0] = calcTessellationFactor(gl_in[3].gl_Position, gl_in[0].gl_Position);
-      // gl_TessLevelOuter[1] = calcTessellationFactor(gl_in[0].gl_Position, gl_in[1].gl_Position);
-      // gl_TessLevelOuter[2] = calcTessellationFactor(gl_in[1].gl_Position, gl_in[2].gl_Position);
-      // gl_TessLevelOuter[3] = calcTessellationFactor(gl_in[2].gl_Position, gl_in[3].gl_Position);
+      // Outer perimeter tesselation
+      // gl_TessLevelOuter[0] = calcTessellationFactor(gl_in[3].gl_Position
+      //                                               , gl_in[0].gl_Position);
+      // gl_TessLevelOuter[1] = calcTessellationFactor(gl_in[0].gl_Position
+      //                                               , gl_in[1].gl_Position);
+      // gl_TessLevelOuter[2] = calcTessellationFactor(gl_in[1].gl_Position
+      //                                               , gl_in[2].gl_Position);
+      // gl_TessLevelOuter[3] = calcTessellationFactor(gl_in[2].gl_Position
+      //                                               , gl_in[3].gl_Position);
       // // Inner perimeter tesselation
       // gl_TessLevelInner[0] = mix(gl_TessLevelOuter[0], gl_TessLevelOuter[3], 0.5);
       // gl_TessLevelInner[1] = mix(gl_TessLevelOuter[2], gl_TessLevelOuter[1], 0.5);
@@ -140,7 +133,7 @@ bool checkFrustum()
 {
   // TODO don't hard-code
   // Sphere radius is set based on patch size (increase if numPatches is increased)
-  const float radius = 4.0f; // 8.0f;
+  const float radius = 6.0f; // 8.0f;
   // TODO test if we could set the displacement factor within generateTerrain() by setting
   // position.y to the displacement factor and *= instead, since it doesn't ever seem like
   // we would have a need to alter the displacement factor once map is set??

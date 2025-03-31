@@ -24,7 +24,8 @@ namespace fc
     depthFormat = VK_FORMAT_D32_SFLOAT;
 
     imgUse = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-    mShadowMapImage.create(VkExtent3D{shadowMapSize, shadowMapSize, 1}, depthFormat, imgUse
+    mShadowMapImage.create(VkExtent3D{shadowMapSize, shadowMapSize, 1}, depthFormat,
+                           ImageTypes::Custom, imgUse
                            , VK_IMAGE_ASPECT_DEPTH_BIT, VK_SAMPLE_COUNT_1_BIT);
     createSampler();
     initPipelines();

@@ -12,6 +12,7 @@ layout(std140, set = 0, binding = 0) uniform UBO
   mat4 projection;
   mat4 modelView;
   mat4 modelViewProj;
+  vec4 lightPos;
   vec4 frustumPlanes[6];
   float displacementFactor;
   float tessellationFactor;
@@ -24,14 +25,17 @@ layout(set = 0, binding = 1) uniform sampler2D heightMap;
 // Input texture coordinates from tessellation control shader
 layout (location = 0) in vec2 inTexCoord[];
 layout (location = 1) in vec3 inNormal[];
-layout (location = 2) in vec4 inColor[];
 
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   OUTPUT   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 // output height to frag shader for coloring
 layout (location = 0) out float height;
 layout (location = 1) out vec2 outTexCoord;
 layout (location = 2) out vec3 outNormal;
-layout (location = 3) out vec4 outColor;
+layout (location = 3) out vec3 outViewVec;
+layout (location = 4) out vec3 outLightVec;
+layout (location = 5) out vec3 outEyePos;
+layout (location = 6) out vec3 outWorldPos;
+
 
 layout(push_constant, std430) uniform constants
 {
@@ -44,22 +48,38 @@ layout(push_constant, std430) uniform constants
 
 void main()
 {
+  // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   TEXTURE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
   // Interpolate UV coordinates
   vec2 texCoord1 = mix(inTexCoord[0], inTexCoord[1], gl_TessCoord.x);
   vec2 texCoord2 = mix(inTexCoord[3], inTexCoord[2], gl_TessCoord.x);
   outTexCoord = mix(texCoord1, texCoord2, gl_TessCoord.y);
 
+  // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   POSITION   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+  // Interpolate positions
+  vec4 pos1 = mix(gl_in[0].gl_Position, gl_in[1].gl_Position, gl_TessCoord.x);
+  vec4 pos2 = mix(gl_in[3].gl_Position, gl_in[2].gl_Position, gl_TessCoord.x);
+  vec4 position = mix(pos1, pos2, gl_TessCoord.y);
+
+  // Displace
+  height = textureLod(heightMap, outTexCoord, 0.0).r;
+  position.y += height * ubo.displacementFactor;
+
+  gl_Position = ubo.modelViewProj * position;
+
+  // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   LIGHTING   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
   // Interpolate Normals
   vec3 n1 = mix(inNormal[0], inNormal[1], gl_TessCoord.x);
   vec3 n2 = mix(inNormal[3], inNormal[2], gl_TessCoord.x);
   outNormal = mix(n1, n2, gl_TessCoord.y);
 
-  // vec2 color = mix(inColor[0], inColor[1], gl_TessCoord.x);
-  // vec2 texCoord2 = mix(inColor[3], inColor[2], gl_TessCoord.x);
-  // outTexCoord = mix(color1, color1, gl_TessCoord.y);
-  outColor = inColor[0];
+  outViewVec = -position.xyz;
+  outLightVec = normalize(ubo.lightPos.xyz + outViewVec);
+  outWorldPos = position.xyz;
+  outEyePos = vec3(ubo.modelView * position);
 
 
+
+  // Texture interpolation
   // // get patch coordinate
   // float u = gl_TessCoord.x;
   // float v = gl_TessCoord.y;
@@ -74,18 +94,6 @@ void main()
   // vec2 t0 = (t01 - t00) * u + t00;
   // vec2 t1 = (t11 - t10) * u + t10;
   // vec2 outTexCoord = (t1 - t0) * v + t0;
-
-  // Interpolate positions
-  vec4 pos1 = mix(gl_in[0].gl_Position, gl_in[1].gl_Position, gl_TessCoord.x);
-  vec4 pos2 = mix(gl_in[3].gl_Position, gl_in[2].gl_Position, gl_TessCoord.x);
-  vec4 position = mix(pos1, pos2, gl_TessCoord.y);
-
-  // Displace
-  height = textureLod(heightMap, outTexCoord, 0.0).r * 32.0;
-  position.y += height;
-
-  gl_Position = ubo.modelViewProj * position;
-
 
   // lookup texel at patch coordinate for height and scale + shift as desired
   // height = texture(heightMap, outTexCoord).y * 64.0 - 16.0;

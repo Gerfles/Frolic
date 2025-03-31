@@ -70,7 +70,7 @@ namespace fc
      static FcRenderer& Renderer();
      static FcGpu& Gpu() { return *pGpu; }
      static FcDescriptorClerk& DescriptorClerk() { return *pDescriptorClerk; }
-     static VkDevice Device() { return pDevice; }
+     const static VkDevice& Device() { return pDevice; }
      static VkPhysicalDevice vkPhysicalDevice() { return pPhysicalDevice; }
      static VkExtent2D& ScreenDims() { return mScreenDimensions; }
      static std::vector<FcGameObject* >& GameObjects() { return mGameObjectsList; }

@@ -4,6 +4,7 @@
 #include "core/utilities.hpp"
 #include "fc_renderer.hpp"
 #include "fc_locator.hpp"
+#include "fc_defaults.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
 #include <stb_image.h>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
@@ -75,6 +76,7 @@ namespace fc
     ubo.displacementFactor = 32.0f;
     // TODO clarify screen dim vs screen pix
     //ubo.viewportDim = {renderer->ScreenWidth(), renderer->ScreenHeight()};
+    // TODO no longer needed in terrain ubo
     ubo.viewportDim = {1200, 900};
     mModelTransform = glm::mat4{1.0f};
   }
@@ -82,7 +84,7 @@ namespace fc
   // TODO DELETE after creating sampler atlas
   void FcTerrain::createSampler()
   {
-     VkSamplerCreateInfo samplerInfo{};
+    VkSamplerCreateInfo samplerInfo{};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     // How to render when image is magnified on the screen
     samplerInfo.magFilter = VK_FILTER_LINEAR;
@@ -103,9 +105,11 @@ namespace fc
     // used to force vulkan to use lower level of detail and mip level
     samplerInfo.mipLodBias = 0.0f;
     samplerInfo.minLod = 0.0f;
+
     samplerInfo.compareOp = VK_COMPARE_OP_NEVER;
 
     // maximum level of detail to pick mip level
+    // TODO need to do this programatically to get the mimpap levels of each image
     samplerInfo.maxLod = 0.0f;
     // enable anisotropy
     samplerInfo.anisotropyEnable = VK_FALSE;
@@ -113,11 +117,21 @@ namespace fc
     // Amount of anisotropic samples being taken
     samplerInfo.maxAnisotropy = VK_SAMPLE_COUNT_1_BIT;
 
+
     FcGpu& gpu = FcLocator::Gpu();
     if (vkCreateSampler(gpu.getVkDevice(), &samplerInfo, nullptr, &mHeightMapSampler) != VK_SUCCESS)
     {
       throw std::runtime_error("Failed to create a Vulkan Texture Sampler!");
     }
+
+
+
+
+
+
+
+
+
   }
 
   void FcTerrain::initPipelines()
@@ -175,7 +189,7 @@ namespace fc
     // set up buffer
     mUboBuffer.allocateBuffer(sizeof(UBO), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 
-    // TODO do in one functioncall overload if need be but first check to see if ever separate
+    // TODO do in one functioncall overload if need be but first check to see if ever separate (i think it might be in materials but possibly can change)
     bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
                         , VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT
                         | VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
@@ -188,6 +202,14 @@ namespace fc
 
     bindInfo.attachImage(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, mHeightMap
                          , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, mHeightMapSampler);
+
+    bindInfo.addBinding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+                        , VK_SHADER_STAGE_FRAGMENT_BIT);
+
+    bindInfo.attachImage(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, mTerrainTexture
+                         // BUG note we're using the height map sampler here
+                         , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, mHeightMapSampler);
+
 
     FcDescriptorClerk& deskClerk = FcLocator::DescriptorClerk();
     // TODO do in one function call overload
@@ -214,11 +236,14 @@ namespace fc
   void FcTerrain::loadHeightmap(std::filesystem::path filename, uint32_t numPatches)
   {
     // TODO allow for deleting current height map and loading new one
-    mHeightMap.loadKtx(filename);//, VK_FORMAT_R16_UNORM);
+    mHeightMap.loadKtx(filename, ImageTypes::HeightMap);//, VK_FORMAT_R16_UNORM);
     //mHeightMap.loadTestImage(512, 512);
 
     mNumPatches = numPatches;
 
+    // TODO hardcoded for now
+    std::filesystem::path file = "..//maps/terrain_texturearray_rgba.ktx";
+    mTerrainTexture.loadKtx(file, ImageTypes::TextureArray);
 
     generateTerrain();
   }
@@ -361,10 +386,10 @@ namespace fc
 
   void FcTerrain::draw(VkCommandBuffer cmd, SceneData* pSceneData, bool drawWireframe)
   {
-
     ubo.modelView = pSceneData->view * mModelTransform;
     ubo.projection = pSceneData->projection;
     ubo.modelViewProj = ubo.projection * ubo.modelView;
+    ubo.lightPos = pSceneData->sunlightDirection;
     // TODO might prefer to update the frustum here instead
 
     //printMat(ubo.modelViewProj);

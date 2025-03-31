@@ -1,9 +1,11 @@
 #pragma once
 
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-//#include "core/fc_descriptors.hpp"
-//#include "core/utilities.hpp"
-//#include "fc_buffer.hpp"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
+// //
+// #include "core/fc_descriptors.hpp"
+// #include "core/utilities.hpp"
+// #include "fc_buffer.hpp"
+#include "fc_defaults.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
 #include "vk_mem_alloc.h"
@@ -61,7 +63,7 @@ namespace fc
      void generateMipMaps();
      void createTextureSampler();
      void createCubeMapSampler();
-     void writeToTexture(void* pixelData, VkDeviceSize size
+     void writeToTexture(void* pixelData, VkDeviceSize size, ImageTypes imageType
                          , bool generateMipmaps, VkFormat format);
    public:
      static constexpr int BYTES_PER_PIXEL = 4;
@@ -108,7 +110,7 @@ namespace fc
      FcImage(const FcImage&) = default; //{ };// delete;// : localCopy{nullptr} {}
      FcImage& operator=(FcImage&&) = default;
      FcImage(FcImage&&) = default;
-     void create(VkExtent3D imgExtent, VkFormat format
+     void create(VkExtent3D imgExtent, VkFormat format, ImageTypes imageType
                  , VkImageUsageFlags useFlags
                  , VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT
                  , VkSampleCountFlagBits msaaSampleCount = VK_SAMPLE_COUNT_1_BIT
@@ -135,11 +137,12 @@ namespace fc
       // TEXTURE FUNCTIONS
      // TODO revise naming conventions to avoid confusion
      void loadTexture(std::filesystem::path& filename);
-     void loadKtx(std::filesystem::path& filename);
+     void loadKtx(std::filesystem::path& filename, ImageTypes imageType);
      void loadTexture(std::filesystem::path& path, fastgltf::Asset& asset, fastgltf::Image& image);
      void loadCubeMap(std::array<std::filesystem::path, 6>& filenames);
      void createTexture(VkExtent3D extent, void* pixelData
                         , VkDeviceSize storageSize
+                        , ImageTypes imageType
                         , bool generateMipmaps = false
                         , VkFormat format = VK_FORMAT_R8G8B8A8_UNORM);
      void setPixelFormat();

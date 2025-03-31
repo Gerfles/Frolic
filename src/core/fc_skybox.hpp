@@ -29,7 +29,7 @@ namespace fc
    private:
 // set up vertex data (and buffer(s)) and configure vertex attributes
      // ------------------------------------------------------------------
-
+     // TODO DELETE
        float skyboxVertices[108] = {
         // positions
         -1.0f,  1.0f, -1.0f,

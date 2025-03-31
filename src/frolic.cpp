@@ -175,7 +175,6 @@ namespace fc
       //mUbo.pointLights[i] = light->generatePointLight();
     }
 
-    //mUbo.numLights = lightColors.size();
 
 
      // add the sun
@@ -243,6 +242,9 @@ namespace fc
 
     player.Camera().setPerspectiveProjection(60.0f, FcLocator::ScreenDims().width
                                              , FcLocator::ScreenDims().height, 512.f, 0.1f);
+
+    // TODO make sure all reference returns are const to avoid something like:
+    // player.Camera().Projection()[1][1] *= -1;
 
     /* player.Camera().setOrthographicProjection(-5.f, 5.f, -5.f, 5.f, 30.f, 0.1f); */
 

@@ -32,14 +32,97 @@ namespace fc
   // TODO create a create() function that allows us to pass a VkImageCreateInfo, etc...
   // for highly specialized image creation
   // ?? assuming there's a reason we need vkExtent 3D and not 2D
-  void FcImage::create(VkExtent3D imgExtent, VkFormat format
+  void FcImage::create(VkExtent3D imgExtent, VkFormat format, ImageTypes imageType
                        , VkImageUsageFlags useFlags, VkImageAspectFlags aspectFlags
                        , VkSampleCountFlagBits msaaSampleCount, bool generateMipmaps
                        , VkImageCreateFlags createFlags)
   {
     //VkDevice device = FcLocator::Device();
-    mImageExtent = imgExtent;
+    // Here we are using 3rd dimension (depth) of image in the layer count
+    // ?? but may need to change later on if we end up needing depth
+    mImageExtent = imgExtent; //{imgExtent.width, imgExtent.height, 1};
+    // BUG this is the third time this is re-set if calling from loadktx
     mFormat = format;
+
+    // Create image
+    VkImageCreateInfo imageInfo{};
+    imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    imageInfo.imageType = VK_IMAGE_TYPE_2D;
+    imageInfo.extent = {imgExtent.width, imgExtent.height, 1};
+
+    imageInfo.flags = createFlags; //??
+
+    // just use one array layer unless we're creating a cube map image
+    imageInfo.arrayLayers = (createFlags != VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT) ? 1 : 6;
+
+    imageInfo.format = format; //??
+//    imageInfo.tiling = tiling;
+    imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+    imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    imageInfo.usage = useFlags;
+    imageInfo.samples = msaaSampleCount;
+    imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE; // whether image can be shared between queues
+
+    VkImageViewType imageViewType = VK_IMAGE_VIEW_TYPE_2D;
+    uint32_t layerCount = 1;
+    //
+    switch (imageType)
+    {
+        case ImageTypes::Texture:
+        {
+          // Use flags for this image
+          //imageInfo.usage = 0;
+          break;
+        }
+        case ImageTypes::TextureArray:
+        {
+          // NOTE here that we do not have a 3D image so this flag must not be set,
+          // it's intended to allow a 3D image to be used as multi-array sampled
+          //imageInfo.flags |= VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT;
+//If flags contains VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT, imageType must be VK_IMAGE_TYPE_3D
+          // TODO this needs to be passed in or reference the ktxTexture
+          layerCount = imgExtent.depth;
+          imageInfo.arrayLayers = layerCount;
+          imageInfo.imageType = VK_IMAGE_TYPE_2D;
+          imageViewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+
+          fcLog("Array LAYERS");
+            std::cout << imageInfo.arrayLayers << std::endl;
+          break;
+        }
+        case ImageTypes::TextureMipMapped:
+        {
+          // imageInfo.usage = 0;
+          // generateMipmaps = true;
+          break;
+        }
+        case ImageTypes::Cubemap:
+        {
+          // imageInfo.usage = 0;
+          layerCount = 6;
+          imageInfo.arrayLayers = layerCount;
+          imageViewType = VK_IMAGE_VIEW_TYPE_CUBE;
+
+          break;
+        }
+        case ImageTypes::HeightMap:
+        {
+          // imageInfo.usage = useFlags;
+          // imageInfo.format = VK_FORMAT_R16_UNORM;
+          break;
+        }
+        // FIXME this is the default for now until the class gets refactored
+        // at which point, Custom will be commented out until all instances that
+        // specify custom are changed to their actual type, then recast custom to be
+        // the type that can be utilized if needed for finer grain detail
+        case ImageTypes::Custom:
+        {
+          imageViewType = VK_IMAGE_VIEW_TYPE_2D;
+          break;
+        }
+        default:
+          break;
+    }
 
     // TODO might be able to eliminate passing bool option here since that's really more for
     // textures in which case you would just use createTexture(...)
@@ -48,24 +131,9 @@ namespace fc
       mMipLevels = static_cast<uint32_t>
                    (std::floor(std::log2(std::max(mImageExtent.width, mImageExtent.height)))) + 1;
     }
-
-
-    // Create image
-    VkImageCreateInfo imageInfo{};
-    imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    imageInfo.imageType = VK_IMAGE_TYPE_2D;
-    imageInfo.extent = mImageExtent;
+    //
     imageInfo.mipLevels = mMipLevels;
-    imageInfo.flags = createFlags; //??
-    // just use one array layer unless we're creating a cube map image
-    imageInfo.arrayLayers = (createFlags != VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT) ? 1 : 6;
-    imageInfo.format = format; //??
-//    imageInfo.tiling = tiling;
-    imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-    imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    imageInfo.usage = useFlags;
-    imageInfo.samples = msaaSampleCount;
-    imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE; // whether image can be shared between queues
+
 
     VmaAllocationCreateInfo allocInfo = {};
     allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
@@ -84,7 +152,36 @@ namespace fc
       throw std::runtime_error("Failed to allocate a Vulkan image!: ");
     }
 
-    createImageView(format, aspectFlags);
+
+    // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE IMAGE VIEW   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    VkImageViewCreateInfo imageViewInfo = {};
+    imageViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    imageViewInfo.image = mImage;
+    imageViewInfo.viewType = imageViewType;
+    imageViewInfo.format = format;
+    // allows remapping of rgba component to other values
+    imageViewInfo.components.r = VK_COMPONENT_SWIZZLE_R;
+    imageViewInfo.components.g = VK_COMPONENT_SWIZZLE_G;
+    imageViewInfo.components.b = VK_COMPONENT_SWIZZLE_B;
+    imageViewInfo.components.a = VK_COMPONENT_SWIZZLE_A;
+    // Subresources allow the view to view only a part of an image
+    imageViewInfo.subresourceRange.aspectMask = aspectFlags; // which aspect of image to view (eg COLOR_BIT for viewing color)
+    imageViewInfo.subresourceRange.baseMipLevel = 0;         // start mipmap level to view from
+    imageViewInfo.subresourceRange.levelCount = mMipLevels;   // number of mipmap levels to view
+    imageViewInfo.subresourceRange.baseArrayLayer = 0;       // start array level to view from
+    // number of array levels to view
+    imageViewInfo.subresourceRange.layerCount = layerCount;
+
+    if (vkCreateImageView(FcLocator::Device(), &imageViewInfo, nullptr, &mImageView) != VK_SUCCESS)
+    {
+      throw std::runtime_error("Failed to create an Image View!");
+    }
+
+
+    //createImageView(format, aspectFlags);
+
+
+
 
     // *-*-*-*-*-*-*-   CUSTOM MEMORY ALLOCATION SAVED FOR REFERENCE   *-*-*-*-*-*-*- //
     // if (vkCreateImage(device, &imageInfo, nullptr, &mImage) != VK_SUCCESS)
@@ -152,11 +249,11 @@ namespace fc
     imageViewInfo.image = mImage;
     imageViewInfo.viewType = imageViewType;
     imageViewInfo.format = imageFormat;
-    imageViewInfo.components.r = VK_COMPONENT_SWIZZLE_R; // allows remapping of rgba component to other values
+    // allows remapping of rgba component to other values
+    imageViewInfo.components.r = VK_COMPONENT_SWIZZLE_R;
     imageViewInfo.components.g = VK_COMPONENT_SWIZZLE_G;
     imageViewInfo.components.b = VK_COMPONENT_SWIZZLE_B;
     imageViewInfo.components.a = VK_COMPONENT_SWIZZLE_A;
-
     // Subresources allow the view to view only a part of an image
     imageViewInfo.subresourceRange.aspectMask = aspectFlags; // which aspect of image to view (eg COLOR_BIT for viewing color)
     imageViewInfo.subresourceRange.baseMipLevel = 0;         // start mipmap level to view from
@@ -298,7 +395,7 @@ namespace fc
 
   // TODO add support for linear tilling
   // TODO perhaps find a better way to use some C++ features here like decltype, function ptrs, etc
-  void FcImage::loadKtx(std::filesystem::path& filename)
+  void FcImage::loadKtx(std::filesystem::path& filename, ImageTypes imageType)
   {
     KTX_error_code result;
 
@@ -315,7 +412,6 @@ namespace fc
         throw std::runtime_error("Failed to load KTX format image!");
       }
 
-
       // TODO might want to separate here so we're only setting height and width seperately
       mImageExtent = {texture->baseWidth, texture->baseHeight, texture->numLayers};
       mMipLevels = texture->numLevels;
@@ -325,8 +421,10 @@ namespace fc
       // mBytesPerPixel = texture->kvDataLen;
       // std::cout << "bytes per pixel: " << mBytesPerPixel << std::endl;
 
+      // TODO create ENUM class for all image types in game engine Such as
+      // FC_IMAGE_TEXTURE | FC_IMAGE_GPU_ONLY | ETC.
       createTexture(mImageExtent, texture->pData, texture->dataSize,
-                    false , mFormat);
+                    imageType, false , mFormat);
 
       // Note here that we have to cast to
       ktxTexture_Destroy((ktxTexture*)texture);
@@ -339,22 +437,25 @@ namespace fc
                                               , KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT
                                               , &texture);
 
+      fcLog("ImageSize:");
+      std::cout << texture->dataSize << std::endl;
+
+
       if (texture == nullptr || result != KTX_SUCCESS)
       {
         throw std::runtime_error("Failed to load KTX format image!");
       }
 
+      // Most tools export to this format so make this assumption for now (could allow
+      // for passing in but most ktx files should be ktx2 instead since its an easy
+      // conversion using CLI tool)
+      //-> ktx2ktx2 -b [ktx1_filename_to_convert]
+      mFormat = VK_FORMAT_R8G8B8A8_SRGB;
       mImageExtent = {texture->baseWidth, texture->baseHeight, texture->numLayers};
       mMipLevels = texture->numLevels;
 
-      // Most tools export to this format so make this assumption for now (could allow
-      // for passing in but most ktx files should be ktx2 instead since its an easy conversion
-      // using CLI tool > ktx2ktx2 -b [ktx1_filename_to_convert] )
-      mFormat = VK_FORMAT_R8G8B8A8_SRGB;
-
-
       createTexture(mImageExtent, texture->pData, texture->dataSize,
-                    false , mFormat);
+                    imageType, false , mFormat);
 
       // Note here that we have to cast since libktx has not written Destroy for ktx2
       ktxTexture_Destroy((ktxTexture*)texture);
@@ -391,7 +492,7 @@ namespace fc
 
     VkBufferImageCopy imageCopyRegion{};
     // TODO rename to simply mExtent
-    imageCopyRegion.imageExtent = mImageExtent;
+    imageCopyRegion.imageExtent = {mImageExtent.width, mImageExtent.height, 1};
     imageCopyRegion.imageOffset = {0, 0, 0};
     imageCopyRegion.bufferOffset = 0;
     // for calculating data spacing (row length of data)
@@ -518,14 +619,15 @@ namespace fc
 
     // TODO pass mipmap bool in by funcall
     // using the image data from the loaded file, create the hardware texture used by the GPU
-    createTexture(extent, imageData, width * height * BYTES_PER_PIXEL, false);
+    createTexture(extent, imageData, width * height * BYTES_PER_PIXEL
+                  ,ImageTypes::Custom, false);
 
     // free original image data
     stbi_image_free(imageData);
   }
 
 
-
+  // TODO De-duplicate code by loading via standard method but in a loop
   void FcImage::loadCubeMap(std::array<std::filesystem::path, 6>& filenames)
   {
     // load image file
@@ -565,7 +667,9 @@ namespace fc
         mMipLevels = 1;
 
         //
+        // TODO try SRGB
         create(mImageExtent , VK_FORMAT_R8G8B8A8_UNORM
+               , ImageTypes::Custom
                , VK_IMAGE_USAGE_TRANSFER_DST_BIT
                // TODO this may need to be removed from the other implementation of loading textures
                //| VK_IMAGE_USAGE_TRANSFER_SRC_BIT
@@ -605,7 +709,7 @@ namespace fc
                     , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     FcLocator::Renderer().submitCommandBuffer();
 
-
+    // TODO try SRGB
     createImageView(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_VIEW_TYPE_CUBE);
   }
 
@@ -640,7 +744,8 @@ namespace fc
                VkExtent3D imageExtent{static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1};
 
                // using the image data from the loaded file, create the hardware texture used by the GPU
-               createTexture(imageExtent, imageData, width * height * BYTES_PER_PIXEL, true);
+               createTexture(imageExtent, imageData, width * height * BYTES_PER_PIXEL
+                             ,ImageTypes::Custom ,true);
 
                // free original image data
                stbi_image_free(imageData);
@@ -660,7 +765,8 @@ namespace fc
 
                // using the image data from the loaded file, create the hardware texture used by the GPU
 
-               createTexture(imageExtent, imageData, width * height * BYTES_PER_PIXEL, true);
+               createTexture(imageExtent, imageData, width * height * BYTES_PER_PIXEL
+                             , ImageTypes::Custom, true);
 
                // free original image data
                stbi_image_free(imageData);
@@ -692,6 +798,7 @@ namespace fc
 
                         createTexture(imageExtent, imageData
                                       , width * height * BYTES_PER_PIXEL
+                                      , ImageTypes::Custom
                                       , true);
 
                         // free original image data
@@ -1000,10 +1107,13 @@ namespace fc
     imageCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; // which aspect of image to copy
     imageCopyRegion.imageSubresource.mipLevel = 0;                           // mipmap level to copy
     imageCopyRegion.imageSubresource.baseArrayLayer = arrayLayer;                     // starting array layer if we're using an array (cubemaps etc)
-    imageCopyRegion.imageSubresource.layerCount = 1;                         // number of layers to copy starting at basearraylayer
+    imageCopyRegion.imageSubresource.layerCount = mImageExtent.depth;                         // number of layers to copy starting at basearraylayer
 
     imageCopyRegion.imageOffset = {0, 0, 0};                                 // offset into image (as ooposed to raw data in bufferOffset)
-    imageCopyRegion.imageExtent = mImageExtent;
+    // TODO seems silly to store image extent but then always have to reference
+    // one of the 3 dimensions, usally forcing depth to one, better to just
+    // store height, width, numLayers instead!
+    imageCopyRegion.imageExtent = {mImageExtent.width, mImageExtent.height, 1};
 
     // create the command to copy a buffer to the image
     VkCommandBuffer cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
@@ -1071,15 +1181,18 @@ namespace fc
   // I think other functions doen't need it either--but it's confusing and errore prone to keep an
   // unitialized pointer around
   void FcImage::createTexture(VkExtent3D extent, void* pixelData, VkDeviceSize size
-                              , bool generateMipmaps, VkFormat format)
+                              ,ImageTypes imageType, bool generateMipmaps, VkFormat format)
   {
     // TODO determine if having member dimensions is useful
     // TODO see if this can always be set sooner, like from loadTexture()
     mImageExtent = extent;
 
-    writeToTexture(pixelData, size, generateMipmaps, format);
+    // DELETE this function in favor of creating texture more simply by calling
+    // create() with one of the newly defined image types
 
-    // TODO DELETE -> texture sampler created elsewhere and should be part of texture atlas
+    writeToTexture(pixelData, size, imageType, generateMipmaps, format);
+
+    // DELETE -> texture sampler created elsewhere and should be part of texture atlas
     // ?? Could however, keep the atlas in image class, accessible to any image or
     // external image with create function
     // create the texture sampler
@@ -1104,7 +1217,7 @@ namespace fc
 
 
 
-  void FcImage::writeToTexture(void* pixelData, VkDeviceSize size
+  void FcImage::writeToTexture(void* pixelData, VkDeviceSize size, ImageTypes imageType
                                , bool generateMipmaps, VkFormat format)
   {
     // Copy data to a staging buffer first in order to transition the image and send it to the gpu
@@ -1142,7 +1255,7 @@ namespace fc
     // TODO load VK_SAMPLE_COUNT from GPU.properties
 
     //VkSampleCountFlagBits sampleCount = FcLocator::Gpu().Properties().maxMsaaSamples;
-    create(mImageExtent, format
+    create(mImageExtent, format, imageType
            , VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
            , VK_IMAGE_ASPECT_COLOR_BIT, VK_SAMPLE_COUNT_1_BIT, generateMipmaps);
 
