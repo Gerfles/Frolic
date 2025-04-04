@@ -34,12 +34,10 @@ namespace fc
      VkSwapchainKHR mSwapchain;
      VkExtent2D mSurfaceExtent;
      VkFormat mSwapchainFormat;
-     VkRenderPass mRenderPass{nullptr};
+     VkRenderPass mRenderPass {nullptr};
       //std::vector<SwapchainImage> mSwapchainImages;
       // FRAMEBUFFER ATTACHMENTS
      std::vector<FcImage> mSwapchainImages;
-     FcImage mMultiSampledImage;
-     FcImage mDepthBufferImage;
 
      std::vector<VkFramebuffer> mSwapChainFramebuffers;
      uint32_t createSwapChain(const VkExtent2D& windowSize, bool shouldReUseOldSwapchain = false);

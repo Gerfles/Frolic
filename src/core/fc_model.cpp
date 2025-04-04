@@ -188,7 +188,7 @@ namespace fc {
     {
       FcImage fcImage;
 
-      fcImage.loadTexture(parentPath, gltf, gltfImage);
+      fcImage.loadFromGltf(parentPath, gltf, gltfImage);
       if (fcImage.isValid())
       {
         //images.push_back(fcImage);
@@ -205,9 +205,8 @@ namespace fc {
     }
 
     // Create buffer to hold the material data
-    mMaterialDataBuffer.allocateBuffer(
-      sizeof(MaterialConstants) * gltf.materials.size()
-      , VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+    mMaterialDataBuffer.allocate(sizeof(MaterialConstants) * gltf.materials.size()
+                                 , FcBufferTypes::Uniform);
 
     int dataIndex = 0;
     // ?? do we need to also duplicate here??

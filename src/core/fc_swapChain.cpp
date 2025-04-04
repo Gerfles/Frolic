@@ -160,7 +160,7 @@ namespace fc
 
     for (VkImage image : images)
     {
-       //TODO new section - clean out
+       //TODO may want to also store extent, format, etc within swapchain images
       FcImage swapChainImage{image};
 
        // TODO BUG try this all in one fell swoop
@@ -172,7 +172,7 @@ namespace fc
       mSwapchainImages.emplace_back(std::move(swapChainImage));
     }
 
-    //  // TODO DELETE
+    //  // TODO MOVE to renderpass class
     // this is the way it was done pre-vulkan 1.3 (Without using deferred rendering)
     // VkExtent3D temp = {mSurfaceExtent.width, mSurfaceExtent.height, 1};
 
@@ -356,25 +356,21 @@ namespace fc
   } // --- FcSwapChain::beginRendering (_) --- (END)
 
 
+// TODO older method move or delete
+  // void FcSwapChain::createDepthBufferImage()
+  // {
+  //    // create an ordered list of formats with higher prioritization at the front of list
+  //   std::vector<VkFormat> formats{VK_FORMAT_D32_SFLOAT
+  //                               , VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT};
 
-  void FcSwapChain::createDepthBufferImage()
-  {
-     // create an ordered list of formats with higher prioritization at the front of list
-    std::vector<VkFormat> formats{VK_FORMAT_D32_SFLOAT
-                                , VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT};
+  //   VkFormat depthFormat = chooseSupportedFormat(formats, VK_IMAGE_TILING_OPTIMAL
+  //                                                , VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
-    VkFormat depthFormat = chooseSupportedFormat(formats, VK_IMAGE_TILING_OPTIMAL
-                                                 , VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
-
-     // create depth buffer image
-
-         // TODO DELETE
-    VkExtent3D temp = {mSurfaceExtent.width, mSurfaceExtent.height, 1};
-
-    mDepthBufferImage.create(temp, depthFormat, ImageTypes::Custom
-                             , VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
-                             , VK_IMAGE_ASPECT_DEPTH_BIT, pGpu->Properties().maxMsaaSamples);
-  }
+  //    // create depth buffer image
+  //   mDepthBufferImage.create(mSurfaceExtent.width, mSurfaceExtent.height, depthFormat, ImageTypes::Custom
+  //                            , VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
+  //                            , VK_IMAGE_ASPECT_DEPTH_BIT, pGpu->Properties().maxMsaaSamples);
+  // }
 
 
 
@@ -495,37 +491,37 @@ namespace fc
   }
 
 
-
+// TODO MOVE to renderpass class (older method/tile-based gpu fallback)
 // A framebuffer accepts the output of the renderpass
-  void FcSwapChain::createFrameBuffers()
-  {
-     // resize framebuffer count to equal swap chain image count
-    mSwapChainFramebuffers.resize(mSwapchainImages.size());
+  // void FcSwapChain::createFrameBuffers()
+  // {
+  //    // resize framebuffer count to equal swap chain image count
+  //   mSwapChainFramebuffers.resize(mSwapchainImages.size());
 
-     // create a frame buffer for each swap chain image
-    for (size_t i = 0; i < mSwapChainFramebuffers.size(); i++)
-    {
-      std::array<VkImageView, 3> attachments = { mMultiSampledImage.ImageView()
-                                               , mSwapchainImages[i].ImageView()
-                                               , mDepthBufferImage.ImageView() };
+  //    // create a frame buffer for each swap chain image
+  //   for (size_t i = 0; i < mSwapChainFramebuffers.size(); i++)
+  //   {
+  //     std::array<VkImageView, 3> attachments = { mMultiSampledImage.ImageView()
+  //                                              , mSwapchainImages[i].ImageView()
+  //                                              , mDepthBufferImage.ImageView() };
 
-      VkFramebufferCreateInfo frameBufferInfo{};
-      frameBufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-      // layout pass the framebuffer will be used with
-      frameBufferInfo.renderPass = mRenderPass;
-      frameBufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-      // list of attachments (1:1 with render pass)
-      frameBufferInfo.pAttachments = attachments.data();
-      frameBufferInfo.width = mSurfaceExtent.width;
-      frameBufferInfo.height = mSurfaceExtent.height;
-      frameBufferInfo.layers = 1;
+  //     VkFramebufferCreateInfo frameBufferInfo{};
+  //     frameBufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+  //     // layout pass the framebuffer will be used with
+  //     frameBufferInfo.renderPass = mRenderPass;
+  //     frameBufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+  //     // list of attachments (1:1 with render pass)
+  //     frameBufferInfo.pAttachments = attachments.data();
+  //     frameBufferInfo.width = mSurfaceExtent.width;
+  //     frameBufferInfo.height = mSurfaceExtent.height;
+  //     frameBufferInfo.layers = 1;
 
-      if (vkCreateFramebuffer(pGpu->getVkDevice(), &frameBufferInfo, nullptr, &mSwapChainFramebuffers[i]) != VK_SUCCESS)
-      {
-        throw std::runtime_error("Failed to create Vulkan Frame Buffer!");
-      }
-    }
-  }
+  //     if (vkCreateFramebuffer(pGpu->getVkDevice(), &frameBufferInfo, nullptr, &mSwapChainFramebuffers[i]) != VK_SUCCESS)
+  //     {
+  //       throw std::runtime_error("Failed to create Vulkan Frame Buffer!");
+  //     }
+  //   }
+  // }
 
 
    // Partially free of swapchain resources -- used when resizing the window and recreating swapchain
@@ -546,12 +542,6 @@ namespace fc
 
      // make sure to shrink the swapchain images container in case we just need to recreateswapchain for window resize
     mSwapchainImages.clear();
-
-     //mDepthBufferImage.destroy();
-    mMultiSampledImage.destroy();
-
-     // free up our depth buffer image
-    mDepthBufferImage.destroy();
   }
 
    // full destruction of swapchain, note: includes call to partial destruction of swapchain

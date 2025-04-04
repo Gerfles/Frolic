@@ -75,7 +75,7 @@ namespace fc
      void openLogOutput(const std::string& filename, bool clearContents = false);
      //
      FcLog(const std::string& filename, bool clearContents = false)
-      { openLogOutput(filename, clearContents); }
+      			{ openLogOutput(filename, clearContents); }
      std::ofstream& operator <<(std::string string);
      // variation if more complicated necessary
      void logOutput();
@@ -84,7 +84,7 @@ namespace fc
   };
 
 
-    static int logCount = 1;
+  static int logCount = 1;
   void fcLog(std::string header = "", int resetLogCount = -1);
   void calcFPS(uint64_t latestTick);
   void printMat(glm::mat4& mat);

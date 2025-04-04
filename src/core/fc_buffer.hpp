@@ -27,33 +27,45 @@
 // inhereted class FcBoundBuffer that contains that stuff?
 namespace fc
 {
-  class FcBuffer
-  {
-   private:
-     VkBuffer mBuffer{nullptr};
-     VmaAllocation mAllocation;
-//     VmaAllocationInfo info;
-     VkDeviceSize mBufferSize;
 
-   public:
-     FcBuffer() = default;
-     ~FcBuffer() = default;
-     //FcBuffer& operator=(const FcBuffer&) = delete;
-      // ?? This must be included to allow vector.pushBack(Fcbuffer) ?? not sure if there's a better way... maybe unique_ptr
-      // FcBuffer(const FcBuffer&) = delete;
-     void allocateBuffer(VkDeviceSize bufferSize, VkBufferUsageFlags useFlags,
-                         VmaAllocationCreateFlags vmaFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT
-                         | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
-     void storeData(void* sourceData, VkDeviceSize bufferSize, VkBufferUsageFlags useFlags);
-     void overwriteData(void* sourceData, size_t dataSize, VkDeviceSize offset = 0);
-     void copyBuffer(const FcBuffer& srcBuffer, VkDeviceSize bufferSize);
-     void fetchData(uint32_t location, size_t dataSize);
-     const VkBuffer& getVkBuffer() const { return mBuffer; }
-      // BUG this doesn't always have size storred
-     VkDeviceSize size() { return mBufferSize; }
-     VmaAllocation getAllocation() { return mAllocation; }
-     void* getAddres();
-     void destroy();
-  };
+enum class FcBufferTypes : uint8_t {
+  Staging,
+  Vertex,
+  Index,
+  Uniform,
+  Custom,
+};
+
+  class FcBuffer
+    {
+     private:
+       VkBuffer mBuffer{nullptr};
+       VmaAllocation mAllocation;
+       VkDeviceSize mSize;
+       FcBufferTypes mBufferType;
+     public:
+       FcBuffer() = default;
+       ~FcBuffer() = default;
+       FcBuffer(VkDeviceSize bufferSize, FcBufferTypes bufferType)
+	        { allocate(bufferSize, bufferType); }
+       //FcBuffer& operator=(const FcBuffer&) = delete;
+       // ?? This must be included to allow vector.pushBack(Fcbuffer) ?? not sure if there's a better way... maybe unique_ptr
+       // FcBuffer(const FcBuffer&) = delete;
+       void allocate(VkDeviceSize bufferSize, FcBufferTypes bufferType);
+       void write(void* sourceData, size_t dataSize = 0, VkDeviceSize offset = 0);
+       void allocate(VkDeviceSize bufferSize, VkBufferUsageFlags useFlags,
+                     VmaAllocationCreateFlags vmaFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT
+                     | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
+       /* void storeData(void* sourceData, VkDeviceSize bufferSize, VkBufferUsageFlags useFlags); */
+       void overwriteData(void* sourceData, size_t dataSize, VkDeviceSize offset = 0);
+       void copyBuffer(const FcBuffer& srcBuffer, VkDeviceSize bufferSize);
+       void fetchData(uint32_t location, size_t dataSize);
+       const VkBuffer& getVkBuffer() const { return mBuffer; }
+       // BUG this doesn't always have size storred
+       VkDeviceSize size() { return mSize; }
+       VmaAllocation getAllocation() { return mAllocation; }
+       void* getAddres();
+       void destroy();
+    };
 
 } // namespace fc _END_

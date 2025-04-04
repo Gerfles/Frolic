@@ -41,8 +41,6 @@ namespace fc
   {
    private:
      FcRenderer* pRenderer;
-
-
      glm::mat4 mLightProjection;
      glm::mat4 mLightView;
      glm::mat4 mLightSpaceTransform;

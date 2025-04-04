@@ -117,22 +117,14 @@ namespace fc
     // Amount of anisotropic samples being taken
     samplerInfo.maxAnisotropy = VK_SAMPLE_COUNT_1_BIT;
 
-
     FcGpu& gpu = FcLocator::Gpu();
     if (vkCreateSampler(gpu.getVkDevice(), &samplerInfo, nullptr, &mHeightMapSampler) != VK_SUCCESS)
     {
       throw std::runtime_error("Failed to create a Vulkan Texture Sampler!");
     }
-
-
-
-
-
-
-
-
-
   }
+
+
 
   void FcTerrain::initPipelines()
   {
@@ -157,7 +149,7 @@ namespace fc
     terrainPipeline.setInputTopology(VK_PRIMITIVE_TOPOLOGY_PATCH_LIST);
     terrainPipeline.setPolygonMode(VK_POLYGON_MODE_FILL);
     /* terrainPipeline.setPolygonMode(VK_POLYGON_MODE_LINE); */
-    terrainPipeline.setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE);
+    terrainPipeline.setCullMode(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
 
     terrainPipeline.enableDepthtest(VK_TRUE, VK_COMPARE_OP_GREATER_OR_EQUAL);
     terrainPipeline.setMultiSampling(FcLocator::Gpu().Properties().maxMsaaSamples);
@@ -187,7 +179,7 @@ namespace fc
     FcDescriptorBindInfo bindInfo{};
 
     // set up buffer
-    mUboBuffer.allocateBuffer(sizeof(UBO), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+    mUboBuffer.allocate(sizeof(UBO), FcBufferTypes::Uniform);
 
     // TODO do in one functioncall overload if need be but first check to see if ever separate (i think it might be in materials but possibly can change)
     bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
@@ -235,17 +227,20 @@ namespace fc
   // TODO place check or automatically delete previously loaded heightmap
   void FcTerrain::loadHeightmap(std::filesystem::path filename, uint32_t numPatches)
   {
+    fcLog("Loading heightmap");
     // TODO allow for deleting current height map and loading new one
-    mHeightMap.loadKtx(filename, ImageTypes::HeightMap);//, VK_FORMAT_R16_UNORM);
+    mHeightMap.loadKtxFile(filename, ImageTypes::HeightMap);//, VK_FORMAT_R16_UNORM);
     //mHeightMap.loadTestImage(512, 512);
 
     mNumPatches = numPatches;
-
+    fcLog("Loaded heightmap");
+    fcLog("Loading terrain texture array");
     // TODO hardcoded for now
     std::filesystem::path file = "..//maps/terrain_texturearray_rgba.ktx";
-    mTerrainTexture.loadKtx(file, ImageTypes::TextureArray);
+    mTerrainTexture.loadKtxFile(file, ImageTypes::TextureArray);
 
     generateTerrain();
+
   }
 
   // TODO document lots / full class
@@ -299,7 +294,7 @@ namespace fc
     //FcLog log1("log2", true);
 
     // We break the heigt map down into mNumPatches grid and then sample from those patches
-    int pixelStepLength = mHeightMap.size().width / mNumPatches;
+    int pixelStepLength = mHeightMap.Width() / mNumPatches;
     int offsetX = 0; // the true x coord of pixel we want to sample from
     int offsetY = 0; // the true y coord of pixel we want to sample from
     uint16_t pixel;
@@ -393,7 +388,7 @@ namespace fc
     // TODO might prefer to update the frustum here instead
 
     //printMat(ubo.modelViewProj);
-    mUboBuffer.overwriteData(&ubo, sizeof(UBO));
+    mUboBuffer.write(&ubo, sizeof(UBO));
 
     if (drawWireframe)
     {

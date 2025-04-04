@@ -5,7 +5,7 @@
 // #include "core/fc_descriptors.hpp"
 // #include "core/utilities.hpp"
 // #include "fc_buffer.hpp"
-#include "fc_defaults.hpp"
+//#include "fc_defaults.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
 #include "vk_mem_alloc.h"
@@ -13,6 +13,7 @@
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 //#include <fastgltf/types.hpp>
 #include <filesystem>
+#include <ostream>
 #include <string>
 #include <algorithm> // std::clamp
 // *-*-*-*-*-*-*-*-*-*-*-*-*-   FORWARD DECLARATIONS   *-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -20,23 +21,39 @@ namespace fastgltf
 {
   class Image;
   class Asset;
-}  // namespace fastgltf
+}
 
-
-
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FCIMAGE CLASS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 namespace fc
 {
    // TODO create new texture class that inherits from image
    // FORWARD DECLARATIONS
-//  class FcPipeline;
   class FcBuffer;
+
+  enum class ImageTypes : uint8_t
+  {
+    Texture,             // Default texture image
+    TextureWithMipmaps,  //
+    TextureGenerateMipmaps,    // Texture with mipMaps
+    Cubemap,           // Cubemap image (with layers)
+    HeightMap,         // HeightMap
+    DrawBuffer,        // Draw buffer
+    NormalMap,         // Normal map
+    DepthBuffer,       // Depth buffer
+    Custom,            // User defined image using a passed in create info
+    TextureArray,      // Texture but with multiple array layers
+    ScreenBuffer,  // Draw image into this buffer before copying to swapchain
+    ShadowMap,
+  };
+
 
   class FcImage
   {
    private:
      // -*-*-*-*-*-*-*-   USED WHEN MAPPING DATA TO READ PIXEL VALUES   -*-*-*-*-*-*-*- //
      std::shared_ptr<FcBuffer> localCopy;
-     void* localCopyAddress{nullptr};
+     void* localCopyAddress {nullptr};
+     // TODO create a heading for blank lines (without gap)
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-      *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      VkImage mImage{VK_NULL_HANDLE};
      VkImageView mImageView{VK_NULL_HANDLE};
@@ -48,23 +65,28 @@ namespace fc
 
      // TODO get rid of or simply have as pointer to texture cache
      VkSampler mTextureSampler{VK_NULL_HANDLE};
+
      // TODO track layout of image in transitions
      // NOTE this layout may not be exactly up to date based on image barriers in GPU etc.
-      // TODO create a synced state variable to track current image layout
+     // TODO create a synced state variable to track current image layout
       // VkImageLayout mCurrentLayout{VK_IMAGE_LAYOUT_UNDEFINED};
-     VkExtent3D mImageExtent;
+
+     uint32_t mWidth;
+     uint32_t mHeight;
+     uint32_t mLayerCount {1};
+     // TODO might want to save a copy of ImageType locally in case we need it for ops
+
      int mNumChannels;
 
      // ?? may want to store image memory size since mipmaps and layers, etc will affect this
-     uint32_t mMipLevels{1};
+     uint32_t mMipLevels {1};
      // void extracted(VkImageLayout& oldLayout,
      //                VkImageLayout& newLayout,
      //                VkImageMemoryBarrier& imageMemoryBarrier);
      void generateMipMaps();
      void createTextureSampler();
      void createCubeMapSampler();
-     void writeToTexture(void* pixelData, VkDeviceSize size, ImageTypes imageType
-                         , bool generateMipmaps, VkFormat format);
+     void writeToImage(void* pData, VkDeviceSize dataLength, bool generateMipmaps);
    public:
      static constexpr int BYTES_PER_PIXEL = 4;
 
@@ -81,18 +103,15 @@ namespace fc
      void fetchPixel(const int x, const int y, T& pixel)
       {
         // TODO could check to make sure image is mapped and return error if not
-
-        uint32_t xPos = std::clamp(x, 0, static_cast<int>(mImageExtent.width - 1));
-        uint32_t yPos = std::clamp(y, 0, static_cast<int>(mImageExtent.height - 1));
+        uint32_t xPos = std::clamp(x, 0, static_cast<int>(mWidth - 1));
+        uint32_t yPos = std::clamp(y, 0, static_cast<int>(mHeight - 1));
         // Doing the below will make this equivalent to Sascha's Method but must pass scale
         /* uint32_t xPos = std::clamp(x, 0, static_cast<int>(mImageExtent.width - scale)); */
         /* uint32_t yPos = std::clamp(y, 0, static_cast<int>(mImageExtent.height - scale)); */
-
-        uint32_t offset = xPos + yPos * mImageExtent.width;
+        uint32_t offset = xPos + yPos * mWidth;
 
         // Encode pixel location for testing purposes value based on test image
         // pixel = (xPos << 16) + yPos;
-
         pixel = *((T*)localCopyAddress + offset);// + (x + y * mImageExtent.width));
   }
 
@@ -100,7 +119,8 @@ namespace fc
 
 
       // - CTORS -
-     FcImage(std::filesystem::path& filename) { loadTexture(filename); }
+     FcImage(std::filesystem::path& filename, ImageTypes imageType)
+      { loadNonKtxFile(filename, imageType); }
      FcImage() = default;
      FcImage(VkImage image);
      ~FcImage() = default;
@@ -110,12 +130,7 @@ namespace fc
      FcImage(const FcImage&) = default; //{ };// delete;// : localCopy{nullptr} {}
      FcImage& operator=(FcImage&&) = default;
      FcImage(FcImage&&) = default;
-     void create(VkExtent3D imgExtent, VkFormat format, ImageTypes imageType
-                 , VkImageUsageFlags useFlags
-                 , VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT
-                 , VkSampleCountFlagBits msaaSampleCount = VK_SAMPLE_COUNT_1_BIT
-                 , bool generateMipMaps = false
-                 , VkImageCreateFlags createFlags = 0);
+     void create(uint32_t width, uint32_t height, ImageTypes imageType);
      void createImageView(VkFormat imageFormat, VkImageAspectFlags aspectFlags
                           , VkImageViewType imageViewType = VK_IMAGE_VIEW_TYPE_2D);
 
@@ -130,20 +145,18 @@ namespace fc
                           , VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT
                           , uint32_t mipLevels = 1);
 
-     void copyFromBuffer(FcBuffer& srcBuffer, VkDeviceSize bufferSize
+     void copyFromBuffer(FcBuffer& srcBuffer
                          , VkDeviceSize offset = 0, uint32_t arrayLayer = 0);
-     void copyFromImage(VkCommandBuffer cmdBuffer, FcImage* source, VkExtent2D srcSize, VkExtent2D dstSize);
+     void copyFromImage(VkCommandBuffer cmdBuffer, FcImage* source);
      void clear(VkCommandBuffer cmdBuffer, VkClearColorValue* pColor);
       // TEXTURE FUNCTIONS
      // TODO revise naming conventions to avoid confusion
-     void loadTexture(std::filesystem::path& filename);
-     void loadKtx(std::filesystem::path& filename, ImageTypes imageType);
-     void loadTexture(std::filesystem::path& path, fastgltf::Asset& asset, fastgltf::Image& image);
+     void loadNonKtxFile(std::filesystem::path& filename, ImageTypes imageType);
+     void loadKtxFile(std::filesystem::path& filename, ImageTypes imageType);
+     void loadFromGltf(std::filesystem::path& path, fastgltf::Asset& asset, fastgltf::Image& image);
      void loadCubeMap(std::array<std::filesystem::path, 6>& filenames);
-     void createTexture(VkExtent3D extent, void* pixelData
-                        , VkDeviceSize storageSize
-                        , ImageTypes imageType
-                        , bool generateMipmaps = false
+     void createTexture(uint32_t width, uint32_t height, void* pixelData
+                        , VkDeviceSize storageSize, bool generateMipmaps = false
                         , VkFormat format = VK_FORMAT_R8G8B8A8_UNORM);
      void setPixelFormat();
       //void overwriteTexture(void* pixelData, uint32_t mipLevel = 1);
@@ -156,8 +169,9 @@ namespace fc
      const VkImageView& ImageView() const { return mImageView; }
      VkSampler TextureSampler() { return mTextureSampler; }
      VkImage Image() { return mImage; }
-     VkExtent3D getExtent() { return mImageExtent; }
-     VkExtent2D size() { return {mImageExtent.width, mImageExtent.height}; }
+     VkExtent2D Extent() { return {mWidth, mHeight}; }
+     uint32_t Width() { return mWidth; }
+     uint32_t Height() { return mHeight; }
      int byteDepth() { return mBytesPerPixel; }
       // cleanup
 //     ~FcImage() = default;

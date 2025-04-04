@@ -16,17 +16,13 @@ namespace fc
   void FcShadowMap::init(FcRenderer* renderer)
   {
     pRenderer = renderer;
+    depthFormat = VK_FORMAT_D32_SFLOAT;
     // -*-*-*-*-*-*-*-*-*-*-*-*-   CREATE SHADOW MAP IMAGE   -*-*-*-*-*-*-*-*-*-*-*-*- //
     // TODO this image should be device local only since no need to map for CPU... check that's the case
     // on this and all other images created with vma allocation
-    VkImageUsageFlags imgUse{};
-    // TODO allow this to be set (sent in)
-    depthFormat = VK_FORMAT_D32_SFLOAT;
 
-    imgUse = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-    mShadowMapImage.create(VkExtent3D{shadowMapSize, shadowMapSize, 1}, depthFormat,
-                           ImageTypes::Custom, imgUse
-                           , VK_IMAGE_ASPECT_DEPTH_BIT, VK_SAMPLE_COUNT_1_BIT);
+    mShadowMapImage.create(shadowMapSize, shadowMapSize, ImageTypes::ShadowMap);
+
     createSampler();
     initPipelines();
 
@@ -91,7 +87,6 @@ namespace fc
     pushRange.size = sizeof(ShadowPushConstants);
 
     debugPipelineConfig.addPushConstants(pushRange);
-
     //
     debugPipelineConfig.setDepthFormat(depthFormat);
     debugPipelineConfig.setColorAttachment(VK_FORMAT_R16G16B16A16_SFLOAT);
@@ -218,7 +213,7 @@ namespace fc
 
     VkRenderingInfo renderInfo{};
     renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-    VkExtent2D mapExtent{mShadowMapImage.getExtent().width, mShadowMapImage.getExtent().height};
+    VkExtent2D mapExtent{mShadowMapImage.Width(), mShadowMapImage.Height()};
     //std::cout << "Shadow Map Resolution: " << mapExtent.width << " x " << mapExtent.height;
     renderInfo.renderArea = VkRect2D{VkOffset2D{0,0}, mapExtent};
     renderInfo.layerCount = 1;

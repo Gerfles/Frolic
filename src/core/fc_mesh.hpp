@@ -189,7 +189,6 @@ namespace fc
      // class member?? TODO researce PMR
      template <typename T> void uploadMesh(std::span<T> vertices, std::span<uint32_t> indices);
 
-     void uploadMeshExtra(std::span<glm::vec4> vertices, std::span<uint32_t> indices);
 
      //void setIndexCounts(uint32_t start, uint32_t count);
      //uint32_t getStartIndex(int ) { return mSurfaces; }

@@ -26,89 +26,169 @@ namespace fc
 
   FcImage::FcImage(VkImage image)
   {
+
     mImage = image;
   }
 
   // TODO create a create() function that allows us to pass a VkImageCreateInfo, etc...
   // for highly specialized image creation
   // ?? assuming there's a reason we need vkExtent 3D and not 2D
-  void FcImage::create(VkExtent3D imgExtent, VkFormat format, ImageTypes imageType
-                       , VkImageUsageFlags useFlags, VkImageAspectFlags aspectFlags
-                       , VkSampleCountFlagBits msaaSampleCount, bool generateMipmaps
-                       , VkImageCreateFlags createFlags)
+  void FcImage::create(uint32_t width, uint32_t height, ImageTypes imageType)
   {
-    //VkDevice device = FcLocator::Device();
-    // Here we are using 3rd dimension (depth) of image in the layer count
-    // ?? but may need to change later on if we end up needing depth
-    mImageExtent = imgExtent; //{imgExtent.width, imgExtent.height, 1};
-    // BUG this is the third time this is re-set if calling from loadktx
-    mFormat = format;
+    mWidth = width;
+    mHeight = height;
+    bool generateMipmaps;
 
-    // Create image
+    // *-*-*-*-*-*-*-*-*-*-*-*-   DEFAULT IMAGE CREATE INFO   *-*-*-*-*-*-*-*-*-*-*-*- //
     VkImageCreateInfo imageInfo{};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     imageInfo.imageType = VK_IMAGE_TYPE_2D;
-    imageInfo.extent = {imgExtent.width, imgExtent.height, 1};
-
-    imageInfo.flags = createFlags; //??
-
+    imageInfo.extent = {mWidth, mHeight, 1};
+    //imageInfo.flags = createFlags;
     // just use one array layer unless we're creating a cube map image
-    imageInfo.arrayLayers = (createFlags != VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT) ? 1 : 6;
+    imageInfo.arrayLayers = 1;
 
-    imageInfo.format = format; //??
-//    imageInfo.tiling = tiling;
     imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
     imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    imageInfo.usage = useFlags;
-    imageInfo.samples = msaaSampleCount;
-    imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE; // whether image can be shared between queues
+    //imageInfo.usage = useFlags;
+    imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    // whether image can be shared between queues
+    imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    VkImageViewType imageViewType = VK_IMAGE_VIEW_TYPE_2D;
-    uint32_t layerCount = 1;
-    //
+    // -*-*-*-*-*-*-*-*-*-*-*-*-*-   DEFAULT IMAGE VIEW   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    VkImageViewCreateInfo imageViewInfo = {};
+    imageViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+
+    imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    // FIXME set to default format first
+    imageViewInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
+    // allows remapping of rgba component to other values
+    imageViewInfo.components.r = VK_COMPONENT_SWIZZLE_R;
+    imageViewInfo.components.g = VK_COMPONENT_SWIZZLE_G;
+    imageViewInfo.components.b = VK_COMPONENT_SWIZZLE_B;
+    imageViewInfo.components.a = VK_COMPONENT_SWIZZLE_A;
+    // Subresources allow the view to view only a part of an image
+    // which aspect of image to view (eg COLOR_BIT for viewing color)
+    imageViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    imageViewInfo.subresourceRange.baseMipLevel = 0;
+//    imageViewInfo.subresourceRange.levelCount = mMipLevels;
+    imageViewInfo.subresourceRange.baseArrayLayer = 0;
+    imageViewInfo.subresourceRange.layerCount = 1;
+
+    // -*-*-*-*-*-*-*-*-*-*-*-*-   DEFAULT ALLOCATION INFO   -*-*-*-*-*-*-*-*-*-*-*-*- //
+    VmaAllocationCreateInfo allocInfo = {};
+    allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+    allocInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+    /* allocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT; */
+
+    // *-*-*-*-*-*-*-*-   POPULATE IMAGE, VIEW, AND ALLOCATION INFO   *-*-*-*-*-*-*-*- //
     switch (imageType)
     {
+      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   BASIC TEXTURE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
         case ImageTypes::Texture:
         {
-          // Use flags for this image
-          //imageInfo.usage = 0;
+          imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT
+                            | VK_IMAGE_USAGE_SAMPLED_BIT;
           break;
         }
+        case ImageTypes::TextureWithMipmaps:
+        {
+          // TODO implement
+          break;
+        }
+
+        // -*-*-*-*-*-*-*-*-*-*-*-*-*-   MIP-MAPPED TEXTURE   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
+        case ImageTypes::TextureGenerateMipmaps:
+        {
+          // transfer src only needs to be set when generating mipmaps from original image
+          imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT
+                            | VK_IMAGE_USAGE_SAMPLED_BIT
+                            | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+          generateMipmaps = true;
+          break;
+        }
+        case ImageTypes::ScreenBuffer:
+        {
+          mFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
+          // We plan on copying into but also from the image
+          imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+          imageInfo.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+          // Storage bit allows computer shader to write to image
+          imageInfo.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
+          // Color attachment allows graphics pipelines to draw geometry into it
+          imageInfo.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+          // TODO this should be a default setting and changed when necessary
+          allocInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+          // Prefer to create such resources first and all other GPU resources (like
+          //textures and vertex buffers) later. When VK_EXT_memory_priority extension is
+          //enabled, it is also worth setting high priority to such allocation to decrease
+          //chances to be evicted to system memory by the operating system.
+          allocInfo.priority = 1.0f;
+          mLayerCount = 1;
+          break;
+        }
+        // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DEPTH BUFFER   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+        case ImageTypes::DepthBuffer:
+        {
+          mFormat = VK_FORMAT_D32_SFLOAT;
+          imageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+          imageViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+          allocInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+          allocInfo.priority = 1.0f;
+          break;
+        }
+        // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   TEXTURE ARRAY   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
         case ImageTypes::TextureArray:
         {
           // NOTE here that we do not have a 3D image so this flag must not be set,
           // it's intended to allow a 3D image to be used as multi-array sampled
           //imageInfo.flags |= VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT;
-//If flags contains VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT, imageType must be VK_IMAGE_TYPE_3D
-          // TODO this needs to be passed in or reference the ktxTexture
-          layerCount = imgExtent.depth;
-          imageInfo.arrayLayers = layerCount;
+          // DELETE
+          std::cout << "LAYERCOUNT: " << mLayerCount;
+          imageInfo.arrayLayers = mLayerCount;
           imageInfo.imageType = VK_IMAGE_TYPE_2D;
-          imageViewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
-
-          fcLog("Array LAYERS");
-            std::cout << imageInfo.arrayLayers << std::endl;
+          imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT
+                            | VK_IMAGE_USAGE_SAMPLED_BIT;
+          imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+          imageViewInfo.subresourceRange.layerCount = mLayerCount;
           break;
         }
-        case ImageTypes::TextureMipMapped:
-        {
-          // imageInfo.usage = 0;
-          // generateMipmaps = true;
-          break;
-        }
+        // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CUBE MAP   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
         case ImageTypes::Cubemap:
         {
-          // imageInfo.usage = 0;
-          layerCount = 6;
-          imageInfo.arrayLayers = layerCount;
-          imageViewType = VK_IMAGE_VIEW_TYPE_CUBE;
-
+          mLayerCount = 6;
+          imageInfo.arrayLayers = mLayerCount;
+          imageViewInfo.subresourceRange.layerCount = mLayerCount;
+          imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+          mFormat = VK_FORMAT_R8G8B8A8_UNORM; // ?? TRY SRGB
+          imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT
+                            | VK_IMAGE_USAGE_SAMPLED_BIT;
+          imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+          imageInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+          mMipLevels = 1;
           break;
         }
         case ImageTypes::HeightMap:
         {
-          // imageInfo.usage = useFlags;
-          // imageInfo.format = VK_FORMAT_R16_UNORM;
+          imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT
+                            | VK_IMAGE_USAGE_SAMPLED_BIT
+                            | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+          imageInfo.format = VK_FORMAT_R16_UNORM;
+          imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+          mMipLevels = 1;
+          break;
+        }
+        // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   SHADOW MAP   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+        case ImageTypes::ShadowMap:
+        {
+          // TODO allow alternative (smaller) formats to be used
+          mFormat = VK_FORMAT_D32_SFLOAT;
+          imageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
+                            | VK_IMAGE_USAGE_SAMPLED_BIT;
+          imageViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+          imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+          mMipLevels = 1;
           break;
         }
         // FIXME this is the default for now until the class gets refactored
@@ -117,70 +197,44 @@ namespace fc
         // the type that can be utilized if needed for finer grain detail
         case ImageTypes::Custom:
         {
-          imageViewType = VK_IMAGE_VIEW_TYPE_2D;
           break;
         }
         default:
           break;
     }
 
-    // TODO might be able to eliminate passing bool option here since that's really more for
-    // textures in which case you would just use createTexture(...)
     if (generateMipmaps)
     {
       mMipLevels = static_cast<uint32_t>
-                   (std::floor(std::log2(std::max(mImageExtent.width, mImageExtent.height)))) + 1;
+                   (std::floor(std::log2(std::max(mWidth, mHeight)))) + 1;
     }
     //
+
+    // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FINALIZE IMAGE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     imageInfo.mipLevels = mMipLevels;
-
-
-    VmaAllocationCreateInfo allocInfo = {};
-    allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-    allocInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
-
-    // TODO probably need to allow passage of a specific bit to account for vmaMemory.requiredFlags
-    // may no longer be necessary however with vma having usage auto set
-    allocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+    imageInfo.format = mFormat;
 
     VkResult result;
-    result = vmaCreateImage(FcLocator::Gpu().getAllocator(), &imageInfo, &allocInfo
-                            , &mImage, &mAllocation, nullptr);
+    result = vmaCreateImage(FcLocator::Gpu().getAllocator(), &imageInfo
+                            , &allocInfo, &mImage, &mAllocation, nullptr);
+
     if(result != VK_SUCCESS)
     {
       std::cout << "Result: " << result << std::endl;
       throw std::runtime_error("Failed to allocate a Vulkan image!: ");
     }
 
-
-    // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE IMAGE VIEW   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    VkImageViewCreateInfo imageViewInfo = {};
-    imageViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    // -*-*-*-*-*-*-*-*-*-*-*-*-*-   FINALIZE IMAGEVIEW   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    imageViewInfo.format = mFormat;
     imageViewInfo.image = mImage;
-    imageViewInfo.viewType = imageViewType;
-    imageViewInfo.format = format;
-    // allows remapping of rgba component to other values
-    imageViewInfo.components.r = VK_COMPONENT_SWIZZLE_R;
-    imageViewInfo.components.g = VK_COMPONENT_SWIZZLE_G;
-    imageViewInfo.components.b = VK_COMPONENT_SWIZZLE_B;
-    imageViewInfo.components.a = VK_COMPONENT_SWIZZLE_A;
-    // Subresources allow the view to view only a part of an image
-    imageViewInfo.subresourceRange.aspectMask = aspectFlags; // which aspect of image to view (eg COLOR_BIT for viewing color)
-    imageViewInfo.subresourceRange.baseMipLevel = 0;         // start mipmap level to view from
-    imageViewInfo.subresourceRange.levelCount = mMipLevels;   // number of mipmap levels to view
-    imageViewInfo.subresourceRange.baseArrayLayer = 0;       // start array level to view from
-    // number of array levels to view
-    imageViewInfo.subresourceRange.layerCount = layerCount;
+    imageViewInfo.subresourceRange.layerCount = mLayerCount;
+    imageViewInfo.subresourceRange.levelCount = mMipLevels;
 
-    if (vkCreateImageView(FcLocator::Device(), &imageViewInfo, nullptr, &mImageView) != VK_SUCCESS)
+    if (vkCreateImageView(FcLocator::Device(), &imageViewInfo, nullptr, &mImageView)
+        != VK_SUCCESS)
     {
       throw std::runtime_error("Failed to create an Image View!");
     }
-
-
-    //createImageView(format, aspectFlags);
-
-
 
 
     // *-*-*-*-*-*-*-   CUSTOM MEMORY ALLOCATION SAVED FOR REFERENCE   *-*-*-*-*-*-*- //
@@ -255,12 +309,11 @@ namespace fc
     imageViewInfo.components.b = VK_COMPONENT_SWIZZLE_B;
     imageViewInfo.components.a = VK_COMPONENT_SWIZZLE_A;
     // Subresources allow the view to view only a part of an image
-    imageViewInfo.subresourceRange.aspectMask = aspectFlags; // which aspect of image to view (eg COLOR_BIT for viewing color)
-    imageViewInfo.subresourceRange.baseMipLevel = 0;         // start mipmap level to view from
-    imageViewInfo.subresourceRange.levelCount = mMipLevels;   // number of mipmap levels to view
-    imageViewInfo.subresourceRange.baseArrayLayer = 0;       // start array level to view from
-    // number of array levels to view
-    imageViewInfo.subresourceRange.layerCount = (imageViewType == VK_IMAGE_VIEW_TYPE_CUBE) ? 6 : 1;
+    imageViewInfo.subresourceRange.aspectMask = aspectFlags;
+    imageViewInfo.subresourceRange.baseMipLevel = 0;
+    imageViewInfo.subresourceRange.levelCount = mMipLevels;
+    imageViewInfo.subresourceRange.baseArrayLayer = 0;
+    imageViewInfo.subresourceRange.layerCount = 1;
 
     if (vkCreateImageView(FcLocator::Device(), &imageViewInfo, nullptr, &mImageView) != VK_SUCCESS)
     {
@@ -280,7 +333,6 @@ namespace fc
     imageBarrier.oldLayout = currentLayout; // layout to transition from
     imageBarrier.newLayout = newLayout; // layout to transition to
     imageBarrier.image = mImage;        // image being accessed and modifies as part of barrier
-
 
     // Queue family to transition from - IGNORED means don't bother transferring to a different queue
     imageBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -394,74 +446,78 @@ namespace fc
 
 
   // TODO add support for linear tilling
-  // TODO perhaps find a better way to use some C++ features here like decltype, function ptrs, etc
-  void FcImage::loadKtx(std::filesystem::path& filename, ImageTypes imageType)
+  // TODO perhaps find a better way to use some C++ features here like decltype, function ptrs, etc to allow texture type (ktx vs ktx2) to be determined without branch
+  void FcImage::loadKtxFile(std::filesystem::path& filename, ImageTypes imageType)
   {
+    //
     KTX_error_code result;
+    ktx_size_t dataLength;
+    void* pData;
+    ktxTexture* texture {nullptr};
+    ktxTexture2* texture2 {nullptr};
 
     if (filename.extension() == ".ktx2")
     {
-      ktxTexture2* texture;
-
       result = ktxTexture2_CreateFromNamedFile(filename.c_str()
                                                , KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT
-                                               , &texture);
+                                               , &texture2);
 
-      if (texture == nullptr || result != KTX_SUCCESS)
+      if (texture2 == nullptr || result != KTX_SUCCESS)
       {
         throw std::runtime_error("Failed to load KTX format image!");
       }
 
-      // TODO might want to separate here so we're only setting height and width seperately
-      mImageExtent = {texture->baseWidth, texture->baseHeight, texture->numLayers};
-      mMipLevels = texture->numLevels;
-
-      mFormat = VkFormat(texture->vkFormat);
+      mFormat = VkFormat(texture2->vkFormat);
+      mWidth = texture2->baseWidth;
+      mHeight = texture2->baseHeight;
+      mLayerCount = texture2->numLayers;
+      mMipLevels = texture2->numLevels;
+      dataLength = texture2->dataSize;
+      pData = texture2->pData;
       // BUG set properly
-      // mBytesPerPixel = texture->kvDataLen;
-      // std::cout << "bytes per pixel: " << mBytesPerPixel << std::endl;
-
-      // TODO create ENUM class for all image types in game engine Such as
-      // FC_IMAGE_TEXTURE | FC_IMAGE_GPU_ONLY | ETC.
-      createTexture(mImageExtent, texture->pData, texture->dataSize,
-                    imageType, false , mFormat);
-
-      // Note here that we have to cast to
-      ktxTexture_Destroy((ktxTexture*)texture);
+      // mBytesPerPixel = texture2->kvDataLen;
     }
     else // This appears to be a v.1 ktxTexture
     {
-      ktxTexture* texture;
-
       result = ktxTexture_CreateFromNamedFile(filename.c_str()
                                               , KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT
                                               , &texture);
 
-      fcLog("ImageSize:");
-      std::cout << texture->dataSize << std::endl;
-
-
       if (texture == nullptr || result != KTX_SUCCESS)
       {
         throw std::runtime_error("Failed to load KTX format image!");
       }
-
       // Most tools export to this format so make this assumption for now (could allow
       // for passing in but most ktx files should be ktx2 instead since its an easy
       // conversion using CLI tool)
       //-> ktx2ktx2 -b [ktx1_filename_to_convert]
       mFormat = VK_FORMAT_R8G8B8A8_SRGB;
-      mImageExtent = {texture->baseWidth, texture->baseHeight, texture->numLayers};
+      mWidth = texture->baseWidth;
+      mHeight = texture->baseHeight;
+      mLayerCount = texture->numLayers;
       mMipLevels = texture->numLevels;
+      dataLength = texture->dataSize;
+      pData = texture->pData;
+      // BUG set properly
+      // mBytesPerPixel = texture2->kvDataLen;
+    }
 
-      createTexture(mImageExtent, texture->pData, texture->dataSize,
-                    imageType, false , mFormat);
+    // create the image
+    create(mWidth, mHeight, imageType);
+    // store our ktx data to image
+    writeToImage(pData, dataLength, false);
 
-      // Note here that we have to cast since libktx has not written Destroy for ktx2
+    // destroy any ktx texture data we have loaded
+    if (texture != nullptr)
+    {
       ktxTexture_Destroy((ktxTexture*)texture);
     }
+    if (texture2 != nullptr)
+    {
+      // Note here that we have to cast since libktx has not written Destroy for ktx2
+      ktxTexture_Destroy((ktxTexture*)texture2);
+    }
   }
-
 
 
 
@@ -471,11 +527,12 @@ namespace fc
     // Must use shared pointer here since we have default copy/assignment operators
     // TODO could change if we implement our own
     // TODO imageMemSize should be determined programatically
-    localCopy = std::make_shared<FcBuffer>();
-    VkDeviceSize imageMemSize = mImageExtent.width * mImageExtent.height * 2;
-    localCopy->allocateBuffer(imageMemSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT
-                              , VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
-                              | VMA_ALLOCATION_CREATE_MAPPED_BIT);
+    VkDeviceSize imageMemSize = mWidth * mHeight * 2; //BUG dont hardcode the 2 here
+    localCopy = std::make_shared<FcBuffer>(imageMemSize, FcBufferTypes::Staging);
+
+    // localCopy->allocate(imageMemSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT
+    //                           , VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
+    //                           | VMA_ALLOCATION_CREATE_MAPPED_BIT);
 
     // store a copy of our buffer memory location in the class for quick access
     localCopyAddress = localCopy->getAddres();
@@ -492,7 +549,7 @@ namespace fc
 
     VkBufferImageCopy imageCopyRegion{};
     // TODO rename to simply mExtent
-    imageCopyRegion.imageExtent = {mImageExtent.width, mImageExtent.height, 1};
+    imageCopyRegion.imageExtent = {mWidth, mHeight, 1};
     imageCopyRegion.imageOffset = {0, 0, 0};
     imageCopyRegion.bufferOffset = 0;
     // for calculating data spacing (row length of data)
@@ -551,7 +608,7 @@ namespace fc
   // pixel at (504, 504);
   uint16_t FcImage::saschaFetchPixel(const int x, const int y, uint32_t scale)
   {
-    uint32_t dim = mImageExtent.width;
+    uint32_t dim = mWidth;
 
     // rpos = (x, y) * (8, 8)
     glm::ivec2 rpos = glm::ivec2(x, y);
@@ -575,7 +632,8 @@ namespace fc
   // DELETE eventually
   void FcImage::loadTestImage(uint32_t width, uint32_t height)
   {
-    mImageExtent = {width, height, 1};
+    mWidth = width;
+    mHeight = height;
     int testImageArea = width * height;
     localCopyAddress = new uint32_t[testImageArea];
     std::memset(localCopyAddress, 0, testImageArea * sizeof(uint32_t));
@@ -600,27 +658,28 @@ namespace fc
   }
 
 
-  void FcImage::loadTexture(std::filesystem::path& filename)
+  void FcImage::loadNonKtxFile(std::filesystem::path& filename, ImageTypes imageType)
+
   {
     // load image file
-    // Note that we must pass channels in but we will not use since most GPUs
-    // require 4 channels per pixel (RGBA)
+    // Note that we must pass channels to stbi_load but we will not use since most
+    // GPUs require 4 channels per pixel (RGBA)
     int width, height, channels;
-
-    stbi_uc* imageData = stbi_load(filename.c_str(), &width, &height, &channels
-                                   , BYTES_PER_PIXEL);
-
+    stbi_uc* imageData = stbi_load(filename.c_str(), &width, &height
+                                   , &channels, BYTES_PER_PIXEL);
     if (!imageData)
     {
       throw std::runtime_error("Failed to load texture file: " + filename.string());
     }
 
-    VkExtent3D extent{static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1};
+    create(width, height, imageType);
 
-    // TODO pass mipmap bool in by funcall
-    // using the image data from the loaded file, create the hardware texture used by the GPU
-    createTexture(extent, imageData, width * height * BYTES_PER_PIXEL
-                  ,ImageTypes::Custom, false);
+    // TODO separate generating mipmaps into a utility function since it would
+    // not likely be part of a main game engine
+    bool generateMipmaps = (imageType == ImageTypes::TextureGenerateMipmaps)? true : false;
+
+    // create the hardware texture used by the GPU
+    writeToImage(imageData, width * height * BYTES_PER_PIXEL, generateMipmaps);
 
     // free original image data
     stbi_image_free(imageData);
@@ -662,39 +721,36 @@ namespace fc
       {
         // using the image data from the loaded file, create the hardware texture used by the GPU
         // BUG check that we're placing the multiplier in the right location.
-        mImageExtent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1};
+        mWidth = static_cast<uint32_t>(width);
+        mHeight = static_cast<uint32_t>(height);
         imageSize = layerSize * 6;
         mMipLevels = 1;
 
-        //
-        // TODO try SRGB
-        create(mImageExtent , VK_FORMAT_R8G8B8A8_UNORM
-               , ImageTypes::Custom
-               , VK_IMAGE_USAGE_TRANSFER_DST_BIT
-               // TODO this may need to be removed from the other implementation of loading textures
-               //| VK_IMAGE_USAGE_TRANSFER_SRC_BIT
-               | VK_IMAGE_USAGE_SAMPLED_BIT
-               , VK_IMAGE_ASPECT_COLOR_BIT, VK_SAMPLE_COUNT_1_BIT, false
-               , VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT);
+        create(mWidth, mHeight, ImageTypes::Cubemap);
 
         // transition the image buffer so that it is most efficient to be written to
         VkCommandBuffer cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
-        transitionImage(cmdBuffer, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+        transitionImage(cmdBuffer, VK_IMAGE_LAYOUT_UNDEFINED
+                        , VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
         FcLocator::Renderer().submitCommandBuffer();
 
-        // TODO would be better to Allocate a buffer big enough to hold all image layers then copy after
-        stagingBuffer.allocateBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+        stagingBuffer.allocate(imageSize, FcBufferTypes::Staging);
       }
 
       // copy the actual image data into the staging buffer.
-      stagingBuffer.overwriteData(pixels, layerSize, layerSize * i);
+      stagingBuffer.write(pixels, layerSize, layerSize * i);
 
       // free original image data
       stbi_image_free(pixels);
 
-      // copy data to image
-      copyFromBuffer(stagingBuffer, layerSize, layerSize * i, i);
+      // mLayerCount = 1;
+      // // copy data to image
+      // copyFromBuffer(stagingBuffer, layerSize * i, i);
+      // mLayerCount = 6;
     }
+      // copy data to image
+      copyFromBuffer(stagingBuffer, 0, 0);
+
 
 
     // no longer need staging buffer so get rid of
@@ -710,109 +766,98 @@ namespace fc
     FcLocator::Renderer().submitCommandBuffer();
 
     // TODO try SRGB
-    createImageView(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_VIEW_TYPE_CUBE);
+    //createImageView(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_VIEW_TYPE_CUBE);
   }
 
 
 
   // TODO make sure to test each of the 3 cases!!
-  void FcImage::loadTexture(std::filesystem::path& parentPath, fastgltf::Asset& asset, fastgltf::Image& image)
+  void FcImage::loadFromGltf(std::filesystem::path& parentPath, fastgltf::Asset& asset, fastgltf::Image& image)
   {
     int width, height, numChannels;
-//    std::cout << "Parent path: " << path.c_str() << std::endl;
-    // TODO Look into creating a more readable version of this flow (after looking at fastgltf for alternatives
-    // TODO here we are passing a lambda to the visitor but might be able to pass an already defined
-    // function that accomplishes what we do with the visitor
+
+    // TODO Look into creating a more readable version of this flow
+    // (after looking at fastgltf for alternatives
+    // TODO here we are passing a lambda to the visitor but might be able to pass an
+    // already defined function that accomplishes what we do with the visitor
     std::visit(fastgltf::visitor {
         [](auto& arg) {},
-          // -*-*-*-*-*-*-*-*-*-*-*-*-*-   CASE1: TEXTURE IS FILE   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
+  // -*-*-*-*-*-*-*-*-*-*-*-*-   CASE1: TEXTURE IS FILE   -*-*-*-*-*-*-*-*-*-*-*-*- //
           // Texture is stored outside of the glTF/glb file (this is common)
           [&](fastgltf::sources::URI& filepath)
            {
              assert(filepath.fileByteOffset == 0); // don't support offsets with stbi
              assert(filepath.uri.isLocalPath()); // only allow loading local files
 
-             //const std::string path(filepath.uri.path().begin(), filepath.uri.path().end());
-             const std::string path {parentPath.c_str() + std::string{"//"}
-                                   + std::string{filepath.uri.path().begin(), filepath.uri.path().end()}};
+             std::filesystem::path path{parentPath.c_str() + std::string{"//"}
+                                   + std::string{filepath.uri.path().begin()
+                                       , filepath.uri.path().end()}};
 
-             stbi_uc* imageData = stbi_load(path.c_str(), &width, &height, &numChannels
-                                            , BYTES_PER_PIXEL);
-
-             if (imageData)
-             {
-               VkExtent3D imageExtent{static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1};
-
-               // using the image data from the loaded file, create the hardware texture used by the GPU
-               createTexture(imageExtent, imageData, width * height * BYTES_PER_PIXEL
-                             ,ImageTypes::Custom ,true);
-
-               // free original image data
-               stbi_image_free(imageData);
-             }
+             loadNonKtxFile(path, ImageTypes::TextureGenerateMipmaps);
            },
-          // -*-*-*-*-*-*-*-*-*-*-*-*-   CASE2: TEXTURE IS Array   -*-*-*-*-*-*-*-*-*-*-*-*- //
-          // fastgltf already loaded texture into a std::array structure (this is the case on base64 or
-          // if we instruct fastgltf to load external image files
+  // -*-*-*-*-*-*-*-*-*-*-*-*-   CASE2: TEXTURE IS ARRAY   -*-*-*-*-*-*-*-*-*-*-*-*- //
+          // fastgltf already loaded texture into a std::array structure (this is the case
+          // on base64 or if we instruct fastgltf to load external image files
           [&](fastgltf::sources::Array& array)
            {
-             stbi_uc* imageData = stbi_load_from_memory((stbi_uc*)array.bytes.data(),
-                                                        static_cast<int>(array.bytes.size()),
-                                                        &width, &height, &numChannels, STBI_rgb_alpha);
+             stbi_uc* imageData = stbi_load_from_memory(
+               (stbi_uc*)array.bytes.data()
+               , static_cast<int>(array.bytes.size())
+               , &width, &height, &numChannels, STBI_rgb_alpha);
+
              if (imageData)
              {
-               VkExtent3D imageExtent{static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1};
-
-               // using the image data from the loaded file, create the hardware texture used by the GPU
-
-               createTexture(imageExtent, imageData, width * height * BYTES_PER_PIXEL
-                             , ImageTypes::Custom, true);
+               // using the image data from the loaded file, create the hardware texture
+               // used by the GPU TODO for create texture could just pass bytes_per_pixel
+               // since dimension is already known, leaving for now since KTX format can
+               // have mipmaps, as well as layers, stored with image etc
+               createTexture(width, height, imageData
+                             , width * height * BYTES_PER_PIXEL, true);
 
                // free original image data
                stbi_image_free(imageData);
              }
            },
-          // -*-*-*-*-*-*-*-*-*-   CASE3 TEXTURE IS EMBEDDED INTO GLB   -*-*-*-*-*-*-*-*-*- //
+   // -*-*-*-*-*-*-*-*-*-   CASE3 TEXTURE IS EMBEDDED INTO GLB   -*-*-*-*-*-*-*-*-*- //
           [&](fastgltf::sources::BufferView& view)
            {
              fastgltf::BufferView& bufferView = asset.bufferViews[view.bufferViewIndex];
              fastgltf::Buffer& buffer = asset.buffers[bufferView.bufferIndex];
 
              // print the image name so we know what facets are available
-             std::cout << "Embedded Texture Name:" << image.name << std::endl;
+             std::cout << "Case3: Embedded Texture Name:" << image.name << std::endl;
 
-             // Here we only care about VectorWithMime here, because we specify LoadExternalBuffers,
-             // meaning all buffers are already loaded into a array.
+             // Here we only care about VectorWithMime here, because we specify
+             // LoadExternalBuffers, meaning all buffers are already loaded into a array.
              std::visit(fastgltf::visitor {
                  [](auto& arg) {},
                    [&] (fastgltf::sources::Array& array)
                     {
-                      stbi_uc* imageData = stbi_load_from_memory((stbi_uc*)
-                                                                 (array.bytes.data() + bufferView.byteOffset),
-                                                                 static_cast<int>(bufferView.byteLength),
-                                                                 &width, &height, &numChannels
-                                                                 , BYTES_PER_PIXEL);
+                      stbi_uc* imageData = stbi_load_from_memory(
+                        (stbi_uc*)(array.bytes.data() + bufferView.byteOffset)
+                        , static_cast<int>(bufferView.byteLength)
+                        , &width, &height, &numChannels, BYTES_PER_PIXEL);
+
                       if (imageData)
                       {
-                        VkExtent3D imageExtent{static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1};
+                        VkExtent3D imageExtent{ static_cast<uint32_t>(width)
+                                              , static_cast<uint32_t>(height), 1};
 
-                        createTexture(imageExtent, imageData
-                                      , width * height * BYTES_PER_PIXEL
-                                      , ImageTypes::Custom
-                                      , true);
+                        createTexture(static_cast<uint32_t>(width)
+                                      , static_cast<uint32_t>(height), imageData
+                                      , width * height * BYTES_PER_PIXEL, true);
 
                         // free original image data
                         stbi_image_free(imageData);
                       }
                     }
-                   },
-               buffer.data);
+                   }, buffer.data);
            },
-          },
+      },
       image.data);
 
     // if any of the attempts to load the data failed, we havent written the image so set handle to null
-    // if (mImage == VK_NULL_HANDLE)
+    // TODO better error checking
     if (mImage == VK_NULL_HANDLE)
     {
       fcLog("Image is NOT valid");
@@ -827,27 +872,31 @@ namespace fc
   // TODO - give a feature that turns mipMaping off (still creating/loading the mipLevels though)
   void FcImage::generateMipMaps()
   {
-    // first select the largest dimension (widht or height), then calc the number of times that can be
-    // divided by 2. floor gets the gretest integer number of times and then add 1 so original image has mip level.
+    // first select the largest dimension (widht or height), then calc the number of
+    // times that can divided by 2. floor gets the gretest integer number of times and
+    // then add 1 so original image has mip level.
     // TODO determine if this really needs to go all the way down to 1x1 pixel
     mMipLevels = static_cast<uint32_t>
-                 (std::floor(std::log2(std::max(mImageExtent.width, mImageExtent.height)))) + 1;
-
+                 (std::floor(std::log2(std::max(mWidth, mHeight)))) + 1;
 
     FcGpu& gpu = FcLocator::Gpu();
     // check if image format supports linear blitting first
     // TODO check this once at startup - NOT FOR EVERY IMAGE
     VkFormatProperties formatProperties;
-    vkGetPhysicalDeviceFormatProperties(gpu.physicalDevice(), VK_FORMAT_R8G8B8A8_UNORM, &formatProperties);
+    vkGetPhysicalDeviceFormatProperties(gpu.physicalDevice()
+                                        , VK_FORMAT_R8G8B8A8_UNORM, &formatProperties);
 
-    if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT))
+    if (!(formatProperties.optimalTilingFeatures
+          & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT))
     {
-      // could search for a common image format that does support linear blitting here or use software
-      // like stb_image_resize to generate mipmaps before hand--for now, just throw an error
+      // could search for a common image format that does support linear blitting
+      // here or use software like stb_image_resize to generate mipmaps before
+      // hand--for now, just throw an error
       throw std::runtime_error("Failed to generate mipmaps - graphics device not capable of linear blitting for this texture format!");
     }
 
-    // this part will remain the same for all barriers - the rest will change depending on the mip level we're on
+    // this part will remain the same for all barriers - the rest will change
+    // depending on the mip level we're on
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     barrier.image = mImage;
@@ -858,58 +907,69 @@ namespace fc
     barrier.subresourceRange.layerCount = 1;
     barrier.subresourceRange.levelCount = 1;
 
-    int32_t mipWidth = mImageExtent.width;
-    int32_t mipHeight = mImageExtent.height;
+    int32_t mipWidth = mWidth;
+    int32_t mipHeight = mHeight;
 
     VkCommandBuffer cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
 
-    // record a VkCmdBlitImage() command for each mip level, except for the first mimMap level (original image)
+    // TODO think about changing to VkImageBlit2
+    // These aspects of image blit never change depending on mip level
+    VkImageBlit blit{};
+    blit.srcOffsets[0] = {0,0,0};
+    blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    blit.srcSubresource.baseArrayLayer = 0;
+    blit.srcSubresource.layerCount = 1;
+    blit.dstOffsets[0] = {0,0,0};
+    blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    blit.dstSubresource.baseArrayLayer = 0;
+    blit.dstSubresource.layerCount = 1;
+    // copying 2D images so always set depth to 1
+    blit.srcOffsets[1].z = 1;
+    blit.dstOffsets[1].z = 1;
+
+    // record a VkCmdBlitImage() command for each mip level, except for
+    // the first mipMap level (original image)
     for (size_t i = 0; i < mMipLevels - 1; ++i)
     {
-      barrier.subresourceRange.baseMipLevel = i;
       barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
       barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
       barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
       barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-
+      barrier.subresourceRange.baseMipLevel = i;
+      //
       vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT
-                           , VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+                           , VK_PIPELINE_STAGE_TRANSFER_BIT
+                           , 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
-      // TODO take all of the non-changing blit stuff out of the loop
-      VkImageBlit blit{};
-      blit.srcOffsets[0] = {0,0,0};
-      blit.srcOffsets[1] = {mipWidth, mipHeight, 1};
-      blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+      blit.srcOffsets[1].x = mipWidth;
+      blit.srcOffsets[1].y = mipHeight;
+      // set the next mipMap dimensions, by halving the previous mip dimension
+      // making sure not to get any smaller than 1 pixel!
+      blit.dstOffsets[1].x = mipWidth > 1 ? mipWidth >> 1 : 1;
+      blit.dstOffsets[1].y = mipHeight > 1 ? mipHeight >> 1 : 1;
       blit.srcSubresource.mipLevel = i;
-      blit.srcSubresource.baseArrayLayer = 0;
-      blit.srcSubresource.layerCount = 1;
-      blit.dstOffsets[0] = {0,0,0};
-      // set the next mipMap dimensions, making sure not to get any smaller than 1 pixel!
-      blit.dstOffsets[1] = {mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1};
-      blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
       blit.dstSubresource.mipLevel = i + 1;
-      blit.dstSubresource.baseArrayLayer = 0;
-      blit.dstSubresource.layerCount = 1;
+      //
+      vkCmdBlitImage(cmdBuffer, mImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, mImage
+                     , VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_LINEAR);
 
-      vkCmdBlitImage(cmdBuffer, mImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
-                     , mImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_LINEAR);
-
-      // now transition image layout of previous mipLevel to shader read only format (all sampling operations will wait on this transition to finish)
+      // now transition image layout of previous mipLevel to shader read only format
+      // (all sampling operations will wait on this transition to finish)
       barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
       barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
       barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
       barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
       //
       vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT
-                           , VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+                           , VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+                           , 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
-      // halve current mip dimensions, making sure not to halve if only one pixel wide/high
-      // TODO probably could bit shift here (though the compiler probably does this already)
-      if (mipWidth > 1) mipWidth /= 2;
-      if (mipHeight > 1) mipHeight /= 2;
+      // set the next loops mipmap dimensions to half the previous (unless only one pixel)
+      mipWidth = blit.dstOffsets[1].x;
+      mipHeight = blit.dstOffsets[1].y;
     }
 
-    // one last transition to handle the last mip level since this won't be handled by the loop
+    // one last transition to handle the final mip level not handled by the loop
     barrier.subresourceRange.baseMipLevel = mMipLevels - 1;
     barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
     barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -917,7 +977,8 @@ namespace fc
     barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
     //
     vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT
-                         , VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+                         , VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+                         , 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
     // finally, submit all commands to the the graphics queue
     FcLocator::Renderer().submitCommandBuffer();
@@ -1002,13 +1063,11 @@ namespace fc
   }
 
 
-
-  // TODO determine if this should return texture sampler instead of storying it internally
-  // basically seems like we can reuse the same sampler for all simpler images??
+  // DELETE -> texture sampler created elsewhere and should be part of texture atlas
+  // ?? Could however, keep the atlas in image class, accessible to any image or
+  // external image with create function
   void FcImage::createTextureSampler()
   {
-
-
     VkSamplerCreateInfo samplerInfo{};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     // How to render when image is magnified on the screen
@@ -1049,29 +1108,26 @@ namespace fc
 
 
 
-  // TODO There are 2 basic methods to copy one image into another with Vulan.
-  // 1. You can use VkCmdCopyImage - faster method but more restricted in the the sense that the resolutions
-  //    sizes, formats, etc. must match.
-  // 2. You can use VkCmdBlitImage (which is what we'll use here) which gives more flexible but also slower
-  // In a more advanced engine, we should write our own function that can do extra logic on a fullscreen
+  // TODO There are 2 basic methods to copy one image into another with Vulkan.  1. You
+  // can use VkCmdCopyImage - faster method but more restricted in the the sense that the
+  // resolutions sizes, formats, etc. must match.  2. You can use VkCmdBlitImage (which is
+  // what we'll use here) which gives more flexible but also slower In a more advanced
+  // engine, we should write our own function that can do extra logic on a fullscreen
   // fragment shader.
-  void FcImage::copyFromImage(VkCommandBuffer cmdBuffer, FcImage* source, VkExtent2D srcSize, VkExtent2D dstSize)
+  void FcImage::copyFromImage(VkCommandBuffer cmdBuffer, FcImage* source)
   {
     VkImageBlit2 blitRegion = {};
     blitRegion.sType = VK_STRUCTURE_TYPE_IMAGE_BLIT_2;
-    blitRegion.srcOffsets[1].x = srcSize.width;
-    blitRegion.srcOffsets[1].y = srcSize.height;
+    blitRegion.srcOffsets[1].x = source->mWidth;
+    blitRegion.srcOffsets[1].y = source->mHeight;
     blitRegion.srcOffsets[1].z = 1;
-
-    blitRegion.dstOffsets[1].x = dstSize.width;
-    blitRegion.dstOffsets[1].y = dstSize.height;
+    blitRegion.dstOffsets[1].x = source->mWidth;
+    blitRegion.dstOffsets[1].y = source->mHeight;
     blitRegion.dstOffsets[1].z = 1;
-
     blitRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     blitRegion.srcSubresource.baseArrayLayer = 0;
     blitRegion.srcSubresource.layerCount = 1;
     blitRegion.srcSubresource.mipLevel = 0;
-
     blitRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     blitRegion.dstSubresource.baseArrayLayer = 0;
     blitRegion.dstSubresource.layerCount = 1;
@@ -1093,27 +1149,35 @@ namespace fc
 
   // TODO should consider the use case for when we want to make this operation part of an existing cmdBuffer using nullptr default should make that pretty easy to implement
   // TODO TRY passing in a command buffer for this copy
-  void FcImage::copyFromBuffer(FcBuffer& srcBuffer, VkDeviceSize bufferSize
-                               , VkDeviceSize offset, uint32_t arrayLayer)
+  void FcImage::copyFromBuffer(FcBuffer& srcBuffer, VkDeviceSize offset, uint32_t arrayLayer)
   {
     // allocate and begin the command buffer to transfer an image
     FcGpu& gpu = FcLocator::Gpu();
 
     // region of image to copy from and to
     VkBufferImageCopy imageCopyRegion{};
-    imageCopyRegion.bufferOffset = offset;                                        // offset into data
-    imageCopyRegion.bufferRowLength = 0;                                     // for calculating data spacing (row length of data)
-    imageCopyRegion.bufferImageHeight = 0;                                   // similar to above but vertical spacing
-    imageCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; // which aspect of image to copy
-    imageCopyRegion.imageSubresource.mipLevel = 0;                           // mipmap level to copy
-    imageCopyRegion.imageSubresource.baseArrayLayer = arrayLayer;                     // starting array layer if we're using an array (cubemaps etc)
-    imageCopyRegion.imageSubresource.layerCount = mImageExtent.depth;                         // number of layers to copy starting at basearraylayer
+    // offset into data
+    imageCopyRegion.bufferOffset = offset;
+    // for calculating data spacing (row length of data)
+    imageCopyRegion.bufferRowLength = 0;
+    // similar to above but vertical spacing
+    imageCopyRegion.bufferImageHeight = 0;
+    // which aspect of image to copy
+    // TODO should depend on the image type
+    imageCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    // mipmap level to copy
+    imageCopyRegion.imageSubresource.mipLevel = 0;
+    // starting array layer if we're using an array (cubemaps etc)
+    imageCopyRegion.imageSubresource.baseArrayLayer = arrayLayer;
+    // number of layers to copy starting at basearraylayer
+    imageCopyRegion.imageSubresource.layerCount = mLayerCount;
+    // offset into image (as ooposed to raw data in bufferOffset)
+    imageCopyRegion.imageOffset = {0, 0, 0};
 
-    imageCopyRegion.imageOffset = {0, 0, 0};                                 // offset into image (as ooposed to raw data in bufferOffset)
     // TODO seems silly to store image extent but then always have to reference
     // one of the 3 dimensions, usally forcing depth to one, better to just
     // store height, width, numLayers instead!
-    imageCopyRegion.imageExtent = {mImageExtent.width, mImageExtent.height, 1};
+    imageCopyRegion.imageExtent = {mWidth, mHeight, 1};
 
     // create the command to copy a buffer to the image
     VkCommandBuffer cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
@@ -1168,39 +1232,58 @@ namespace fc
   }
 
 
-  // TODO All of the helper functions that submit commands so far have been set up to execute synchronously
-// by waiting for the queue to become idle. For practical applications it is recommended to combine
-// these operations in a single command buffer and execute them asynchronously for higher
-// throughput, especially the transitions and copy in the createTextureImage function. Try to
-// experiment with this by creating a setupCommandBuffer that the helper functions record commands
-// into, and add a flushSetupCommands to execute the commands that have been recorded so far. It's
-// best to do this after the texture mapping works to check if the texture resources are still set
-// up correctly.
-
-  // TODO require an init function or remove the pGpu parameter... this function doesn't use it and
-  // I think other functions doen't need it either--but it's confusing and errore prone to keep an
-  // unitialized pointer around
-  void FcImage::createTexture(VkExtent3D extent, void* pixelData, VkDeviceSize size
-                              ,ImageTypes imageType, bool generateMipmaps, VkFormat format)
+  void FcImage::writeToImage(void* pixelData, VkDeviceSize dataLength, bool generateMipmaps)
   {
-    // TODO determine if having member dimensions is useful
-    // TODO see if this can always be set sooner, like from loadTexture()
-    mImageExtent = extent;
+    // TODO correct staging buffer procedure!!
+    // Create a staging buffer first in order to transition the image to the gpu-local later
+    FcBuffer stagingBuffer(dataLength, FcBufferTypes::Staging);
+    // copy the actual image data into the staging buffer.
 
-    // DELETE this function in favor of creating texture more simply by calling
-    // create() with one of the newly defined image types
+    // TODO use vkGetImageSubresourceLayout, rather than assuming contiguous memory and
+    // using memcpy. It's unlikely that it would matter for a 512x512 image, but I think
+    // that's the correct approach in general.
 
-    writeToTexture(pixelData, size, imageType, generateMipmaps, format);
+    stagingBuffer.write(pixelData, dataLength);
+    //stagingBuffer.storeData(pixelData, dataLength, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
 
-    // DELETE -> texture sampler created elsewhere and should be part of texture atlas
-    // ?? Could however, keep the atlas in image class, accessible to any image or
-    // external image with create function
-    // create the texture sampler
-    createTextureSampler();
+    // remove unneeded mappings using to increase the likelihood of successful future
+    // calls to vkMapMemory() ?? API without secrets suggests that the unMapping of memory
+    // is not necessary...  Memory in Vulkan doesn't need to be unmapped before using it
+    // on GPU, but unless a memory types has VK_MEMORY_PROPERTY_HOST_COHERENT_BIT flag
+    // set, you need to manually invalidate cache before reading of mapped pointer and
+    // flush cache after writing to mapped pointer. Map/unmap operations don't do that
+    // automatically.  // NOTE that the API without secrets calls for flushing the mapped
+    // memory but the API documentation states that: If the memory object was created with
+    // the VK_MEMORY_PROPERTY_HOST_COHERENT_BIT set, vkFlushMappedMemoryRanges and
+    // vkInvalidateMappedMemoryRanges are unnecessary and may have a performance
+    // cost. However, availability and visibility operations still need to be managed on
+    // the device. See the description of host access types for more information.
+    // https://www.khronos.org/registry/vulkan/specs/1.2-extensions/html/vkspec.html#memory
+    // vkFlushMappedMemoryRanges(gfx->device, 1, &flushRange);
 
-    // transitioned to SHADER_READ_ONLY_OPTIMAL during mip map generation ?? might not be the most efficient to transition one level at a time
-    // no longer needed - transitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, mipLevels);
-    // TODO try to transition all mipLevels after mipmaps are generated
+    // create image and imageView to hold final texture
+    // TODO load VK_SAMPLE_COUNT from GPU.properties
+
+    // transition the image so that it's in the most efficient state to write to
+    VkCommandBuffer cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
+
+    transitionImage(cmdBuffer, VK_IMAGE_LAYOUT_UNDEFINED
+                    , VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+                    , VK_IMAGE_ASPECT_COLOR_BIT,  mMipLevels);
+
+    FcLocator::Renderer().submitCommandBuffer();
+
+    // copy data to image
+    copyFromBuffer(stagingBuffer);
+
+    // no longer need staging buffer so get rid of
+    stagingBuffer.destroy();
+
+    // transitioned to SHADER_READ_ONLY_OPTIMAL during mip map generation ?? might not be
+    // the most efficient to transition one level at a time no longer needed -
+    // transitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+    // VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, mipLevels); TODO try to transition all
+    // mipLevels after mipmaps are generated
     if (generateMipmaps)
     {
       // transition image and submit command buffer within GenerateMipMaps()
@@ -1216,65 +1299,32 @@ namespace fc
   }
 
 
-
-  void FcImage::writeToTexture(void* pixelData, VkDeviceSize size, ImageTypes imageType
-                               , bool generateMipmaps, VkFormat format)
+  // TODO All of the helper functions that submit commands so far have been set up to
+  // execute synchronously
+  // by waiting for the queue to become idle. For practical applications it is recommended
+  // to combine these operations in a single command buffer and execute them asynchronously
+  // for higher throughput, especially the transitions and copy in the createTextureImage
+  // function. Try to experiment with this by creating a setupCommandBuffer that the helper
+  // functions record commands into, and add a flushSetupCommands to execute the commands
+  // that have been recorded so far. It's best to do this after the texture mapping works to
+  // check if the texture resources are still set up correctly.
+  void FcImage::createTexture(uint32_t width, uint32_t height, void* pixelData
+                              , VkDeviceSize size, bool generateMipmaps, VkFormat format)
   {
-    // Copy data to a staging buffer first in order to transition the image and send it to the gpu
+    // TODO see if this can always be set sooner, like from loadTexture()
     mFormat = format;
-    // VkDeviceSize imageSize = mImageExtent.width * mImageExtent.height * BYTES_PER_PIXEL;
-    // std::cout << "image size: " << imageSize << std::endl;
-    // create staging buffer to hold loaded data, ready to copy to device
-    FcBuffer stagingBuffer;
-    // copy the actual image data into the staging buffer.
 
-    stagingBuffer.storeData(pixelData, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
-
-    // TODO check if static cast is recommended
-    // stagingBuffer.overwriteData(pixelData, static_cast<size_t>(imageSize));
-
-    // TODO use vkGetImageSubresourceLayout, rather than assuming contiguous memory and using memcpy. It's
-    // unlikely that it would matter for a 512x512 image, but I think that's the correct approach in
-    // general.
-
-    // remove unneeded mappings using to increase the likelihood of successful future calls to vkMapMemory()
-    // ?? API without secrets suggests that the unMapping of memory is not necessary...
-    // Memory in Vulkan doesn't need to be unmapped before using it on GPU, but unless a memory types
-    // has VK_MEMORY_PROPERTY_HOST_COHERENT_BIT flag set, you need to manually invalidate cache
-    // before reading of mapped pointer and flush cache after writing to mapped pointer. Map/unmap
-    // operations don't do that automatically.  // NOTE that the API without secrets calls for
-    // flushing the mapped memory but the API documentation states that: If the memory object was
-    // created with the VK_MEMORY_PROPERTY_HOST_COHERENT_BIT set, vkFlushMappedMemoryRanges and
-    // vkInvalidateMappedMemoryRanges are unnecessary and may have a performance cost. However,
-    // availability and visibility operations still need to be managed on the device. See the
-    // description of host access types for more information.
-    // https://www.khronos.org/registry/vulkan/specs/1.2-extensions/html/vkspec.html#memory
-    // vkFlushMappedMemoryRanges(gfx->device, 1, &flushRange);
-
+    // TODO load VK_SAMPLE_COUNT from GPU.properties or pass in
     // create image and imageView to hold final texture
-    // TODO load VK_SAMPLE_COUNT from GPU.properties
+    if (generateMipmaps)
+    {
+      create(width, height, ImageTypes::TextureGenerateMipmaps);
+    }
+    else
+    {
+      create(width, height, ImageTypes::Texture);
+    }
 
-    //VkSampleCountFlagBits sampleCount = FcLocator::Gpu().Properties().maxMsaaSamples;
-    create(mImageExtent, format, imageType
-           , VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
-           , VK_IMAGE_ASPECT_COLOR_BIT, VK_SAMPLE_COUNT_1_BIT, generateMipmaps);
-
-    // transition the image buffer so that it is most efficient to be written to
-
-    VkCommandBuffer cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
-
-    transitionImage(cmdBuffer, VK_IMAGE_LAYOUT_UNDEFINED
-                    , VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT,  mMipLevels);
-
-    FcLocator::Renderer().submitCommandBuffer();
-
-    // copy data to image
-    copyFromBuffer(stagingBuffer, size);
-
-    // no longer need staging buffer so get rid of
-    stagingBuffer.destroy();
+    writeToImage(pixelData, size, generateMipmaps);
   }
-
-
-
-}                                                                                     // namespace fc _END_
+}// --- namespace fc --- (END)

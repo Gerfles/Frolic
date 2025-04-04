@@ -188,16 +188,16 @@ namespace fc
     pSceneData = sceneData;
     // -*-*-*-*-   3 DEFAULT TEXTURES--WHITE, GREY, BLACK AND CHECKERBOARD   -*-*-*-*- //
     uint32_t white = glm::packUnorm4x8(glm::vec4(1.f, 1.f, 1.f, 1.f));
-    mWhiteTexture.createTexture(VkExtent3D{1,1,1}, static_cast<void*>(&white)
-                                , sizeof(white), ImageTypes::Custom);
+    mWhiteTexture.createTexture(1, 1, static_cast<void*>(&white)
+                                , sizeof(white));
 
     uint32_t grey = glm::packUnorm4x8(glm::vec4(0.36f, 0.36f, 0.36f, 1.f));
-    mGreyTexture.createTexture(VkExtent3D{1,1,1}, static_cast<void*>(&grey)
-                               , sizeof(grey), ImageTypes::Custom);
+    mGreyTexture.createTexture(1, 1, static_cast<void*>(&grey)
+                               , sizeof(grey));
 
     uint32_t black = glm::packUnorm4x8(glm::vec4(0.f, 0.f, 0.f, 1.f));
-    mBlackTexture.createTexture(VkExtent3D{1,1,1}, static_cast<void*>(&black)
-                                , sizeof(black), ImageTypes::Custom);
+    mBlackTexture.createTexture(1, 1, static_cast<void*>(&black)
+                                , sizeof(black));
 
     // checkerboard image
     uint32_t checkerColor = glm::packUnorm4x8(glm::vec4(1.f, 0.f, 1.f, 1.f));
@@ -209,9 +209,8 @@ namespace fc
         pixels[y * 16 + x] = ((x % 2) ^ (y % 2)) ? checkerColor : black;
       }
     }
-    mCheckerboardTexture.createTexture({16, 16, 1}, static_cast<void*>(&pixels)
-                                       , pixels.size() * sizeof(pixels[0])
-                                       , ImageTypes::Custom);
+    mCheckerboardTexture.createTexture(16, 16, static_cast<void*>(&pixels)
+                                       , pixels.size() * sizeof(pixels[0]));
 
     VkSamplerCreateInfo samplerInfo{};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -283,9 +282,10 @@ namespace fc
     // mTerrain.init(this, "..//maps/iceland_heightmap.png");
     // vkDeviceWaitIdle(pDevice);
 
-    // // set the uniform buffer for the material data
-    materialConstants.allocateBuffer(sizeof(MaterialConstants)
-                                     , VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+    // TODO Organize initialization
+
+    // set the uniform buffer for the material data
+    materialConstants.allocate(sizeof(MaterialConstants), FcBufferTypes::Uniform);
 
     // write the buffer
     MaterialConstants* materialUniformData =
@@ -487,9 +487,6 @@ namespace fc
 
 
 
-
-
-
   void FcRenderer::createInstance(VkApplicationInfo& appInfo)
   {
     // First determine all the extensions needed for SDL to run Vulkan instance
@@ -581,9 +578,7 @@ namespace fc
 
   void FcRenderer::initDrawImage()
   {
-    // match our draw image to the window extent
-    // TODO create a constructor from VkExtent2D to VkExtent3D
-    VkExtent3D drawImgExtent = {mWindow.ScreenSize().width, mWindow.ScreenSize().height, 1};
+    // hardcoding the draw format to 32 bit float
 
     VkImageUsageFlags imgUse{};
     // We plan on copying into but also from the image
@@ -594,13 +589,9 @@ namespace fc
     // Color attachment allows graphics pipelines to draw geometry into it
     imgUse |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    // hardcoding the draw format to 32 bit float
-    mDrawImage.create(drawImgExtent, VK_FORMAT_R16G16B16A16_SFLOAT
-                      , ImageTypes::Custom
-                      , imgUse
-                      , VK_IMAGE_ASPECT_COLOR_BIT, FcLocator::Gpu().Properties().maxMsaaSamples);
-
-
+    // match our draw image to the window extent
+  mDrawImage.create(mWindow.ScreenSize().width, mWindow.ScreenSize().height
+                    , ImageTypes::ScreenBuffer);
 
 
     // *-*-*-*-*-*-*-*-*-*-*-   CREATE DRAW IMAGE DESCRIPTOR   *-*-*-*-*-*-*-*-*-*-*- //
@@ -618,16 +609,15 @@ namespace fc
     //vkDestroyDescriptorSetLayout(pDevice, mBackgroundDescriptorlayout, nullptr);
 
     // -*-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE DEPTH IMAGE   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    imgUse = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    mDepthImage.create(drawImgExtent, VK_FORMAT_D32_SFLOAT, ImageTypes::Custom
-                       , imgUse, VK_IMAGE_ASPECT_DEPTH_BIT
-                       , FcLocator::Gpu().Properties().maxMsaaSamples);
+    mDepthImage.create(mWindow.ScreenSize().width, mWindow.ScreenSize().height
+                       ,ImageTypes::DepthBuffer);
+
 
     // TODO provide for these to change if VK_ERROR_OUT_OF_DATE_KHR, etc.
     mDrawExtent.height = std::min(mSwapchain.getSurfaceExtent().height
-                                  , mDrawImage.getExtent().height);// * renderScale;
+                                  , mDrawImage.Height());// * renderScale;
     mDrawExtent.width = std::min(mSwapchain.getSurfaceExtent().width
-                                 , mDrawImage.getExtent().width);// * renderScale;
+                                 , mDrawImage.Width());// * renderScale;
 
     // TODO create a function for allowing viewport and scisors to change
     // initialze the dynamic mDynamicViewport and mDynamicScisors
@@ -922,8 +912,8 @@ namespace fc
                        sizeof(ComputePushConstants), &pushConstants);
 
     // execute the compute pipeline dispatch.
-    vkCmdDispatch(cmd, std::ceil(mDrawImage.size().width / 16.0),
-                  std::ceil(mDrawImage.size().height / 16.0), 1);
+    vkCmdDispatch(cmd, std::ceil(mDrawImage.Width() / 16.0),
+                  std::ceil(mDrawImage.Height() / 16.0), 1);
   }
 
 
@@ -1575,8 +1565,8 @@ namespace fc
                                , VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
     // execute a copy from the draw image into the swapchain
-    mSwapchain.getFcImage(swapchainImageIndex).copyFromImage(commandBuffer, &mDrawImage, mDrawImage.size()
-                                                             , mDrawImage.size());
+    mSwapchain.getFcImage(swapchainImageIndex).copyFromImage(commandBuffer, &mDrawImage);
+
 
     // TODO ?? Note that drawImGui can also go here so should find out what they do in the examples
 

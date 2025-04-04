@@ -84,7 +84,7 @@ namespace fc
       return;
     }
 
-    mSceneDataBuffer.allocateBuffer(sizeof(SceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+    mSceneDataBuffer.allocate(sizeof(SceneData), FcBufferTypes::Uniform);
 
     mRenderer.initDefaults(mSceneDataBuffer, &mSceneData);
 
@@ -548,7 +548,7 @@ namespace fc
         ImGui::Render();
       }
 
-      mSceneDataBuffer.overwriteData(&mSceneData, sizeof(SceneData));
+      mSceneDataBuffer.write(&mSceneData, sizeof(SceneData));
       //mRenderer.drawModels(swapchainImgIndex, mUbo);
 
       //mRenderer.drawBillboards(camera.Position(), frame, mUbo);
