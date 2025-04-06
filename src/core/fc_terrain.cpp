@@ -18,55 +18,10 @@ namespace fc
   {
     pRenderer = renderer;
 
-    // std::vector<glm::ivec2> tests(64 * 64);
-    // for(size_t i = 0; i < 64; ++i)
-    // {
-    //   for (size_t j = 0; j < 64; ++j)
-    //   {
-    //     tests[i + j * 64] = glm::vec2{i, j};
-    //   }
-    // }
-
-    // std::function<int(glm::ivec2)> lambda([](glm::ivec2 vector)
-    //  {
-    //    uint32_t numPatches = 64;
-    //    uint32_t width = 1001;
-    //    uint32_t scale = width / numPatches;
-    //    glm::ivec2 rpos = vector;
-    //    int x = vector.x;
-    //    int y = vector.y;
-
-    //    bool method1 = false;
-    //    if (method1)
-    //    {
-    //      // rpos = (x, y) * (8, 8)
-    //      rpos *= glm::ivec2(scale);
-
-    //      // rpos.x = clamp(rpos.x, 0, 511)
-    //      rpos.x = std::max(0, std::min(rpos.x, static_cast<int>(width) - 1));
-    //      // rpos.x = clamp(rpos.y, 0, 511)
-    //      rpos.y = std::max(0, std::min(rpos.y, static_cast<int>(width) - 1));
-    //      // rpos = rpos / 8
-    //      rpos /= glm::ivec2(scale);
-    //      // rpos = data[(rpos.x + rpos.y * 512) * 8] / float(MAX_UINT_32)
-    //      return (x + y * width) * scale;
-    //    }
-
-    //    if (!method1)
-    //    {
-    //      x *= scale;
-    //      y *= scale;
-    //      return (x + y * width);
-    //    }
-    //  });
-
-    // printIOtable(tests, lambda);
-
     createSampler();
     loadHeightmap(filename, 64);
-    // TODO Must reinitialize pipelines if new heightmap is loaded it seems
+    // TODO Must reinitialize pipelines if new heightmap is loaded
     initPipelines();
-
     // Initialize uniform buffer object
 
     ubo.tessellationFactor = 0.75f;
@@ -227,20 +182,17 @@ namespace fc
   // TODO place check or automatically delete previously loaded heightmap
   void FcTerrain::loadHeightmap(std::filesystem::path filename, uint32_t numPatches)
   {
-    fcLog("Loading heightmap");
+    mNumPatches = numPatches;
+
     // TODO allow for deleting current height map and loading new one
-    mHeightMap.loadKtxFile(filename, ImageTypes::HeightMap);//, VK_FORMAT_R16_UNORM);
+    mHeightMap.loadKtxFile(filename, FcImageTypes::HeightMap);//, VK_FORMAT_R16_UNORM);
     //mHeightMap.loadTestImage(512, 512);
 
-    mNumPatches = numPatches;
-    fcLog("Loaded heightmap");
-    fcLog("Loading terrain texture array");
     // TODO hardcoded for now
     std::filesystem::path file = "..//maps/terrain_texturearray_rgba.ktx";
-    mTerrainTexture.loadKtxFile(file, ImageTypes::TextureArray);
+    mTerrainTexture.loadKtxFile(file, FcImageTypes::TextureArray);
 
     generateTerrain();
-
   }
 
   // TODO document lots / full class
@@ -265,7 +217,7 @@ namespace fc
     const float wy = 2.0f;
 
     //     // TODO
-    //     // float oneHalf = 1.f/2.f;
+    float oneHalf = 1.f/2.f;
     //     // float oneOverRez = 1.f / (float)rez;
 
     uint32_t index;
@@ -295,6 +247,7 @@ namespace fc
 
     // We break the heigt map down into mNumPatches grid and then sample from those patches
     int pixelStepLength = mHeightMap.Width() / mNumPatches;
+    std::cout << "PSL" << pixelStepLength << std::endl;
     int offsetX = 0; // the true x coord of pixel we want to sample from
     int offsetY = 0; // the true y coord of pixel we want to sample from
     uint16_t pixel;
@@ -312,11 +265,16 @@ namespace fc
             int offsetX = (x + hx) * pixelStepLength;
             int offsetY = (y + hy) * pixelStepLength;
 
+            // Make sure we don't sample outside of the heightmap dimensions(adjusted)
+            offsetX = std::clamp(offsetX, 0, static_cast<int>(mHeightMap.Width() - pixelStepLength));
+            offsetY = std::clamp(offsetY, 0, static_cast<int>(mHeightMap.Height() - pixelStepLength));
+
+            // Get the pixel value directly (sascha method left in for furture comparison)
             mHeightMap.fetchPixel(offsetX, offsetY, pixel);
             /* pixel = mHeightMap.saschaFetchPixel(offsetX, offsetY, pixelStepLength); */
+
             // Normalize pixel value to be in [0,1] range
             heights[hx + 1][hy + 1] = pixel / static_cast<double>(UINT16_MAX);
-
             // USED FOR TESTING pixel values, DELETE eventually
             // if (true)//pixel != 0)
             // {
@@ -344,10 +302,8 @@ namespace fc
         vertices[x + y * mNumPatches].normal = glm::normalize(normal * glm::vec3(2.f, 1.f, 2.f));
       }
     }
-
     // no longer need the mapped data
     mHeightMap.destroyCpuCopy();
-    //log1.closeLogOutput();
 
     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   GENERATE INDICES   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     uint32_t w = mNumPatches - 1;
@@ -427,14 +383,6 @@ namespace fc
 
     vkCmdDrawIndexed(cmd, mNumIndices, 1, 0, 0, 0);
 
-
-    // render the mesh triangle strip by triangle strip - each row at a time
-//     for (size_t strip = 0; strip < mNumStrips; ++strip)
-//     {
-// //      std::cout << "drawing strip: " << strip << std::endl;
-//       vkCmdDrawIndexed(cmd, mNumVertsPerStrip, 1, mNumVertsPerStrip * strip, 0, 0);
-
-//     }
   }// --- FcTerrain::draw (_) --- (END)
 
 }// --- namespace fc --- (END)

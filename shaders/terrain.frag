@@ -27,7 +27,7 @@ void main()
   //
   vec3 N = normalize(inNormal);
   vec3 L = normalize(inLightVec);
-  vec3 ambient = vec3(0.5);
+  vec3 ambient = vec3(0.1);
   vec3 diffuse = max(dot(N, L), 0.0) * vec3(1.0);
   vec4 color = vec4((ambient + diffuse) * sampleTerrainLayer(), 1.0);
 

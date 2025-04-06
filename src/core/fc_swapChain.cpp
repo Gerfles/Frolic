@@ -352,7 +352,7 @@ namespace fc
   void FcSwapChain::transitionImage(VkCommandBuffer commandBuffer, uint32_t currentFrame
                                     , VkImageLayout oldLayout, VkImageLayout newLayout)
   {
-    mSwapchainImages[currentFrame].transitionImage(commandBuffer, oldLayout, newLayout, 1);
+    mSwapchainImages[currentFrame].transitionLayout(commandBuffer, oldLayout, newLayout, 1);
   } // --- FcSwapChain::beginRendering (_) --- (END)
 
 

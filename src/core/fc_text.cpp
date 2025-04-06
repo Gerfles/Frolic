@@ -75,7 +75,7 @@ namespace fc
                    , mTextImage.Image(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
                    , blitsList.size(), blitsList.data(), VK_FILTER_LINEAR);
 
-    mTextImage.transitionImage(cmdBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1);
+    mTextImage.transitionLayout(cmdBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1);
 
      // TODO - could later add mipmaps if being used a texture far away potentially (allow parameter option at least)
      // mOutputTexture.createImageView(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, 1);
@@ -99,7 +99,7 @@ namespace fc
     VkCommandBuffer cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
 
      // BUG may have to transition image initially to something else to erase/write to it
-    mTextImage.transitionImage(cmdBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+    mTextImage.transitionLayout(cmdBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
                                , VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1);
 
      // first clear out the old texture
@@ -113,7 +113,7 @@ namespace fc
 
 //    FcLocator::Gpu().submitCommandBuffer(blitCommandBuffer);
 
-    mTextImage.transitionImage(cmdBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+    mTextImage.transitionLayout(cmdBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1);
 
     FcLocator::Renderer().submitCommandBuffer();

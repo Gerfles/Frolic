@@ -151,7 +151,6 @@ namespace fc
   {
     createVertexBuffer(vertices);
     createIndexBuffer(indices);
-    mDescriptorID = descriptorID;
   }
 
 
@@ -168,9 +167,6 @@ namespace fc
   // Instantiation of mesh utilized by loading height map
   template void FcMesh::uploadMesh<glm::vec3>(std::span<glm::vec3> vertices
                                               , std::span<uint32_t> indices);
-  // Instantiation of mesh utilized by terrain generation
-  template void FcMesh::uploadMesh<SimpleVertex>(std::span<SimpleVertex> vertices
-                                                 , std::span<uint32_t> indices);
 
   template <typename T> void FcMesh::uploadMesh(std::span<T> vertices, std::span<uint32_t> indices)
   {

@@ -71,7 +71,7 @@ namespace fc
 
 
   // Must provide a file path and then the load will do the rest assumming things are named correctly as
-  // top.jpg or whatever...
+  // top.jpg or top.png, etc.
   // 1st = right
   // 2nd = left
   // 3rd = top
@@ -80,33 +80,31 @@ namespace fc
   // 6th = back
   void FcSkybox::loadTextures(std::string parentPath, std::string extension)
   {
-    // DELETE??
-    constexpr int NUM_CUBEMAP_SIDES = 6;
     // TODO add asserts such as
     // if (parentPath.has_extension())
     // {
     //   std::string extension = parentPath.extension().string();
     // }
-    std::array<std::string, 6> sides = {"right", "left", "top", "bottom", "front", "back"};
-    std::array<std::filesystem::path, 6> filenames;
-    for (size_t i = 0; i < NUM_CUBEMAP_SIDES; ++i)
+    constexpr int NUM_SIDES = 6;
+    std::string sides[NUM_SIDES] = {"right", "left", "top", "bottom", "front", "back"};
+    std::vector<std::filesystem::path> filenames(NUM_SIDES);
+    for (size_t i = 0; i < NUM_SIDES; ++i)
     {
       filenames[i] = parentPath + "//" + sides[i] + extension;
     }
 
-
-    // TODO use new ImageType::Cubemap instead
-    mCubeImage.loadCubeMap(filenames);
+    mCubeImage.loadMultipleLayers(filenames, FcImageTypes::Cubemap);
   }
 
-
-  void FcSkybox::loadTextures(std::array<std::filesystem::path, 6>& filenames)
+  // Use when the files are not named acording to the required conventions above
+  void FcSkybox::loadTextures(std::vector<std::filesystem::path>& filenames)
   {
+    // TODO add asserts such as
     // if (parentPath.has_extension())
     // {
     //   std::string extension = parentPath.extension().string();
     // }
-    mCubeImage.loadCubeMap(filenames);
+    mCubeImage.loadMultipleLayers(filenames, FcImageTypes::Cubemap);
   }
 
 
@@ -128,11 +126,4 @@ namespace fc
 
     vkCmdDraw(cmd, 36, 1, 0, 0);
   }
-
-
-  void FcSkybox::loadDefaultPattern()
-  {
-
-  }
-
 }

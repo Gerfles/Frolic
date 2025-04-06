@@ -21,7 +21,7 @@ namespace fc
     // TODO this image should be device local only since no need to map for CPU... check that's the case
     // on this and all other images created with vma allocation
 
-    mShadowMapImage.create(shadowMapSize, shadowMapSize, ImageTypes::ShadowMap);
+    mShadowMapImage.create(shadowMapSize, shadowMapSize, FcImageTypes::ShadowMap);
 
     createSampler();
     initPipelines();
@@ -199,7 +199,7 @@ namespace fc
 
   void FcShadowMap::generateMap(VkCommandBuffer cmd, DrawContext& drawContext)
   {
-    mShadowMapImage.transitionImage(cmd, VK_IMAGE_LAYOUT_UNDEFINED
+    mShadowMapImage.transitionLayout(cmd, VK_IMAGE_LAYOUT_UNDEFINED
                                     , VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
 
     // TODO extrapolate other
@@ -259,7 +259,7 @@ namespace fc
 
 
 
-    mShadowMapImage.transitionImage(cmd, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL
+    mShadowMapImage.transitionLayout(cmd, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL
                                     , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
 
     // colorImage.transitionImage(cmd, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,

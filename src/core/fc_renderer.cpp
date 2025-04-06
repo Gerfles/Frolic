@@ -4,7 +4,6 @@
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "core/fc_game_object.hpp"
 #include "core/fc_locator.hpp"
-#include "core/fc_mesh.hpp"
 #include "core/platform.hpp"
 #include "utilities.hpp"
 #include "fc_debug.hpp"
@@ -23,7 +22,7 @@
 #include <glm/ext/vector_float3.hpp>
 #include <glm/ext/vector_float4.hpp>
 #include <glm/packing.hpp>
-//
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
 #include <SDL2/SDL_vulkan.h>
 // ImGUI
@@ -31,19 +30,15 @@
 #include <imgui_impl_sdl2.h>
 #include <imgui_impl_vulkan.h>
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <memory>
 #include <mutex>
 #include <string>
-#include <cstdint>
 #include <exception>
 #include <array>
 #include <cstddef>
 #include <cstring>
 #include <limits>
 #include <cstdlib>
-#include <stdexcept>
 #include <unordered_set>
-#include <vector>
 #include <iostream>
 
 // TODO (note may no longer be relevant) All of the helper functions that submit commands so far
@@ -91,7 +86,7 @@ namespace fc
       pDevice = FcLocator::Gpu().getVkDevice();
 
       // create the swapchain & renderpass & frambuffers & depth buffer
-      mBufferCount = mSwapchain.init(mGpu, mWindow.ScreenSize());
+      mSwapchain.init(mGpu, mWindow.ScreenSize());
 
 
       // -*-*-*-*-*-*-*-*-*-*-*-*-   INITIALIZE DESCRIPTORS   -*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -229,8 +224,6 @@ namespace fc
     FcDescriptorBindInfo descriptorBindInfo{};
     descriptorBindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
                                   , VK_SHADER_STAGE_FRAGMENT_BIT);
-
-    mSingleImageDescriptorLayout = descClerk.createDescriptorSetLayout(descriptorBindInfo);
 
     descriptorBindInfo.attachImage(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, mGreyTexture
                                    , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, mDefaultSamplerNearest);
@@ -434,10 +427,13 @@ namespace fc
     }
   }
 
+
+
   void FcRenderer::updateUseFlags(MaterialFeatures featureToUpdate, bool enable)
   {
-        // Get the address for the buffer of material constant data being refd by the shader
-    MaterialConstants* changed = static_cast<MaterialConstants*>(structure.mMaterialDataBuffer.getAddres());
+    // Get the address for the buffer of material constant data being refd by the shader
+    MaterialConstants* changed
+      = static_cast<MaterialConstants*>(structure.mMaterialDataBuffer.getAddres());
 
     // TODO need to this for all "structures"
     int numMaterial = structure.mMaterials.size();
@@ -578,21 +574,9 @@ namespace fc
 
   void FcRenderer::initDrawImage()
   {
-    // hardcoding the draw format to 32 bit float
-
-    VkImageUsageFlags imgUse{};
-    // We plan on copying into but also from the image
-    imgUse = VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-    imgUse |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-    // Storage bit allows computer shader to write to image
-    imgUse |= VK_IMAGE_USAGE_STORAGE_BIT;
-    // Color attachment allows graphics pipelines to draw geometry into it
-    imgUse |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
     // match our draw image to the window extent
   mDrawImage.create(mWindow.ScreenSize().width, mWindow.ScreenSize().height
-                    , ImageTypes::ScreenBuffer);
-
+                    , FcImageTypes::ScreenBuffer);
 
     // *-*-*-*-*-*-*-*-*-*-*-   CREATE DRAW IMAGE DESCRIPTOR   *-*-*-*-*-*-*-*-*-*-*- //
     // TODO some redundancy that might be able to be eliminated
@@ -610,7 +594,7 @@ namespace fc
 
     // -*-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE DEPTH IMAGE   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
     mDepthImage.create(mWindow.ScreenSize().width, mWindow.ScreenSize().height
-                       ,ImageTypes::DepthBuffer);
+                       ,FcImageTypes::DepthBuffer);
 
 
     // TODO provide for these to change if VK_ERROR_OUT_OF_DATE_KHR, etc.
@@ -879,41 +863,36 @@ namespace fc
     }
   }
 
-  void FcRenderer::attachPipeline(FcPipeline *pipeline)
-  {
-    pDrawPipeline = pipeline->getVkPipeline();
-    pDrawPipelineLayout = pipeline->Layout();
-  }
 
 
   //
   void FcRenderer::drawBackground(ComputePushConstants& pushConstants)
   {
-    VkCommandBuffer cmd = getCurrentFrame().commandBuffer;
+    // VkCommandBuffer cmd = getCurrentFrame().commandBuffer;
 
-    // transition our main draw image into general layout so we can write into it
-    mDrawImage.transitionImage(cmd, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+    // // transition our main draw image into general layout so we can write into it
+    // mDrawImage.transitionLayout(cmd, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
+    // // TODO pDrawPipeline deleted for now, encapsolate this functionality
+    // //vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pDrawPipeline);
 
-    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pDrawPipeline);
+    // // bind the descriptorClerk set containing the draw image for the compute
+    // // pipeline
+    // FcDescriptorClerk& descriptorClerk = FcLocator::DescriptorClerk();
 
-    // bind the descriptorClerk set containing the draw image for the compute
-    // pipeline
-    FcDescriptorClerk& descriptorClerk = FcLocator::DescriptorClerk();
+    // //		drawImGui(cmd,
+    // //mSwapchain.getFcImage(swapchainImgIndex).ImageView());
+    // std::array<VkDescriptorSet, 1> ds{mDrawImageDescriptor};
 
-    //		drawImGui(cmd,
-    //mSwapchain.getFcImage(swapchainImgIndex).ImageView());
-    std::array<VkDescriptorSet, 1> ds{mDrawImageDescriptor};
+    // vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE,
+    //                         pDrawPipelineLayout, 0, 1, ds.data(), 0, nullptr);
 
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE,
-                            pDrawPipelineLayout, 0, 1, ds.data(), 0, nullptr);
+    // vkCmdPushConstants(cmd, pDrawPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
+    //                    sizeof(ComputePushConstants), &pushConstants);
 
-    vkCmdPushConstants(cmd, pDrawPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
-                       sizeof(ComputePushConstants), &pushConstants);
-
-    // execute the compute pipeline dispatch.
-    vkCmdDispatch(cmd, std::ceil(mDrawImage.Width() / 16.0),
-                  std::ceil(mDrawImage.Height() / 16.0), 1);
+    // // execute the compute pipeline dispatch.
+    // vkCmdDispatch(cmd, std::ceil(mDrawImage.Width() / 16.0),
+    //               std::ceil(mDrawImage.Height() / 16.0), 1);
   }
 
 
@@ -1051,10 +1030,10 @@ namespace fc
     //std::cout << "drawExtent: " << mDrawExtent.width << " x " << mDrawExtent.height << std::endl;
     // transition draw image from compute shader write optimal to best format
     // for graphics pipeline writeable
-    mDrawImage.transitionImage(cmd, VK_IMAGE_LAYOUT_UNDEFINED,
+    mDrawImage.transitionLayout(cmd, VK_IMAGE_LAYOUT_UNDEFINED,
                                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
     //
-    mDepthImage.transitionImage(cmd, VK_IMAGE_LAYOUT_UNDEFINED,
+    mDepthImage.transitionLayout(cmd, VK_IMAGE_LAYOUT_UNDEFINED,
                                 VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
 
     // TODO extract into builder...
@@ -1171,7 +1150,7 @@ namespace fc
     //std::cout << "drawExtent: " << mDrawExtent.width << " x " << mDrawExtent.height << std::endl;
     // transition draw image from compute shader write optimal to best format
     // for graphics pipeline writeable
-    mDrawImage.transitionImage(cmd, VK_IMAGE_LAYOUT_UNDEFINED,
+    mDrawImage.transitionLayout(cmd, VK_IMAGE_LAYOUT_UNDEFINED,
                                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
     //
     // mDepthImage.transitionImage(cmd, VK_IMAGE_LAYOUT_UNDEFINED,
@@ -1415,7 +1394,7 @@ namespace fc
     // delete any per frame resources no longer needed now the that frame has finished rendering
     // ?? this seems to be the wrong location for this, just by observation: test
 
-    getCurrentFrame().janitor.flush();
+//    getCurrentFrame().janitor.flush();
 
     // 1. get the next available image to draw to and set to signal the semaphore when we're finished with it
     uint32_t swapchainImageIndex;
@@ -1558,7 +1537,7 @@ namespace fc
 
     // now that the draw has been done to the draw image,
     // transition it into transfer source layout so we can copy to the swapchain after
-    mDrawImage.transitionImage(commandBuffer, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+    mDrawImage.transitionLayout(commandBuffer, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 
     // transiton the swapchain so it can best accept an image being copied to it
     mSwapchain.transitionImage(commandBuffer, swapchainImageIndex
@@ -1697,7 +1676,7 @@ namespace fc
 
 //mUiRenderer.destroy();
 
-    // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   DELETE SCENE DATA   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   SCENE DATA   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     mMetalRoughMaterial.clearResources(pDevice);
     vkDestroyDescriptorSetLayout(pDevice, mSceneDataDescriptorLayout, nullptr);
     vkDestroyDescriptorSetLayout(pDevice, mBackgroundDescriptorlayout, nullptr);

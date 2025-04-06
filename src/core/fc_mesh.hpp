@@ -3,8 +3,8 @@
 
 // - FROLIC ENGINE -
 //#include "fc_pipeline.hpp"
-#include "core/utilities.hpp"
-#include "core/fc_materials.hpp"
+//#include "core/utilities.hpp"
+#include "fc_materials.hpp"
 //#include "core/fc_model.hpp"
 #include "fc_buffer.hpp"
 // - EXTERNAL LIBRARIES -
@@ -25,20 +25,11 @@ namespace fc
   class FcModel;
   struct DrawContext;
 
-//I've seen recommendations to have a binding for anything needed for calculating gl_Position, and a
-//second binding for everything else. So hardware that does a pre-pass to bin by position only has
-//to touch the relevant half of the data.
-  struct SimpleVertex
-  {
-     glm::vec3 position;
-     float uv_x;
-     glm::vec3 padding;
-     float uv_y;
-     //glm::vec3 normal;
-     //glm::vec4 color; // not needed with pbr
-  };
 
   // TEST see if initialization is necessary since usually we know they must be set
+  // I've seen recommendations to have a binding for anything needed for calculating
+  // gl_Position, and a second binding for everything else. So hardware that does a pre-pass
+  // to bin by position only has to touch the relevant half of the data.
   struct Vertex
   {
      glm::vec3 position;
@@ -50,44 +41,25 @@ namespace fc
      // TODO could add some features like a print function, etc.
   };
 
-  // TODO Can incrementally update push constants according to:
-  // https://docs.vulkan.org/guide/latest/push_constants.html
-  // May provide some benefits if done correctly
-  struct DrawPushConstants
-  {
-     glm::mat4 worldMatrix;
-     glm::mat4 normalTransform;
-     VkDeviceAddress vertexBuffer;
-  };
-
   struct VertexBufferPCs
   {
      VkDeviceAddress address;
      VkDeviceAddress padding;
   };
 
-
-    struct BoundingBoxPushConstants
-    {
-       glm::mat4 modelMatrix;
-       glm::vec4 origin;
-       glm::vec4 extents;
-    };
-
-  // TODO get rid of this and keep in FcModel
-  // must be in a struct for the Uniform buffer or push constant to use
-  // struct ModelMatrix
-  // {
-  //    glm::mat4 model;
-  // };
-
+  struct BoundingBoxPushConstants
+  {
+     glm::mat4 modelMatrix;
+     glm::vec4 origin;
+     glm::vec4 extents;
+  };
 
   // base class for a renderable dynamic object
-    class IRenderable
-    {
-       virtual void draw(DrawContext& ctx) = 0;
-       virtual void update(const glm::mat4& topMatrix) = 0;
-    };
+  class IRenderable
+  {
+     virtual void draw(DrawContext& ctx) = 0;
+     virtual void update(const glm::mat4& topMatrix) = 0;
+  };
 
   // implementation of a drawable scene node. The scene node can hold Children and will also keep
   // a transform to propagate to them
@@ -146,7 +118,6 @@ namespace fc
      MaterialInstance data;
   };
 
-
   struct Surface
   {
      uint32_t startIndex{0};
@@ -164,7 +135,7 @@ namespace fc
      // we should be able to avoid using pointers to them (since they are already pointers...)
      //  ModelMatrix mUboModel;
      // TODO DELETE as we are no longer accessing a desriptor set but may need for texture atlas if implemented
-     uint32_t mDescriptorID{0};
+     /* uint32_t mDescriptorID{0}; */
      FcBuffer mVertexBuffer;
      FcBuffer mIndexBuffer;
      VkDeviceAddress mVertexBufferAddress{};
@@ -182,7 +153,7 @@ namespace fc
      std::string mName;
      std::vector<Surface> mSurfaces;
      //     const std::vector<Surface>& getSurfaces() { return mSurfaces; }
-     ~FcMesh() { fcLog("Deleting FcMesh");}
+     ~FcMesh() = default;
      // TODO pass by referenced and verify operation
      // ?? ?? for some reason we cant call the following class with fastgltf::mesh.name
      // since it uses an std::pmr::string that only seems to be able to bind to a public
@@ -211,7 +182,6 @@ namespace fc
      const VkBuffer& VertexBuffer() { return mVertexBuffer.getVkBuffer(); }
      const VkBuffer IndexBuffer() { return mIndexBuffer.getVkBuffer(); }
      const uint32_t IndexCount() { return mIndexCount; }
-     uint32_t DescriptorId() const { return mDescriptorID; }
      VkDeviceAddress VertexBufferAddress() { return mVertexBufferAddress; }
      VkDeviceAddress* VertexBufferAddress2() { return &mVertexBufferAddress; }
 

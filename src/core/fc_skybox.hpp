@@ -82,16 +82,13 @@ namespace fc
      VkSampler mCubeMapSampler;
      FcBuffer mVertexBuffer;
      FcBuffer mIndexBuffer;
-
-
      //void initPipeline();
-
    public:
      FcSkybox();
      void loadTextures(std::string parentPath, std::string extension);
-     void loadTextures(std::array<std::filesystem::path, 6>& filenames);
+     void loadTextures(std::vector<std::filesystem::path>& filenames);
+     //     void loadTextures(std::array<std::filesystem::path, 6>& filenames);
      void init(VkDescriptorSetLayout sceneDescriptorLayout);
-     void loadDefaultPattern();
      void draw(VkCommandBuffer cmd, VkDescriptorSet* sceneDataDescriptors);
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   GETTERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      const FcImage& Image() { return mCubeImage; }

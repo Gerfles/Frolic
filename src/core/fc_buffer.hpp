@@ -52,16 +52,15 @@ enum class FcBufferTypes : uint8_t {
        // ?? This must be included to allow vector.pushBack(Fcbuffer) ?? not sure if there's a better way... maybe unique_ptr
        // FcBuffer(const FcBuffer&) = delete;
        void allocate(VkDeviceSize bufferSize, FcBufferTypes bufferType);
+       // if dataSize == 0 -> write the full size of the buffer
        void write(void* sourceData, size_t dataSize = 0, VkDeviceSize offset = 0);
        void allocate(VkDeviceSize bufferSize, VkBufferUsageFlags useFlags,
                      VmaAllocationCreateFlags vmaFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT
                      | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
-       /* void storeData(void* sourceData, VkDeviceSize bufferSize, VkBufferUsageFlags useFlags); */
        void overwriteData(void* sourceData, size_t dataSize, VkDeviceSize offset = 0);
        void copyBuffer(const FcBuffer& srcBuffer, VkDeviceSize bufferSize);
        void fetchData(uint32_t location, size_t dataSize);
        const VkBuffer& getVkBuffer() const { return mBuffer; }
-       // BUG this doesn't always have size storred
        VkDeviceSize size() { return mSize; }
        VmaAllocation getAllocation() { return mAllocation; }
        void* getAddres();

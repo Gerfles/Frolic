@@ -1,6 +1,6 @@
 #pragma  once
 
-#include "core/fc_descriptors.hpp"
+#include "fc_descriptors.hpp"
 #include "fc_pipeline.hpp"
 // #include "fc_image.hpp"
 //#include <vulkan/vulkan_handles.hpp>
@@ -13,23 +13,39 @@ namespace fc
   class FcRenderer;
   class FcImage;
 
-
   enum class MaterialPass : uint8_t {
     MainColor,
     Transparent,
     Other
   };
 
-
-  enum MaterialFeatures : uint32_t {
-    HasColorTexture = 1 << 0,
-    HasNormalTexture = 1 << 1,
-    HasRoughMetalTexture = 1 << 2,
-    HasOcclusionTexture = 1 << 3,
-    HasEmissiveTexture = 1 << 4,
-    HasVertexTangentAttribute = 1 << 5,
-    HasVertexTextureCoordinates = 1 << 6
+  enum class MaterialFeatures : uint32_t {
+    HasColorTexture = 0b1 << 0,
+    HasNormalTexture = 0b1 << 1,
+    HasRoughMetalTexture = 0b1 << 2,
+    HasOcclusionTexture = 0b1 << 3,
+    HasEmissiveTexture = 0b1 << 4,
+    HasVertexTangentAttribute = 0b1 << 5,
+    HasVertexTextureCoordinates = 0b1 << 6,
   };
+  MaterialFeatures operator~ (MaterialFeatures const & rhs);
+  MaterialFeatures operator|(MaterialFeatures lhs, MaterialFeatures rhs);
+  MaterialFeatures operator&(MaterialFeatures lhs, MaterialFeatures rhs);
+  MaterialFeatures& operator|=(MaterialFeatures& lhs, MaterialFeatures const& rhs);
+  MaterialFeatures& operator&=(MaterialFeatures& lhs, MaterialFeatures const& rhs);
+
+
+
+  // TODO Can incrementally update push constants according to:
+  // https://docs.vulkan.org/guide/latest/push_constants.html
+  // May provide some benefits if done correctly
+  struct DrawPushConstants
+  {
+     glm::mat4 worldMatrix;
+     glm::mat4 normalTransform;
+     VkDeviceAddress vertexBuffer;
+  };
+
 
   struct MaterialInstance
   {
@@ -51,12 +67,10 @@ namespace fc
      //
      float  occlusionFactor;
      float iorF0;
-     uint32_t flags{0};
+     MaterialFeatures flags{0};
      // Vulkan has a minimum requirement for uniform buffer alignment.
      // glm::vec4 padding[14]; // We'll use 256 bytes as its a fairly universal gpu target
   };
-
-
 
 
   class GLTFMetallicRoughness

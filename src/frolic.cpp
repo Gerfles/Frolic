@@ -383,9 +383,8 @@ namespace fc
 
       uint32_t swapchainImgIndex = mRenderer.beginFrame();
 
-      FcPipeline* selected = mPipelines[currentBackgroundEffect];
-
-      mRenderer.attachPipeline(selected);
+      // FcPipeline* selected = mPipelines[currentBackgroundEffect];
+      /* mRenderer.attachPipeline(selected); */
 
       // test ImGui UI
       // Left here to add a demo windo that names all the features for (handy for searching)

@@ -7,6 +7,7 @@
 #include "fc_image.hpp"
 #include "fc_locator.hpp"
 #include "fc_mesh.hpp"
+#include "fc_materials.hpp"
 // TODO delete
 #include "fc_renderer.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES -*-*-*-*-*-*-*-*-*-*-*-*-*-
@@ -283,7 +284,9 @@ namespace fc {
       // grab textures from the glTF file
       if (material.pbrData.baseColorTexture.has_value())
       {
+
         constants.flags |= MaterialFeatures::HasColorTexture;
+
 
         size_t index = material.pbrData.baseColorTexture.value().textureIndex;
         size_t fcImage = gltf.textures[index].imageIndex.value();

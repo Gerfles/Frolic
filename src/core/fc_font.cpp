@@ -167,7 +167,7 @@ namespace fc
      // after raster image is created, transition layout so it's in the best format for being blitted from
     VkCommandBuffer cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
 
-    mRasterTexture.transitionImage(cmdBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+    mRasterTexture.transitionLayout(cmdBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
                                    , VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 1);
 
     FcLocator::Renderer().submitCommandBuffer();

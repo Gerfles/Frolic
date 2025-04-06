@@ -1,15 +1,47 @@
+//  fc_materials.cpp
+
 #include "fc_materials.hpp"
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_renderer.hpp"
-#include <vulkan/vulkan_core.h>
-#include <vector>
 #include "core/fc_descriptors.hpp"
 #include "core/fc_locator.hpp"
 #include "core/fc_pipeline.hpp"
-
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include <vulkan/vulkan_core.h>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include <vector>
 
 
 namespace fc
 {
+  // *-*-*-*-*-*-*-*-*-*-*-   BOILERPLATE BIT-WISE ENUM OPS   *-*-*-*-*-*-*-*-*-*-*- //
+  MaterialFeatures operator| (MaterialFeatures lhs, MaterialFeatures rhs)
+  {
+    using FeaturesType = std::underlying_type<MaterialFeatures>::type;
+    return MaterialFeatures(static_cast<FeaturesType>(lhs) | static_cast<FeaturesType>(rhs));
+  }
+  MaterialFeatures operator& (MaterialFeatures lhs, MaterialFeatures rhs)
+  {
+    using FeaturesType = std::underlying_type<fc::MaterialFeatures>::type;
+    return MaterialFeatures(static_cast<FeaturesType>(lhs) & static_cast<FeaturesType>(rhs));
+  }
+  MaterialFeatures& operator|= (MaterialFeatures& lhs, MaterialFeatures const& rhs)
+  {
+    lhs = lhs | rhs;
+    return lhs;
+  }
+  MaterialFeatures& operator&= (MaterialFeatures& lhs, MaterialFeatures const& rhs)
+  {
+    lhs = lhs & rhs;
+    return lhs;
+  }
+  MaterialFeatures operator~ (MaterialFeatures const & rhs)
+  {
+    using FeaturesType = std::underlying_type<MaterialFeatures>::type;
+    return MaterialFeatures(~static_cast<FeaturesType>(rhs));
+  }
+  // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
   void GLTFMetallicRoughness::buildPipelines(FcRenderer *renderer)
   {
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   OPAQUE PIPELINE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -40,6 +72,7 @@ namespace fc
     pipelineConfig.addPushConstants(expansionFactorRange);
 
     // place the scene descriptor layout in the first set (0), then cubemap, then material
+    // TODO find a better way to pass these descriptor sets around etc...
     pipelineConfig.addDescriptorSetLayout(renderer->getSceneDescriptorLayout());
     pipelineConfig.addDescriptorSetLayout(renderer->SkyboxDescriptorLayout());
     pipelineConfig.addDescriptorSetLayout(renderer->mShadowMap.DescriptorLayout());

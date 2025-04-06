@@ -1,11 +1,11 @@
-// Generate terrain + utilities
-
+// fc_terrain.hpp
 #pragma once
 
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_mesh.hpp"
 #include "fc_pipeline.hpp"
 #include "fc_image.hpp"
+#include "fc_buffer.hpp"
 
 
 namespace fc
