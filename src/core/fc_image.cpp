@@ -519,7 +519,7 @@ namespace fc
     localCopy = std::make_shared<FcBuffer>(imageMemSize, FcBufferTypes::Staging);
 
     // store a copy of our buffer memory location in the class for quick access
-    localCopyAddress = localCopy->getAddres();
+    localCopyAddress = localCopy->getAddress();
 
     VkCommandBuffer cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
 
@@ -556,7 +556,6 @@ namespace fc
 
   void FcImage::destroyCpuCopy()
   {
-    vmaUnmapMemory(FcLocator::Gpu().getAllocator(), localCopy->getAllocation());
     localCopy->destroy();
     localCopy.reset();
     localCopyAddress = nullptr;
@@ -651,7 +650,6 @@ namespace fc
 
 
 
-  // TODO De-duplicate code by loading via standard method but in a loop
   void FcImage::loadMultipleLayers(std::vector<std::filesystem::path>& filenames, FcImageTypes imageType)
   {
     mLayerCount = filenames.size();
@@ -705,9 +703,6 @@ namespace fc
     transitionLayout(cmdBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
                      , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     FcLocator::Renderer().submitCommandBuffer();
-
-    // create the texture sampler
-    createCubeMapSampler();
   }
 
 
@@ -805,11 +800,10 @@ namespace fc
   }
 
 
-  // It should be noted that it is uncommon in practice to generate the mipmap levels at runtime
-  // anyway. Usually they are pregenerated and stored in the texture file alongside the base level
-  // to improve loading speed. TODO Implementing resizing in software and loading multiple levels from a
-  // file is left as an exercise to the reader.
-  // TODO - give a feature that turns mipMaping off (still creating/loading the mipLevels though)
+  // It should be noted that it is uncommon in practice to generate the mipmap levels at
+  // runtime anyway. Usually they are pregenerated and stored in the texture file
+  // alongside the base level to improve loading speed.
+  // TODO - feature that turns mipMaping off on the fly
   void FcImage::generateMipMaps()
   {
     // first select the largest dimension (widht or height), then calc the number of
@@ -925,47 +919,6 @@ namespace fc
   }
 
 
-  void FcImage::createCubeMapSampler()
-  {
-    FcGpu& gpu = FcLocator::Gpu();
-
-    VkSamplerCreateInfo samplerInfo{};
-    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    // How to render when image is magnified on the screen
-    samplerInfo.magFilter = VK_FILTER_LINEAR;
-    // How to render when image is minified on the screen
-    samplerInfo.minFilter = VK_FILTER_LINEAR;
-    // How to handle wrap in the U (x) direction
-    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    // How to handle wrap in the V (y) direction
-    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    // How to handle wrap in the W (z) direction
-    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    // Border beyond texture (when clamp to border is used--good for shadow maps)
-    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-    // WILL USE NORMALIZED COORD. (coords will be between 0-1)
-    samplerInfo.unnormalizedCoordinates = VK_FALSE;
-    // Mipmap interpolation mode (between two levels of mipmaps)
-    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-    // used to force vulkan to use lower level of detail and mip level
-    samplerInfo.mipLodBias = 0.0f;
-    samplerInfo.minLod = 0.0f;
-
-    // maximum level of detail to pick mip level
-    samplerInfo.maxLod = static_cast<float>(mMipLevels);
-    // enable anisotropy
-    samplerInfo.anisotropyEnable = VK_TRUE;
-    // TODO should allow this to be user definable or at least profiled at install/runtime
-    // Amount of anisotropic samples being taken
-    samplerInfo.maxAnisotropy = gpu.Properties().maxSamplerAnisotropy;
-
-    if (vkCreateSampler(gpu.getVkDevice(), &samplerInfo, nullptr, &mTextureSampler) != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to create a Vulkan Texture Sampler!");
-    }
-  }
-
-
 
   void FcImage::setPixelFormat()
   {
@@ -998,50 +951,6 @@ namespace fc
         }
         default:
           break;
-    }
-  }
-
-
-  // DELETE -> texture sampler created elsewhere and should be part of texture atlas
-  // ?? Could however, keep the atlas in image class, accessible to any image or
-  // external image with create function
-  void FcImage::createTextureSampler()
-  {
-    VkSamplerCreateInfo samplerInfo{};
-    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    // How to render when image is magnified on the screen
-    samplerInfo.magFilter = VK_FILTER_LINEAR;
-    // How to render when image is minified on the screen
-    samplerInfo.minFilter = VK_FILTER_LINEAR;
-    // How to handle wrap in the U (x) direction
-    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    // How to handle wrap in the V (y) direction
-    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    // How to handle wrap in the W (z) direction
-    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    // Border beyond texture (when clamp to border is used--good for shadow maps)
-    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-    // WILL USE NORMALIZED COORD. (coords will be between 0-1)
-    samplerInfo.unnormalizedCoordinates = VK_FALSE;
-    // Mipmap interpolation mode (between two levels of mipmaps)
-    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-    // used to force vulkan to use lower level of detail and mip level
-    samplerInfo.mipLodBias = 0.0f;
-    samplerInfo.minLod = 0.0f;
-
-
-    // maximum level of detail to pick mip level
-    samplerInfo.maxLod = static_cast<float>(mMipLevels);
-    // enable anisotropy
-    samplerInfo.anisotropyEnable = VK_TRUE;
-    // TODO should allow this to be user definable or at least profiled at install/runtime
-    // Amount of anisotropic samples being taken
-    FcGpu& gpu = FcLocator::Gpu();
-    samplerInfo.maxAnisotropy = gpu.Properties().maxSamplerAnisotropy;
-
-    if (vkCreateSampler(gpu.getVkDevice(), &samplerInfo, nullptr, &mTextureSampler) != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to create a Vulkan Texture Sampler!");
     }
   }
 
@@ -1154,16 +1063,9 @@ namespace fc
 
   void FcImage::destroy()
   {
-    VkDevice device = FcLocator::Device();
-    // destroy texture image sampler if it exists
-    if (mTextureSampler != nullptr)
-    {
-      vkDestroySampler(device, mTextureSampler, nullptr);
-    }
-
     destroyImageView();
 
-    // TODO I think the vk destroy already checks for NULL
+    // ?? I think the vk destroy already checks for NULL
     //    if (mImage != nullptr)
     //    {
     vmaDestroyImage(FcLocator::Gpu().getAllocator(), mImage, mAllocation);
@@ -1182,7 +1084,6 @@ namespace fc
     // that's the correct approach in general.
 
     stagingBuffer.write(pixelData, dataLength);
-    //stagingBuffer.storeData(pixelData, dataLength, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
 
     // remove unneeded mappings using to increase the likelihood of successful future
     // calls to vkMapMemory() ?? API without secrets suggests that the unMapping of memory

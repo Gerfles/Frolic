@@ -3,6 +3,8 @@
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_descriptors.hpp"
 #include "fc_locator.hpp"
+#include "fc_defaults.hpp"
+#include "fc_renderer.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <array>
 #include <iostream>
@@ -16,7 +18,7 @@ namespace fc
   }
 
 
-  void FcSkybox::init(VkDescriptorSetLayout sceneDescriptorLayout)
+  void FcSkybox::init(VkDescriptorSetLayout sceneDescriptorLayout, std::vector<FrameData>& frames)
   {
     // Load default sampler
     //VkDeviceSize bufferSize = sizeof(CubeVertex) * 36;
@@ -42,16 +44,16 @@ namespace fc
 
     // create and then add the second descriptor set
     FcDescriptorBindInfo bindInfo{};
-    //bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
-    bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-    bindInfo.attachImage(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, mCubeImage
-                         , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, mCubeImage.TextureSampler());
-
+    VkDescriptorSetLayout mDescriptorLayout;
     FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
-
+    bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+    //
     mDescriptorLayout = descClerk.createDescriptorSetLayout(bindInfo);
-    mDescriptor = descClerk.createDescriptorSet(mDescriptorLayout, bindInfo);
-
+    //
+    bindInfo.attachImage(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, mCubeImage
+                         , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+                         , FcDefaults::Samplers.Linear);
+    /* mDescriptor = descClerk.createDescriptorSet(mDescriptorLayout, bindInfo); */
 
     pipelineConfig.addDescriptorSetLayout(mDescriptorLayout);
 
@@ -67,6 +69,18 @@ namespace fc
     pipelineConfig.setDepthFormat(VK_FORMAT_D32_SFLOAT);
 
     mPipeline.create(pipelineConfig);
+
+
+        // Allocate a descriptorSet to each frame buffer
+    for (FrameData& frame : frames)
+    {
+      // ?? TODO should create a new Descriptor set per frame instead
+      // and may be able to then remove from shadowMap class
+      frame.skyBoxDescriptorSet = descClerk.createDescriptorSet(mDescriptorLayout, bindInfo);
+
+      // frame.sceneDataDescriptorSet = descClerk.createDescriptorSet(
+      //   mSceneDataDescriptorLayout, sceneDescriptorBinding);
+    }
   }
 
 
@@ -108,17 +122,17 @@ namespace fc
   }
 
 
-  void FcSkybox::draw(VkCommandBuffer cmd, VkDescriptorSet* sceneDataDescriptors)
+  void FcSkybox::draw(VkCommandBuffer cmd, FrameData& currentFrame)
   {
     // first draw the skycube
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.getVkPipeline());
 
     // ?? Would binding both descriptors simultaneously be a better practice
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.Layout()
-                            , 0, 1, sceneDataDescriptors, 0, nullptr);
+                            , 0, 1, &currentFrame.sceneDataDescriptorSet, 0, nullptr);
 
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.Layout()
-                            , 1, 1, &mDescriptor, 0, nullptr);
+                            , 1, 1, &currentFrame.skyBoxDescriptorSet, 0, nullptr);
 
     // Required to bind vertex buffer
     VkDeviceSize offsets[] = { 0 }; // offsets into buffers being bound

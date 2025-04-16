@@ -2,7 +2,9 @@
 
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
 #include "core/utilities.hpp"
-#include "fc_renderer.hpp"
+/* #include "fc_renderer.hpp" */
+#include "fc_gpu.hpp"
+#include "fc_frustum.hpp"
 #include "fc_locator.hpp"
 #include "fc_defaults.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
@@ -14,11 +16,9 @@
 
 namespace fc
 {
-  void FcTerrain::init(FcRenderer* renderer, std::filesystem::path filename)
+  void FcTerrain::init(std::filesystem::path filename)
   {
-    pRenderer = renderer;
 
-    createSampler();
     loadHeightmap(filename, 64);
     // TODO Must reinitialize pipelines if new heightmap is loaded
     initPipelines();
@@ -34,49 +34,6 @@ namespace fc
     // TODO no longer needed in terrain ubo
     ubo.viewportDim = {1200, 900};
     mModelTransform = glm::mat4{1.0f};
-  }
-
-  // TODO DELETE after creating sampler atlas
-  void FcTerrain::createSampler()
-  {
-    VkSamplerCreateInfo samplerInfo{};
-    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    // How to render when image is magnified on the screen
-    samplerInfo.magFilter = VK_FILTER_LINEAR;
-    // How to render when image is minified on the screen
-    samplerInfo.minFilter = VK_FILTER_LINEAR;
-    // How to handle wrap in the U (x) direction
-    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-    // How to handle wrap in the V (y) direction
-    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-    // How to handle wrap in the W (z) direction
-    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-    // Border beyond texture (when clamp to border is used--good for shadow maps)
-    samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-    // WILL USE NORMALIZED COORD. (coords will be between 0-1)
-    samplerInfo.unnormalizedCoordinates = VK_FALSE;
-    // Mipmap interpolation mode (between two levels of mipmaps)
-    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-    // used to force vulkan to use lower level of detail and mip level
-    samplerInfo.mipLodBias = 0.0f;
-    samplerInfo.minLod = 0.0f;
-
-    samplerInfo.compareOp = VK_COMPARE_OP_NEVER;
-
-    // maximum level of detail to pick mip level
-    // TODO need to do this programatically to get the mimpap levels of each image
-    samplerInfo.maxLod = 0.0f;
-    // enable anisotropy
-    samplerInfo.anisotropyEnable = VK_FALSE;
-    // TODO should allow this to be user definable or at least profiled at install/runtime
-    // Amount of anisotropic samples being taken
-    samplerInfo.maxAnisotropy = VK_SAMPLE_COUNT_1_BIT;
-
-    FcGpu& gpu = FcLocator::Gpu();
-    if (vkCreateSampler(gpu.getVkDevice(), &samplerInfo, nullptr, &mHeightMapSampler) != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to create a Vulkan Texture Sampler!");
-    }
   }
 
 
@@ -148,14 +105,16 @@ namespace fc
                         | VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
 
     bindInfo.attachImage(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, mHeightMap
-                         , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, mHeightMapSampler);
+                         , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+                         , FcDefaults::Samplers.Terrain);
 
     bindInfo.addBinding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
                         , VK_SHADER_STAGE_FRAGMENT_BIT);
 
     bindInfo.attachImage(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, mTerrainTexture
-                         // BUG note we're using the height map sampler here
-                         , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, mHeightMapSampler);
+                         , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+                         // FIXME note we're using the height map sampler here
+                         , FcDefaults::Samplers.Terrain);
 
 
     FcDescriptorClerk& deskClerk = FcLocator::DescriptorClerk();
@@ -247,7 +206,6 @@ namespace fc
 
     // We break the heigt map down into mNumPatches grid and then sample from those patches
     int pixelStepLength = mHeightMap.Width() / mNumPatches;
-    std::cout << "PSL" << pixelStepLength << std::endl;
     int offsetX = 0; // the true x coord of pixel we want to sample from
     int offsetY = 0; // the true y coord of pixel we want to sample from
     uint16_t pixel;
@@ -335,12 +293,12 @@ namespace fc
   }
 
 
-  void FcTerrain::draw(VkCommandBuffer cmd, SceneData* pSceneData, bool drawWireframe)
+  void FcTerrain::draw(VkCommandBuffer cmd, SceneDataUbo* pSceneData, bool drawWireframe)
   {
     ubo.modelView = pSceneData->view * mModelTransform;
     ubo.projection = pSceneData->projection;
     ubo.modelViewProj = ubo.projection * ubo.modelView;
-    ubo.lightPos = pSceneData->sunlightDirection;
+    ubo.lightPos = glm::vec4(100.f, 150.f, 100.f, 1.0);//pSceneData->sunlightDirection;
     // TODO might prefer to update the frustum here instead
 
     //printMat(ubo.modelViewProj);

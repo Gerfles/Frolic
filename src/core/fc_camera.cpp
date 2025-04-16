@@ -205,6 +205,34 @@ namespace fc
     mViewMatrix[3][1] = -glm::dot(v, position);
     mViewMatrix[3][2] = -glm::dot(w, position);
 
+// Matrix corresponds to translate * Roty * Rotx * Rotz * scale transformation
+   // Rotation convention uses tait-bryan (euler) angles with axis order Y(1), X(2), Z(3)
+   // https://en.wikipedia.org/wiki/Euler_angles#Rotation_matrix
+    // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   ALTERNATIVE ?? -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    // return glm::mat4{
+    //   {
+    //     scale.x * (c1 * c3 + s1 * s2 * s3),
+    //         scale.x * (c2 * s3),
+    //         scale.x * (c1 * s2 * s3 - c3 * s1),
+    //         0.0f,
+    //     },
+    //     {
+    //         scale.y * (c3 * s1 * s2 - c1 * s3),
+    //         scale.y * (c2 * c3),
+    //         scale.y * (c1 * c3 * s2 + s1 * s3),
+    //         0.0f,
+    //     },
+    //     {
+    //         scale.z * (c2 * s1),
+    //         scale.z * (-s2),
+    //         scale.z * (c1 * c2),
+    //         0.0f,
+    //     },
+    //     {translation.x, translation.y, translation.z, 1.0f}};
+
+
+
+
     // ?? Not sure if I'll need but would require a member inverseView matrix
     // mInverseViewMatrix = glm::mat4{1.f};
     // mInverseViewMatrix[0][0] = u.x;

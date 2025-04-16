@@ -7,18 +7,16 @@
 #include "core/fc_pipeline.hpp"
 #include "core/fc_renderer.hpp"
 #include "core/fc_text.hpp"
-
-
+#include "core/fc_font.hpp"
+#include "core/fc_player.hpp"
 
 #include <vector>
-// - EXTERNAL LIBRARIES -
-// ?? NOT SURE why this compiles without SDL
-// - STD LIBRARIES -
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
 
 namespace fc
 {
-
 
   class Frolic
   {
@@ -46,10 +44,11 @@ namespace fc
      std::vector<FcPipeline*> mPipelines;
      std::vector<ComputePushConstants> mPushConstants{2};
 
-     SceneData mSceneData;
-     FcBuffer mSceneDataBuffer;
+     // SceneData mSceneData;
+     // FcBuffer mSceneDataBuffer;
       // ComputePushConstants gradientPushConstants{};
       // ComputePushConstants skyPushConstants{};
+     SceneDataUbo* pSceneData {nullptr};
 
      // Note these do not necessarily enable the feature -> ONLY when it is already included in glTF
      bool mUseColorTexture {true};
@@ -61,6 +60,10 @@ namespace fc
      bool mRotateModel{false};
      bool mCycleExpansion{false};
      bool mDebugShadowMap{false};
+     //
+     FcPlayer mPlayer;
+     FcPlayer uvnPlayer;
+
 
       // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   (END) NEW   -**-*-*-*-*-*-*-*-*-*-*-*-*- //
      FcRenderer mRenderer;
@@ -75,12 +78,15 @@ namespace fc
      std::vector<FcText> mUItextList;
      FcFont mUIfont;
 
+
+
      FcImage mFallbackTexture;
       // ideally, here it would be nice to
 
    public:
      Frolic();
      void run();
+     void drawGUI();
      void loadGameObjects();
      void loadUIobjects();
      void initPipelines();

@@ -21,7 +21,7 @@
 namespace fc
 {
   // TODO swap this function for a faster visibility check algorithm so we can do faster frustum culling
-  bool RenderObject::isVisible(const glm::mat4& viewProj)
+  bool FcRenderObject::isVisible(const glm::mat4& viewProj)
   {
     std::array<glm::vec3, 8> corners { glm::vec3{1.0f, 1.0f, 1.0f}
                                      , glm::vec3{1.0f, 1.0f, -1.0f}
@@ -63,7 +63,7 @@ namespace fc
 
 
 
-  void RenderObject::bindDescriptorSet(VkCommandBuffer cmd
+  void FcRenderObject::bindDescriptorSet(VkCommandBuffer cmd
                                    , VkDescriptorSet descriptorSet, uint32_t firstSet) const
   {
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, material->pPipeline->Layout()
@@ -71,81 +71,13 @@ namespace fc
   }
 
 
-  void RenderObject::bindIndexBuffer(VkCommandBuffer cmd) const
+  void FcRenderObject::bindIndexBuffer(VkCommandBuffer cmd) const
   {
     vkCmdBindIndexBuffer(cmd, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
   }
 
-
-  void Node::refreshTransform(const glm::mat4& parentMatrix)
-  {
-    worldTransform = parentMatrix * localTransform;
-
-    for (std::shared_ptr<Node> child : children)
-    {
-      child->refreshTransform(worldTransform);
-    }
-  }
-
-  void Node::draw(DrawContext& context)
-  {
-    // draw children
-    for (std::shared_ptr<Node>& child : children)
-    {
-      child->draw(context);
-    }
-  }
-
-  void Node::update(const glm::mat4& topMatrix)
-  {
-    worldTransform = topMatrix * localTransform;
-    for (std::shared_ptr<Node>& child : children)
-    {
-      child->update(topMatrix);
-    }
-  }
-
-  // TODO change name
-  // TODO find a way to not update if already current
-  void MeshNode::draw(DrawContext& context)
-  {
-    for (const Surface& surface : mesh->mSurfaces)
-    {
-      RenderObject renderObj;
-      renderObj.indexCount = surface.count;
-      renderObj.firstIndex = surface.startIndex;
-      renderObj.indexBuffer = mesh->IndexBuffer();
-      renderObj.material = &surface.material->data;
-      renderObj.bounds = surface.bounds;
-      renderObj.transform = worldTransform;//localTransform;
-      renderObj.invModelMatrix = glm::inverse(glm::transpose(worldTransform));
-      renderObj.vertexBufferAddress = mesh->VertexBufferAddress();
-
-      if (surface.material->data.passType == MaterialPass::Transparent)
-      {
-        context.transparentSurfaces.push_back(renderObj);
-      }
-      else {
-        context.opaqueSurfaces.push_back(renderObj);
-      }
-    }
-
-    // recurse down children nodes
-    // TODO check the stack frame count to see if this is better handles linearly
-    Node::draw(context);
-  }
-
-
-  void MeshNode::update(const glm::mat4& topMatrix)
-  {
-    //localTransform = topMatrix * worldTransform;
-    //worldTransform = topMatrix * localTransform;
-
-    Node::update(topMatrix);
-  }
-
-
-   // TODO might be better to have as a constructor
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-   FCMESH FUNCTIONS   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+ // TODO might be better to have as a constructor
   FcMesh::FcMesh(std::vector<Vertex>& vertices
                  , std::vector<uint32_t>& indices, uint32_t descriptorID)
   {
@@ -212,79 +144,6 @@ namespace fc
   }
 
 
-  // // DELETE
-  // void FcMesh::uploadMeshExtra(std::span<glm::vec4> vertices, std::span<uint32_t> indices)
-  // {
-  //   fcLog("\n\nNumber of indices:");
-  //   std::cout << vertices.size() << std::endl;
-
-  //    // *-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE VERTEX BUFFER   *-*-*-*-*-*-*-*-*-*-*-*-*- //
-  //    // get buffer size needed to store vertices
-  //   VkDeviceSize bufferSize = sizeof(glm::vec4) * vertices.size();
-
-  //    // map memory to vertex buffer (copy vertex data into buffer)
-  //    // Now create the buffer in GPU memory so we can transfer our RAM data there
-  //   mVertexBuffer.storeData(vertices.data(), bufferSize
-  //                           , VK_BUFFER_USAGE_TRANSFER_DST_BIT
-  //                           | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
-  //                           | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
-  //                           | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
-  //                           );
-
-  //    // find the address fo the vertex buffer
-  //   VkBufferDeviceAddressInfo deviceAddressInfo{};
-  //   deviceAddressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
-  //   deviceAddressInfo.buffer = mVertexBuffer.getVkBuffer();
-
-  //   mVertexBufferAddress = vkGetBufferDeviceAddress(FcLocator::Device(), &deviceAddressInfo);
-  //   //mVertexBufferAddress = mVertexBuffer.getAddres();
-
-  //  // TODO could condense this into one "create() function and just pass both vertices and indices"
-  //    // could also combine with a transferToGpu() function in buffer
-
-  //    // -*-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE INDEX BUFFER   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
-  //    // get buffer size needed to store indices
-  //   bufferSize = sizeof(uint32_t) * static_cast<uint32_t>(indices.size());
-
-  //    // Now create the buffer
-  //   mIndexBuffer.storeData(indices.data(), bufferSize
-  //                          , VK_BUFFER_USAGE_TRANSFER_DST_BIT
-  //                          | VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-  // }
-
-// Mesh::Mesh(const FcGpu& gpu, std::vector<Vertex> * vertices)
-  //   		: mDevice{gpu.vkDevice()}, mPhysicalDevice{gpu.physicalDevice()}
-  // {
-  //   mVertexCount = vertices->size();
-  //   createVertexBuffer(vertices);
-  // }
-
-
-  // void FcMesh::setIndexCounts(uint32_t start, uint32_t count)
-  // {
-  //   // startIndex = start;
-  //   // mIndexCount = count;
-  // }
-
-
-
-
-   // TODO combine these or have one call the other
-  // void FcMesh::createMesh(std::vector<Vertex>& vertices
-  //                 , std::vector<uint32_t>& indices, uint32_t textureID)
-  // {
-  //   createVertexBuffer(vertices);
-  //   createIndexBuffer(indices);
-  //   mTextureID = textureID;
-  // }
-
-// Mesh::Mesh(const FcGpu& gpu, std::vector<Vertex> * vertices)
-  //   		: mDevice{gpu.vkDevice()}, mPhysicalDevice{gpu.physicalDevice()}
-  // {
-  //   mVertexCount = vertices->size();
-  //   createVertexBuffer(vertices);
-  // }
-
   // TODO de-duplicate
   // TODO probably should refrain from using vector here or at least perf. test
   // TODO could create a transferToGpu() function in FcBuffer
@@ -327,6 +186,5 @@ namespace fc
     mVertexBuffer.destroy();
     mIndexBuffer.destroy();
   }
-
 
 } // namespace fc _END_

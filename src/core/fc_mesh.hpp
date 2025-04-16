@@ -2,9 +2,9 @@
 //TODO rename file fc_mesh.h
 
 // - FROLIC ENGINE -
-//#include "fc_pipeline.hpp"
+#include "fc_pipeline.hpp"
 //#include "core/utilities.hpp"
-#include "fc_materials.hpp"
+//#include "fc_materials.hpp"
 //#include "core/fc_model.hpp"
 #include "fc_buffer.hpp"
 // - EXTERNAL LIBRARIES -
@@ -21,9 +21,9 @@
 namespace fc
 {
   // *-*-*-*-*-*-*-*-*-*-*-*-*-   FORWARD DECLARATIONS   *-*-*-*-*-*-*-*-*-*-*-*-*- //
-  class FcMesh;
+//  class FcMesh;
   class FcModel;
-  struct DrawContext;
+
 
 
   // TEST see if initialization is necessary since usually we know they must be set
@@ -41,11 +41,13 @@ namespace fc
      // TODO could add some features like a print function, etc.
   };
 
+
   struct VertexBufferPCs
   {
      VkDeviceAddress address;
      VkDeviceAddress padding;
   };
+
 
   struct BoundingBoxPushConstants
   {
@@ -54,36 +56,7 @@ namespace fc
      glm::vec4 extents;
   };
 
-  // base class for a renderable dynamic object
-  class IRenderable
-  {
-     virtual void draw(DrawContext& ctx) = 0;
-     virtual void update(const glm::mat4& topMatrix) = 0;
-  };
 
-  // implementation of a drawable scene node. The scene node can hold Children and will also keep
-  // a transform to propagate to them
-  struct Node : public IRenderable
-  {
-     // TODO find out what is meant by the following
-     // parent pointer must be a weak pointer to avoid circular dependencies
-     std::weak_ptr<Node> parent;
-     std::vector<std::shared_ptr<Node>> children;
-
-     glm::mat4 localTransform {1.0f};
-     glm::mat4 worldTransform {1.0f};
-     void refreshTransform(const glm::mat4& parentMatrix);
-     virtual void draw(DrawContext& context);
-     virtual void update(const glm::mat4& topMatrix);
-  };
-
-
-  struct MeshNode : public Node
-  {
-     std::shared_ptr<FcMesh> mesh;
-     virtual void draw(DrawContext& context) override;
-     virtual void update(const glm::mat4& topMatrix) override;
-  };
 
 
   struct Bounds
@@ -94,14 +67,31 @@ namespace fc
   };
 
 
-  //?? could this be Replaced by FcModel
-  struct RenderObject
+    // TODO this could be more intuitively named
+  struct FcMaterial
+  {
+     // TODO merge with MaterialFeatures
+    enum class Type : uint8_t
+    {
+      Opaque,
+      Transparent,
+      Other,
+     };
+     FcPipeline* pPipeline;
+     VkDescriptorSet materialSet;
+     Type materialType;
+  };
+
+  // TODO create a class that is a collection of objects to draw with a particular pipeline
+  // and descriptorSets etc, that way we can just render all those objects and then only
+  // bind DSs and pipelines at the start of the draw call
+
+  struct FcRenderObject
   {
      uint32_t indexCount;
      uint32_t firstIndex;
      VkBuffer indexBuffer;
-
-     MaterialInstance* material;
+     FcMaterial* material;
      glm::mat4 transform {1.0f};
      glm::mat4 invModelMatrix {1.0f};
      Bounds bounds;
@@ -113,54 +103,53 @@ namespace fc
      bool isVisible(const glm::mat4& viewProj);
   };
 
-  struct GLTFMaterial
-  {
-     MaterialInstance data;
-  };
 
-  struct Surface
+  // TODO merge with FcMaterial...
+  struct FcSurface
   {
      uint32_t startIndex{0};
-     uint32_t count{0};
+     uint32_t indexCount{0};
      Bounds bounds;
-     std::shared_ptr<GLTFMaterial> material;
+     std::shared_ptr<FcMaterial> material;
   };
 
-  // FIXME Should think about lightening this class or making it a wrapper class for a struct with easily
-  // accessible variables, etc.
-  class FcMesh// : public Node
+
+  struct FcDrawCollection
+  {
+     std::vector<FcRenderObject> opaqueSurfaces;
+     std::vector<FcRenderObject> transparentSurfaces;
+  };
+
+
+// TODO delete existing FcMesh and rename this Mesh class FcMesh instead
+class FcMesh// : public Node
   {
    private:
-     // TODO As it appears that both VkDevice and vkphysicaldevice are both just "opaque handles"
-     // we should be able to avoid using pointers to them (since they are already pointers...)
-     //  ModelMatrix mUboModel;
-     // TODO DELETE as we are no longer accessing a desriptor set but may need for texture atlas if implemented
-     /* uint32_t mDescriptorID{0}; */
+     // ModelMatrix mUboModel;
      FcBuffer mVertexBuffer;
      FcBuffer mIndexBuffer;
      VkDeviceAddress mVertexBufferAddress{};
      uint32_t mIndexCount{0};
-
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      void createVertexBuffer(std::vector<Vertex>& vertices);
      void createIndexBuffer(std::vector<uint32_t>& indices);
-     // ?? not sure if we will eventually require this name at the mesh level, may want to delete
-     // in favor of the one at the model level
-
      // TODO try and implement with shared pointers to meshes
      // std::vector<std::shared_ptr<FcMesh>> meshes;
+
    public:
+     // TODO make the following private members
+     // ?? not sure if we will eventually require this name at the mesh level, may want to
+     // delete in favor of the one at the model level
      std::string mName;
-     std::vector<Surface> mSurfaces;
-     //     const std::vector<Surface>& getSurfaces() { return mSurfaces; }
+     std::vector<FcSurface> mSurfaces;
+
+     // TODO should think about adding destructors on objects that call destroy() if needed.
      ~FcMesh() = default;
      // TODO pass by referenced and verify operation
      // ?? ?? for some reason we cant call the following class with fastgltf::mesh.name
      // since it uses an std::pmr::string that only seems to be able to bind to a public
      // class member?? TODO researce PMR
      template <typename T> void uploadMesh(std::span<T> vertices, std::span<uint32_t> indices);
-
-
      //void setIndexCounts(uint32_t start, uint32_t count);
      //uint32_t getStartIndex(int ) { return mSurfaces; }
 
@@ -178,17 +167,18 @@ namespace fc
      // const ModelMatrix& getModel() { return mUboModel; }
      //uint32_t VertexCount() const { return mVertexCount; }
      //uint32_t IndexCount() const { return mIndexCount; }
+     //     const std::vector<Surface>& getSurfaces() { return mSurfaces; }
      // TODO should both be const and probably not referenct since VkBuffer is just pointer
      const VkBuffer& VertexBuffer() { return mVertexBuffer.getVkBuffer(); }
      const VkBuffer IndexBuffer() { return mIndexBuffer.getVkBuffer(); }
      const uint32_t IndexCount() { return mIndexCount; }
      VkDeviceAddress VertexBufferAddress() { return mVertexBufferAddress; }
      VkDeviceAddress* VertexBufferAddress2() { return &mVertexBufferAddress; }
-
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CLEANUP   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      void destroy();
-     //~FcMesh() = default;
 
-  };
+
+};
+
 
 } // namespace fc _END_

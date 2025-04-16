@@ -1,7 +1,6 @@
 #pragma once
 
-// TODO Figure out if we should be defaulting to Unorm or SRGB
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
@@ -42,7 +41,7 @@ namespace fc
     ShadowMap,
   };
 
-
+  // TODO Figure out if we should be defaulting to Unorm or SRGB
   class FcImage
   {
    private:
@@ -56,10 +55,6 @@ namespace fc
      VmaAllocation mAllocation {nullptr};
      VkFormat mFormat;
      int mBytesPerPixel;
-     // TODO get rid of or simply have as pointer to texture cache
-     VkSampler mTextureSampler {VK_NULL_HANDLE};
-     /* VkImageAspectFlags mAspectFlag; */
-
      // TODO create a synced state variable to track current image layout
      // NOTE this layout may not be exactly up to date based on image barriers in GPU etc.
      // VkImageLayout mCurrentLayout{VK_IMAGE_LAYOUT_UNDEFINED};
@@ -73,16 +68,8 @@ namespace fc
      //
      void generateMipMaps();
      void setPixelFormat();
-     void createTextureSampler();
-     void createCubeMapSampler();
      void writeToImage(void* pData, VkDeviceSize dataLength, bool generateMipmaps);
    public:
-     // TODO implement a pixel class that extrapolates any image format specifics, etc
-     // that way we can just call pixel.r and get the right value
-     // NOTE: looking at the pixel raw data, it appears the order of the bits is different
-     // than might be expected
-     // AAAAAAAA BBBBBBBB GGGGGGGG RRRRRRRR
-
      // TODO implement for the non GPU images->anything that is vmaAllocate-able
      // TODO should be type agnostic or get that info from somewhere since this could
      // be RGBA_8 or R16 or D32 etc.
@@ -118,17 +105,21 @@ namespace fc
      void create(uint32_t width, uint32_t height, FcImageTypes imageType);
      void createImageView(VkFormat imageFormat, VkImageAspectFlags aspectFlags
                           , VkImageViewType imageViewType = VK_IMAGE_VIEW_TYPE_2D);
-     void transitionLayout(VkCommandBuffer cmd, VkImageLayout oldLayout, VkImageLayout newLayout
-                          , VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT
-                          , uint32_t mipLevels = 1);
+     void transitionLayout(VkCommandBuffer cmd
+                           , VkImageLayout oldLayout
+                           , VkImageLayout newLayout
+                           , VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT
+                           , uint32_t mipLevels = 1);
      void copyFromBuffer(FcBuffer& srcBuffer, VkDeviceSize offset = 0, uint32_t arrayLayer = 0);
      void copyFromImage(VkCommandBuffer cmdBuffer, FcImage* source);
      void clear(VkCommandBuffer cmdBuffer, VkClearColorValue* pColor);
      // *-*-*-*-*-*-*-*-*-*-*-*-   TEXTURE LOADING FUNCTIONS   *-*-*-*-*-*-*-*-*-*-*-*- //
      void loadStbi(std::filesystem::path& filename, FcImageTypes imageType);
      void loadKtxFile(std::filesystem::path& filename, FcImageTypes imageType);
-     void loadFromGltf(std::filesystem::path& path, fastgltf::Asset& asset, fastgltf::Image& image);
-     void loadMultipleLayers(std::vector<std::filesystem::path>& filenames, FcImageTypes imageType);
+     void loadFromGltf(std::filesystem::path& path
+                       , fastgltf::Asset& asset, fastgltf::Image& image);
+     void loadMultipleLayers(std::vector<std::filesystem::path>& filenames
+                             , FcImageTypes imageType);
      void createTexture(uint32_t width, uint32_t height, void* pixelData
                         , VkDeviceSize storageSize, bool generateMipmaps = false
                         , VkFormat format = VK_FORMAT_R8G8B8A8_UNORM);
@@ -139,7 +130,7 @@ namespace fc
      uint16_t saschaFetchPixel(const int x, const int y, uint32_t scale);
      const bool isValid() const { return mImage != VK_NULL_HANDLE; }
      const VkImageView& ImageView() const { return mImageView; }
-     VkSampler TextureSampler() { return mTextureSampler; }
+     /* VkSampler TextureSampler() { return mTextureSampler; } */
      VkImage Image() { return mImage; }
      VkExtent2D Extent() { return {mWidth, mHeight}; }
      uint32_t Width() { return mWidth; }

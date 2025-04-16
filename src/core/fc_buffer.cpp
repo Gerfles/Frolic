@@ -101,18 +101,17 @@ namespace  fc
 
 
   // TODO check preferred (fastest) method via VMA website
-  void* FcBuffer::getAddres()
+  void* FcBuffer::getAddress()
   {
-    void* memAddress;
+    /* void* memAddress; */
     VmaAllocator allocator = FcLocator::Gpu().getAllocator();
 
-    if (vmaMapMemory(allocator, mAllocation, &memAddress) != VK_SUCCESS)
+    if (vmaMapMemory(allocator, mAllocation, &mMemoryAddress) != VK_SUCCESS)
     {
       throw std::runtime_error("Failed to map VMA buffer memory!");
     }
 
-    return memAddress;
-
+    return mMemoryAddress;
     // ?? The following method may also work with some research...
     /* return mAllocation->GetMappedData(); */
   }
@@ -259,7 +258,13 @@ namespace  fc
 
   void FcBuffer::destroy()
   {
-     // Destroy buffer and deallocate memory
+    if (mMemoryAddress != nullptr)
+    {
+      VmaAllocator allocator = FcLocator::Gpu().getAllocator();
+      vmaUnmapMemory(allocator, mAllocation);
+    }
+
+    // Destroy buffer and deallocate memory
     if (mBuffer != nullptr)
     {
       // Destroy the VMA buffer allocation which will in turn call vkDestroyBuffer and vkFreeMemory

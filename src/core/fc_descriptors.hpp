@@ -36,26 +36,6 @@ namespace fc
    //    alignas(8) int numLights {5};
    // };
 
-  // TODO unitialize maybe
-  struct SceneData
-  {
-     glm::vec4 eye {0.0};
-     glm::mat4 view {1.f};
-     glm::mat4 projection {1.f};
-     glm::mat4 viewProj{1.f};
-     glm::mat4 lighSpaceTransform{1.f};
-     glm::vec4 ambientLight {1.f, 1.f, 1.f, 0.1f}; // w is light intensity
-     glm::vec4 sunlightDirection; // w for power
-     glm::vec4 sunlightColor;
-  };
-
-  // TODO separate this out from above to pass separately
-  struct modelData
-  {
-     glm::mat4 model{1.f};
-     glm::mat4 viewProj{1.f};
-  };
-
 
     struct FcDescriptorBindInfo
     {

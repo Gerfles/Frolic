@@ -15,8 +15,6 @@ namespace fc
   class FcPlayer
   {
    private:
-
-
      struct KeyBindings
      {
         int moveLeft = SDL_SCANCODE_A;
@@ -37,11 +35,10 @@ namespace fc
         int moveLeft = SDL_SCANCODE_LEFT;
      };
 
-     bool mEnableLookAround{false};
      KeyBindings keys{};
      float mMoveSpeed{5.f};
      float mLookSpeed{0.01f};
-     FcInput& mInput;
+     FcInput* pInput;
      glm::vec3 mPosition{0.f, 0.f, 0.f};
      glm::vec3 mForwardDir{0.f, 0.f, 0.f};
      glm::vec3 mVelocity{0.f, 0.f, 0.f};
@@ -49,13 +46,12 @@ namespace fc
      float mPitch{0.f};
      glm::mat4 mRotationMatrix {1.0f};
      FcCamera mCamera{mRotationMatrix, mPosition, mPosition, mPosition};
-     // TODO get rid of Transformcomponent -> not lightweight
-//     TransformComponent mTransform{};
-
 
 public:
-     FcPlayer(FcInput& input) : mInput{input} {}
-      //
+     FcPlayer(FcInput* input) : pInput{input} {}
+     FcPlayer() {};// = default;
+     void init(FcInput* input) { pInput = input; }
+     //
      void move(float dt);
      void moveNew(float dt);
      void moveOLD(float dt);
@@ -63,8 +59,10 @@ public:
      void setPosition(const glm::vec3& position);
      const glm::vec3 position() const { return mPosition; }
      const glm::vec3 velocity() const { return mVelocity; }
+     // TODO don't allow access to private variable like this
      float& moveSpeed() { return mMoveSpeed; }
-     float& lookSpeed() { return mLookSpeed; }
+     //
+     float lookSpeed() { return mLookSpeed; }
      const glm::mat4 rotationMatrix() const { return mRotationMatrix; }
 
   };

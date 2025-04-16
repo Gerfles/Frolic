@@ -13,7 +13,8 @@
 
 namespace fc
 {
-  // DEL
+  class FrameData;
+// DEL
   // struct CubeVertex
   // {
   //    glm::vec3 position;
@@ -76,8 +77,8 @@ namespace fc
     };
 
      FcImage mCubeImage;
-     VkDescriptorSetLayout mDescriptorLayout;
-     VkDescriptorSet mDescriptor;
+     /* VkDescriptorSetLayout mDescriptorLayout; */
+     /* VkDescriptorSet mDescriptor; */
      FcPipeline mPipeline;
      VkSampler mCubeMapSampler;
      FcBuffer mVertexBuffer;
@@ -87,14 +88,14 @@ namespace fc
      FcSkybox();
      void loadTextures(std::string parentPath, std::string extension);
      void loadTextures(std::vector<std::filesystem::path>& filenames);
-     //     void loadTextures(std::array<std::filesystem::path, 6>& filenames);
-     void init(VkDescriptorSetLayout sceneDescriptorLayout);
-     void draw(VkCommandBuffer cmd, VkDescriptorSet* sceneDataDescriptors);
+//     void loadTextures(std::array<std::filesystem::path, 6>& filenames);
+     // TODO try and remove sceneDescriptorLayout
+     void init(VkDescriptorSetLayout sceneDescriptorLayout, std::vector<FrameData>& frames);
+     void draw(VkCommandBuffer cmd, FrameData& currentFrame);
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   GETTERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      const FcImage& Image() { return mCubeImage; }
-     const VkSampler Sampler() { return mCubeImage.TextureSampler(); }
-     const VkDescriptorSetLayout DescriptorLayout() { return mDescriptorLayout; }
-     const VkDescriptorSet Descriptor() { return mDescriptor; }
+     /* const VkDescriptorSetLayout DescriptorLayout() { return mDescriptorLayout; } */
+     /* const VkDescriptorSet Descriptor() { return mDescriptor; } */
 };
 
 

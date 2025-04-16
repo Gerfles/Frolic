@@ -7,6 +7,7 @@
 #include "core/platform.hpp"
 #include "utilities.hpp"
 #include "fc_debug.hpp"
+#include "fc_text.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "SDL2/SDL_stdinc.h"
 #include <SDL_events.h>
@@ -40,6 +41,8 @@
 #include <cstdlib>
 #include <unordered_set>
 #include <iostream>
+#include <vector>
+#include <map>
 
 // TODO (note may no longer be relevant) All of the helper functions that submit commands so far
 // have been set up to execute synchronously by waiting for the queue to become idle. For practical
@@ -58,13 +61,13 @@ namespace fc
   //    // including a pointer to a VK_STRUCTURE type appinfo
   // }
 
-  int FcRenderer::init(VkApplicationInfo& appInfo, VkExtent2D screenSize)
+  int FcRenderer::init(VkApplicationInfo& appInfo, VkExtent2D screenSize, SceneDataUbo** pSceneData)
   {
     // TODO get rid of this perhaps
     try
     {
-      // TODO get rid of this
-      FcLocator::initialize();
+      // TODO get rid of this within renderer
+      FcLocator::init();
 
       mWindow.initWindow(screenSize.width, screenSize.height);
 
@@ -88,7 +91,6 @@ namespace fc
       // create the swapchain & renderpass & frambuffers & depth buffer
       mSwapchain.init(mGpu, mWindow.ScreenSize());
 
-
       // -*-*-*-*-*-*-*-*-*-*-*-*-   INITIALIZE DESCRIPTORS   -*-*-*-*-*-*-*-*-*-*-*-*- //
       FcDescriptorClerk* descriptorClerk = new FcDescriptorClerk;
       // TODO understand the pool ratios better
@@ -110,13 +112,9 @@ namespace fc
       // create the command pool for later allocating command from. Also create the command buffers
       createCommandPools();
 
-
-
-
-
-      // create the graphics pipeline && create/attach descriptors
-      // create the uniform buffers & initialize the descriptor sets that tell the pipeline about our uniform buffers
-      // here we want to create a descriptor set for each swapchain image we have
+      // create the graphics pipeline && create/attach descriptors create the uniform
+      // buffers & initialize the descriptor sets that tell the pipeline about our uniform
+      // buffers here we want to create a descriptor set for each swapchain image we have
       // TODO rename from create to init maybe
       // TODO determine is descriptorclerk should be a local variable or heap variable as is
 
@@ -162,6 +160,7 @@ namespace fc
       mDynamicScissors.extent.width = mDrawExtent.width;
       mDynamicScissors.extent.height = mDrawExtent.height;
 
+      FcDefaults::init(pDevice);
 
       // FcModel model;
       // model.createModel("models/smooth_vase.obj", mPipeline, mGpu);
@@ -172,104 +171,58 @@ namespace fc
       return EXIT_FAILURE;
     }
 
+    *pSceneData = mSceneRenderer.getSceneDataUbo();
 
     return EXIT_SUCCESS;
   }
 
-
-
-  void FcRenderer::initDefaults(FcBuffer& sceneDataBuffer, SceneData* sceneData)
+  // TODO could pass pScene data here but probably better to just include this in mRenderer.init()
+  void FcRenderer::initDefaults()//FcBuffer& sceneDataBuffer, SceneDataUbo* sceneData)
   {
-    pSceneData = sceneData;
-    // -*-*-*-*-   3 DEFAULT TEXTURES--WHITE, GREY, BLACK AND CHECKERBOARD   -*-*-*-*- //
-    uint32_t white = glm::packUnorm4x8(glm::vec4(1.f, 1.f, 1.f, 1.f));
-    mWhiteTexture.createTexture(1, 1, static_cast<void*>(&white)
-                                , sizeof(white));
+    // *-*-*-*-*-*-*-*-*-*-*-*-   MOVED TO FCSCENERENDERER   *-*-*-*-*-*-*-*-*-*-*-*- //
+    // pSceneData = sceneData;
 
-    uint32_t grey = glm::packUnorm4x8(glm::vec4(0.36f, 0.36f, 0.36f, 1.f));
-    mGreyTexture.createTexture(1, 1, static_cast<void*>(&grey)
-                               , sizeof(grey));
+    // // TODO take advantage of the fact that Descriptor params can be reset once it spits out the SET
+    // // TODO probably delete from here
+    // FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
 
-    uint32_t black = glm::packUnorm4x8(glm::vec4(0.f, 0.f, 0.f, 1.f));
-    mBlackTexture.createTexture(1, 1, static_cast<void*>(&black)
-                                , sizeof(black));
+    // // *-*-*-*-*-*-*-*-*-*-*-*-   FRAME DATA INITIALIZATION   *-*-*-*-*-*-*-*-*-*-*-*- //
+    // // TODO create temporary storage for this in descClerk so we can just write the
+    // // descriptorSet and layout on the fly and destroy layout if not needed
+    // // TODO see if layout is not needed.
+    // FcDescriptorBindInfo sceneDescriptorBinding{};
+    // sceneDescriptorBinding.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
+    //                                   , VK_SHADER_STAGE_VERTEX_BIT
+    //                                   // TODO DELETE after separating model from scene
+    //                                   | VK_SHADER_STAGE_FRAGMENT_BIT
+    //                                   | VK_SHADER_STAGE_GEOMETRY_BIT);
 
-    // checkerboard image
-    uint32_t checkerColor = glm::packUnorm4x8(glm::vec4(1.f, 0.f, 1.f, 1.f));
-    std::array<uint32_t, 16 * 16> pixels;
-    for (int x = 0; x < 16; x++)
-    {
-      for (int y = 0; y < 16; y++)
-      {
-        pixels[y * 16 + x] = ((x % 2) ^ (y % 2)) ? checkerColor : black;
-      }
-    }
-    mCheckerboardTexture.createTexture(16, 16, static_cast<void*>(&pixels)
-                                       , pixels.size() * sizeof(pixels[0]));
+    // // TODO find out if there is any cost associated with binding to multiple un-needed stages...
+    // //, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
 
-    VkSamplerCreateInfo samplerInfo{};
-    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerInfo.magFilter = VK_FILTER_NEAREST;
-    samplerInfo.minFilter = VK_FILTER_NEAREST;
-    vkCreateSampler(pDevice, &samplerInfo, nullptr, &mDefaultSamplerNearest);
+    // sceneDescriptorBinding.attachBuffer(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, sceneDataBuffer
+    //                                     , sizeof(SceneData), 0);
 
-    samplerInfo.magFilter = VK_FILTER_LINEAR;
-    samplerInfo.minFilter = VK_FILTER_LINEAR;
-    vkCreateSampler(pDevice, &samplerInfo, nullptr, &mDefaultSamplerLinear);
-
-    // TODO take advantage of the fact that Descriptor params can be reset once it spits out the SET
-    // TODO probably delete from here
-    FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
-
-    FcDescriptorBindInfo descriptorBindInfo{};
-    descriptorBindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-                                  , VK_SHADER_STAGE_FRAGMENT_BIT);
-
-    descriptorBindInfo.attachImage(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, mGreyTexture
-                                   , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, mDefaultSamplerNearest);
+    // // create descriptorSet for sceneData
+    // mSceneDataDescriptorLayout = descClerk.createDescriptorSetLayout(sceneDescriptorBinding);
 
 
-    // *-*-*-*-*-*-*-*-*-*-*-*-   FRAME DATA INITIALIZATION   *-*-*-*-*-*-*-*-*-*-*-*- //
-    // TODO create temporary storage for this in descClerk so we can just write the
-    // descriptorSet and layout on the fly and destroy layout if not needed
-    // TODO see if layout is not needed.
-    FcDescriptorBindInfo sceneDescriptorBinding{};
-    sceneDescriptorBinding.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
-                                      , VK_SHADER_STAGE_VERTEX_BIT
-                                      // TODO DELETE after separating model from scene
-                                      | VK_SHADER_STAGE_FRAGMENT_BIT
-                                      | VK_SHADER_STAGE_GEOMETRY_BIT);
+    // // Allocate a descriptorSet to each frame buffer
+    // for (FrameData& frame : mFrames)
+    // {
+    //   frame.sceneDataDescriptorSet = descClerk.createDescriptorSet(
+    //     mSceneDataDescriptorLayout, sceneDescriptorBinding);
+    // }
+    // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    mSceneRenderer.init(mFrames);
 
-    // TODO find out if there is any cost associated with binding to multiple un-needed stages...
-    //, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-
-    sceneDescriptorBinding.attachBuffer(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, sceneDataBuffer
-                                        , sizeof(SceneData), 0);
-
-    // create descriptorSet for sceneData
-    mSceneDataDescriptorLayout = descClerk.createDescriptorSetLayout(sceneDescriptorBinding);
-
-
-    // Allocate a descriptorSet to each frame buffer
-    for (FrameData& frame : mFrames)
-    {
-      frame.sceneDataDescriptorSet = descClerk.createDescriptorSet(
-        mSceneDataDescriptorLayout, sceneDescriptorBinding);
-      // frame.sceneDataDescriptorSet = descClerk.createDescriptorSet(mSingleImageDescriptorLayout
-      //                                                              , descriptorBindInfo);
-    }
-
-    // TODO these should all be a part of frolic or game class, not the renderer
-    mSkybox.loadTextures("..//models//skybox", ".jpg");
-    // TODO should be more descriptive in name to show this has to happen after loadTextures
-    mSkybox.init(mSceneDataDescriptorLayout);
-    //
-    mShadowMap.init(this);
+    // TODO should get rid of "this" initialization of shadowMap nad terrain
+    mShadowMap.init(this, mFrames);
 
     //
     //mTerrain.init(this, "..//maps/simple.png");
     /* mTerrain.init(this, "..//maps/metalplate01_rgba.ktx"); */
-    mTerrain.init(this, "..//maps/terrain_heightmap_r16.ktx2");
+    mTerrain.init("..//maps/terrain_heightmap_r16.ktx2");
     //mTerrain.init(this, "..//maps/terrain_heightmap_r16.ktx");
     // BUG may need render fence or semaphor
     // mTerrain.init(this, "..//maps/iceland_heightmap.png");
@@ -282,45 +235,55 @@ namespace fc
 
     // write the buffer
     MaterialConstants* materialUniformData =
-      (MaterialConstants*)materialConstants.getAddres();
+      (MaterialConstants*)materialConstants.getAddress();
 
     materialUniformData->colorFactors = glm::vec4{1,1,1,1};
     materialUniformData->metalRoughFactors = glm::vec4{1, 0.5, 0, 0};
 
-    GLTFMetallicRoughness::MaterialResources materialResources;
-    // default the material textures
-    materialResources.dataBuffer = materialConstants;
-    materialResources.colorImage = mWhiteTexture;
-    materialResources.colorSampler = mDefaultSamplerLinear;
-    materialResources.metalRoughImage = mWhiteTexture;
-    materialResources.metalRoughSampler = mDefaultSamplerLinear;
-    materialResources.normalTexture = mWhiteTexture;
-    materialResources.normalSampler = mDefaultSamplerLinear;
-    materialResources.occlusionTexture = mWhiteTexture;
-    materialResources.occlusionSampler = mDefaultSamplerLinear;
-    materialResources.emissiveTexture = mBlackTexture;
-    materialResources.emissiveSampler = mDefaultSamplerLinear;
-    materialResources.dataBufferOffset = 0;
+    // GLTFMetallicRoughness::MaterialResources materialResources;
+    // // default the material textures
+    // materialResources.dataBuffer = materialConstants;
+    // materialResources.colorImage = mWhiteTexture;
+    // materialResources.colorSampler = mDefaultSamplerLinear;
+    // materialResources.metalRoughImage = mWhiteTexture;
+    // materialResources.metalRoughSampler = mDefaultSamplerLinear;
+    // materialResources.normalTexture = mWhiteTexture;
+    // materialResources.normalSampler = mDefaultSamplerLinear;
+    // materialResources.occlusionTexture = mWhiteTexture;
+    // materialResources.occlusionSampler = mDefaultSamplerLinear;
+    // materialResources.emissiveTexture = mBlackTexture;
+    // materialResources.emissiveSampler = mDefaultSamplerLinear;
+    // materialResources.dataBufferOffset = 0;
 
+
+
+    // TODO these should all be a part of frolic or game class, not the renderer
+    mSkybox.loadTextures("..//models//skybox", ".jpg");
+    // TODO should be more descriptive in name to show this has to happen after loadTextures
+    mSkybox.init(mSceneRenderer.getSceneDescriptorLayout(), mFrames);
+    //
     // // TODO think about destroying layout here
-    mMetalRoughMaterial.buildPipelines(this);
+    mSceneRenderer.buildPipelines(this);
 
-    defaultMaterialData = mMetalRoughMaterial.writeMaterial(pDevice, MaterialPass::MainColor
-                                                          , materialResources);
+
 
     // TODO implement with std::optional
     // TODO move to frolic.cpp
     //structure.loadGltf(this, "..//models//MosquitoInAmber.glb");
     //structure.loadGltf(this, "..//models//MaterialsVariantsShoe.glb");
-    structure.loadGltf(this, "..//models//helmet//DamagedHelmet.gltf");
+    structure.loadGltf(mSceneRenderer, "..//models//helmet//DamagedHelmet.gltf");
+
+    glm::mat4 translationMat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 15.0f, -24.0f));
+    structure.update(translationMat);
     //structure2.loadGltf(this, "..//models//helmet//DamagedHelmet.gltf");
     //structure.loadGltf(this, "..//models//Box.gltf");
     //structure.loadGltf(this, "..//models//GlassHurricaneCandleHolder.glb");
     //structure.loadGltf(this, "..//models//ToyCar.glb");
     //structure.loadGltf(this, "..//models//structure_mat.glb");
 
-    structure2.loadGltf(this, "..//models//sponza//Sponza.gltf");
-
+    structure2.loadGltf(mSceneRenderer, "..//models//sponza//Sponza.gltf");
+    glm::mat4 buildingTranslate = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 12.0f, -24.0f));
+    structure2.update(buildingTranslate);
 
 
     // // NOTE: This moves the object not the camera/lights/etc...
@@ -338,10 +301,11 @@ namespace fc
 
 
 
-    initNormalDrawPipeline(sceneDataBuffer);
-    initBoundingBoxPipeline(sceneDataBuffer);
+    // initNormalDrawPipeline(sceneDataBuffer);
+    // initBoundingBoxPipeline(sceneDataBuffer);
     // TODO remove at some point but prefer to leave in while debugging
     vkDeviceWaitIdle(pDevice);
+    fcLog("Finished Loading Defaults");
   }
 
 
@@ -433,7 +397,7 @@ namespace fc
   {
     // Get the address for the buffer of material constant data being refd by the shader
     MaterialConstants* changed
-      = static_cast<MaterialConstants*>(structure.mMaterialDataBuffer.getAddres());
+      = static_cast<MaterialConstants*>(structure.mMaterialDataBuffer.getAddress());
 
     // TODO need to this for all "structures"
     int numMaterial = structure.mMaterials.size();
@@ -742,8 +706,10 @@ namespace fc
     mTimer.start();
     // TODO this is calling the destructor for all objects in draw, should flatten more
     // to just the necessary AND changing parameters...
-    mainDrawContext.opaqueSurfaces.clear();
-    mainDrawContext.transparentSurfaces.clear();
+
+
+    // drawCollection.opaqueSurfaces.clear();
+    // drawCollection.transparentSurfaces.clear();
 
     rotationMatrix = glm::rotate(rotationMatrix
                                  , rotationSpeed * .0001f * glm::pi<float>(), {0.f, -1.f, 0.f});
@@ -753,20 +719,32 @@ namespace fc
     // stationary and therefore do not require an update. Probably better to have static & dynamic
     // objects be "drawn differently" also hate that this functio is called draw just because
     // it adds the meshNodes to the drawContext...
-    glm::mat4 translationMat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 3.0f, 0.0f));
-    structure.update(translationMat * rotationMatrix);
-    structure.draw(mainDrawContext);
+    glm::mat4 translationMat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 15.0f, -24.0f));
+    structure.update(rotationMatrix);
+
+    // BUG change soon!!
+    if (test == 0)
+    {
+    structure.draw(mDrawCollection);
     // glm::mat4 translationMat = glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 0.0f, 18.0f));
     // structure2.update(translationMat);
-     structure2.draw(mainDrawContext);
+    structure2.draw(mDrawCollection);
+    }
+    test++;
 
-     // TODO
-     // could update frustum by sending camera in and then could in turn be sent to
-     // various rendering methods
-     mFrustum.update(pSceneData->projection * pSceneData->view);
-     // TEST if needed
-     mFrustum.normalize();
-     mTerrain.update(mFrustum);
+
+    // TODO
+    // could update frustum by sending camera in and then could in turn be sent to
+    // various rendering methods
+
+    glm::mat4 viewProj = mSceneRenderer.getSceneDataUbo()->projection
+                         * mSceneRenderer.getSceneDataUbo()->view;
+
+    mFrustum.update(viewProj);
+
+    // TEST if needed
+    mFrustum.normalize();
+    mTerrain.update(mFrustum);
 
     // ?? elapsed time should already be in ms
     stats.sceneUpdateTime = mTimer.elapsedTime();
@@ -774,7 +752,7 @@ namespace fc
 
 
   // ?? TODO do we need camera position
-  void FcRenderer::drawBillboards(glm::vec3 cameraPosition, uint32_t swapchainImageIndex, SceneData& ubo)
+  void FcRenderer::drawBillboards(glm::vec3 cameraPosition, uint32_t swapchainImageIndex, SceneDataUbo& ubo)
   {
     std::vector<FcBillboard* >& billboards = FcLocator::Billboards();
 
@@ -896,129 +874,83 @@ namespace fc
   }
 
 
-  void FcRenderer::initNormalDrawPipeline(FcBuffer& sceneDataBuffer)
-  {
-    FcPipelineConfig pipelineConfig{3};
-    pipelineConfig.name = "Normal Draw Pipeline";
-    pipelineConfig.shaders[0].filename = "normal_display.vert.spv";
-    pipelineConfig.shaders[0].stageFlag = VK_SHADER_STAGE_VERTEX_BIT;
-    pipelineConfig.shaders[1].filename = "normal_display.geom.spv";
-    pipelineConfig.shaders[1].stageFlag = VK_SHADER_STAGE_GEOMETRY_BIT;
-    pipelineConfig.shaders[2].filename = "normal_display.frag.spv";
-    pipelineConfig.shaders[2].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
+  // void FcRenderer::initNormalDrawPipeline(FcBuffer& sceneDataBuffer)
+  // {
+  //   FcPipelineConfig pipelineConfig{3};
+  //   pipelineConfig.name = "Normal Draw Pipeline";
+  //   pipelineConfig.shaders[0].filename = "normal_display.vert.spv";
+  //   pipelineConfig.shaders[0].stageFlag = VK_SHADER_STAGE_VERTEX_BIT;
+  //   pipelineConfig.shaders[1].filename = "normal_display.geom.spv";
+  //   pipelineConfig.shaders[1].stageFlag = VK_SHADER_STAGE_GEOMETRY_BIT;
+  //   pipelineConfig.shaders[2].filename = "normal_display.frag.spv";
+  //   pipelineConfig.shaders[2].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    // add push constants
-    VkPushConstantRange matrixRange;
-    matrixRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    matrixRange.offset = 0;
-    matrixRange.size = sizeof(DrawPushConstants);
+  //   // add push constants
+  //   VkPushConstantRange matrixRange;
+  //   matrixRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+  //   matrixRange.offset = 0;
+  //   matrixRange.size = sizeof(DrawPushConstants);
 
-    pipelineConfig.addPushConstants(matrixRange);
+  //   pipelineConfig.addPushConstants(matrixRange);
 
-    pipelineConfig.addDescriptorSetLayout(mSceneDataDescriptorLayout);
+  //   pipelineConfig.addDescriptorSetLayout(mSceneDataDescriptorLayout);
 
-    pipelineConfig.setColorAttachment(VK_FORMAT_R16G16B16A16_SFLOAT);
-    pipelineConfig.setDepthFormat(VK_FORMAT_D32_SFLOAT);
-    pipelineConfig.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
-    pipelineConfig.setPolygonMode(VK_POLYGON_MODE_FILL);
-    // TODO front face
-    pipelineConfig.setCullMode(VK_CULL_MODE_FRONT_AND_BACK, VK_FRONT_FACE_CLOCKWISE);
-    pipelineConfig.setMultiSampling(FcLocator::Gpu().Properties().maxMsaaSamples);
-    // TODO prefer config via:
-    //pipelineConfig.enableMultiSampling(VK_SAMPLE_COUNT_1_BIT);
-    //pipelineConfig.disableMultiSampling();
+  //   pipelineConfig.setColorAttachment(VK_FORMAT_R16G16B16A16_SFLOAT);
+  //   pipelineConfig.setDepthFormat(VK_FORMAT_D32_SFLOAT);
+  //   pipelineConfig.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+  //   pipelineConfig.setPolygonMode(VK_POLYGON_MODE_FILL);
+  //   // TODO front face
+  //   pipelineConfig.setCullMode(VK_CULL_MODE_FRONT_AND_BACK, VK_FRONT_FACE_CLOCKWISE);
+  //   pipelineConfig.setMultiSampling(FcLocator::Gpu().Properties().maxMsaaSamples);
+  //   // TODO prefer config via:
+  //   //pipelineConfig.enableMultiSampling(VK_SAMPLE_COUNT_1_BIT);
+  //   //pipelineConfig.disableMultiSampling();
 
-    pipelineConfig.enableDepthtest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
+  //   pipelineConfig.enableDepthtest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
 
-    mNormalDrawPipeline.create(pipelineConfig);
-  }
-
-
-
-    void FcRenderer::initBoundingBoxPipeline(FcBuffer& sceneDataBuffer)
-  {
-    FcPipelineConfig pipelineConfig{3};
-    pipelineConfig.name = "Bounding Box Draw";
-    pipelineConfig.shaders[0].filename = "bounding_box.vert.spv";
-    pipelineConfig.shaders[0].stageFlag = VK_SHADER_STAGE_VERTEX_BIT;
-    pipelineConfig.shaders[1].filename = "bounding_box.geom.spv";
-    pipelineConfig.shaders[1].stageFlag = VK_SHADER_STAGE_GEOMETRY_BIT;
-    pipelineConfig.shaders[2].filename = "bounding_box.frag.spv";
-    pipelineConfig.shaders[2].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-    // add push constants
-    VkPushConstantRange pushConstantRange;
-    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    pushConstantRange.offset = 0;
-    pushConstantRange.size = sizeof(BoundingBoxPushConstants);
-
-    pipelineConfig.addPushConstants(pushConstantRange);
-
-    pipelineConfig.addDescriptorSetLayout(mSceneDataDescriptorLayout);
-
-    pipelineConfig.setColorAttachment(VK_FORMAT_R16G16B16A16_SFLOAT);
-    pipelineConfig.setDepthFormat(VK_FORMAT_D32_SFLOAT);
-    // ?? Would be better to implement with line primitives but not sure if all implementations
-    // can use lines... triangles are pretty much guaranteed
-    pipelineConfig.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
-    pipelineConfig.setPolygonMode(VK_POLYGON_MODE_FILL);
-    pipelineConfig.setCullMode(VK_CULL_MODE_FRONT_AND_BACK, VK_FRONT_FACE_CLOCKWISE);
-    pipelineConfig.setMultiSampling(FcLocator::Gpu().Properties().maxMsaaSamples);
-    pipelineConfig.enableDepthtest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
-    pipelineConfig.disableBlending();
-
-    mBoundingBoxPipeline.create(pipelineConfig);
-  }
+  //   mNormalDrawPipeline.create(pipelineConfig);
+  // }
 
 
+
+  //   void FcRenderer::initBoundingBoxPipeline(FcBuffer& sceneDataBuffer)
+  // {
+  //   FcPipelineConfig pipelineConfig{3};
+  //   pipelineConfig.name = "Bounding Box Draw";
+  //   pipelineConfig.shaders[0].filename = "bounding_box.vert.spv";
+  //   pipelineConfig.shaders[0].stageFlag = VK_SHADER_STAGE_VERTEX_BIT;
+  //   pipelineConfig.shaders[1].filename = "bounding_box.geom.spv";
+  //   pipelineConfig.shaders[1].stageFlag = VK_SHADER_STAGE_GEOMETRY_BIT;
+  //   pipelineConfig.shaders[2].filename = "bounding_box.frag.spv";
+  //   pipelineConfig.shaders[2].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+  //   // add push constants
+  //   VkPushConstantRange pushConstantRange;
+  //   pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+  //   pushConstantRange.offset = 0;
+  //   pushConstantRange.size = sizeof(BoundingBoxPushConstants);
+
+  //   pipelineConfig.addPushConstants(pushConstantRange);
+
+  //   pipelineConfig.addDescriptorSetLayout(mSceneDataDescriptorLayout);
+
+  //   pipelineConfig.setColorAttachment(VK_FORMAT_R16G16B16A16_SFLOAT);
+  //   pipelineConfig.setDepthFormat(VK_FORMAT_D32_SFLOAT);
+  //   // ?? Would be better to implement with line primitives but not sure if all implementations
+  //   // can use lines... triangles are pretty much guaranteed
+  //   pipelineConfig.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+  //   pipelineConfig.setPolygonMode(VK_POLYGON_MODE_FILL);
+  //   pipelineConfig.setCullMode(VK_CULL_MODE_FRONT_AND_BACK, VK_FRONT_FACE_CLOCKWISE);
+  //   pipelineConfig.setMultiSampling(FcLocator::Gpu().Properties().maxMsaaSamples);
+  //   pipelineConfig.enableDepthtest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
+  //   pipelineConfig.disableBlending();
+
+  //   mBoundingBoxPipeline.create(pipelineConfig);
+  // }
+
+  // TODO change to just drawframe
   void FcRenderer::drawGeometry()
   {
-    // TODO should consider sorting outside the drawGeometry perhaps, unless something changes
-    // or perhaps just inserting objects into draw via a hashmap. One thing to consider though
-    // is that we also perform visibility checks before we sort
-    // TODO should also make sure to sort using more than one thread
-    // Sort rendered objects according to material type and if the same sorted by indexBuffer
-    // A lot of big game engines do this to reduce the number of pipeline/descriptor set binds
-    std::vector<uint32_t> sortedOpaqueIndices;
-    sortedOpaqueIndices.reserve(mainDrawContext.opaqueSurfaces.size());
-
-    // Only place the meshes whose bounding box is within the view frustrum
-    for (uint32_t i = 0; i < mainDrawContext.opaqueSurfaces.size(); i++)
-    {
-      // BUG the bounding boxes are excluding visible objects for some reason
-      // May only be on the sponza gltf...
-      // BUG also when no objects are rendered, causes an error in seting the scissors and viewport
-      // TODO implement normal arrows and bounding boxes
-      // if (mainDrawContext.opaqueSurfaces[i].isVisible(pSceneData->viewProj))
-      // {
-      //   sortedOpaqueIndices.push_back(i);
-      // }
-      sortedOpaqueIndices.push_back(i);
-
-    }
-
-    // ?? couldn't we sort drawn meshes into a set of vectors that're already sorted by material
-    // and keep drawn object in linked list every iteration (unless removed manually) instead
-    // of clearing the draw list every update...
-
-    // TODO sort algorithm could be improved by calculating a sort key, and then our sortedOpaqueIndices
-    // would be something like 20bits draw index and 44 bits for sort key/hash
-    // sort the opaque surfaces by material and mesh
-    std::sort(sortedOpaqueIndices.begin(), sortedOpaqueIndices.end(), [&](const auto& iA, const auto& iB)
-     {
-       const RenderObject& A = mainDrawContext.opaqueSurfaces[iA];
-       const RenderObject& B = mainDrawContext.opaqueSurfaces[iB];
-       if (A.material == B.material)
-       {
-         return A.indexBuffer < B.indexBuffer;
-       }
-       else
-       {
-         return A.material < B.material;
-       }
-     });
-
-
     // reset counters
     stats.objectsRendered = 0;
     stats.triangleCount = 0;
@@ -1031,10 +963,10 @@ namespace fc
     // transition draw image from compute shader write optimal to best format
     // for graphics pipeline writeable
     mDrawImage.transitionLayout(cmd, VK_IMAGE_LAYOUT_UNDEFINED,
-                               VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+                                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
     //
     mDepthImage.transitionLayout(cmd, VK_IMAGE_LAYOUT_UNDEFINED,
-                                VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
+                                 VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
 
     // TODO extract into builder...
     // begin a render pass connected to our draw image
@@ -1073,71 +1005,207 @@ namespace fc
     vkCmdSetViewport(cmd, 0, 1, &mDynamicViewport);
     vkCmdSetScissor(cmd, 0, 1, &mDynamicScissors);
 
-    // Reset the previously used draw instruments for the new draw call
-    // defined outside of the draw function, this is the state we will try to skip
-    lastUsedPipeline = nullptr;
-    lastUsedMaterial = nullptr;
-    lastUsedIndexBuffer = VK_NULL_HANDLE;
 
-    // First draw the opaque objects using the captured Lambda
+    mSceneRenderer.draw(cmd, mDrawCollection, getCurrentFrame());
 
-    for (uint32_t surfaceIndex : sortedOpaqueIndices)
-    {
-      // if (surfaceIndex == 12)
-      // {
-      drawSurface(cmd, mainDrawContext.opaqueSurfaces[surfaceIndex]);
-      // }
-    }
-
-
-    // Afterwards, we can draw the transparent ones using the captured Lambda
-    for (RenderObject& surface : mainDrawContext.transparentSurfaces)
-    {
-      drawSurface(cmd, surface);
-    }
+    // TODO condense this into an array of function pointers so that we can build
+    // the specific 'pipeline' of function calls and avoid branches
 
     // Draw the bounding box around the object if enabled
     if (mDrawBoundingBoxes)
     {
-      // Draw all bounding boxes if signaled (default value = -1)
-      if (mBoundingBoxId < 0)
-      {
-        for (RenderObject& surface : mainDrawContext.opaqueSurfaces)
-        {
-          drawBoundingBox(cmd, surface);
-        }
-      }
-      else // otherwise, just draw the object that we are told to
-      {
-        // make sure we don't try and draw a bounding box that doesn't exist
-        if (mBoundingBoxId >= mainDrawContext.opaqueSurfaces.size())
-        {
-          mBoundingBoxId = -1;
-        }
-        else
-        {
-          drawBoundingBox(cmd, mainDrawContext.opaqueSurfaces[mBoundingBoxId]);
-        }
-      }
+      mSceneRenderer.drawBoundingBoxes(cmd, mDrawCollection, getCurrentFrame());
     }
 
-    // // Finally draw the Normals for the opaque objects
-    if (mDrawNormalVectors)
+    if(mDrawNormalVectors)
     {
-      for (uint32_t& surfaceIndex : sortedOpaqueIndices)
-      {
-        drawNormals(cmd, mainDrawContext.opaqueSurfaces[surfaceIndex]);
-      }
+      mSceneRenderer.drawNormals(cmd, mDrawCollection, getCurrentFrame());
     }
 
-    mSkybox.draw(cmd, &getCurrentFrame().sceneDataDescriptorSet);
+    mSkybox.draw(cmd, getCurrentFrame());
 
-    mTerrain.draw(cmd, pSceneData, drawWireframe);
+    /* mTerrain.draw(cmd, pSceneData, drawWireframe); */
 
     vkCmdEndRendering(cmd);
 
     // ?? elapsed time should already be in ms
     stats.meshDrawTime = mTimer.elapsedTime();
+
+    // // TODO should consider sorting outside the drawGeometry perhaps, unless something changes
+    // // or perhaps just inserting objects into draw via a hashmap. One thing to consider though
+    // // is that we also perform visibility checks before we sort
+    // // TODO should also make sure to sort using more than one thread
+    // // Sort rendered objects according to material type and if the same sorted by indexBuffer
+    // // A lot of big game engines do this to reduce the number of pipeline/descriptor set binds
+    // std::vector<uint32_t> sortedOpaqueIndices;
+    // sortedOpaqueIndices.reserve(drawCollection.opaqueSurfaces.size());
+
+    // // Only place the meshes whose bounding box is within the view frustrum
+    // for (uint32_t i = 0; i < drawCollection.opaqueSurfaces.size(); i++)
+    // {
+    //   // BUG the bounding boxes are excluding visible objects for some reason
+    //   // May only be on the sponza gltf...
+    //   // BUG also when no objects are rendered, causes an error in seting the scissors and viewport
+    //   // TODO implement normal arrows and bounding boxes
+    //   // if (mainDrawContext.opaqueSurfaces[i].isVisible(pSceneData->viewProj))
+    //   // {
+    //   //   sortedOpaqueIndices.push_back(i);
+    //   // }
+    //   sortedOpaqueIndices.push_back(i);
+
+    // }
+
+    // // ?? couldn't we sort drawn meshes into a set of vectors that're already sorted by material
+    // // and keep drawn object in linked list every iteration (unless removed manually) instead
+    // // of clearing the draw list every update...
+
+    // // TODO sort algorithm could be improved by calculating a sort key, and then our sortedOpaqueIndices
+    // // would be something like 20bits draw index and 44 bits for sort key/hash
+    // // sort the opaque surfaces by material and mesh
+    // std::sort(sortedOpaqueIndices.begin(), sortedOpaqueIndices.end(), [&](const auto& iA, const auto& iB)
+    //  {
+    //    const FcRenderObject& A = drawCollection.opaqueSurfaces[iA];
+    //    const FcRenderObject& B = drawCollection.opaqueSurfaces[iB];
+    //    if (A.material == B.material)
+    //    {
+    //      return A.indexBuffer < B.indexBuffer;
+    //    }
+    //    else
+    //    {
+    //      return A.material < B.material;
+    //    }
+    //  });
+
+    // // reset counters
+    // stats.objectsRendered = 0;
+    // stats.triangleCount = 0;
+    // // begin clock
+    // mTimer.start();
+
+    // VkCommandBuffer cmd = getCurrentFrame().commandBuffer;
+
+    // //std::cout << "drawExtent: " << mDrawExtent.width << " x " << mDrawExtent.height << std::endl;
+    // // transition draw image from compute shader write optimal to best format
+    // // for graphics pipeline writeable
+    // mDrawImage.transitionLayout(cmd, VK_IMAGE_LAYOUT_UNDEFINED,
+    //                             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    // //
+    // mDepthImage.transitionLayout(cmd, VK_IMAGE_LAYOUT_UNDEFINED,
+    //                              VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
+
+    // // TODO extract into builder...
+    // // begin a render pass connected to our draw image
+    // VkRenderingAttachmentInfo colorAttachment{};
+    // colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+    // colorAttachment.imageView = mDrawImage.ImageView();
+    // colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    // //		colorAttachment.loadOp = clear ? VK_ATTACHMENT_LOAD_OP_CLEAR :
+    // //VK_ATTACHMENT_LOAD_OP_LOAD;
+
+    // // TODO Should use LOAD_OP_DONT_CARE here if we know the entire image will be written over
+    // colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    // colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+    // // depth
+    // VkRenderingAttachmentInfo depthAttachment{};
+    // depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+    // depthAttachment.imageView = mDepthImage.ImageView();
+    // depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+    // depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    // depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    // depthAttachment.clearValue.depthStencil.depth = 0.f;
+
+    // //
+    // VkRenderingInfo renderInfo{};
+    // renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+    // renderInfo.renderArea = VkRect2D{VkOffset2D{0, 0}, mDrawExtent};
+    // renderInfo.layerCount = 1;
+    // renderInfo.colorAttachmentCount = 1;
+    // renderInfo.pColorAttachments = &colorAttachment;
+    // renderInfo.pDepthAttachment = &depthAttachment;
+    // renderInfo.pStencilAttachment = nullptr;
+
+    // vkCmdBeginRendering(cmd, &renderInfo);
+
+    // vkCmdSetViewport(cmd, 0, 1, &mDynamicViewport);
+    // vkCmdSetScissor(cmd, 0, 1, &mDynamicScissors);
+
+    // // Reset the previously used draw instruments for the new draw call
+    // // defined outside of the draw function, this is the state we will try to skip
+    // // lastUsedPipeline = nullptr;
+    // // lastUsedMaterial = nullptr;
+    // // lastUsedIndexBuffer = VK_NULL_HANDLE;
+
+    // previousPipeline = nullptr;
+    // previousMaterial = nullptr;
+    // previousIndexBuffer = VK_NULL_HANDLE;
+
+
+    // // // TODO delete above but follow the sorted version (add sorting, etc.)
+    // // for (FcRenderObject& surface : drawCollection.opaqueSurfaces)
+    // // {
+    // //   drawSurface(cmd, surface);
+    // // }
+
+
+    // // First draw the opaque objects using the captured Lambda
+    // for (uint32_t surfaceIndex : sortedOpaqueIndices)
+    // {
+    //   // if (surfaceIndex == 12)
+    //   // {
+    //   drawSurface(cmd, drawCollection.opaqueSurfaces[surfaceIndex]);
+    //   // }
+    // }
+
+
+    // // Afterwards, we can draw the transparent ones using the captured Lambda
+    // for (FcRenderObject& surface : drawCollection.transparentSurfaces)
+    // {
+    //   drawSurface(cmd, surface);
+    // }
+
+    // // Draw the bounding box around the object if enabled
+    // if (mDrawBoundingBoxes)
+    // {
+    //   // Draw all bounding boxes if signaled (default value = -1)
+    //   if (mBoundingBoxId < 0)
+    //   {
+    //     for (FcRenderObject& surface : drawCollection.opaqueSurfaces)
+    //     {
+    //       drawBoundingBox(cmd, surface);
+    //     }
+    //   }
+    //   else // otherwise, just draw the object that we are told to
+    //   {
+    //     // make sure we don't try and draw a bounding box that doesn't exist
+    //     if (mBoundingBoxId >= drawCollection.opaqueSurfaces.size())
+    //     {
+    //       mBoundingBoxId = -1;
+    //     }
+    //     else
+    //     {
+    //       drawBoundingBox(cmd, drawCollection.opaqueSurfaces[mBoundingBoxId]);
+    //     }
+    //   }
+    // }
+
+    // // // Finally draw the Normals for the opaque objects
+    // if (mDrawNormalVectors)
+    // {
+    //   for (uint32_t& surfaceIndex : sortedOpaqueIndices)
+    //   {
+    //     drawNormals(cmd, drawCollection.opaqueSurfaces[surfaceIndex]);
+    //   }
+    // }
+
+    // mSkybox.draw(cmd, &getCurrentFrame().sceneDataDescriptorSet);
+
+    // mTerrain.draw(cmd, pSceneData, drawWireframe);
+
+    // vkCmdEndRendering(cmd);
+
+    // // ?? elapsed time should already be in ms
+    // stats.meshDrawTime = mTimer.elapsedTime();
   }
 
 
@@ -1145,7 +1213,7 @@ namespace fc
   {
     VkCommandBuffer cmd = getCurrentFrame().commandBuffer;
     //loadedScenes["structure"]->draw(glm::mat4{1.f}, mainDrawContext);
-    mShadowMap.generateMap(cmd, mainDrawContext);
+    mShadowMap.generateMap(cmd, mDrawCollection);
 
     //std::cout << "drawExtent: " << mDrawExtent.width << " x " << mDrawExtent.height << std::endl;
     // transition draw image from compute shader write optimal to best format
@@ -1185,7 +1253,7 @@ namespace fc
     // draw the quad that we'll map the shadow map to
     if (drawDebug)
     {
-      mShadowMap.drawDebugMap(cmd);
+      mShadowMap.drawDebugMap(cmd, getCurrentFrame());
       vkCmdEndRendering(cmd);
     }
     else
@@ -1197,103 +1265,157 @@ namespace fc
 
 
 
-  void FcRenderer::drawSurface(VkCommandBuffer cmd, const RenderObject& surface)
-  {
+  // void FcRenderer::drawSurface(VkCommandBuffer cmd, const FcRenderObject& surface)
+  // {
 
-    if (surface.material != lastUsedMaterial)
-    {
-      lastUsedMaterial = surface.material;
+  //   if (surface.material != previousMaterial)
+  //   {
+  //     previousMaterial = surface.material;
 
-      // Only rebind pipeline and material descriptors if the material changed
-      // TODO have each object track state of its own descriptorSets
-      if (surface.material->pPipeline != lastUsedPipeline)
-      {
-        lastUsedPipeline = surface.material->pPipeline;
+  //     // Only rebind pipeline and material descriptors if the material changed
+  //     // TODO have each object track state of its own descriptorSets
+  //     if (surface.material->pPipeline != previousPipeline)
+  //     {
+  //       previousPipeline = surface.material->pPipeline;
 
-        surface.bindPipeline(cmd);
-        surface.bindDescriptorSet(cmd, getCurrentFrame().sceneDataDescriptorSet, 0);
-        surface.bindDescriptorSet(cmd, mSkybox.Descriptor(), 1);
-        surface.bindDescriptorSet(cmd, mShadowMap.Descriptor(), 2);
-      }
+  //       surface.bindPipeline(cmd);
+  //       surface.bindDescriptorSet(cmd, getCurrentFrame().sceneDataDescriptorSet, 0);
+  //       surface.bindDescriptorSet(cmd, mSkybox.Descriptor(), 1);
+  //       surface.bindDescriptorSet(cmd, mShadowMap.Descriptor(), 2);
+  //     }
 
-      surface.bindDescriptorSet(cmd, surface.material->materialSet, 3);
-    }
+  //     surface.bindDescriptorSet(cmd, surface.material->materialSet, 3);
+  //   }
 
-    // Only bind index buffer if it has changed
-    if (surface.indexBuffer != lastUsedIndexBuffer)
-    {
-      lastUsedIndexBuffer = surface.indexBuffer;
-      surface.bindIndexBuffer(cmd);
-    }
+  //   // Only bind index buffer if it has changed
+  //   if (surface.indexBuffer != previousIndexBuffer)
+  //   {
+  //     previousIndexBuffer = surface.indexBuffer;
+  //     surface.bindIndexBuffer(cmd);
+  //   }
 
-    // Calculate final mesh matrix
-    DrawPushConstants pushConstants;
-    pushConstants.vertexBuffer = surface.vertexBufferAddress;
-    pushConstants.worldMatrix = surface.transform;
-    pushConstants.normalTransform = surface.invModelMatrix;
+  //   // Calculate final mesh matrix
+  //   DrawPushConstants pushConstants;
+  //   pushConstants.vertexBuffer = surface.vertexBufferAddress;
+  //   pushConstants.worldMatrix = surface.transform;
+  //   pushConstants.normalTransform = surface.invModelMatrix;
 
-    //
-    vkCmdPushConstants(cmd, surface.material->pPipeline->Layout()
-                       , VK_SHADER_STAGE_VERTEX_BIT
-                       , 0, sizeof(DrawPushConstants), &pushConstants);
-    // Note here that we have to offset from the initially pushed data since we
-    // are really just filling a range alloted to us in total...
-    vkCmdPushConstants(cmd, surface.material->pPipeline->Layout()
-                       , VK_SHADER_STAGE_GEOMETRY_BIT
-                       , sizeof(DrawPushConstants), sizeof(float), &expansionFactor);
+  //   //
+  //   vkCmdPushConstants(cmd, surface.material->pPipeline->Layout()
+  //                      , VK_SHADER_STAGE_VERTEX_BIT
+  //                      , 0, sizeof(DrawPushConstants), &pushConstants);
+  //   // Note here that we have to offset from the initially pushed data since we
+  //   // are really just filling a range alloted to us in total...
+  //   vkCmdPushConstants(cmd, surface.material->pPipeline->Layout()
+  //                      , VK_SHADER_STAGE_GEOMETRY_BIT
+  //                      , sizeof(DrawPushConstants), sizeof(float), &expansionFactor);
 
-    vkCmdDrawIndexed(cmd, surface.indexCount, 1, surface.firstIndex, 0, 0);
+  //   vkCmdDrawIndexed(cmd, surface.indexCount, 1, surface.firstIndex, 0, 0);
 
-    // add counters for triangles and draws calls
-    stats.objectsRendered++;
-    stats.triangleCount += surface.indexCount / 3;
-  }
-
-
-
-  void FcRenderer::drawNormals(VkCommandBuffer cmd, const RenderObject& surface)
-  {
-
-    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mNormalDrawPipeline.getVkPipeline());
-
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mNormalDrawPipeline.Layout()
-                            , 0, 1, &getCurrentFrame().sceneDataDescriptorSet, 0, nullptr);
-
-    surface.bindIndexBuffer(cmd);
-
-    // Calculate final mesh matrix
-    DrawPushConstants pushConstants;
-    pushConstants.vertexBuffer = surface.vertexBufferAddress;
-    pushConstants.worldMatrix = surface.transform;
-    pushConstants.normalTransform = surface.invModelMatrix;
-
-    vkCmdPushConstants(cmd, mNormalDrawPipeline.Layout(), VK_SHADER_STAGE_VERTEX_BIT
-                       , 0, sizeof(DrawPushConstants), &pushConstants);
-
-    vkCmdDrawIndexed(cmd, surface.indexCount, 1, surface.firstIndex, 0, 0);
-  }
+  //   // add counters for triangles and draws calls
+  //   stats.objectsRendered++;
+  //   stats.triangleCount += surface.indexCount / 3;
+  // }
 
 
 
-  void FcRenderer::drawBoundingBox(VkCommandBuffer cmd, const RenderObject& surface)
-  {
-    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mBoundingBoxPipeline.getVkPipeline());
+  // void FcRenderer::drawSurface(VkCommandBuffer cmd, const FcRenderObject& surface)
+  // {
+  //   if (surface.material != previousMaterial)
+  //   {
+  //     previousMaterial = surface.material;
 
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mBoundingBoxPipeline.Layout()
-                            , 0, 1, &getCurrentFrame().sceneDataDescriptorSet, 0, nullptr);
+  //     // Only rebind pipeline and material descriptors if the material changed
+  //     // TODO have each object track state of its own descriptorSets
+  //     if (surface.material->pPipeline != previousPipeline)
+  //     {
+  //       previousPipeline = surface.material->pPipeline;
 
-    // Send the bounding box to the shaders
-    BoundingBoxPushConstants pushConstants;
-    pushConstants.modelMatrix = surface.transform;
-    pushConstants.origin = glm::vec4(surface.bounds.origin, 1.f);
-    pushConstants.extents = glm::vec4(surface.bounds.extents, 0.f);
+  //       surface.bindPipeline(cmd);
+  //       surface.bindDescriptorSet(cmd, getCurrentFrame().sceneDataDescriptorSet, 0);
+  //       surface.bindDescriptorSet(cmd, mSkybox.Descriptor(), 1);
+  //       surface.bindDescriptorSet(cmd, mShadowMap.Descriptor(), 2);
+  //     }
 
-    vkCmdPushConstants(cmd, mBoundingBoxPipeline.Layout(), VK_SHADER_STAGE_VERTEX_BIT
-                       , 0, sizeof(BoundingBoxPushConstants), &pushConstants);
+  //     surface.bindDescriptorSet(cmd, surface.material->materialSet, 3);
+  //   }
 
-    // TODO update to utilize sascha method for quads
-    vkCmdDraw(cmd, 36, 1, 0, 0);
-  }
+  //   // Only bind index buffer if it has changed
+
+  //   if (surface.indexBuffer != previousIndexBuffer)
+  //   {
+  //     previousIndexBuffer = surface.indexBuffer;
+  //     surface.bindIndexBuffer(cmd);
+  //   }
+
+  //   // Calculate final mesh matrix
+  //   DrawPushConstants pushConstants;
+  //   pushConstants.vertexBuffer = surface.vertexBufferAddress;
+  //   pushConstants.worldMatrix = surface.transform;
+  //   pushConstants.normalTransform = surface.invModelMatrix;
+
+  //   //
+  //   vkCmdPushConstants(cmd, surface.material->pPipeline->Layout()
+  //                      , VK_SHADER_STAGE_VERTEX_BIT
+  //                      , 0, sizeof(DrawPushConstants), &pushConstants);
+  //   // Note here that we have to offset from the initially pushed data since we
+  //   // are really just filling a range alloted to us in total...
+  //   vkCmdPushConstants(cmd, surface.material->pPipeline->Layout()
+  //                      , VK_SHADER_STAGE_GEOMETRY_BIT
+  //                      , sizeof(DrawPushConstants), sizeof(float), &expansionFactor);
+
+  //   vkCmdDrawIndexed(cmd, surface.indexCount, 1, surface.firstIndex, 0, 0);
+
+  //   // add counters for triangles and draws calls
+  //   stats.objectsRendered++;
+  //   stats.triangleCount += surface.indexCount / 3;
+  // }
+
+
+
+  // void FcRenderer::drawNormals(VkCommandBuffer cmd, const FcRenderObject& surface)
+  // {
+
+  //   vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mNormalDrawPipeline.getVkPipeline());
+
+  //   vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mNormalDrawPipeline.Layout()
+  //                           , 0, 1, &getCurrentFrame().sceneDataDescriptorSet, 0, nullptr);
+
+  //   surface.bindIndexBuffer(cmd);
+
+  //   // Calculate final mesh matrix
+  //   DrawPushConstants pushConstants;
+  //   pushConstants.vertexBuffer = surface.vertexBufferAddress;
+  //   pushConstants.worldMatrix = surface.transform;
+  //   pushConstants.normalTransform = surface.invModelMatrix;
+
+  //   vkCmdPushConstants(cmd, mNormalDrawPipeline.Layout(), VK_SHADER_STAGE_VERTEX_BIT
+  //                      , 0, sizeof(DrawPushConstants), &pushConstants);
+
+  //   vkCmdDrawIndexed(cmd, surface.indexCount, 1, surface.firstIndex, 0, 0);
+  // }
+
+
+
+  // void FcRenderer::drawBoundingBox(VkCommandBuffer cmd, const FcRenderObject& surface)
+  // {
+  //   vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mBoundingBoxPipeline.getVkPipeline());
+
+  //   vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mBoundingBoxPipeline.Layout()
+  //                           , 0, 1, &getCurrentFrame().sceneDataDescriptorSet, 0, nullptr);
+
+  //   // Send the bounding box to the shaders
+  //   BoundingBoxPushConstants pushConstants;
+  //   pushConstants.modelMatrix = surface.transform;
+  //   pushConstants.origin = glm::vec4(surface.bounds.origin, 1.f);
+  //   pushConstants.extents = glm::vec4(surface.bounds.extents, 0.f);
+
+  //   vkCmdPushConstants(cmd, mBoundingBoxPipeline.Layout(), VK_SHADER_STAGE_VERTEX_BIT
+  //                      , 0, sizeof(BoundingBoxPushConstants), &pushConstants);
+
+  //   // TODO update to utilize sascha method for quads
+  //   vkCmdDraw(cmd, 36, 1, 0, 0);
+  // }
 
 
   void FcRenderer::drawImGui(VkCommandBuffer cmd, VkImageView targetImageView)
@@ -1661,24 +1783,17 @@ namespace fc
     // wait until no actions being run on device before destroying
     vkDeviceWaitIdle(pDevice);
 
-
     //loadedScenes.clear();
     structure.clearAll();
 
     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DEFAULTS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    vkDestroySampler(pDevice, mDefaultSamplerLinear, nullptr);
-    vkDestroySampler(pDevice, mDefaultSamplerNearest, nullptr);
+    FcDefaults::destroy();
 
-    mWhiteTexture.destroy();
-    mGreyTexture.destroy();
-    mBlackTexture.destroy();
-    mCheckerboardTexture.destroy();
-
-//mUiRenderer.destroy();
+    //mUiRenderer.destroy();
 
     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   SCENE DATA   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    mMetalRoughMaterial.clearResources(pDevice);
-    vkDestroyDescriptorSetLayout(pDevice, mSceneDataDescriptorLayout, nullptr);
+    mSceneRenderer.clearResources(pDevice);
+
     vkDestroyDescriptorSetLayout(pDevice, mBackgroundDescriptorlayout, nullptr);
 
     // TODO should think about locating mImgGui into Descriptor Clerk
@@ -1714,8 +1829,6 @@ namespace fc
 
     mDrawImage.destroy();
     mDepthImage.destroy();
-
-    mTestMeshes.destroy();
 
     mGpu.release(mInstance);
 

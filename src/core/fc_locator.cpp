@@ -19,13 +19,14 @@ namespace fc
 
    // initialze game object list to maximum size allowed
 //  std::vector<FcGameObject*> FcLocator::mGameObjectsList(MAX_GAME_OBJECTS, nullptr);
-  std::vector<FcGameObject*> FcLocator::mGameObjectsList;//(100, nullptr);
+  /* std::vector<FcGameObject*> FcLocator::mGameObjectsList;//(100, nullptr); */
    //
   std::vector<FcLight*> FcLocator::mLightsList;
    //
   std::vector<FcBillboard* > FcLocator::mBillboardsList;
 
-  void FcLocator::initialize()
+
+  void FcLocator::init()
   {
     pGpu = nullptr;
     pDevice = nullptr;

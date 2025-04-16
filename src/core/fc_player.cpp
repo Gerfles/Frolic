@@ -19,36 +19,36 @@ namespace fc
   {
     // TODO find a way to make this branchless... maybe fill an array with 0 or 1 and multiply all
     // actions by that factor without if statements
-    if (mInput.keyDown(keys.moveForward)) mVelocity.z = -1;
-    if (mInput.keyDown(keys.moveBackward)) mVelocity.z = 1;
-    if (mInput.keyDown(keys.moveRight)) mVelocity.x = 1;
-    if (mInput.keyDown(keys.moveLeft)) mVelocity.x = -1;
+    if (pInput->keyDown(keys.moveForward)) mVelocity.z = -1;
+    if (pInput->keyDown(keys.moveBackward)) mVelocity.z = 1;
+    if (pInput->keyDown(keys.moveRight)) mVelocity.x = 1;
+    if (pInput->keyDown(keys.moveLeft)) mVelocity.x = -1;
     // TODO make move up and move down be independent of the view direction
-    if (mInput.keyDown(keys.moveUp)) mVelocity.y = 1;
-    if (mInput.keyDown(keys.moveDown)) mVelocity.y = -1;
+    if (pInput->keyDown(keys.moveUp)) mVelocity.y = 1;
+    if (pInput->keyDown(keys.moveDown)) mVelocity.y = -1;
 
-    if (mInput.keyUp(keys.moveForward)) mVelocity.z = 0;
-    if (mInput.keyUp(keys.moveBackward)) mVelocity.z = 0;
-    if (mInput.keyUp(keys.moveRight)) mVelocity.x = 0;
-    if (mInput.keyUp(keys.moveLeft)) mVelocity.x = 0;
-    if (mInput.keyUp(keys.moveUp)) mVelocity.y = 0;
-    if (mInput.keyUp(keys.moveDown)) mVelocity.y = 0;
+    if (pInput->keyUp(keys.moveForward)) mVelocity.z = 0;
+    if (pInput->keyUp(keys.moveBackward)) mVelocity.z = 0;
+    if (pInput->keyUp(keys.moveRight)) mVelocity.x = 0;
+    if (pInput->keyUp(keys.moveLeft)) mVelocity.x = 0;
+    if (pInput->keyUp(keys.moveUp)) mVelocity.y = 0;
+    if (pInput->keyUp(keys.moveDown)) mVelocity.y = 0;
 
     // rotation via key
-    if (mInput.keyDown(keys.lookRight)) mYaw += 100 * dt * mLookSpeed;
-    if (mInput.keyDown(keys.lookLeft)) mYaw -= 100 * dt * mLookSpeed;
+    if (pInput->keyDown(keys.lookRight)) mYaw += 100 * dt * mLookSpeed;
+    if (pInput->keyDown(keys.lookLeft)) mYaw -= 100 * dt * mLookSpeed;
 
 
-    if (mInput.mouseHit(mInput.MOUSE_RIGHT))
+    if (pInput->mouseHit(pInput->MOUSE_RIGHT))
     {
-      mEnableLookAround = !mEnableLookAround;
+      mLookSpeed = (mLookSpeed == 0.0f) ? 0.01f : 0.0f;
     }
 
 
-    if (mInput.mouseInWindow() && mEnableLookAround)
+    if (pInput->mouseInWindow())
     {
       int mouseX, mouseY;
-      mInput.RelativeMousePosition(mouseX, mouseY);
+      pInput->RelativeMousePosition(mouseX, mouseY);
 
       mYaw += mouseX * mLookSpeed * dt;
       mPitch -= mouseY * mLookSpeed * dt;
@@ -81,15 +81,15 @@ namespace fc
     // TODO find a way to make this branchless... maybe fill an array with 0 or 1 and multiply all
     // actions by that factor without if statements
 
-    if (mInput.mouseHit(mInput.MOUSE_RIGHT))
+    if (pInput->mouseHit(pInput->MOUSE_RIGHT))
     {
-      mEnableLookAround = !mEnableLookAround;
+      mLookSpeed = (mLookSpeed == 0.0f) ? 0.01f : 0.0f;
     }
 
-    if (mInput.mouseInWindow() && mEnableLookAround)
+    if (pInput->mouseInWindow())
     {
       int mouseX, mouseY;
-      mInput.RelativeMousePosition(mouseX, mouseY);
+      pInput->RelativeMousePosition(mouseX, mouseY);
 
       mYaw += mouseX * mLookSpeed * dt;
       mPitch += mouseY * mLookSpeed * dt;
@@ -118,12 +118,12 @@ namespace fc
 
     // move direction
     glm::vec3 moveDir{0.f};
-    if (mInput.keyDown(keys.moveForward)) moveDir += mForwardDir;
-    if (mInput.keyDown(keys.moveBackward)) moveDir -= mForwardDir;
-    if (mInput.keyDown(keys.moveRight)) moveDir += rightDir;
-    if (mInput.keyDown(keys.moveLeft)) moveDir -= rightDir;
-    if (mInput.keyDown(keys.moveUp)) moveDir += upDir;
-    if (mInput.keyDown(keys.moveDown)) moveDir -= upDir;
+    if (pInput->keyDown(keys.moveForward)) moveDir += mForwardDir;
+    if (pInput->keyDown(keys.moveBackward)) moveDir -= mForwardDir;
+    if (pInput->keyDown(keys.moveRight)) moveDir += rightDir;
+    if (pInput->keyDown(keys.moveLeft)) moveDir -= rightDir;
+    if (pInput->keyDown(keys.moveUp)) moveDir += upDir;
+    if (pInput->keyDown(keys.moveDown)) moveDir -= upDir;
 
     if (glm::dot(moveDir, moveDir) > std::numeric_limits<float>::epsilon())
     {
@@ -142,20 +142,20 @@ namespace fc
   {
     // TODO find a way to make this branchless... maybe fill an array with 0 or 1 and multiply all
     // actions by that factor without if statements
-    if (mInput.keyDown(keys.lookRight)) mYaw = 1.f;
-    if (mInput.keyDown(keys.lookLeft)) mYaw = -1.f;
-    if (mInput.keyDown(keys.lookUp)) mPitch = 1.f;
-    if (mInput.keyDown(keys.lookDown)) mPitch = -1.f;
+    if (pInput->keyDown(keys.lookRight)) mYaw = 1.f;
+    if (pInput->keyDown(keys.lookLeft)) mYaw = -1.f;
+    if (pInput->keyDown(keys.lookUp)) mPitch = 1.f;
+    if (pInput->keyDown(keys.lookDown)) mPitch = -1.f;
 
- if (mInput.mouseHit(mInput.MOUSE_RIGHT))
+ if (pInput->mouseHit(pInput->MOUSE_RIGHT))
     {
-      mEnableLookAround = !mEnableLookAround;
+      mLookSpeed = (mLookSpeed == 0.0f) ? 0.01f : 0.0f;
     }
 
-    if (mInput.mouseInWindow() && mEnableLookAround)
+    if (pInput->mouseInWindow())
     {
       int mouseX, mouseY;
-      mInput.RelativeMousePosition(mouseX, mouseY);
+      pInput->RelativeMousePosition(mouseX, mouseY);
 
       mYaw -= 1.f * mouseX * mLookSpeed * dt;
       mPitch -= 1.f * mouseY * mLookSpeed * dt;
@@ -181,12 +181,12 @@ namespace fc
 
     // move direction
     glm::vec3 moveDir{0.f};
-    if (mInput.keyDown(keys.moveForward)) moveDir += forwardDir;
-    if (mInput.keyDown(keys.moveBackward)) moveDir -= forwardDir;
-    if (mInput.keyDown(keys.moveRight)) moveDir += rightDir;
-    if (mInput.keyDown(keys.moveLeft)) moveDir -= rightDir;
-    if (mInput.keyDown(keys.moveUp)) moveDir += upDir;
-    if (mInput.keyDown(keys.moveDown)) moveDir -= upDir;
+    if (pInput->keyDown(keys.moveForward)) moveDir += forwardDir;
+    if (pInput->keyDown(keys.moveBackward)) moveDir -= forwardDir;
+    if (pInput->keyDown(keys.moveRight)) moveDir += rightDir;
+    if (pInput->keyDown(keys.moveLeft)) moveDir -= rightDir;
+    if (pInput->keyDown(keys.moveUp)) moveDir += upDir;
+    if (pInput->keyDown(keys.moveDown)) moveDir -= upDir;
 
     if (glm::dot(moveDir, moveDir) > std::numeric_limits<float>::epsilon())
     {
@@ -196,32 +196,6 @@ namespace fc
     // TODO re-formulate this fucntion to efficiently change the camera parameters
     glm::vec3 rotate{mPitch, mYaw, 0.0f};
     mCamera.setViewYXZ(mPosition, rotate);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     // //glm::vec3 rotate{0};
     // // TODO find a way to make this branchless... maybe fill an array with 0 or 1 and multiply all

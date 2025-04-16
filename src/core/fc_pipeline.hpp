@@ -75,6 +75,7 @@ namespace fc
      //void addBinding(uint32_t bindSlot, VkDescriptorType type, VkShaderStageFlags stages);
      void addPushConstants(VkPushConstantRange pushConstant);
      void addDescriptorSetLayout(VkDescriptorSetLayout layout) { descriptorlayouts.push_back(layout);}
+     VkDescriptorSetLayout addSingleImageDescriptorSetLayout();
      void setInputTopology(VkPrimitiveTopology topology);
      void setPolygonMode(VkPolygonMode mode);
      void setCullMode(VkCullModeFlags cullMode, VkFrontFace frontFace);

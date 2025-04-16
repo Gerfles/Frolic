@@ -4,7 +4,9 @@
 #include "fc_descriptors.hpp"
 #include "fc_locator.hpp"
 #include "fc_renderer.hpp"
+#include "fc_defaults.hpp"
 #include "utilities.hpp"
+#include "fc_model.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
@@ -13,7 +15,7 @@
 namespace fc
 {
 
-  void FcShadowMap::init(FcRenderer* renderer)
+  void FcShadowMap::init(FcRenderer* renderer, std::vector<FrameData>& frames)
   {
     pRenderer = renderer;
     depthFormat = VK_FORMAT_D32_SFLOAT;
@@ -23,8 +25,7 @@ namespace fc
 
     mShadowMapImage.create(shadowMapSize, shadowMapSize, FcImageTypes::ShadowMap);
 
-    createSampler();
-    initPipelines();
+    initPipelines(frames);
 
     // TODO allow debug mode to calculate the frustrum as close to the scene
     // as possible
@@ -39,9 +40,11 @@ namespace fc
   }
 
 
-  void FcShadowMap::initPipelines()
+  void FcShadowMap::initPipelines(std::vector<FrameData>& frames)
   {
-    // TODO have addStage instead of size initialization or keep as optional but add checks for segfaults and also create better default values for pipeline configurations
+    // TODO have addStage instead of size initialization or keep as optional but add
+    // checks for segfaults and also create better default values for pipeline
+    // configurations
     FcPipelineConfig shadowPipeline{2};
     shadowPipeline.name = "Shadow pipeline";
     shadowPipeline.shaders[0].filename = "shadow_map.vert.spv";
@@ -56,14 +59,13 @@ namespace fc
     matrixRange.size = sizeof(ShadowPushConstants);
 
     shadowPipeline.addPushConstants(matrixRange);
-
     //
     shadowPipeline.setDepthFormat(depthFormat);
     shadowPipeline.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
     shadowPipeline.setPolygonMode(VK_POLYGON_MODE_FILL);
     shadowPipeline.setCullMode(VK_CULL_MODE_FRONT_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
     shadowPipeline.setMultiSampling(VK_SAMPLE_COUNT_1_BIT);
-//    shadowPipeline.disableDepthtest();
+    // shadowPipeline.disableDepthtest();
     shadowPipeline.enableDepthtest(VK_TRUE, VK_COMPARE_OP_GREATER_OR_EQUAL);
     shadowPipeline.disableBlending();
 
@@ -85,9 +87,10 @@ namespace fc
     pushRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     pushRange.offset = 0;
     pushRange.size = sizeof(ShadowPushConstants);
-
-    debugPipelineConfig.addPushConstants(pushRange);
     //
+    debugPipelineConfig.addPushConstants(pushRange);
+
+    // Configure pipeline
     debugPipelineConfig.setDepthFormat(depthFormat);
     debugPipelineConfig.setColorAttachment(VK_FORMAT_R16G16B16A16_SFLOAT);
     debugPipelineConfig.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
@@ -95,82 +98,51 @@ namespace fc
     debugPipelineConfig.setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
     debugPipelineConfig.setMultiSampling(VK_SAMPLE_COUNT_1_BIT);
     debugPipelineConfig.disableDepthtest();
-
     debugPipelineConfig.disableBlending();
-
 
     FcDescriptorBindInfo bindInfo{};
     bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-    bindInfo.attachImage(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, mShadowMapImage
-                         , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, mShadowSampler);
 
-    // TODO make Layout a temp object instead of class object
-    FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
-    mShadowMapDescriptorLayout = descClerk.createDescriptorSetLayout(bindInfo);
-    mShadowMapDescriptorSet = descClerk.createDescriptorSet(mShadowMapDescriptorLayout
-                                                            , bindInfo);
-
-    //attachMap();
     // Now create the descriptor set layout used by opaque pipeline and draw debug
     // TODO streamline this process:
     // 1. try to reduce redundancy for addBinding and attachImage...
     // 2. pass only the image -> the attachImage method should determine the rest...
     // 3.
-    // FcDescriptorBindInfo bindInfo{};
-    // bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-    // // bindInfo.attachImage(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, mShadowMapImage
-    // //                      , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, mShadowSampler);
 
-    // FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
-    // mShadowMapDescriptorLayout = descClerk.createDescriptorSetLayout(bindInfo);
-    //mShadowMapDescriptorSet = descClerk.createDescriptorSet(mShadowMapDescriptorLayout, bindInfo);
+    VkDescriptorSetLayout descriptorSetLayout;
 
-    debugPipelineConfig.addDescriptorSetLayout(mShadowMapDescriptorLayout);
+    // TODO make Layout a temp object instead of class object
+    FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
+    descriptorSetLayout = descClerk.createDescriptorSetLayout(bindInfo);
+
+    bindInfo.attachImage(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, mShadowMapImage
+                         , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+                         , FcDefaults::Samplers.ShadowMap);
+
+
+
+    debugPipelineConfig.addDescriptorSetLayout(descriptorSetLayout);
 
     mShadowDebugPipeline.create(debugPipelineConfig);
-  }
 
 
-
-  void FcShadowMap::createSampler()
-  {
-    VkSamplerCreateInfo samplerInfo{};
-    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    // How to render when image is magnified on the screen
-    samplerInfo.magFilter = VK_FILTER_LINEAR;
-    // How to render when image is minified on the screen
-    samplerInfo.minFilter = VK_FILTER_LINEAR;
-    // How to handle wrap in the U (x) direction
-    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-    // How to handle wrap in the V (y) direction
-    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-    // How to handle wrap in the W (z) direction
-    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-    // Border beyond texture (when clamp to border is used--good for shadow maps)
-    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_WHITE;
-    // WILL USE NORMALIZED COORD. (coords will be between 0-1)
-    samplerInfo.unnormalizedCoordinates = VK_FALSE;
-    // Mipmap interpolation mode (between two levels of mipmaps)
-    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-    // used to force vulkan to use lower level of detail and mip level
-    samplerInfo.mipLodBias = 0.0f;
-    samplerInfo.minLod = 0.0f;
-
-    // maximum level of detail to pick mip level
-    samplerInfo.maxLod = 1.0f;
-    // enable anisotropy
-    samplerInfo.anisotropyEnable = VK_FALSE;
-    // TODO should allow this to be user definable or at least profiled at install/runtime
-    // Amount of anisotropic samples being taken
-    samplerInfo.maxAnisotropy = VK_SAMPLE_COUNT_1_BIT;
-
-
-    FcGpu& gpu = FcLocator::Gpu();
-    if (vkCreateSampler(gpu.getVkDevice(), &samplerInfo, nullptr, &mShadowSampler) != VK_SUCCESS)
+        // Allocate a descriptorSet to each frame buffer
+    for (FrameData& frame : frames)
     {
-      throw std::runtime_error("Failed to create a Vulkan Texture Sampler!");
+      // ?? TODO should create a new Descriptor set per frame instead
+      // and may be able to then remove from shadowMap class
+
+      // mShadowMapDescriptorSet = descClerk.createDescriptorSet(descriptorSetLayout
+      //                                                       , bindInfo);
+
+
+      frame.shadowMapDescriptorSet = descClerk.createDescriptorSet(descriptorSetLayout
+                                                            , bindInfo);
+      // frame.sceneDataDescriptorSet = descClerk.createDescriptorSet(
+      //   mSceneDataDescriptorLayout, sceneDescriptorBinding);
     }
   }
+
 
 
   void FcShadowMap::updateLightSource(glm::vec3 lightPos, glm::vec3 target)
@@ -197,7 +169,7 @@ namespace fc
   }
 
 
-  void FcShadowMap::generateMap(VkCommandBuffer cmd, DrawContext& drawContext)
+  void FcShadowMap::generateMap(VkCommandBuffer cmd, FcDrawCollection& drawContext)
   {
     mShadowMapImage.transitionLayout(cmd, VK_IMAGE_LAYOUT_UNDEFINED
                                     , VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
@@ -243,7 +215,7 @@ namespace fc
     ShadowPushConstants shadowPCs;
     shadowPCs.lightSpaceMatrix = mLightSpaceTransform;
 
-    for (RenderObject& surface : drawContext.opaqueSurfaces)
+    for (FcRenderObject& surface : drawContext.opaqueSurfaces)
     {
       shadowPCs.vertexBuffer = surface.vertexBufferAddress;
       shadowPCs.modelMatrix = surface.transform;
@@ -300,28 +272,13 @@ namespace fc
     // pRenderer->submitCommandBuffer();
   }
 
-  // // TODO eliminate if possible
-  // void FcShadowMap::attachMap()
-  // {
-  //   FcDescriptorBindInfo bindInfo{};
-  //   bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT);
-  //   bindInfo.attachImage(0, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, colorImage
-  //                        , VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR, mShadowSampler);
 
-  //   FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
-  //   mShadowMapDescriptorLayout = descClerk.createDescriptorSetLayout(bindInfo);
-  //   mShadowMapDescriptorSet = descClerk.createDescriptorSet(mShadowMapDescriptorLayout, bindInfo);
-  // }
-
-
-  void FcShadowMap::drawDebugMap(VkCommandBuffer cmd)
+  void FcShadowMap::drawDebugMap(VkCommandBuffer cmd, FrameData& currentFrame)
   {
     // mShadowMapImage.transitionImage(cmd, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL
     //                                 , VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR, VK_IMAGE_ASPECT_DEPTH_BIT);
-
     // colorImage.transitionImage(cmd, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
     //                            VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR, VK_IMAGE_ASPECT_COLOR_BIT);
-
     // not necessary but should allow tile-based gpus a speed boost
     // https://docs.vulkan.org/samples/latest/samples/extensions/dynamic_rendering_local_read/README.html
     VkMemoryBarrier2 memoryBarrier = {};
@@ -342,7 +299,7 @@ namespace fc
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mShadowDebugPipeline.getVkPipeline());
 
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mShadowDebugPipeline.Layout()
-                            , 0, 1, &mShadowMapDescriptorSet, 0, nullptr);
+                            , 0, 1, &currentFrame.shadowMapDescriptorSet, 0, nullptr);
 
     ShadowPushConstants push;
     // TODO check if data exceeds typical PC limits

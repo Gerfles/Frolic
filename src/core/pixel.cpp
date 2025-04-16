@@ -5,7 +5,11 @@ namespace fc
 {
 
 
-
+  // TODO implement a pixel class that extrapolates any image format specifics, etc
+  // that way we can just call pixel.r and get the right value
+  // NOTE: looking at the pixel raw data, it appears the order of the bits is different
+  // than might be expected
+  // AAAAAAAA BBBBBBBB GGGGGGGG RRRRRRRR
 
   FcPixel::FcPixel(FcImage image)
   {

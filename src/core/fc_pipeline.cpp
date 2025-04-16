@@ -130,17 +130,37 @@ namespace fc
 
 
 
-  void FcPipelineConfig::enableTessellationShader(uint32_t patchControlPoints)
-  {
-    tessellationInfo.patchControlPoints = patchControlPoints;
-  }
-
    // NOTE: this will copy each push constant range
    // TODO sub for more efficient emplace
   void FcPipelineConfig::addPushConstants(VkPushConstantRange pushConstant)
   {
     pushConstantsInfo.push_back(pushConstant);
   }
+
+
+
+  VkDescriptorSetLayout FcPipelineConfig::addSingleImageDescriptorSetLayout()
+  {
+    FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
+
+    FcDescriptorBindInfo singleImageBindInfo{};
+    VkDescriptorSetLayout singleImageSetLayout;
+    singleImageBindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+                              , VK_SHADER_STAGE_FRAGMENT_BIT);
+    singleImageSetLayout = descClerk.createDescriptorSetLayout(singleImageBindInfo);
+
+    descriptorlayouts.push_back(singleImageSetLayout);
+
+    return singleImageSetLayout;
+  }
+
+
+
+  void FcPipelineConfig::enableTessellationShader(uint32_t patchControlPoints)
+  {
+    tessellationInfo.patchControlPoints = patchControlPoints;
+  }
+
 
 
   void FcPipelineConfig::setInputTopology(VkPrimitiveTopology topology)

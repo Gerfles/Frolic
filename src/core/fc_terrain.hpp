@@ -2,6 +2,7 @@
 #pragma once
 
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "fc_scene_renderer.hpp"
 #include "fc_mesh.hpp"
 #include "fc_pipeline.hpp"
 #include "fc_image.hpp"
@@ -43,18 +44,16 @@ namespace fc
      FcPipeline mPipeline;
      // wire frame meshes
      FcPipeline mWireframePipeline;
-     FcRenderer* pRenderer;
+     /* FcRenderer* pRenderer; */
      uint32_t mNumIndices;
      uint32_t mPixelDensity;
      uint32_t mNumPatches;
-
      void initPipelines();
-     void createSampler();
    public:
-     void init(FcRenderer* renderer, std::filesystem::path filename);
+     void init(std::filesystem::path filename);
      void update(FcFrustum& frustum);
      void loadHeightmap(std::filesystem::path filename, uint32_t numPatches);
      void generateTerrain();
-     void draw(VkCommandBuffer cmdBuffer, SceneData* pSceneData, bool drawWireFrame);
+     void draw(VkCommandBuffer cmdBuffer, SceneDataUbo* pSceneData, bool drawWireFrame);
   };
 }// --- namespace fc --- (END)

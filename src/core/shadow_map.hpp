@@ -4,11 +4,14 @@
 #include "fc_image.hpp"
 #include "glm/mat4x4.hpp"
 
+// TODO move after relocating drawCollection
+/* #include "fc_model.hpp" // DrawCollection */
 
 namespace fc
 {
   class FcRenderer;
-  class DrawContext;
+  class FcDrawCollection;
+  class FrameData;
 
   constexpr uint32_t shadowMapSize{2048};
 
@@ -21,6 +24,7 @@ namespace fc
   };
 
 
+  // TODO use frustum class instead
   struct Box
   {
      float near;
@@ -44,27 +48,22 @@ namespace fc
      glm::mat4 mLightProjection;
      glm::mat4 mLightView;
      glm::mat4 mLightSpaceTransform;
-     VkSampler mShadowSampler{VK_NULL_HANDLE};
      VkFormat depthFormat;
      //VkFence shadowRenderFence;
      FcImage mShadowMapImage;
      FcPipeline mShadowPipeline;
      FcPipeline mShadowDebugPipeline;
-     VkDescriptorSetLayout mShadowMapDescriptorLayout;
-     VkDescriptorSet mShadowMapDescriptorSet;
-     void initPipelines();
-     void createSampler();
+     /* VkDescriptorSet mShadowMapDescriptorSet; */
+     void initPipelines(std::vector<FrameData>& frames);
      Box mFrustum;
    public:
      Box& Frustum() { return mFrustum; }
      //void setLightSpaceMatrix(glm::mat4 matrix) { mLightSpaceTransform = matrix; }
-     void attachMap();
-     void init(FcRenderer* renderer);
-     void generateMap(VkCommandBuffer cmd, DrawContext& drawContext);
-     void drawDebugMap(VkCommandBuffer cmd);
+     void init(FcRenderer* renderer, std::vector<FrameData>& frames);
+     void generateMap(VkCommandBuffer cmd, FcDrawCollection& drawContext);
+     void drawDebugMap(VkCommandBuffer cmd, FrameData& currentFrame);
      glm::mat4 LightSpaceMatrix() { return mLightSpaceTransform; }
-     VkDescriptorSetLayout DescriptorLayout() { return mShadowMapDescriptorLayout; }
-     VkDescriptorSet Descriptor() { return mShadowMapDescriptorSet; }
+     /* VkDescriptorSet Descriptor() { return mShadowMapDescriptorSet; } */
      VkImageView ImageView() { return mShadowMapImage.ImageView(); }
      void updateLightSource(glm::vec3 lightPos, glm::vec3 target);
      void updateLightSpaceTransform();

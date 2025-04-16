@@ -10,82 +10,82 @@
 
 namespace fc
 {
-  FcGameObject::FcGameObject(FcModel* model, int type) : pModel(model)
-  {
-     //pModel = nullptr;
-
-     // the unique id might come from the world editor or it might be assigned dynamically at runtime
-
-     //assignUniqueObjectId();
-    mUniqueId = type;
-     // the handle index is assigned by finding the first free slot in the handle table
-    placeInHandleTable();
-  }
-
-
-  // FcGameObject::FcGameObject()
+  // FcGameObject::FcGameObject(FcModel* model, int type) : pModel(model)
   // {
   //    //pModel = nullptr;
 
   //    // the unique id might come from the world editor or it might be assigned dynamically at runtime
-  //   assignUniqueObjectId();
 
+  //    //assignUniqueObjectId();
+  //   mUniqueId = type;
   //    // the handle index is assigned by finding the first free slot in the handle table
   //   placeInHandleTable();
-
   // }
 
 
-  FcGameObject::FcGameObject(FcModel* model, uint32_t type) : pModel(model)
-  {
-  }
+  // // FcGameObject::FcGameObject()
+  // // {
+  // //    //pModel = nullptr;
+
+  // //    // the unique id might come from the world editor or it might be assigned dynamically at runtime
+  // //   assignUniqueObjectId();
+
+  // //    // the handle index is assigned by finding the first free slot in the handle table
+  // //   placeInHandleTable();
+
+  // // }
+
+
+  // FcGameObject::FcGameObject(FcModel* model, uint32_t type) : pModel(model)
+  // {
+  // }
 
 
 
-   // TODO actually implement or get rid of this function
-   // the unique id might come from the world editor or it might be assigned dynamically at runtime
-  void FcGameObject::assignUniqueObjectId()
-  {
-    // if (type == TERRAIN)
-    // {
+  //  // TODO actually implement or get rid of this function
+  //  // the unique id might come from the world editor or it might be assigned dynamically at runtime
+  // void FcGameObject::assignUniqueObjectId()
+  // {
+  //   // if (type == TERRAIN)
+  //   // {
 
-    // }
-    // else if (type == UNKNOWN)
-  }
-
-
+  //   // }
+  //   // else if (type == UNKNOWN)
+  // }
 
 
-  void FcGameObject::placeInHandleTable()
-  {
-    std::vector<FcGameObject*>& gameObjectsList = FcLocator::GameObjects();
 
-    // first check to see if there's already a slot available that's just been set to nullptr
-    for(size_t i = 0; i < gameObjectsList.size(); i++)
-    {
-      if (gameObjectsList[i] == nullptr)
-      {
-        gameObjectsList[i] = this;
-        mHandleIndex = i;
-        return;
-      }
-    }
 
-     // if no slots are vacant, grow the vector of game objects as long as it doesn't exceed the maximum
-     // TODO add error code to handle too big of vector
-    if (gameObjectsList.size() < MAX_GAME_OBJECTS)
-    {
-      gameObjectsList.push_back(this);
-      mHandleIndex = gameObjectsList.size() - 1;
-    }
-    else
-    {
-       // if no open slots are found, return the last index, TODO should save last element for special case (ie. invalid index);
-       // BUG dangling pointers and such!!!
-       // TODO make sure to delete the light since
-      mHandleIndex = MAX_GAME_OBJECTS;
-    }
-  }
+  // void FcGameObject::placeInHandleTable()
+  // {
+  //   std::vector<FcGameObject*>& gameObjectsList = FcLocator::GameObjects();
+
+  //   // first check to see if there's already a slot available that's just been set to nullptr
+  //   for(size_t i = 0; i < gameObjectsList.size(); i++)
+  //   {
+  //     if (gameObjectsList[i] == nullptr)
+  //     {
+  //       gameObjectsList[i] = this;
+  //       mHandleIndex = i;
+  //       return;
+  //     }
+  //   }
+
+  //    // if no slots are vacant, grow the vector of game objects as long as it doesn't exceed the maximum
+  //    // TODO add error code to handle too big of vector
+  //   if (gameObjectsList.size() < MAX_GAME_OBJECTS)
+  //   {
+  //     gameObjectsList.push_back(this);
+  //     mHandleIndex = gameObjectsList.size() - 1;
+  //   }
+  //   else
+  //   {
+  //      // if no open slots are found, return the last index, TODO should save last element for special case (ie. invalid index);
+  //      // BUG dangling pointers and such!!!
+  //      // TODO make sure to delete the light since
+  //     mHandleIndex = MAX_GAME_OBJECTS;
+  //   }
+  // }
 
 
 
@@ -165,16 +165,16 @@ namespace fc
 
 
 
-  FcGameObject* FcGameObjectHandle::toObject() const
-  {
-    // FcGameObject* pGameObject = FcLocator::GameObjects()[mHandleIndex];
+  // FcGameObject* FcGameObjectHandle::toObject() const
+  // {
+  //   // FcGameObject* pGameObject = FcLocator::GameObjects()[mHandleIndex];
 
-    // if (pGameObject != nullptr && pGameObject->mUniqueId == mUniqueId)
-    // {
-    //   return pGameObject;
-    // }
+  //   // if (pGameObject != nullptr && pGameObject->mUniqueId == mUniqueId)
+  //   // {
+  //   //   return pGameObject;
+  //   // }
 
-    return nullptr;
-  }
+  //   return nullptr;
+  // }
 
 } /// NAMESPACE lve ///

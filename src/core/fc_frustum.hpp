@@ -9,6 +9,7 @@ namespace fc
 {
 
   // TODO!!! FIX CLANGDs AUTO FORMAT!
+  // TODO fix this and all enums that need to be made into enum class
 enum Sides {
   RIGHT = 1,
   LEFT = 0,
@@ -25,7 +26,8 @@ enum Sides {
      std::array<glm::vec4, 6> planes;
 
    public:
-     // TODO determine if there is a way to set the projection once and then only pass view mat
+     // TODO determine if there is a way to set the projection once and then only pass
+     // view matrix
      void update(const glm::mat4& ViewProjection);
      void normalize();
      // TODO check the models in fcRenderer using this instead of hard coded

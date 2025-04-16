@@ -43,6 +43,7 @@ enum class FcBufferTypes : uint8_t {
        VmaAllocation mAllocation;
        VkDeviceSize mSize;
        FcBufferTypes mBufferType;
+       void* mMemoryAddress {nullptr};
      public:
        FcBuffer() = default;
        ~FcBuffer() = default;
@@ -62,8 +63,7 @@ enum class FcBufferTypes : uint8_t {
        void fetchData(uint32_t location, size_t dataSize);
        const VkBuffer& getVkBuffer() const { return mBuffer; }
        VkDeviceSize size() { return mSize; }
-       VmaAllocation getAllocation() { return mAllocation; }
-       void* getAddres();
+       void* getAddress();
        void destroy();
     };
 

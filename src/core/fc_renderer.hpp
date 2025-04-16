@@ -1,19 +1,16 @@
 #pragma once
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "fc_mesh.hpp"
 #include "fc_frustum.hpp"
 #include "fc_terrain.hpp"
 #include "shadow_map.hpp"
 #include "fc_skybox.hpp"
 #include "fc_billboard_render_system.hpp"
-#include "fc_camera.hpp"
 #include "fc_descriptors.hpp"
 #include "fc_model_render_system.hpp"
-#include "fc_materials.hpp"
 #include "fc_ui_render_system.hpp"
 #include "fc_model.hpp"
-#include "fc_font.hpp"
+//#include "fc_font.hpp"
 #include "fc_swapChain.hpp"
 #include "fc_image.hpp"
 #include "fc_gpu.hpp"
@@ -21,6 +18,7 @@
 #include "fc_pipeline.hpp"
 #include "fc_texture_atlas.hpp"
 #include "fc_timer.hpp"
+#include "fc_scene.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
 #include <glm/vec3.hpp>
@@ -52,13 +50,20 @@ namespace fc
      VkSemaphore imageAvailableSemaphore;
      VkSemaphore renderFinishedSemaphore;
      VkFence renderFence;
+     // TODO allocate all the descriptorSets for each frame (skybox, terrain, etc.)
      VkDescriptorSet sceneDataDescriptorSet;
+     VkDescriptorSet shadowMapDescriptorSet;
+     VkDescriptorSet skyBoxDescriptorSet;
   };
   //static constexpr int MAX_FRAMES_IN_FLIGHT = 3; // used in swap chain
-  // ?? No idea why drawing with 4 frames is faster than 3??
+  // ?? Tried 3 but No idea why drawing with 4 frames is faster than 3??
   constexpr unsigned int MAX_FRAME_DRAWS = 4;
 
 
+  // TODO //
+  // create the instance first and figure out what kind of bufferring we can have (double,
+  // tripple, etc) then initialize all following objects to have that size so we don't need
+  // to resize anything
   class FcRenderer
   {
    private:
@@ -93,19 +98,38 @@ namespace fc
      int mFrameNumber {0};
      // TODO extrapolate into separate class
      VkFence mImmediateFence;
+
      VkCommandPool mImmediateCommandPool;
      VkCommandBuffer mImmediateCmdBuffer;
-     VkDescriptorSetLayout mSceneDataDescriptorLayout;
+     /* VkDescriptorSetLayout mSceneDataDescriptorLayout; */
      // TODO think about integrating into descriptorClerk
      VkDescriptorPool mImgGuiDescriptorPool;
-     FcPipeline* lastUsedPipeline = nullptr;
-     MaterialInstance* lastUsedMaterial = nullptr;
-     VkBuffer lastUsedIndexBuffer = VK_NULL_HANDLE;
-     FrameData mFrames[MAX_FRAME_DRAWS];
+
+     // DELETE lastUsed...
+     // FcPipeline* lastUsedPipeline;
+     // MaterialInstance* lastUsedMaterial;
+     /* VkBuffer lastUsedIndexBuffer; */
+     // DELETE
+     int test{0};
+
+     std::vector<FrameData> mFrames {MAX_FRAME_DRAWS};
      FcFrustum mFrustum;
-     // TODO should probably pass this in each frame
-     SceneData* pSceneData;
+     // // TODO should probably pass this in each frame
+     // SceneData* pSceneData;
+
+     void createInstance(VkApplicationInfo& appInfo);
+     bool areInstanceExtensionsSupported(const std::vector<const char*>& instanceExtensions);
+     void createCommandPools();
+     // void recordCommands(uint32_t currentFrame);
+     void createSynchronization();
+     void updateUseFlags(MaterialFeatures feature, bool enable);
+     void initDrawImage();
+     void initImgui();
+
      // -*-*-*-*-*-*-*-*-*-   TODO REFACTOR, ENCAPSULATE, OR DELETE   -*-*-*-*-*-*-*-*-*- //
+     // DELETE mainDrawContext
+     /* DrawCollection mainDrawContext; */
+     FcDrawCollection mDrawCollection;
      // - Model Rendering
      FcModelRenderSystem mModelRenderer;
      FcPipeline mModelPipeline;
@@ -118,60 +142,51 @@ namespace fc
      FcBuffer materialConstants;
      // debugging effects
      FcPipeline mNormalDrawPipeline;
-     FcPipeline mBoundingBoxPipeline;
+     /* FcPipeline mBoundingBoxPipeline; */
      FcTerrain mTerrain;
      FcTextureAtlas textureAtlas;
+     // TODO DELETE
      VkDescriptorSetLayout mBackgroundDescriptorlayout;
-     void drawBackground(ComputePushConstants& pushConstans);
-     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
-     void createInstance(VkApplicationInfo& appInfo);
-     bool areInstanceExtensionsSupported(const std::vector<const char*>& instanceExtensions);
-     void createCommandPools();
-     // void recordCommands(uint32_t currentFrame);
-     void createSynchronization();
-     void updateUseFlags(MaterialFeatures feature, bool enable);
-     void initDrawImage();
-     void initImgui();
-      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
-
-     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DEFAULTS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-     //SceneData mSceneData;
-     DrawContext mainDrawContext;
-     //std::vector<std::shared_ptr<FcMesh>> mTestMeshes;
-     FcModel mTestMeshes;
-     std::unordered_map<std::string, std::shared_ptr<Node>> loadedNodes;
+     glm::mat4 rotationMatrix{1.0f};
 
    public:
 
+     // TODO Make these all private
+     bool mDrawNormalVectors {false};
+     bool mDrawBoundingBoxes {false};
+     // Extract to separate modules
+     /* float expansionFactor{0}; */
+     int rotationSpeed{};
+     /* int mBoundingBoxId {-1}; */
+     bool drawWireframe {false};
+     // bool mDrawNormalVectors {false};
+     // bool mDrawBoundingBoxes {false};
+     // DELETE eventually -> place models in draw calling function, not render class
+//     LoadedGLTF structure;
+     FcScene structure;
+     FcScene structure2;
+
+     //std::unordered_map<std::string, std::shared_ptr<LoadedGLTF>> loadedScenes;
+     void drawBackground(ComputePushConstants& pushConstans);
+     // TODO extract to shadowmap class
      FcShadowMap mShadowMap;
      void drawShadowMap(bool drawDebug);
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   PROFILING   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      FcTimer mTimer;
      FrolicStats stats;
-     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DEFAULTS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-     FcImage mWhiteTexture;
-     FcImage mBlackTexture;
-     FcImage mGreyTexture;
      FcSkybox mSkybox;
-     FcImage mCheckerboardTexture;
-     VkSampler mDefaultSamplerLinear;
-     VkSampler mDefaultSamplerNearest;
-     MaterialInstance defaultMaterialData;
-     GLTFMetallicRoughness mMetalRoughMaterial;
-     std::unordered_map<std::string, std::shared_ptr<LoadedGLTF>> loadedScenes;
-     LoadedGLTF structure;
-     LoadedGLTF structure2;
-     glm::mat4 rotationMatrix{1.0f};
-     int rotationSpeed{};
-     float expansionFactor{0};
-     bool mDrawNormalVectors {false};
-     bool mDrawBoundingBoxes {false};
-     bool drawWireframe {false};
-     int mBoundingBoxId {-1};
+     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DEFAULTS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     // relocate to atlas
+     // FcImage mWhiteTexture;
+     // FcImage mBlackTexture;
+     // FcImage mGreyTexture;
+     // FcImage mCheckerboardTexture;
+     // VkSampler mDefaultSamplerLinear;
+     // VkSampler mDefaultSamplerNearest;
+     //MaterialInstance defaultMaterialData;
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
-
+     FcSceneRenderer mSceneRenderer;
      void updateScene();
      float aspectRatio() { return static_cast<float>(mWindow.ScreenSize().width)
          / static_cast<float>(mWindow.ScreenSize().height); }
@@ -185,65 +200,53 @@ namespace fc
      // FcPipeline mGradientPipeline;
      // FcPipeline mSkyPipeline;
 
-     void initDefaults(FcBuffer& sceneDataBuffer, SceneData* sceneData);
-     void attachPipeline(FcPipeline* pipeline);
-
+     void initDefaults();//FcBuffer& sceneDataBuffer, SceneDataUbo* sceneData);
      void setColorTextureUse(bool enable);
      void setRoughMetalUse(bool enable);
      void setAmbientOcclussionUse(bool enable);
      void setNormalMapUse(bool enable);
      void setEmissiveTextureUse(bool enable);
-     void initNormalDrawPipeline(FcBuffer& sceneDataBuffer);
-     void initBoundingBoxPipeline(FcBuffer& sceneDataBuffer);
-     void drawNormals(VkCommandBuffer cmd, const RenderObject& surface);
-     void drawBoundingBox(VkCommandBuffer cmd, const RenderObject& surface);
-     void drawSurface(VkCommandBuffer cmd, const RenderObject& surface);
+     /* void initNormalDrawPipeline(FcBuffer& sceneDataBuffer); */
+     /* void initBoundingBoxPipeline(FcBuffer& sceneDataBuffer); */
+     /* void drawNormals(VkCommandBuffer cmd, const FcRenderObject& surface); */
+     /* void drawBoundingBox(VkCommandBuffer cmd, const FcRenderObject& surface); */
+     // DELETE
+     /* void drawSurface(VkCommandBuffer cmd, const FcRenderObject& surface); */
+
 
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
-
-
-     // Constructors, etc. - Prevent copying or altering -
+     // TODO add move ctors Constructors, etc. - Prevent copying or altering -
      FcRenderer() = default;
      ~FcRenderer() = default;
      FcRenderer& operator=(const FcRenderer&) = delete;
      FcRenderer(const FcRenderer&) = delete;
       //
-     int init(VkApplicationInfo& appInfo, VkExtent2D screenSize);
+     int init(VkApplicationInfo& appInfo, VkExtent2D screenSize, SceneDataUbo** pSceneData);
       //
      void handleWindowResize();
       //FcDescriptor& DescriptorManager() { return mDescriptorManager; }
      uint32_t beginFrame();
      void endFrame(uint32_t swapchainImgIndex);
-
-     void drawBillboards(glm::vec3 cameraPosition, uint32_t swapchainImgIndex, SceneData& ubo);
+     void drawBillboards(glm::vec3 cameraPosition, uint32_t swapchainImgIndex, SceneDataUbo& ubo);
      void drawUI(std::vector<FcText>& UIelements, uint32_t swapchainImgIndex);
-
      void drawGeometry();
       // - GETTERS -
-     GLTFMetallicRoughness* getMetalRoughMaterial() { return &mMetalRoughMaterial; }
-     VkDescriptorSetLayout getSceneDescriptorLayout() { return mSceneDataDescriptorLayout; }
-     VkDescriptorSetLayout SkyboxDescriptorLayout() { return mSkybox.DescriptorLayout(); }
+     /* FcSceneRenderer* getMetalRoughMaterial() { return &mSceneRenderer; } */
+     /* VkDescriptorSetLayout getSceneDescriptorLayout() { return mSceneDataDescriptorLayout; } */
+     /* VkDescriptorSetLayout SkyboxDescriptorLayout() { return mSkybox.DescriptorLayout(); } */
       // TODO delete this probably and place background pipeline in renderer
      VkDescriptorSetLayout getBackgroundDescriptorLayout() { return mBackgroundDescriptorlayout; }
-     /* VkDescriptorSetLayout getSingleImageDescriptorLayout() { return mSingleImageDescriptorLayout; } */
      FrameData& getCurrentFrame() { return mFrames[mFrameNumber % MAX_FRAME_DRAWS]; }
       // ?? is this used often enough to merit a member variable?
      float ScreenWidth() { return mWindow.ScreenSize().width; }
      float ScreenHeight() { return mWindow.ScreenSize().height; }
      SDL_Window* Window() { return mWindow.SDLwindow(); }
-     float AspectRatio() { return (float)mSwapchain.getSurfaceExtent().width / (float)mSwapchain.getSurfaceExtent().height; }
      VkRenderPass RenderPass() { return mSwapchain.getRenderPass(); }
+     float& ExpansionFactor() { return mSceneRenderer.ExpansionFactor(); };
      const FcGpu& Gpu() const { return mGpu; }
      const FcSwapChain& Swapchain() { return mSwapchain; }
-//     FcDescriptor& Descriptors() { return mDescriptorManager; }
      void shutDown();
   };
 
 } // - End - NAMESPACE fc //
-
-
-// TODO //
-// create the instance first and figure out what kind of bufferring we can have
-// (double, tripple, etc) then initialize all following objects to have that
-// size so we don't need to resize anything
