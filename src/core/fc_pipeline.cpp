@@ -516,10 +516,12 @@ namespace fc
   }
 
 
-  void FcPipeline::bindDescriptorSets(VkCommandBuffer cmdBuffer)
+  void FcPipeline::bindDescriptors(VkCommandBuffer cmdBuffer, VkDescriptorSet descriptorSet
+                                   , uint32_t firstSet) const
   {
-    // vkCmdBindDescriptorSets(cmdBuffer, mBindPoint, mPipelineLayout, 0
-    //                         , mDescriptorSets.size(), mDescriptorSets.data(), 0, nullptr);
+    // TODO make mBindPoint simpler if possible (separate compute pipeline)
+    vkCmdBindDescriptorSets(cmdBuffer, mBindPoint, mPipelineLayout
+                            , firstSet, 1, &descriptorSet, 0, nullptr);
   }
 
 

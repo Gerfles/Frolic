@@ -18,7 +18,7 @@ namespace fc
   }
 
 
-  void FcSkybox::init(VkDescriptorSetLayout sceneDescriptorLayout, std::vector<FrameData>& frames)
+  void FcSkybox::init(VkDescriptorSetLayout sceneDescriptorLayout, std::vector<FrameAssets>& frames)
   {
     // Load default sampler
     //VkDeviceSize bufferSize = sizeof(CubeVertex) * 36;
@@ -72,7 +72,7 @@ namespace fc
 
 
         // Allocate a descriptorSet to each frame buffer
-    for (FrameData& frame : frames)
+    for (FrameAssets& frame : frames)
     {
       // ?? TODO should create a new Descriptor set per frame instead
       // and may be able to then remove from shadowMap class
@@ -122,7 +122,7 @@ namespace fc
   }
 
 
-  void FcSkybox::draw(VkCommandBuffer cmd, FrameData& currentFrame)
+  void FcSkybox::draw(VkCommandBuffer cmd, FrameAssets& currentFrame)
   {
     // first draw the skycube
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.getVkPipeline());

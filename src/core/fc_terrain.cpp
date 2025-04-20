@@ -73,7 +73,7 @@ namespace fc
     vertexShaderPCs.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     vertexShaderPCs.offset = 0;
     // ?? BUG this may be minimum alignment needed DELETE if VERTEXBUFFERPCs is not needed
-    vertexShaderPCs.size = sizeof(VertexBufferPCs);
+    vertexShaderPCs.size = sizeof(VertexBufferPushes);
     //
     terrainPipeline.addPushConstants(vertexShaderPCs);
 
@@ -82,7 +82,7 @@ namespace fc
     VkPushConstantRange tessellationShaderPCs;
     tessellationShaderPCs.stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
 
-    tessellationShaderPCs.offset = sizeof(VertexBufferPCs);
+    tessellationShaderPCs.offset = sizeof(VertexBufferPushes);
     tessellationShaderPCs.size = sizeof(glm::mat4);
     //
     terrainPipeline.addPushConstants(tessellationShaderPCs);
@@ -229,6 +229,7 @@ namespace fc
 
             // Get the pixel value directly (sascha method left in for furture comparison)
             mHeightMap.fetchPixel(offsetX, offsetY, pixel);
+            // alternate method with different boundary checking
             /* pixel = mHeightMap.saschaFetchPixel(offsetX, offsetY, pixelStepLength); */
 
             // Normalize pixel value to be in [0,1] range
@@ -322,14 +323,14 @@ namespace fc
     // TODO abstract to mesh class
     vkCmdBindIndexBuffer(cmd, mMesh.IndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
-    VertexBufferPCs pushConstants;
+    VertexBufferPushes pushConstants;
     pushConstants.address = mMesh.VertexBufferAddress();
     // TODO simp
-    pushConstants.padding = mMesh.VertexBufferAddress();
+    /* pushConstants.padding = mMesh.VertexBufferAddress(); */
 
     // BUG
     vkCmdPushConstants(cmd, mPipeline.Layout(), VK_SHADER_STAGE_VERTEX_BIT
-                       , 0, sizeof(VertexBufferPCs), &pushConstants);
+                       , 0, sizeof(VertexBufferPushes), &pushConstants);
 
     // DELETE and relocate model to sceneData eventually
     glm::mat4 model = glm::mat4(1.0f);
@@ -337,7 +338,7 @@ namespace fc
     // BUG no longer need to pass model here
     vkCmdPushConstants(cmd, mPipeline.Layout()
                        , VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT
-                       , sizeof(VertexBufferPCs), sizeof(glm::mat4), &model);
+                       , sizeof(VertexBufferPushes), sizeof(glm::mat4), &model);
 
     vkCmdDrawIndexed(cmd, mNumIndices, 1, 0, 0, 0);
 

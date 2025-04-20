@@ -109,8 +109,8 @@ namespace fc
     samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
     // TODO determine if border color would be better suited as float for shader
     // ORIGINAL VALUE
-    /* shadowSampler.borderColor = VK_BORDER_COLOR_INT_OPAQUE_WHITE; */
-    samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
+    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_WHITE;
+    /* samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK; */
     samplerInfo.maxLod = 1.0f;
     if (vkCreateSampler(device, &samplerInfo, nullptr, &Samplers.ShadowMap) != VK_SUCCESS)
     {

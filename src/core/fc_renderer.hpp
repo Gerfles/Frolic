@@ -10,7 +10,9 @@
 #include "fc_model_render_system.hpp"
 #include "fc_ui_render_system.hpp"
 #include "fc_model.hpp"
-//#include "fc_font.hpp"
+#include "fc_frame_assets.hpp"
+#include "fc_bounding_box.hpp"
+#include "fc_normal_renderer.hpp"
 #include "fc_swapChain.hpp"
 #include "fc_image.hpp"
 #include "fc_gpu.hpp"
@@ -31,30 +33,6 @@
 
 namespace fc
 {
-  struct FrolicStats
-  {
-     float frametime;
-     int fpsAvg;
-     int triangleCount;
-     int objectsRendered;
-     float sceneUpdateTime;
-     float meshDrawTime;
-  };
-
-
-  struct FrameData
-  {
-      // TODO might be better to make this an entire class with all methods and static ints (numFrame)
-     VkCommandPool commandPool = VK_NULL_HANDLE;
-     VkCommandBuffer commandBuffer;
-     VkSemaphore imageAvailableSemaphore;
-     VkSemaphore renderFinishedSemaphore;
-     VkFence renderFence;
-     // TODO allocate all the descriptorSets for each frame (skybox, terrain, etc.)
-     VkDescriptorSet sceneDataDescriptorSet;
-     VkDescriptorSet shadowMapDescriptorSet;
-     VkDescriptorSet skyBoxDescriptorSet;
-  };
   //static constexpr int MAX_FRAMES_IN_FLIGHT = 3; // used in swap chain
   // ?? Tried 3 but No idea why drawing with 4 frames is faster than 3??
   constexpr unsigned int MAX_FRAME_DRAWS = 4;
@@ -112,7 +90,7 @@ namespace fc
      // DELETE
      int test{0};
 
-     std::vector<FrameData> mFrames {MAX_FRAME_DRAWS};
+     std::vector<FrameAssets> mFrames {MAX_FRAME_DRAWS};
      FcFrustum mFrustum;
      // // TODO should probably pass this in each frame
      // SceneData* pSceneData;
@@ -129,6 +107,9 @@ namespace fc
      // -*-*-*-*-*-*-*-*-*-   TODO REFACTOR, ENCAPSULATE, OR DELETE   -*-*-*-*-*-*-*-*-*- //
      // DELETE mainDrawContext
      /* DrawCollection mainDrawContext; */
+
+     // TODO may want to add to sceneRenderer but might need for shadow map
+     // although shadow map may also need to be added to scene renderer
      FcDrawCollection mDrawCollection;
      // - Model Rendering
      FcModelRenderSystem mModelRenderer;
@@ -140,40 +121,32 @@ namespace fc
      FcBillboardRenderSystem mBillboardRenderer;
      FcPipeline mBillboardPipeline;
      FcBuffer materialConstants;
-     // debugging effects
-     FcPipeline mNormalDrawPipeline;
-     /* FcPipeline mBoundingBoxPipeline; */
+
      FcTerrain mTerrain;
      FcTextureAtlas textureAtlas;
      // TODO DELETE
      VkDescriptorSetLayout mBackgroundDescriptorlayout;
      glm::mat4 rotationMatrix{1.0f};
-
+     // debugging effects
+     FcBoundingBoxRenderer mBoundingBoxRenderer;
+     FcNormalRenderer mNormalRenderer;
    public:
 
      // TODO Make these all private
      bool mDrawNormalVectors {false};
      bool mDrawBoundingBoxes {false};
-     // Extract to separate modules
-     /* float expansionFactor{0}; */
-     int rotationSpeed{};
-     /* int mBoundingBoxId {-1}; */
      bool drawWireframe {false};
-     // bool mDrawNormalVectors {false};
-     // bool mDrawBoundingBoxes {false};
+     int mBoundingBoxId {-1};
+     int rotationSpeed{};
      // DELETE eventually -> place models in draw calling function, not render class
-//     LoadedGLTF structure;
      FcScene structure;
      FcScene structure2;
-
-     //std::unordered_map<std::string, std::shared_ptr<LoadedGLTF>> loadedScenes;
      void drawBackground(ComputePushConstants& pushConstans);
-     // TODO extract to shadowmap class
      FcShadowMap mShadowMap;
-     void drawShadowMap(bool drawDebug);
+     /* void drawShadowMap(bool drawDebug); */
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   PROFILING   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      FcTimer mTimer;
-     FrolicStats stats;
+     /* FcStats stats; */
      FcSkybox mSkybox;
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DEFAULTS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      // relocate to atlas
@@ -230,22 +203,24 @@ namespace fc
      void endFrame(uint32_t swapchainImgIndex);
      void drawBillboards(glm::vec3 cameraPosition, uint32_t swapchainImgIndex, SceneDataUbo& ubo);
      void drawUI(std::vector<FcText>& UIelements, uint32_t swapchainImgIndex);
-     void drawGeometry();
+     void drawFrame(bool drawDebugShadowMap);
       // - GETTERS -
      /* FcSceneRenderer* getMetalRoughMaterial() { return &mSceneRenderer; } */
      /* VkDescriptorSetLayout getSceneDescriptorLayout() { return mSceneDataDescriptorLayout; } */
      /* VkDescriptorSetLayout SkyboxDescriptorLayout() { return mSkybox.DescriptorLayout(); } */
       // TODO delete this probably and place background pipeline in renderer
      VkDescriptorSetLayout getBackgroundDescriptorLayout() { return mBackgroundDescriptorlayout; }
-     FrameData& getCurrentFrame() { return mFrames[mFrameNumber % MAX_FRAME_DRAWS]; }
+     FrameAssets& getCurrentFrame() { return mFrames[mFrameNumber % MAX_FRAME_DRAWS]; }
       // ?? is this used often enough to merit a member variable?
      float ScreenWidth() { return mWindow.ScreenSize().width; }
      float ScreenHeight() { return mWindow.ScreenSize().height; }
      SDL_Window* Window() { return mWindow.SDLwindow(); }
      VkRenderPass RenderPass() { return mSwapchain.getRenderPass(); }
+     int BoundingBox() { return mBoundingBoxId; }
      float& ExpansionFactor() { return mSceneRenderer.ExpansionFactor(); };
      const FcGpu& Gpu() const { return mGpu; }
      const FcSwapChain& Swapchain() { return mSwapchain; }
+     FcStats& getStats() { return mDrawCollection.stats; }
      void shutDown();
   };
 

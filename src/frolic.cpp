@@ -97,6 +97,8 @@ namespace fc
     uvnPlayer.init(&mInput);
 
     initPipelines();
+
+    stats = &mRenderer.getStats();
   }
 
 
@@ -245,8 +247,9 @@ namespace fc
       // that way we don't need to divide by 1000 to get a better representation of what's going on...
       // could consider bit-shifting by 1024 to get there also
       deltaTime = mTimer.elapsedTime();
-      mRenderer.stats.frametime = deltaTime;
-      mRenderer.stats.fpsAvg = calcFPS(deltaTime);
+      /* FcStats& stats = mRenderer.getStats(); */
+      stats->frametime = deltaTime * 1000;
+      stats->fpsAvg = calcFPS(deltaTime);
       // now re-start the time so that the start time is the start of each frame
       mTimer.start();
 
@@ -287,15 +290,13 @@ namespace fc
       mRenderer.mSceneRenderer.updateSceneDataBuffer();
 
       //mRenderer.drawModels(swapchainImgIndex, mUbo);
-
       //mRenderer.drawBillboards(camera.Position(), frame, mUbo);
-
       //mRenderer.drawUI(mUItextList, frame);
-
       //mRenderer.drawBackground(mPushConstants[currentBackgroundEffect]);
 
       // TODO may want to couple shadow map tighter with sceneRenderer
-      mRenderer.drawShadowMap(mDebugShadowMap);
+      /* mRenderer.drawShadowMap(mDebugShadowMap); */
+      mRenderer.drawFrame(mDebugShadowMap);
 
       mRenderer.endFrame(swapchainImgIndex);
 
@@ -316,166 +317,176 @@ namespace fc
 
   void Frolic::drawGUI()
   {
-      // test ImGui UI
-      // Left here to add a demo windo that names all the features for (handy for searching)
-      // ImGui::ShowDemoWindow();
+    // test ImGui UI
+    // Left here to add a demo windo that names all the features for (handy for searching)
+    // ImGui::ShowDemoWindow();
 
-      // Create Statistics window that spans the frame
-      if (ImGui::Begin("Frolic Stats", NULL, ImGuiWindowFlags_NoTitleBar))
+    // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   STATISTICS WINDOW   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    if (ImGui::Begin("Frolic Stats", NULL, ImGuiWindowFlags_NoTitleBar))
+    {
+      // Stats
+      ImGui::Text("FPS(avg): %i ", stats->fpsAvg);
+      ImGui::SameLine(0.f, 10.f);
+      ImGui::Text("| Frame(ms): %.2f", stats->frametime);
+      ImGui::SameLine(0.f, 10.f);
+      ImGui::Text("| Draw(ms): %.2f", stats->meshDrawTime);
+      ImGui::SameLine(0.f, 10.f);
+      ImGui::Text("| Update(ms): %.2f", stats->sceneUpdateTime);
+      ImGui::SameLine(0.f, 10.f);
+      glm::vec4 pos = pSceneData->eye;
+      ImGui::Text("| Position: <%.3f,%.3f,%.3f>", pos.x, pos.y, pos.z);
+      ImGui::SameLine(0.f, 10.f);
+      ImGui::Text("| Triangles Drawn: %i", stats->triangleCount);
+      ImGui::SameLine(0.f, 10.f);
+      ImGui::Text("| Objects Drawn: %i", stats->objectsRendered);
+      // int relX, relY;
+      // mInput.RelativeMousePosition(relX, relY);
+      // ImGui::Text("Mouse X pos: %i", mInput.getMouseX());
+      // ImGui::Text("Mouse Y pos: %i", mInput.getMouseY());
+
+      // TODO check the official way to use ImGui via the imgui example source code
+      ImGui::End();
+    }
+
+
+    if (mPlayer.lookSpeed() == 0.0f)
+    {
+      // TODO probably best to enable disable this stuff eventually in a dedicated pipeline shader
+      // and then just bind the appropriate pipeline
+      // Draw Configuration panel
+      // BUG collapsing the control panel kills the program
+      if (ImGui::Begin("Scene Data"))
       {
-        // Stats
-        ImGui::Text("Average FPS: %i ", mRenderer.stats.fpsAvg);
-        ImGui::SameLine(0.f, 10.f);
-        ImGui::Text("| Frame time: %fms", mRenderer.stats.frametime);
-        ImGui::SameLine(0.f, 10.f);
-        ImGui::Text("| Draw time: %fms", mRenderer.stats.meshDrawTime);
-        ImGui::SameLine(0.f, 10.f);
-        ImGui::Text("| Update time: %fms", mRenderer.stats.sceneUpdateTime);
-        ImGui::SameLine(0.f, 10.f);
-        glm::vec4 pos = pSceneData->eye;
-        ImGui::Text("| Position: <%.3f,%.3f,%.3f>", pos.x, pos.y, pos.z);
-        ImGui::SameLine(0.f, 10.f);
-        ImGui::Text("| Triangles rendered: %i", mRenderer.stats.triangleCount);
-        ImGui::SameLine(0.f, 10.f);
-        ImGui::Text("| Total objects rendered: %i", mRenderer.stats.objectsRendered);
-        // int relX, relY;
-        // mInput.RelativeMousePosition(relX, relY);
-        // ImGui::Text("Mouse X pos: %i", mInput.getMouseX());
-        // ImGui::Text("Mouse Y pos: %i", mInput.getMouseY());
-
-        // TODO check the official way to use ImGui via the imgui example source code
-        ImGui::End();
-      }
+        // TODO update all options with bitfields instead of bools
 
 
-      if (mPlayer.lookSpeed() == 0.0f)
-      {
-        // TODO probably best to enable disable this stuff eventually in a dedicated pipeline shader
-        // and then just bind the appropriate pipeline
-        // Draw Configuration panel
-        // BUG collapsing the control panel kills the program
-        if (ImGui::Begin("Scene Data"))
+        if (ImGui::Checkbox("Wire Frame", &mRenderer.drawWireframe))
         {
-          // TODO update all options with bitfields instead of bools
-
-
-          if (ImGui::Checkbox("Wire Frame", &mRenderer.drawWireframe))
-          {
-            // b
-          }
-          if (ImGui::Checkbox("Color Texture", &mUseColorTexture))
-          {
-            mRenderer.setColorTextureUse(mUseColorTexture);
-          }
-
-          if (ImGui::Checkbox("Rough/Metal Texture", &mUseRoughMetalTexture))
-          {
-            mRenderer.setRoughMetalUse(mUseRoughMetalTexture);
-          }
-
-          if(ImGui::Checkbox("Ambient Occlussion Texture", &mUseOcclussionTexture))
-          {
-            mRenderer.setAmbientOcclussionUse(mUseOcclussionTexture);
-          }
-
-          if (ImGui::Checkbox("Normal Texture", &mUseNormalTexture))
-          {
-            mRenderer.setNormalMapUse(mUseNormalTexture);
-          }
-          if (ImGui::Checkbox("Emissive Texture", &mUseEmissiveTexture))
-          {
-            mRenderer.setEmissiveTextureUse(mUseEmissiveTexture);
-          }
-
-          ImGui::Checkbox("Draw Normals", &mRenderer.mDrawNormalVectors);
-
-          ImGui::Checkbox("Box Bounds", &mRenderer.mDrawBoundingBoxes);
-          ImGui::SameLine();
-          ImGui::SetNextItemWidth(80);
-
-          // FIXME
-          /* ImGui::InputInt("Box ID", &mRenderer.mBoundingBoxId); */
-
-          ImGui::SetNextItemWidth(60);
-          ImGui::SliderInt("Model Rotation Speed", &mRenderer.rotationSpeed, -5, 5);
-          ImGui::SetNextItemWidth(60);
-          // TODO don't allow access into class like this
-          ImGui::SliderFloat("Movement Speed", &mPlayer.moveSpeed(), 1, 50, "%.1f");
-          ImGui::Checkbox("Cycle", &mCycleExpansion);
-
-          if (mCycleExpansion)
-          {
-            float time = SDL_GetTicks() / 1000.0f;
-
-            // FIXME
-            mRenderer.ExpansionFactor() = sin(time) + 1.0f;
-          }
-          ImGui::SameLine();
-          ImGui::SetNextItemWidth(60);
-
-          // FIXME
-          ImGui::SliderFloat("Expansion Factor", &mRenderer.ExpansionFactor(), -1.f, 2.f);
-
-          ImGui::SetNextItemWidth(60);
-          if(ImGui::SliderFloat4("Sunlight", (float*)&pSceneData->sunlightDirection, -1.f, 1.f))
-          {
-            glm::vec4 lightPos = pSceneData->sunlightDirection - pSceneData->eye;
-            mRenderer.mShadowMap.updateLightSource(lightPos, glm::vec3(0.f, 0.f, 0.f));
-          }
-          ImGui::Checkbox("Draw Shadow Map", &mDebugShadowMap);
-          if(ImGui::SliderFloat("Left", &mRenderer.mShadowMap.Frustum().left, -20.f, 20.f))
-          {
-            mRenderer.mShadowMap.updateLightSpaceTransform();
-          }
-          if(ImGui::SliderFloat("Right", &mRenderer.mShadowMap.Frustum().right, -20.f, 20.f))
-          {
-            mRenderer.mShadowMap.updateLightSpaceTransform();
-          }
-          if(ImGui::SliderFloat("Top", &mRenderer.mShadowMap.Frustum().top, -20.f, 20.f))
-          {
-            mRenderer.mShadowMap.updateLightSpaceTransform();
-          }
-          if(ImGui::SliderFloat("Bottom", &mRenderer.mShadowMap.Frustum().bottom, -20.f, 20.f))
-          {
-            mRenderer.mShadowMap.updateLightSpaceTransform();
-          }
-          if(ImGui::SliderFloat("Near", &mRenderer.mShadowMap.Frustum().near, -.01f, 10.f))
-          {
-            mRenderer.mShadowMap.updateLightSpaceTransform();
-          }
-          if(ImGui::SliderFloat("Far", &mRenderer.mShadowMap.Frustum().far, 1.f, 100.f))
-          {
-            mRenderer.mShadowMap.updateLightSpaceTransform();
-          }
-
-          if (ImGui::Button("Display View Matrix"))
-          {
-            ImGui::OpenPopup("MatrixView");
-          }
-          if (ImGui::BeginPopup("MatrixView"))
-          {
-            glm::mat4 mat = mPlayer.Camera().getViewMatrix();
-            glm::mat4 mat2 = uvnPlayer.Camera().getViewMatrix();
-
-            ImGui::Text("Quaternion View Matrix");
-            ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat[0][0], mat[1][0], mat[2][0], mat[3][0]);
-            ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat[0][1], mat[1][1], mat[2][1], mat[3][1]);
-            ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat[0][2], mat[1][2], mat[2][2], mat[3][2]);
-            ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat[0][3], mat[1][3], mat[2][3], mat[3][3]);
-            ImGui::Text("UVN View Matrix");
-            ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat2[0][0], mat2[1][0], mat2[2][0], mat2[3][0]);
-            ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat2[0][1], mat2[1][1], mat2[2][1], mat2[3][1]);
-            ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat2[0][2], mat2[1][2], mat2[2][2], mat2[3][2]);
-            ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat2[0][3], mat2[1][3], mat2[2][3], mat2[3][3]);
-            ImGui::EndPopup();
-          }
+          // b
         }
-        // ??
-	//ImGui::EndFrame();
-        ImGui::End();
+        if (ImGui::Checkbox("Color Texture", &mUseColorTexture))
+        {
+          mRenderer.setColorTextureUse(mUseColorTexture);
+        }
+
+        if (ImGui::Checkbox("Rough/Metal Texture", &mUseRoughMetalTexture))
+        {
+          mRenderer.setRoughMetalUse(mUseRoughMetalTexture);
+        }
+
+        if(ImGui::Checkbox("Ambient Occlussion Texture", &mUseOcclussionTexture))
+        {
+          mRenderer.setAmbientOcclussionUse(mUseOcclussionTexture);
+        }
+
+        if (ImGui::Checkbox("Normal Texture", &mUseNormalTexture))
+        {
+          mRenderer.setNormalMapUse(mUseNormalTexture);
+        }
+        if (ImGui::Checkbox("Emissive Texture", &mUseEmissiveTexture))
+        {
+          mRenderer.setEmissiveTextureUse(mUseEmissiveTexture);
+        }
+
+        ImGui::Checkbox("Draw Normals", &mRenderer.mDrawNormalVectors);
+
+        ImGui::Checkbox("Box Bounds", &mRenderer.mDrawBoundingBoxes);
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(80);
+
+        // FIXME maybe create a struct of variables that we then pass
+        // as a whole to mRenderer...
+        if (ImGui::InputInt("Bounding Box", &mRenderer.mBoundingBoxId))
+        {
+          if (mRenderer.mBoundingBoxId < 0)
+            mRenderer.mBoundingBoxId = -1;
+        }
+
+        ImGui::SetNextItemWidth(60);
+        ImGui::SliderInt("Model Rotation Speed", &mRenderer.rotationSpeed, -5, 5);
+        ImGui::SetNextItemWidth(60);
+        // TODO don't allow access into class like this
+        ImGui::SliderFloat("Movement Speed", &mPlayer.moveSpeed(), 1, 50, "%.1f");
+        ImGui::Checkbox("Cycle", &mCycleExpansion);
+
+        if (mCycleExpansion)
+        {
+          float time = SDL_GetTicks() / 1000.0f;
+
+          // FIXME
+          mRenderer.ExpansionFactor() = sin(time) + 1.0f;
+        }
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(60);
+
+        // FIXME
+        ImGui::SliderFloat("Expansion Factor", &mRenderer.ExpansionFactor(), -1.f, 2.f);
+
+        ImGui::SetNextItemWidth(60);
+        if(ImGui::SliderFloat4("Sunlight", (float*)&pSceneData->sunlightDirection, -1.f, 1.f))
+        {
+          glm::vec4 lightPos = pSceneData->sunlightDirection - pSceneData->eye;
+          mRenderer.mShadowMap.updateLightSource(lightPos, glm::vec3(0.f, 0.f, 0.f));
+        }
+
+        // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   SHADOW MAP   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+        // TODO use frustum instead
+        Box& frustum = mRenderer.mShadowMap.Frustum();
+        ImGui::Checkbox("Draw Shadow Map", &mDebugShadowMap);
+        if(ImGui::SliderFloat("Left", &frustum.left, -20.f, 20.f))
+        {
+          mRenderer.mShadowMap.updateLightSpaceTransform();
+        }
+        if(ImGui::SliderFloat("Right", &frustum.right, -20.f, 20.f))
+        {
+          mRenderer.mShadowMap.updateLightSpaceTransform();
+        }
+        if(ImGui::SliderFloat("Top", &frustum.top, -20.f, 20.f))
+        {
+          mRenderer.mShadowMap.updateLightSpaceTransform();
+        }
+        if(ImGui::SliderFloat("Bottom", &frustum.bottom, -20.f, 20.f))
+        {
+          mRenderer.mShadowMap.updateLightSpaceTransform();
+        }
+        if(ImGui::SliderFloat("Near", &frustum.near, -.01f, 10.f))
+        {
+          mRenderer.mShadowMap.updateLightSpaceTransform();
+        }
+        if(ImGui::SliderFloat("Far", &frustum.far, 1.f, 100.f))
+        {
+          mRenderer.mShadowMap.updateLightSpaceTransform();
+        }
+
+        // -*-*-*-*-*-*-*-*-*-*-*-*-   VIEW MATRIX COMPARISON   -*-*-*-*-*-*-*-*-*-*-*-*- //
+        if (ImGui::Button("Display View Matrix"))
+        {
+          ImGui::OpenPopup("MatrixView");
+        }
+        if (ImGui::BeginPopup("MatrixView"))
+        {
+          glm::mat4 mat = mPlayer.Camera().getViewMatrix();
+          glm::mat4 mat2 = uvnPlayer.Camera().getViewMatrix();
+
+          ImGui::Text("Quaternion View Matrix");
+          ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat[0][0], mat[1][0], mat[2][0], mat[3][0]);
+          ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat[0][1], mat[1][1], mat[2][1], mat[3][1]);
+          ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat[0][2], mat[1][2], mat[2][2], mat[3][2]);
+          ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat[0][3], mat[1][3], mat[2][3], mat[3][3]);
+          ImGui::Text("UVN View Matrix");
+          ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat2[0][0], mat2[1][0], mat2[2][0], mat2[3][0]);
+          ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat2[0][1], mat2[1][1], mat2[2][1], mat2[3][1]);
+          ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat2[0][2], mat2[1][2], mat2[2][2], mat2[3][2]);
+          ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat2[0][3], mat2[1][3], mat2[2][3], mat2[3][3]);
+          ImGui::EndPopup();
+        }
       }
-      // make ImGui calculate internal draw structures
-      ImGui::Render();
+      // ??
+      //ImGui::EndFrame();
+      ImGui::End();
+    }
+    // make ImGui calculate internal draw structures
+    ImGui::Render();
   }
 
 

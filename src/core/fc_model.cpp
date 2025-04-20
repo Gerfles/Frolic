@@ -133,7 +133,7 @@ namespace fc {
 
       for (auto&& primitive : mesh.primitives)
       {
-        FcSurface newSurface;
+        FcSubMesh newSurface;
         newSurface.startIndex = static_cast<uint32_t>(indices.size());
         newSurface.indexCount = static_cast<uint32_t>(gltf.accessors[primitive.indicesAccessor.value()].count);
 

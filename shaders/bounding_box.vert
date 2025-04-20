@@ -93,7 +93,4 @@ void main()
   cornerVertex = cornerVertex / cornerVertex.w;
 
   gl_Position =  sceneData.viewProj * box.modelMatrix * cornerVertex;
-
-
-
 }

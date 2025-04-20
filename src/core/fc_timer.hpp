@@ -7,6 +7,7 @@ class FcTimer
 {
  private:
 
+   // TODO rewrite utilizing C++ timer instead!
    static const float TICK_PERIOD; // = 1.0 / SDL_Counts_per_sec
     // the application clock time (started when application starts) when the timer started
    uint64_t mStartTicks{0};

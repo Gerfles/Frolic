@@ -13,7 +13,7 @@
 
 namespace fc
 {
-  class FrameData;
+  class FrameAssets;
 // DEL
   // struct CubeVertex
   // {
@@ -90,8 +90,8 @@ namespace fc
      void loadTextures(std::vector<std::filesystem::path>& filenames);
 //     void loadTextures(std::array<std::filesystem::path, 6>& filenames);
      // TODO try and remove sceneDescriptorLayout
-     void init(VkDescriptorSetLayout sceneDescriptorLayout, std::vector<FrameData>& frames);
-     void draw(VkCommandBuffer cmd, FrameData& currentFrame);
+     void init(VkDescriptorSetLayout sceneDescriptorLayout, std::vector<FrameAssets>& frames);
+     void draw(VkCommandBuffer cmd, FrameAssets& currentFrame);
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   GETTERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      const FcImage& Image() { return mCubeImage; }
      /* const VkDescriptorSetLayout DescriptorLayout() { return mDescriptorLayout; } */

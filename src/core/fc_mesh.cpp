@@ -20,61 +20,6 @@
 
 namespace fc
 {
-  // TODO swap this function for a faster visibility check algorithm so we can do faster frustum culling
-  bool FcRenderObject::isVisible(const glm::mat4& viewProj)
-  {
-    std::array<glm::vec3, 8> corners { glm::vec3{1.0f, 1.0f, 1.0f}
-                                     , glm::vec3{1.0f, 1.0f, -1.0f}
-                                     , glm::vec3{1.0f, -1.0f, 1.0f}
-                                     , glm::vec3{1.0f, -1.0f, -1.0f}
-                                     , glm::vec3{-1.0f, 1.0f, 1.0f}
-                                     , glm::vec3{-1.0f, 1.0f, -1.0f}
-                                     , glm::vec3{-1.0f, -1.0f, 1.0f}
-                                     , glm::vec3{-1.0f, -1.0f, -1.0f} };
-
-    glm::mat4 matrix = viewProj * transform;
-
-    glm::vec3 min = {1.5f, 1.5f, 1.5f};
-    glm::vec3 max = {-1.5f, -1.5f, -1.5f};
-
-    for (int corner = 0; corner < 8; corner++)
-    {
-      // project each corner into clip space
-      glm::vec4 vector = matrix * glm::vec4(bounds.origin + corners[corner] * bounds.extents, 1.f);
-
-      // perspective correction
-       vector.x = vector.x / vector.w;
-       vector.y = vector.y / vector.w;
-       vector.z = vector.z / vector.w;
-
-      min = glm::min(glm::vec3 {vector.x, vector.y, vector.z}, min);
-      max = glm::max(glm::vec3 {vector.x, vector.y, vector.z}, max);
-    }
-
-    // check the clip space box is within the view
-    if (max.x < -1.0f || min.x > 1.0f || max.y < -1.f || min.y > 1.f || max.z < 0.f || min.z > 1.f)
-    {
-      return false;
-    }
-    else {
-      return true;
-    }
-  }
-
-
-
-  void FcRenderObject::bindDescriptorSet(VkCommandBuffer cmd
-                                   , VkDescriptorSet descriptorSet, uint32_t firstSet) const
-  {
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, material->pPipeline->Layout()
-                            , firstSet, 1, &descriptorSet, 0, nullptr);
-  }
-
-
-  void FcRenderObject::bindIndexBuffer(VkCommandBuffer cmd) const
-  {
-    vkCmdBindIndexBuffer(cmd, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-  }
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   FCMESH FUNCTIONS   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
  // TODO might be better to have as a constructor
@@ -178,6 +123,14 @@ namespace fc
     // mIndexBuffer.storeData(indices.data(), bufferSize
     //                        , VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
   }
+
+
+  void FcMesh::bindIndexBuffer(VkCommandBuffer cmd) const
+  {
+    vkCmdBindIndexBuffer(cmd, mIndexBuffer.getVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
+  }
+
+
 
   // Free the resources in mesh - must do here instead of destructor since Vulkan requires all resources to be free before "shutting down"
   void FcMesh::destroy()

@@ -13,7 +13,6 @@ namespace fc
 {
   class FcFrustum;
 
-
   class FcTerrain
   {
    private:
@@ -34,17 +33,16 @@ namespace fc
      FcBuffer mUboBuffer;
      FcImage mHeightMap;
      FcImage mTerrainTexture;
-     VkSampler mTerrainTextureSampler;
+     /* VkSampler mTerrainTextureSampler; */
      glm::mat4 mModelTransform;
      // TODO DELETE after creating sampler atlas
-     VkSampler mHeightMapSampler;
+     /* VkSampler mHeightMapSampler; */
      VkDescriptorSetLayout mHeightMapDescriptorLayout;
      VkDescriptorSet mHeightMapDescriptor;
      FcMesh mMesh;
      FcPipeline mPipeline;
      // wire frame meshes
      FcPipeline mWireframePipeline;
-     /* FcRenderer* pRenderer; */
      uint32_t mNumIndices;
      uint32_t mPixelDensity;
      uint32_t mNumPatches;

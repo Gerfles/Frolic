@@ -70,7 +70,7 @@ namespace fc
      FcInput mInput;
      bool mShouldClose = false;
      SDL_Event mEvent;
-
+     FcStats* stats;
       // TODO for now hold point lights but later place in locator
       //     std::vector<FcLight> mLights;
 

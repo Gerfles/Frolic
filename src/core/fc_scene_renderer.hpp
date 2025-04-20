@@ -1,11 +1,14 @@
-#pragma  once
-
+// fc_scene_renderer.hpp
+#pragma once
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "core/fc_model.hpp"
 #include "fc_descriptors.hpp"
 #include "fc_pipeline.hpp"
 // #include "fc_image.hpp"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 //#include <vulkan/vulkan_handles.hpp>
 #include <vulkan/vulkan_core.h>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 //#include <cstdint>
 
 
@@ -13,7 +16,9 @@ namespace fc
 {
   class FcRenderer;
   class FcImage;
-  class FrameData;
+  class FrameAssets;
+  class FcMeshNode;
+  class FcSurface;
 
   // Useful for signalling to the fragment shader which features are available
   enum class MaterialFeatures : uint32_t {
@@ -35,6 +40,7 @@ namespace fc
   // TODO Can incrementally update push constants according to:
   // https://docs.vulkan.org/guide/latest/push_constants.html
   // May provide some benefits if done correctly
+  // TODO this may be too much data for most push constants
   struct DrawPushConstants
   {
      glm::mat4 worldMatrix;
@@ -88,45 +94,35 @@ namespace fc
    private:
      FcPipeline mOpaquePipeline;
      FcPipeline mTransparentPipeline;
-     FcPipeline mNormalDrawPipeline;
-     FcPipeline mBoundingBoxPipeline;
-     int mBoundingBoxId {-1};
      std::vector<uint32_t> mSortedObjectIndices;
      VkDescriptorSetLayout mMaterialDescriptorLayout;
-     FcPipeline* mPreviousPipeline;
-     FcMaterial* mPreviousMaterial;
+     FcPipeline* pCurrentPipeline;
+     /* FcMaterial* mPreviousMaterial; */
      VkBuffer mPreviousIndexBuffer;
      float expansionFactor{0};
      VkDescriptorSetLayout mSceneDataDescriptorLayout;
      // TODO should probably pass this in each frame
      SceneDataUbo mSceneData;
      FcBuffer mSceneDataBuffer;
-
-
-
-     void initNormalDrawPipeline();
-     void initBoundingBoxPipeline();
-     // TODO think about just having draw instead of drawSurface
-     void drawSurface(VkCommandBuffer cmd, const FcRenderObject& surface, FrameData& currentFrame);
-     void SortByVisibilityAndMaterial(FcDrawCollection& drawCollection);
+     void sortByVisibility(FcDrawCollection& drawCollection);
+     uint32_t drawMeshNode(VkCommandBuffer cmd,
+                           const FcMeshNode& surface,
+                           FrameAssets& currentFrame);
+     void drawSurface(VkCommandBuffer cmd, const FcSurface& surface);
    public:
-     void drawNormals(VkCommandBuffer cmd
-                      , FcDrawCollection& drawCollection, FrameData& currentFrame);
-     void drawBoundingBoxes(VkCommandBuffer cmd
-                            , FcDrawCollection& drawCollection, FrameData& currentFrame);
-      // TODO think about including a local descriptorClerk
-      // FcDescriptorClerk descriptorClerk;
-     void init(std::vector<FrameData>& frames);
+     // TODO think about including a local descriptorClerk
+     void init(std::vector<FrameAssets>& frames);
      void buildPipelines(FcRenderer* renderer);
      FcPipeline* TransparentPipeline() { return &mTransparentPipeline; }
      FcPipeline* OpaquePipeline() { return &mOpaquePipeline; }
      void clearResources(VkDevice device);
-     void draw(VkCommandBuffer cmd, FcDrawCollection& drawCollection, FrameData& currentFrame);
-
+     void draw(VkCommandBuffer cmd, FcDrawCollection& drawCollection, FrameAssets& currentFrame);
      // TODO DELETE or refactor the following
      VkDescriptorSetLayout getSceneDescriptorLayout() { return mSceneDataDescriptorLayout; }
      SceneDataUbo* getSceneDataUbo() { return &mSceneData; }
      void updateSceneDataBuffer() { mSceneDataBuffer.write(&mSceneData, sizeof(SceneDataUbo)); }
      float& ExpansionFactor() { return expansionFactor; }
 };
-}
+
+
+}// --- namespace fc --- (END)

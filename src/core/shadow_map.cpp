@@ -15,9 +15,8 @@
 namespace fc
 {
 
-  void FcShadowMap::init(FcRenderer* renderer, std::vector<FrameData>& frames)
+  void FcShadowMap::init(std::vector<FrameAssets>& frames)
   {
-    pRenderer = renderer;
     depthFormat = VK_FORMAT_D32_SFLOAT;
     // -*-*-*-*-*-*-*-*-*-*-*-*-   CREATE SHADOW MAP IMAGE   -*-*-*-*-*-*-*-*-*-*-*-*- //
     // TODO this image should be device local only since no need to map for CPU... check that's the case
@@ -31,8 +30,9 @@ namespace fc
     // as possible
     // // TODO create default up, center, etc. vectors for every time they are needed
 
-    mLightView = glm::lookAt(glm::vec3(2.0f, 14.0f, 2.0f)
-                             , glm::vec3(0.0f, 0.0f, 0.0f)
+    mLightView = glm::lookAt(glm::vec3(47.0f, 25.0f, 23.0f)
+    /* mLightView = glm::lookAt(glm::vec3(2.0f, 14.0f, 2.0f) */
+                             , glm::vec3(45.0f, 8.0f, 20.0f)
                              , glm::vec3(0.0f, 1.0f, 1.0f));
     mFrustum.setAll(-15.f, 15.f, -15.f, 15.f, .1f, 15.f);
 
@@ -40,7 +40,7 @@ namespace fc
   }
 
 
-  void FcShadowMap::initPipelines(std::vector<FrameData>& frames)
+  void FcShadowMap::initPipelines(std::vector<FrameAssets>& frames)
   {
     // TODO have addStage instead of size initialization or keep as optional but add
     // checks for segfaults and also create better default values for pipeline
@@ -126,20 +126,12 @@ namespace fc
     mShadowDebugPipeline.create(debugPipelineConfig);
 
 
-        // Allocate a descriptorSet to each frame buffer
-    for (FrameData& frame : frames)
+    // Allocate a descriptorSet to each frame buffer
+    for (FrameAssets& frame : frames)
     {
-      // ?? TODO should create a new Descriptor set per frame instead
-      // and may be able to then remove from shadowMap class
-
-      // mShadowMapDescriptorSet = descClerk.createDescriptorSet(descriptorSetLayout
-      //                                                       , bindInfo);
-
-
-      frame.shadowMapDescriptorSet = descClerk.createDescriptorSet(descriptorSetLayout
-                                                            , bindInfo);
-      // frame.sceneDataDescriptorSet = descClerk.createDescriptorSet(
-      //   mSceneDataDescriptorLayout, sceneDescriptorBinding);
+      // TODO May be able to then remove descriptor set from shadowMap class
+      frame.shadowMapDescriptorSet = descClerk.createDescriptorSet(descriptorSetLayout,
+                                                                   bindInfo);
     }
   }
 
@@ -171,9 +163,10 @@ namespace fc
 
   void FcShadowMap::generateMap(VkCommandBuffer cmd, FcDrawCollection& drawContext)
   {
-    mShadowMapImage.transitionLayout(cmd, VK_IMAGE_LAYOUT_UNDEFINED
-                                    , VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
-
+    mShadowMapImage.transitionLayout(cmd,
+                                     VK_IMAGE_LAYOUT_UNDEFINED,
+                                     VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+                                     VK_IMAGE_ASPECT_DEPTH_BIT);
     // TODO extrapolate other
     VkRenderingAttachmentInfo shadowMapAttachment{};
     shadowMapAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -186,7 +179,6 @@ namespace fc
     VkRenderingInfo renderInfo{};
     renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
     VkExtent2D mapExtent{mShadowMapImage.Width(), mShadowMapImage.Height()};
-    //std::cout << "Shadow Map Resolution: " << mapExtent.width << " x " << mapExtent.height;
     renderInfo.renderArea = VkRect2D{VkOffset2D{0,0}, mapExtent};
     renderInfo.layerCount = 1;
     renderInfo.colorAttachmentCount = 0;
@@ -200,7 +192,7 @@ namespace fc
     shadowViewport.width = mapExtent.width;
     shadowViewport.height = mapExtent.height;
     shadowViewport.minDepth = 0.f;
-    // NOTE: this is essential! Otherwise maxDepth defaults to 1.0 and gl_FragCoord.z = 0
+    // NOTE: setting maxDepth is essential! Otherwise maxDepth defaults to 0 and gl_FragCoord.z = 0
     shadowViewport.maxDepth = 1.0f;
 
     VkRect2D shadowScissors{};
@@ -215,24 +207,29 @@ namespace fc
     ShadowPushConstants shadowPCs;
     shadowPCs.lightSpaceMatrix = mLightSpaceTransform;
 
-    for (FcRenderObject& surface : drawContext.opaqueSurfaces)
+
+    for (auto& materialCollection : drawContext.opaqueSurfaces)
     {
-      shadowPCs.vertexBuffer = surface.vertexBufferAddress;
-      shadowPCs.modelMatrix = surface.transform;
+      for (const FcSurface& surface : materialCollection.second)
+      {
+        shadowPCs.vertexBuffer = surface.vertexBufferAddress;
+        shadowPCs.modelMatrix = surface.transform;
 
-      vkCmdPushConstants(cmd, mShadowPipeline.Layout()
-                         , VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(ShadowPushConstants), &shadowPCs);
+        vkCmdPushConstants(cmd, mShadowPipeline.Layout()
+                           , VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(ShadowPushConstants), &shadowPCs);
 
-      surface.bindIndexBuffer(cmd);
-      vkCmdDrawIndexed(cmd, surface.indexCount, 1, surface.firstIndex, 0, 0);
+        surface.bindIndexBuffer(cmd);
+
+        vkCmdDrawIndexed(cmd, surface.indexCount, 1, surface.firstIndex, 0, 0);
+      }
     }
 
     vkCmdEndRendering(cmd);
 
-
-
-    mShadowMapImage.transitionLayout(cmd, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL
-                                    , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
+    mShadowMapImage.transitionLayout(cmd,
+                                     VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+                                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                     VK_IMAGE_ASPECT_DEPTH_BIT);
 
     // colorImage.transitionImage(cmd, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
     //                            VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR, VK_IMAGE_ASPECT_COLOR_BIT);
@@ -273,9 +270,9 @@ namespace fc
   }
 
 
-  void FcShadowMap::drawDebugMap(VkCommandBuffer cmd, FrameData& currentFrame)
+  void FcShadowMap::drawDebugMap(VkCommandBuffer cmd, FrameAssets& currentFrame)
   {
-    // mShadowMapImage.transitionImage(cmd, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL
+    // mShadowMapImage.transition(cmd, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL
     //                                 , VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR, VK_IMAGE_ASPECT_DEPTH_BIT);
     // colorImage.transitionImage(cmd, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
     //                            VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR, VK_IMAGE_ASPECT_COLOR_BIT);
@@ -302,6 +299,7 @@ namespace fc
                             , 0, 1, &currentFrame.shadowMapDescriptorSet, 0, nullptr);
 
     ShadowPushConstants push;
+    // TODO develop own push constants for shadow maps
     // TODO check if data exceeds typical PC limits
     // Display shadow map does not use model matrix so we use two of the elements of matrix to send znear and zfar
     push.modelMatrix = glm::mat4{1.0f};

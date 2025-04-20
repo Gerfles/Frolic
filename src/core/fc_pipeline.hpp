@@ -125,7 +125,8 @@ namespace fc
       //void create2(FcPipelineCreateInfo* pipelineInfo);
      void create(FcPipelineConfig& configInfo);
      void connectDescriptorSet(VkDescriptorSet descriptorSet);
-     void bindDescriptorSets(VkCommandBuffer cmdBuffer);
+     void bindDescriptors(VkCommandBuffer cmdBuffer, VkDescriptorSet descriptorSet
+                          , uint32_t firstSet) const;
      void bind(VkCommandBuffer commandBuffer);
       // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      FcPipeline() = default;

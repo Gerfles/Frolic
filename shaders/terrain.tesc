@@ -31,11 +31,11 @@ float calcTessellationFactor(vec4 p0, vec4 p1);
 float distFromCamera(vec4 point);
 
 const int MIN_TESS_LEVEL = 1;
-const int MAX_TESS_LEVEL = 16;
+const int MAX_TESS_LEVEL = 8;
 // This would be the minimum distance to reduce tessellation, anything closer
 // than that will automatically be at max tessellation level
 const float MIN_DISTANCE = 15.0;
-const float MAX_DISTANCE = 60.0;
+const float MAX_DISTANCE = 80.0;
 
 void main()
 {

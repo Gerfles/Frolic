@@ -9,9 +9,8 @@
 
 namespace fc
 {
-  class FcRenderer;
   class FcDrawCollection;
-  class FrameData;
+  class FrameAssets;
 
   constexpr uint32_t shadowMapSize{2048};
 
@@ -44,7 +43,7 @@ namespace fc
   class FcShadowMap
   {
    private:
-     FcRenderer* pRenderer;
+
      glm::mat4 mLightProjection;
      glm::mat4 mLightView;
      glm::mat4 mLightSpaceTransform;
@@ -54,14 +53,14 @@ namespace fc
      FcPipeline mShadowPipeline;
      FcPipeline mShadowDebugPipeline;
      /* VkDescriptorSet mShadowMapDescriptorSet; */
-     void initPipelines(std::vector<FrameData>& frames);
+     void initPipelines(std::vector<FrameAssets>& frames);
      Box mFrustum;
    public:
      Box& Frustum() { return mFrustum; }
      //void setLightSpaceMatrix(glm::mat4 matrix) { mLightSpaceTransform = matrix; }
-     void init(FcRenderer* renderer, std::vector<FrameData>& frames);
+     void init(std::vector<FrameAssets>& frames);
      void generateMap(VkCommandBuffer cmd, FcDrawCollection& drawContext);
-     void drawDebugMap(VkCommandBuffer cmd, FrameData& currentFrame);
+     void drawDebugMap(VkCommandBuffer cmd, FrameAssets& currentFrame);
      glm::mat4 LightSpaceMatrix() { return mLightSpaceTransform; }
      /* VkDescriptorSet Descriptor() { return mShadowMapDescriptorSet; } */
      VkImageView ImageView() { return mShadowMapImage.ImageView(); }
