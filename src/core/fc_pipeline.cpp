@@ -162,7 +162,6 @@ namespace fc
   }
 
 
-
   void FcPipelineConfig::setInputTopology(VkPrimitiveTopology topology)
   {
     inputAssemblyInfo.topology = topology;
@@ -301,11 +300,9 @@ namespace fc
 
   // }
 
-
-
   // TODO rename to fit extension buffer or no buffer scheme
   // how data for a single vertex (such as position, color, texture coords, normals, etc) is as a whole
-  void FcPipelineConfig::setVertexInputAttributes()
+  void FcPipelineConfig::setNonBufferVertexInputAttributes()
   {
     // make sure we update the vertext binding count from 0 to 1
     vertexInputInfo.vertexBindingDescriptionCount = 1;
@@ -360,7 +357,6 @@ namespace fc
 
 
 
-
   void FcPipelineConfig::setVertexInputPositionOnly()
   {
     // can bind multiple streams of data, this defines which one
@@ -390,9 +386,24 @@ namespace fc
 
     // make sure we update the vertext binding count from 0 to 1
     vertexInputInfo.vertexBindingDescriptionCount = 1;
-    vertexInputInfo.vertexAttributeDescriptionCount = 		static_cast<uint32_t>(attributeDescriptions.size());
+    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
     vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
   }
+
+
+  void FcPipelineConfig::disableVertexReading()
+  {
+    // clear binding descriptions
+    bindingDescription = {};
+    // clear attribute descriptions
+    attributeDescriptions.clear();
+    // from brendan galea ??
+    /* billboardConfig.disableVertexRendering(); */
+  }
+
+
+
+
 
   // OLD pipeline configuration defaults
   // FcPipelineConfig::PipelineConfigInfo()
@@ -516,7 +527,7 @@ namespace fc
   }
 
 
-  void FcPipeline::bindDescriptors(VkCommandBuffer cmdBuffer, VkDescriptorSet descriptorSet
+  void FcPipeline::bindDescriptorSet(VkCommandBuffer cmdBuffer, VkDescriptorSet descriptorSet
                                    , uint32_t firstSet) const
   {
     // TODO make mBindPoint simpler if possible (separate compute pipeline)
@@ -524,90 +535,15 @@ namespace fc
                             , firstSet, 1, &descriptorSet, 0, nullptr);
   }
 
+  void FcPipeline::bindDescriptorSets(VkCommandBuffer cmdBuffer, std::vector<VkDescriptorSet> sets
+                                      , uint32_t firstSet) const
+  {
+    vkCmdBindDescriptorSets(cmdBuffer, mBindPoint, mPipelineLayout, firstSet
+                            , sets.size(), sets.data(), 0, nullptr);
+  }
 
 
 
-
-
-//   void FcPipeline::create2(FcPipelineCreateInfo* pipelineInfo)
-//   {
-//      // -*-*-*-*-*-*-*-*-*-*-*-*-   CREATE PIPELINE LAYOUT   -*-*-*-*-*-*-*-*-*-*-*-*- //
-
-//     // std::array<VkDescriptorSetLayout, 2> descriptorSetLayouts = { FcLocator::DescriptorClerk().UboSetLayout()
-//     //                                                             , FcLocator::DescriptorClerk().SamplerSetLayout() };
-
-//     mName = pipelineInfo->name;
-
-//     VkPushConstantRange pushConstants{};
-//     pushConstants.offset = 0;
-//     pushConstants.size = sizeof(ComputePushConstants);
-//     pushConstants.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-
-//     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-//     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-//     pipelineLayoutInfo.pushConstantRangeCount = 1;
-//     pipelineLayoutInfo.pPushConstantRanges = &pushConstants;
-
-//     pipelineLayoutInfo.setLayoutCount = 1;
-//      //pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.size());
-//      //pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
-//     pipelineLayoutInfo.pSetLayouts = FcLocator::DescriptorClerk().vkDescriptorLayout();
-
-//      // create the pipeline layout
-//     if (vkCreatePipelineLayout(FcLocator::Device(), &pipelineLayoutInfo, nullptr, &mPipelineLayout) != VK_SUCCESS)
-//     {
-//       throw std::runtime_error("Failed to create Pipeline Layout!");
-//     }
-
-// // std::string& vertShaderFilename, const std::string& fragShaderFilename, const PipelineConfigInfo& pipelineInfo)
-//      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE SHADERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
-//      // read in SPIR-V code of shaders
-//      // TODO add ability to specify filename as relative path and load the absolute path or
-//      // perhaps a small loader program that finds file paths for everything
-
-//      // allocate and initialize ( = {}) enough shader state create infos for each stage
-//     std::vector<VkPipelineShaderStageCreateInfo> shaderStages(pipelineInfo->shaders.size()
-//                                                               , VkPipelineShaderStageCreateInfo{});
-
-//     std::vector<VkShaderModule> shaderModules(shaderStages.size());
-
-//     for (uint32_t i = 0; i < shaderStages.size(); i++)
-//     {
-//        // create the shader modules from our SPIR-V code
-//       auto shaderCode = readFile("shaders/" + pipelineInfo->shaders[i].filename);
-//       shaderModules[i] = createShaderModule(shaderCode);
-
-//        // populate the shader stage create info
-//       shaderStages[i].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-//       shaderStages[i].stage = pipelineInfo->shaders[i].stageFlag;
-//       shaderStages[i].module = shaderModules[i];
-//       shaderStages[i].pName = "main";
-//     }
-
-//      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE PIPELINE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-//     assert(mPipelineLayout != nullptr && "Cannot create pipeline before pipeline layout");
-
-//     VkComputePipelineCreateInfo computePipelineInfo = {};
-//     computePipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-//     computePipelineInfo.layout = mPipelineLayout;
-//      // TODO integrate graphics pipeline creation with compute, probably best to just create separate call for compute
-//     computePipelineInfo.stage = shaderStages[0];
-
-//     if (vkCreateComputePipelines(FcLocator::Device(), VK_NULL_HANDLE, 1,
-//                                   &computePipelineInfo, nullptr, &mPipeline) != VK_SUCCESS)
-//     {
-//       throw std::runtime_error("Failed to create Vulkan Graphics Pipeline!");
-//     }
-
-//      // Destroy shader modules, no longer needed after pipeline created
-//     for (VkShaderModule& shaderModule : shaderModules)
-//     {
-//       vkDestroyShaderModule(FcLocator::Device(), shaderModule, nullptr);
-//     }
-//   }
-
-   // * TODO * Preferred method! Destroy all other methods and configs
   void FcPipeline::create(FcPipelineConfig& pipelineConfig)
   {
     // TODO CREATE SOME ASSERTS!!!
@@ -740,85 +676,6 @@ namespace fc
     }
 
   }
-
-  // [[deprecated("Use create3()")]]
-  // void FcPipeline::create(const std::string& vertShaderFilename, const std::string& fragShaderFilename
-  //                         , const PipelineConfigInfo& pipelineInfo)
-  // {
-
-  //   assert(pipelineInfo.pipelineLayout != VK_NULL_HANDLE &&
-  //          "Cannot create graphics pipeline:: no pipiplineLayout provided in configInfo");
-  //   assert(pipelineInfo.renderPass != VK_NULL_HANDLE &&
-  //          "Cannot create graphics pipeline:: no renderPass provided in configInfo");
-
-  //    // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE SHADERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
-  //    // read in SPIR-V code of shaders
-  //    //TODO add ability to specify filename as relative path and load the absolute path
-
-
-
-
-
-
-  //   auto vertexShaderCode = readFile("shaders/" + vertShaderFilename);
-  //   auto fragmentShaderCode = readFile("shaders/" + fragShaderFilename);
-
-  //    // create the shader modules from our SPIR-V code
-  //   VkShaderModule vertexShaderModule = createShaderModule(vertexShaderCode);
-  //   VkShaderModule fragmentShaderModule = createShaderModule(fragmentShaderCode);
-
-  //    // vertex stage create info
-  //   VkPipelineShaderStageCreateInfo vertexShaderInfo{};
-  //   vertexShaderInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-  //   vertexShaderInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-  //   vertexShaderInfo.module = vertexShaderModule;
-  //   vertexShaderInfo.pName = "main";
-
-  //   VkPipelineShaderStageCreateInfo fragmentShaderInfo{};
-  //   fragmentShaderInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-  //   fragmentShaderInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-  //   fragmentShaderInfo.module = fragmentShaderModule;
-  //   fragmentShaderInfo.pName = "main";
-
-  //    // put shader stage creation info into an array (required by pipeline create info)
-  //   VkPipelineShaderStageCreateInfo shaderStages[2] = {vertexShaderInfo, fragmentShaderInfo};
-
-
-
-  //    // -- GRAPHICS PIPELINE CREATION --
-
-  //   VkGraphicsPipelineCreateInfo graphicsPipelineInfo{};
-  //   graphicsPipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-  //   graphicsPipelineInfo.stageCount = 2;                         // number of shader stages
-  //   graphicsPipelineInfo.pStages = shaderStages;                 // list of shader stages
-  //   graphicsPipelineInfo.pVertexInputState = &vertexInputInfo;
-  //   graphicsPipelineInfo.pInputAssemblyState = &pipelineInfo.inputAssemblyInfo;
-  //   graphicsPipelineInfo.pViewportState = &pipelineInfo.viewportInfo;
-  //   graphicsPipelineInfo.pDynamicState = &pipelineInfo.dynamicStateInfo;
-  //   graphicsPipelineInfo.pRasterizationState = &pipelineInfo.rasterizationInfo;
-  //   graphicsPipelineInfo.pMultisampleState = &pipelineInfo.multiSamplingInfo;
-  //   graphicsPipelineInfo.pColorBlendState = &pipelineInfo.colorBlendInfo;
-  //   graphicsPipelineInfo.pDepthStencilState = &pipelineInfo.depthStencilInfo;
-  //   graphicsPipelineInfo.layout = pipelineInfo.pipelineLayout;   // pipeline layout pipeline will use
-  //   graphicsPipelineInfo.renderPass = pipelineInfo.renderPass; // render pass description the pipeline is compatible with
-  //   graphicsPipelineInfo.subpass = pipelineInfo.subpass;                            // subpass of render pass to use with pipeline
-  //   graphicsPipelineInfo.basePipelineHandle = VK_NULL_HANDLE;    // Can create multiple pipelines that derive from one another for optimisation
-  //    // index of pipeline being created to derive from (for optimisation of creating multiple pipelines)
-  //   graphicsPipelineInfo.basePipelineIndex = -1;                 // index of pipeline being created to derive from (for optimisation of creating multiple pipelines)
-
-  //   // save a pointer to the device instance
-  //   VkDevice pDevice = FcLocator::Device();
-
-  //   if (vkCreateGraphicsPipelines(pDevice, VK_NULL_HANDLE, 1, &graphicsPipelineInfo, nullptr, &mPipeline) != VK_SUCCESS)
-  //   {
-  //     throw std::runtime_error("Failed to create Vulkan Graphics Pipeline!");
-  //   }
-
-  //    // Destroy shader modules, no longer needed after pipeline created
-  //   vkDestroyShaderModule(pDevice, vertexShaderModule, nullptr);
-  //   vkDestroyShaderModule(pDevice, fragmentShaderModule, nullptr);
-  // }
 
 
 

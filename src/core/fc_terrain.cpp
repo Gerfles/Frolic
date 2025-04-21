@@ -294,10 +294,10 @@ namespace fc
   }
 
 
-  void FcTerrain::draw(VkCommandBuffer cmd, SceneDataUbo* pSceneData, bool drawWireframe)
+  void FcTerrain::draw(VkCommandBuffer cmd, SceneDataUbo& sceneData, bool drawWireframe)
   {
-    ubo.modelView = pSceneData->view * mModelTransform;
-    ubo.projection = pSceneData->projection;
+    ubo.modelView = sceneData.view * mModelTransform;
+    ubo.projection = sceneData.projection;
     ubo.modelViewProj = ubo.projection * ubo.modelView;
     ubo.lightPos = glm::vec4(100.f, 150.f, 100.f, 1.0);//pSceneData->sunlightDirection;
     // TODO might prefer to update the frustum here instead

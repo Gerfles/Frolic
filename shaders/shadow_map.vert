@@ -26,7 +26,7 @@ layout (push_constant) uniform constants
 } push;
 
 //layout (location = 0) out vec4 outPosition;
-
+// ?? needed?
 out gl_PerVertex
 {
   vec4 gl_Position;

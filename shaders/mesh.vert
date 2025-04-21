@@ -13,9 +13,7 @@ layout(std140, set = 0, binding = 0) uniform SceneData
   mat4 proj;
   mat4 viewProj;
   mat4 lightSpaceTransform;
-  vec4 ambientColor;
   vec4 sunDirection;
-  vec4 sunColor;
   //
 } sceneData;
 
@@ -49,7 +47,6 @@ layout(push_constant) uniform PushConstants
   VertexBuffer vertexBuffer;
 } model;
 
-
 const mat4 biasMat = mat4(
 	0.5, 0.0, 0.0, 0.0,
 	0.0, 0.5, 0.0, 0.0,
@@ -66,13 +63,12 @@ void main()
   Vertex v = model.vertexBuffer.vertices[gl_VertexIndex];
 
   vec4 positionWorld = model.renderMatrix * vec4(v.position, 1.0);
+
   // TODO find out which version is correct
   outPosWorld = positionWorld.xyz;
-//  outPosWorld = (sceneData.view * vec4(positionWorld.xyz, 1.0)).xyz;
-
-  //gl_Position = sceneData.proj * sceneData.view * model.renderMatrix * vec4(v.position, 1.0f);
-
+  // outPosWorld = (sceneData.view * vec4(positionWorld.xyz, 1.0)).xyz;
   gl_Position = sceneData.viewProj * positionWorld;
+  // gl_Position = sceneData.viewProj * model.renderMatrix * vec4(v.position, 1.0f);
 
   //gl_Position = vec4(v.position, 1.0);
 

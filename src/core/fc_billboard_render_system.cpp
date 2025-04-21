@@ -3,6 +3,7 @@
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "core/fc_descriptors.hpp"
+#include "core/fc_frame_assets.hpp"
 #include "core/fc_game_object.hpp"
 #include "core/fc_gpu.hpp"
 #include "core/fc_text.hpp"
@@ -33,7 +34,7 @@ FcBillboard::FcBillboard(float width, float height, glm::vec4 color)
   }
 
 
-
+  [[deprecated("Delete soon")]]
   void FcBillboard::placeInHandleTable()
   {
     std::vector<FcBillboard* >& billboardList = FcLocator::Billboards();
@@ -45,15 +46,12 @@ FcBillboard::FcBillboard(float width, float height, glm::vec4 color)
       {
         billboardList[i] = this;
         mHandleIndex = i;
-
-        // don't think we need uniqueId in this handle system since all will be lights
-
         return;
       }
     }
 
-     // if no slots are vacant, grow the vector of game objects as long as it doesn't exceed the maximum
-     // TODO add error code to handle too big of vector
+    // if no slots are vacant, grow the vector of game objects as long as it doesn't exceed the maximum
+    // TODO add error code to handle too big of vector
     if (billboardList.size() < MAX_BILLBOARDS)
     {
       billboardList.push_back(this);
@@ -65,7 +63,6 @@ FcBillboard::FcBillboard(float width, float height, glm::vec4 color)
       mHandleIndex = MAX_BILLBOARDS;
       std::cout << "ERROR: too many billboards!" << std::endl;
        // BUG dangling pointers and such!!!
-       // TODO make sure to delete the light since
     }
   }
 
@@ -82,9 +79,7 @@ FcBillboard::FcBillboard(float width, float height, glm::vec4 color)
 
 
 
-
-  [[deprecated("No longer valid")]]
-  void FcBillboardRenderSystem::createPipeline(FcPipeline& pipeline)
+  void FcBillboardRenderer::createPipeline()
   {
     FcPipelineConfig billboardConfig{2};
     billboardConfig.name = "Billboard";
@@ -96,22 +91,20 @@ FcBillboard::FcBillboard(float width, float height, glm::vec4 color)
     VkPushConstantRange pushConstantRange{};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     pushConstantRange.offset = 0;
-    pushConstantRange.size = sizeof(BillboardPushComponent);
+    pushConstantRange.size = sizeof(BillboardPushes);
 
     billboardConfig.addPushConstants(pushConstantRange);
 
     billboardConfig.setMultiSampling(FcLocator::Gpu().Properties().maxMsaaSamples);
 
-    // make sure to clear these out since we won't be reading any vertex data and MUST signal vulkan as such
-    // pipelineConfig.bindingDescriptions.clear();
-    // pipelineConfig.attributeDescriptions.clear();
-    // billboardConfig.disableVertexRendering();
+    // MUST signal vulkan that we won't be reading any vertex data
+    billboardConfig.disableVertexReading();
 
-    pipeline.create(billboardConfig);
+    mPipeline.create(billboardConfig);
   }
 
 
-  void FcBillboardRenderSystem::sortBillboardsByDistance(glm::vec3& cameraPosition)
+  void FcBillboardRenderer::sortBillboardsByDistance(glm::vec3& cameraPosition)
   {
     // std::vector<FcBillboard* >& billboards = FcLocator::Billboards();
 
@@ -132,5 +125,53 @@ FcBillboard::FcBillboard(float width, float height, glm::vec4 color)
     //                }
     //           );
   }
+
+
+
+  // void FcBillboardRenderer::draw(VkCommandBuffer cmd, std::vector<FcBillboard>& billboards,
+  //                                glm::vec3 cameraPosition, FrameAssets& currentFrame)
+  // {
+  //   // sort the billboards by distance to the camera
+  //   // TODO sort within update instead
+  //   std::multimap<float, size_t> sortedIndices; // TODO?? uint32 or size_t
+  //   for (size_t i = 0; i < billboards.size(); ++i)
+  //   {
+  //     // calculate distance
+  //     auto distance = ubo.eye - billboards[i].PushComponent().position;
+  //     float distanceSquared = glm::dot(distance, distance);
+  //     sortedIndices.insert(std::pair(distanceSquared, i));
+  //   }
+
+  //   // bind pipeline to be used in render pass
+  //   mPipeline.bind(cmd);
+
+  //   // iterate through billboards in reverse order (to draw them back to front)
+  //   for (auto index = sortedIndices.rbegin(); index != sortedIndices.rend(); ++index )
+  //   {
+  //     vkCmdPushConstants(cmd, mPipeline.Layout()
+  //                        , VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(BillboardPushes)
+  //                        , &billboards[index->second].PushComponent());
+
+  //     //VkDeviceSize offsets[] = { 0 };
+  //     // vkCmdBindVertexBuffers(mCommandBuffers[swapChainImageIndex], 0, 1, &font.VertexBuffer(), offsets);
+  //     // vkCmdBindIndexBuffer(mCommandBuffers[swapChainImageIndex], font.IndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
+
+  //     FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
+
+  //     // TODO  update the global Ubo only once per frame, not each draw call
+  //     // descClerk.update(swapchainImageIndex, &ubo);
+
+  //     std::array<VkDescriptorSet, 2> descriptorSets;
+  //     descriptorSets[0] = currentFrame.sceneDataDescriptorSet;
+  //     descriptorSets[1] = billboards[index->second].getDescriptor();
+
+  //     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS
+  //                             , mPipeline.Layout(), 0, static_cast<uint32_t>(descriptorSets.size())
+  //                             , descriptorSets.data() , 0, nullptr);
+
+  //     //vkCmdDrawIndexed(mCommandBuffers[swapChainImageIndex], font.IndexCount(), 1, 0, 0, 0);
+  //     vkCmdDraw(cmd, 6, 1, 0, 0);
+  //   }
+  // }
 
 } // _END_ namespace fc

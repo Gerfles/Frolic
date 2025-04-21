@@ -44,7 +44,7 @@ namespace fc
      const char* name; // ?? might want to remove but then may serve as good identifier (hashmap)
 
      // Only used when binding vertex buffer not when using GPU vertex buffer via address
-     VkVertexInputBindingDescription bindingDescription;
+     VkVertexInputBindingDescription bindingDescription{};
      std::vector<VkVertexInputAttributeDescription> attributeDescriptions{};
 
      // TODO think about making vectors refs
@@ -82,9 +82,9 @@ namespace fc
      void setMultiSampling(VkSampleCountFlagBits sampleCount);
      void setColorAttachment(VkFormat format);
      void setDepthFormat(VkFormat format);
-
+     void disableVertexReading();
      // TODO combine
-     void setVertexInputAttributes();
+     void setNonBufferVertexInputAttributes();
      void setVertexInputPositionOnly();
 
      void disableDepthtest();
@@ -125,8 +125,10 @@ namespace fc
       //void create2(FcPipelineCreateInfo* pipelineInfo);
      void create(FcPipelineConfig& configInfo);
      void connectDescriptorSet(VkDescriptorSet descriptorSet);
-     void bindDescriptors(VkCommandBuffer cmdBuffer, VkDescriptorSet descriptorSet
+     void bindDescriptorSet(VkCommandBuffer cmdBuffer, VkDescriptorSet descriptorSet
                           , uint32_t firstSet) const;
+     void bindDescriptorSets(VkCommandBuffer cmdBuffer, std::vector<VkDescriptorSet> sets
+                             , uint32_t firstSet) const;
      void bind(VkCommandBuffer commandBuffer);
       // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      FcPipeline() = default;

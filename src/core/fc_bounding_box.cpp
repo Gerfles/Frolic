@@ -7,7 +7,7 @@
 
 namespace fc
 {
-  void FcBoundingBoxRenderer::initPipelines(VkDescriptorSetLayout sceneDescriptorLayout)
+  void FcBoundingBoxRenderer::buildPipelines(VkDescriptorSetLayout sceneDescriptorLayout)
   {
     FcPipelineConfig pipelineConfig{3};
     pipelineConfig.name = "Bounding Box Draw";
@@ -52,7 +52,7 @@ namespace fc
   {
     {
       mBoundingBoxPipeline.bind(cmd);
-      mBoundingBoxPipeline.bindDescriptors(cmd, currentFrame.sceneDataDescriptorSet, 0);
+      mBoundingBoxPipeline.bindDescriptorSet(cmd, currentFrame.sceneDataDescriptorSet, 0);
 
       // Draw all bounding boxes, if signaled by BoxId being == -1 (default value)
       // also make sure we don't try and draw a bounding box that doesn't exist

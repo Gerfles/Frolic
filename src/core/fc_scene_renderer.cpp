@@ -43,54 +43,44 @@ namespace fc
 
 
 
-  void FcSceneRenderer::init(std::vector<FrameAssets>& frames)
+  void FcSceneRenderer::init(glm::mat4& viewProj)
   {
-    fcLog("ScenRenderer::init()");
+    pViewProjection = &viewProj;
+    // FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
 
-    mSceneData.viewProj = glm::mat4(1.f);
+    // // *-*-*-*-*-*-*-*-*-*-*-*-   FRAME DATA INITIALIZATION   *-*-*-*-*-*-*-*-*-*-*-*- //
 
-    fcLog("SetVIEWPROJ");
+    // // TODO create temporary storage for this in descClerk so we can just write the
+    // // descriptorSet and layout on the fly and destroy layout if not needed
+    // // TODO see if layout is not needed.
+    // FcDescriptorBindInfo sceneDescriptorBinding{};
+    // sceneDescriptorBinding.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
+    //                                   , VK_SHADER_STAGE_VERTEX_BIT
+    //                                   // TODO DELETE after separating model from scene
+    //                                   | VK_SHADER_STAGE_FRAGMENT_BIT
+    //                                   | VK_SHADER_STAGE_GEOMETRY_BIT);
 
-    // TODO take advantage of the fact that Descriptor params can be reset once it spits out the SET
-    // TODO probably delete from here
-    FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
+    // // TODO find out if there is any cost associated with binding to multiple un-needed stages...
+    // //, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
 
-    // *-*-*-*-*-*-*-*-*-*-*-*-   FRAME DATA INITIALIZATION   *-*-*-*-*-*-*-*-*-*-*-*- //
-    mSceneDataBuffer.allocate(sizeof(SceneDataUbo), FcBufferTypes::Uniform);
+    // sceneDescriptorBinding.attachBuffer(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, mSceneDataBuffer
+    //                                     , sizeof(SceneDataUbo), 0);
 
-    // TODO create temporary storage for this in descClerk so we can just write the
-    // descriptorSet and layout on the fly and destroy layout if not needed
-    // TODO see if layout is not needed.
-    FcDescriptorBindInfo sceneDescriptorBinding{};
-    sceneDescriptorBinding.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
-                                      , VK_SHADER_STAGE_VERTEX_BIT
-                                      // TODO DELETE after separating model from scene
-                                      | VK_SHADER_STAGE_FRAGMENT_BIT
-                                      | VK_SHADER_STAGE_GEOMETRY_BIT);
+    // // create descriptorSet for sceneData
+    // mSceneDataDescriptorLayout = descClerk.createDescriptorSetLayout(sceneDescriptorBinding);
 
-
-    // TODO find out if there is any cost associated with binding to multiple un-needed stages...
-    //, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-
-    sceneDescriptorBinding.attachBuffer(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, mSceneDataBuffer
-                                        , sizeof(SceneDataUbo), 0);
-
-    // create descriptorSet for sceneData
-    mSceneDataDescriptorLayout = descClerk.createDescriptorSetLayout(sceneDescriptorBinding);
-
-    // Allocate a descriptorSet to each frame buffer
-    for (FrameAssets& frame : frames)
-    {
-      frame.sceneDataDescriptorSet = descClerk.createDescriptorSet(
-        mSceneDataDescriptorLayout, sceneDescriptorBinding);
-    }
+    // // Allocate a descriptorSet to each frame buffer
+    // for (FrameAssets& frame : frames)
+    // {
+    //   frame.sceneDataDescriptorSet = descClerk.createDescriptorSet(
+    //     mSceneDataDescriptorLayout, sceneDescriptorBinding);
+    // }
   }
 
 
   // TODO remove dependency on FcRenderer pointer
-  void FcSceneRenderer::buildPipelines(FcRenderer *renderer)
+  void FcSceneRenderer::buildPipelines(VkDescriptorSetLayout sceneDescriptorLayout)
   {
-    fcLog("FcSceneRendere::buildPipelines()");
     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   OPAQUE PIPELINE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     // TODO addshader() func
     FcPipelineConfig pipelineConfig{3};
@@ -138,7 +128,7 @@ namespace fc
     // place the scene descriptor layout in the first set (0), then cubemap, then material
     // TODO find a better way to pass these descriptor sets around etc...
     // ?? Are they even needed in here??
-    pipelineConfig.addDescriptorSetLayout(mSceneDataDescriptorLayout);
+    pipelineConfig.addDescriptorSetLayout(sceneDescriptorLayout);
     // Add single image descriptors for sky box image
     pipelineConfig.addSingleImageDescriptorSetLayout();
     // Add single image descriptors for shadow map image
@@ -201,7 +191,8 @@ namespace fc
       for (size_t index = 0; index < drawCollection.opaqueSurfaces[i].second.size(); ++index)
       {
         FcSurface& surface = drawCollection.opaqueSurfaces[i].second[index];
-        if (surface.isVisible(mSceneData.viewProj))
+
+        if (surface.isVisible(*pViewProjection))
         {
           drawCollection.visibleSurfaceIndices[i].push_back(index);
         }
@@ -248,13 +239,17 @@ namespace fc
     // First draw the opaque mesh nodes in draw collection
     mOpaquePipeline.bind(cmd);
     pCurrentPipeline = &mOpaquePipeline;
-    mOpaquePipeline.bindDescriptors(cmd, currentFrame.sceneDataDescriptorSet, 0);
-    mOpaquePipeline.bindDescriptors(cmd, currentFrame.skyBoxDescriptorSet, 1);
-    mOpaquePipeline.bindDescriptors(cmd, currentFrame.shadowMapDescriptorSet, 2);
+
+    // TODO follow this protocol for each subRenderer,
+    // TODO group these together inside frameAssets for each renderer
+    mExternalDescriptors[0] = currentFrame.sceneDataDescriptorSet;
+    mExternalDescriptors[1] = currentFrame.skyBoxDescriptorSet;
+    mExternalDescriptors[2] = currentFrame.shadowMapDescriptorSet;
+    mOpaquePipeline.bindDescriptorSets(cmd, mExternalDescriptors, 0);
 
     for (size_t i = 0; i < drawCollection.opaqueSurfaces.size(); ++i)
     {
-      mOpaquePipeline.bindDescriptors(cmd, drawCollection.opaqueSurfaces[i].first->materialSet, 3);
+      mOpaquePipeline.bindDescriptorSet(cmd, drawCollection.opaqueSurfaces[i].first->materialSet, 3);
 
       /* drawSurface(cmd, drawCollection.opaqueSurfaces[i].second[0]); */
       for (size_t index : drawCollection.visibleSurfaceIndices[i])
@@ -268,14 +263,16 @@ namespace fc
     // Next, we draw all the transparent MeshNodes in draw collection
     mTransparentPipeline.bind(cmd);
     pCurrentPipeline = &mTransparentPipeline;
+
+    // TODO update like above
     // ?? Do I need to re-bind these
-    mTransparentPipeline.bindDescriptors(cmd, currentFrame.sceneDataDescriptorSet, 0);
-    mTransparentPipeline.bindDescriptors(cmd, currentFrame.skyBoxDescriptorSet, 1);
-    mTransparentPipeline.bindDescriptors(cmd, currentFrame.shadowMapDescriptorSet, 2);
+    mTransparentPipeline.bindDescriptorSet(cmd, currentFrame.sceneDataDescriptorSet, 0);
+    mTransparentPipeline.bindDescriptorSet(cmd, currentFrame.skyBoxDescriptorSet, 1);
+    mTransparentPipeline.bindDescriptorSet(cmd, currentFrame.shadowMapDescriptorSet, 2);
 
     for (auto& materialCollection : drawCollection.transparentSurfaces)
     {
-      mTransparentPipeline.bindDescriptors(cmd, materialCollection.first->materialSet, 3);
+      mTransparentPipeline.bindDescriptorSet(cmd, materialCollection.first->materialSet, 3);
 
       for (FcSurface& surface : materialCollection.second)
       {
@@ -286,7 +283,7 @@ namespace fc
     }
   }
 
-
+  [[deprecated("use draw surface")]]
   uint32_t FcSceneRenderer::drawMeshNode(VkCommandBuffer cmd
                                            , const FcMeshNode& meshNode, FrameAssets& currentFrame)
     {
@@ -382,9 +379,5 @@ namespace fc
       mOpaquePipeline.destroy();
       mTransparentPipeline.destroy();
       vkDestroyDescriptorSetLayout(device, mMaterialDescriptorLayout, nullptr);
-      vkDestroyDescriptorSetLayout(device, mSceneDataDescriptorLayout, nullptr);
-
-      // Destroy data buffer with scene data
-      mSceneDataBuffer.destroy();
     }
   }

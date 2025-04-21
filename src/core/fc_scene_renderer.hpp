@@ -55,11 +55,9 @@ namespace fc
      glm::vec4 eye {0.0};
      glm::mat4 view {1.f};
      glm::mat4 projection {1.f};
-     glm::mat4 viewProj{1.f};
-     glm::mat4 lighSpaceTransform{1.f};
-     glm::vec4 ambientLight {1.f, 1.f, 1.f, 0.1f}; // w is light intensity
+     glm::mat4 viewProj {1.f};
+     glm::mat4 lighSpaceTransform {1.f};
      glm::vec4 sunlightDirection; // w for power
-     glm::vec4 sunlightColor;
   };
 
   // TODO separate this out from above to pass separately (could have minor benifits in some systems)
@@ -97,13 +95,15 @@ namespace fc
      std::vector<uint32_t> mSortedObjectIndices;
      VkDescriptorSetLayout mMaterialDescriptorLayout;
      FcPipeline* pCurrentPipeline;
+     glm::mat4* pViewProjection;
      /* FcMaterial* mPreviousMaterial; */
      VkBuffer mPreviousIndexBuffer;
      float expansionFactor{0};
-     VkDescriptorSetLayout mSceneDataDescriptorLayout;
+     /* VkDescriptorSetLayout mSceneDataDescriptorLayout; */
      // TODO should probably pass this in each frame
-     SceneDataUbo mSceneData;
-     FcBuffer mSceneDataBuffer;
+     // SceneDataUbo mSceneData;
+     // FcBuffer mSceneDataBuffer;
+     std::vector<VkDescriptorSet> mExternalDescriptors {3};
      void sortByVisibility(FcDrawCollection& drawCollection);
      uint32_t drawMeshNode(VkCommandBuffer cmd,
                            const FcMeshNode& surface,
@@ -111,16 +111,16 @@ namespace fc
      void drawSurface(VkCommandBuffer cmd, const FcSurface& surface);
    public:
      // TODO think about including a local descriptorClerk
-     void init(std::vector<FrameAssets>& frames);
-     void buildPipelines(FcRenderer* renderer);
+     void init(glm::mat4& viewProj);
+     void buildPipelines(VkDescriptorSetLayout sceneDescriptorLayout);
      FcPipeline* TransparentPipeline() { return &mTransparentPipeline; }
      FcPipeline* OpaquePipeline() { return &mOpaquePipeline; }
      void clearResources(VkDevice device);
      void draw(VkCommandBuffer cmd, FcDrawCollection& drawCollection, FrameAssets& currentFrame);
      // TODO DELETE or refactor the following
-     VkDescriptorSetLayout getSceneDescriptorLayout() { return mSceneDataDescriptorLayout; }
-     SceneDataUbo* getSceneDataUbo() { return &mSceneData; }
-     void updateSceneDataBuffer() { mSceneDataBuffer.write(&mSceneData, sizeof(SceneDataUbo)); }
+     /* VkDescriptorSetLayout getSceneDescriptorLayout() { return mSceneDataDescriptorLayout; } */
+     /* SceneDataUbo* getSceneDataUbo() { return &mSceneData; } */
+     /* void updateSceneDataBuffer() { mSceneDataBuffer.write(&mSceneData, sizeof(SceneDataUbo)); } */
      float& ExpansionFactor() { return expansionFactor; }
 };
 

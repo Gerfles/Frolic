@@ -19,6 +19,7 @@ namespace fc
      // TODO enum with control points
      struct UBO
      {
+        // TODO remove unecessary
         glm::mat4 projection;
         glm::mat4 modelView; // TODO model is currently sent via push constants
         glm::mat4 modelViewProj;
@@ -52,6 +53,6 @@ namespace fc
      void update(FcFrustum& frustum);
      void loadHeightmap(std::filesystem::path filename, uint32_t numPatches);
      void generateTerrain();
-     void draw(VkCommandBuffer cmdBuffer, SceneDataUbo* pSceneData, bool drawWireFrame);
+     void draw(VkCommandBuffer cmdBuffer, SceneDataUbo& sceneData, bool drawWireFrame);
   };
 }// --- namespace fc --- (END)

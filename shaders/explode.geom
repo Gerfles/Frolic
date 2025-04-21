@@ -17,7 +17,7 @@ layout (location = 2) out vec2 outUV;
 layout (location = 3) out vec3 outPosWorld;
 layout (location = 4) out vec4 outPosLightSpace;
 
-
+// TODO too much data to push for push constant unless 128 bytes refers to each shader
 layout(push_constant) uniform constants
 {
   // Not well documented but the offset here is because we can really only have

@@ -9,9 +9,7 @@ layout(std140, set = 0, binding = 0) uniform SceneData
   mat4 proj;
   mat4 viewProj;
   mat4 lightSpaceTransform;
-  vec4 ambientColor;
   vec4 sunDirection;
-  vec4 sunColor;
 } sceneData;
 
 layout(location = 0) in vec3 vertPos;
@@ -19,14 +17,11 @@ layout(location = 0) out vec3 outUVW;
 
 void main()
 {
-  outUVW = vertPos;
-//  outUVW.z *= -1.0;
-
-  // TODO try just using viewProj matrix without sending proj or view separately
-  // ?? do we even need position??
+  // Must remove the translation part of view matrix and then (fill with zeros) then
+  // multiple by projection so that the cube never approaches us
   vec4 position = sceneData.proj * mat4(mat3(sceneData.view)) * vec4(vertPos, 1.0);
-  //vec4 position = vec4(mat3(sceneData.viewProj) * vertPos, 1.0);
 
+  outUVW = vertPos;
   // set z to min depth so we can write to depthbuffer and draw skycube last, that
   // way we are not drawing a fragment for every pixel in the screen.
   position.z = 0.0;

@@ -17,6 +17,7 @@ layout (buffer_reference, std430) readonly buffer VertexBuffer
   Vertex vertices[];
 };
 
+// TODO set push constant max to be 128 for most implementations (guaranteed amount)
 layout (push_constant) uniform constants
 {
   mat4 lightSpaceMatrix;

@@ -12,7 +12,7 @@ namespace fc
    private:
      FcPipeline mNormalDrawPipeline;
    public:
-     void initPipelines(VkDescriptorSetLayout sceneDescriptorLayout);
+     void buildPipelines(VkDescriptorSetLayout sceneDescriptorLayout);
      void draw(VkCommandBuffer cmd,
                FcDrawCollection& drawCollection,
                FrameAssets& currentFrame);

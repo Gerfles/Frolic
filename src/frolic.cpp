@@ -72,17 +72,12 @@ namespace fc
 
 
     // TODO TRY to pull some stuff out of render initialize and have init VK systems?
-    //TODO should maybe define our own exit_success and failure codes for debugging later
+    //TODO define our own exit_success and failure codes for debugging later
     if (mRenderer.init(appInfo, screenDims, &pSceneData) != EXIT_SUCCESS)
     {
       mShouldClose = true;
       return;
     }
-
-    mRenderer.initDefaults();//mSceneDataBuffer, &mSceneData);
-
-    // zero out the ticklist for performance tracking
-    std::memset(mFrameTimeList, 0, sizeof(mFrameTimeList));
 
     // create a default texture that gets used whenever assimp cant find a texture
     // Need to load this in first so it can be Texture 0 for default
@@ -96,47 +91,6 @@ namespace fc
     mPlayer.init(&mInput);
     uvnPlayer.init(&mInput);
 
-    initPipelines();
-
-    stats = &mRenderer.getStats();
-  }
-
-
-
-  void Frolic::loadUIobjects()
-  {
-  }
-
-
-
-  void Frolic::loadGameObjects()
-  {
-    // TODO keep this behavior for Fc_Scene
-    // castle->transform.rotation = {glm::pi<float>(), 0.f, 0.f};
-    // castle->transform.translation = {0.f, 1.f, 0.f};
-    // castle->transform.scale = {0.5f, 0.5f, 0.5f};
-
-  } // --- Frolic::loadGameObjects (_) --- (END)
-
-
-  void Frolic::initPipelines()
-  {
-    fcLog("Remove me!");
-  }
-
-
-  void Frolic::run()
-  {
-    fcLog("Initializing to begin main run loop", 0);
-
-    // Initialize player controls and position
-
-    //mPlayer.setPosition(glm::vec3(30.f, -00.f, -85.f));
-    //mPlayer.setPosition(glm::vec3(-5.f, 5.5f, .20f));
-    /* mPlayer.setPosition(glm::vec3(0.f, 0.f, 2.f)); */
-    mPlayer.setPosition(glm::vec3(-2.5f, 21.4f, -0.28f));
-
-    uvnPlayer.setPosition(glm::vec3(0.f, 0.f, 2.f));
 
     mPlayer.Camera().setPerspectiveProjection(60.0f, FcLocator::ScreenDims().width
                                              , FcLocator::ScreenDims().height, 512.f, 0.1f);
@@ -160,26 +114,57 @@ namespace fc
     // mSceneData.projection[1][1] *= -1;
     //
 
-    pSceneData->projection = mPlayer.Camera().Projection();
+    /* pSceneData->projection = mPlayer.Camera().Projection(); */
 
     // mSceneData.projection = orthographic(-1.f, 1.f,
     //                                     -1.f, 1.f,  100.f, 0.1f);
     //camera.setViewTarget(glm::vec3{0,0,5}, glm::vec3{0,0,-1});
 
-    int currentBackgroundEffect{0};
+
+    mRenderer.setActiveCamera(&mPlayer.Camera());
+    mRenderer.initDefaults();//mSceneDataBuffer, &mSceneData);
+
+    // zero out the ticklist for performance tracking
+    std::memset(mFrameTimeList, 0, sizeof(mFrameTimeList));
+
+    stats = &mRenderer.getStats();
+  }
+
+
+
+  void Frolic::loadUIobjects()
+  {
+  }
+
+
+
+  void Frolic::loadGameObjects()
+  {
+    // TODO keep this behavior for Fc_Scene
+    // castle->transform.rotation = {glm::pi<float>(), 0.f, 0.f};
+    // castle->transform.translation = {0.f, 1.f, 0.f};
+    // castle->transform.scale = {0.5f, 0.5f, 0.5f};
+
+  } // --- Frolic::loadGameObjects (_) --- (END)
+
+
+
+  void Frolic::run()
+  {
+    fcLog("Initializing to begin main run loop", 0);
 
     // FIXME
     SDL_ShowCursor(SDL_DISABLE);
 
-    // default lighting parameters
-    // mSceneData.ambientLight = glm::vec4(1.0f, 0.05f, 0.05f, .5f);
-    // mSceneData.ambientLight = glm::vec4(1.0f, 0.05f, 0.05f, .3f);
-    pSceneData->ambientLight = glm::vec4(0.2f);
-//    mSceneData.ambientLight = glm::vec4(1.0f, 1.0f, 1.0f, 0.3f);
-    pSceneData->sunlightColor = glm::vec4(1.f);//, 1.f, 1.f, 1.0);
-    //mSceneData.sunlightDirection = glm::vec4(2.f, 10.f, -3.f, 1.f);
-    //mSceneData.sunlightDirection = glm::vec4(2.0f, 2.f, 0.f, 1.f);
-    pSceneData->sunlightDirection = glm::vec4(0.1f, 1.f, 0.05f, 1.f);
+
+    // Initialize player controls and position
+
+    //mPlayer.setPosition(glm::vec3(30.f, -00.f, -85.f));
+    //mPlayer.setPosition(glm::vec3(-5.f, 5.5f, .20f));
+    /* mPlayer.setPosition(glm::vec3(0.f, 0.f, 2.f)); */
+    mPlayer.setPosition(glm::vec3(-2.5f, 21.4f, -0.28f));
+    uvnPlayer.setPosition(glm::vec3(0.f, 0.f, 2.f));
+
 
     // load everything we need for the scene
     //loadUIobjects();
@@ -262,19 +247,10 @@ namespace fc
 
       //update(deltaTime);
 
-      // TODO not robust as getview must happen before inverseView
-      //camera.setViewTarget(glm::vec3{0,0,4.0}, glm::vec3{0,0,-1});
-      pSceneData->eye = glm::vec4(mPlayer.Camera().Position(), 1.0f);
-      pSceneData->view = mPlayer.Camera().getViewMatrix();//View();
 
-      //mSceneData.view = glm::scale(mSceneData.view, glm::vec3(15.0f, 15.0f, 15.0f));
-      //mSceneData.view = camera.View();
-      // mSceneData.view = glm::translate(glm::vec3{0.f, 0.f, -4.f});
-
-      // TODO pre-calculate  this in camera
-      pSceneData->viewProj = pSceneData->projection * pSceneData->view;
-      pSceneData->lighSpaceTransform = mRenderer.mShadowMap.LightSpaceMatrix();
-//      mSceneDataBuffer.overwriteData(&mSceneData, sizeof(SceneData));
+      // pSceneData->viewProj = pSceneData->projection * pSceneData->view;
+      // pSceneData->lighSpaceTransform = mRenderer.mShadowMap.LightSpaceMatrix();
+// mSceneDataBuffer.overwriteData(&mSceneData, sizeof(SceneData));
 
       // -*-*-*-*-*-*-*-*-*-*-*-*-*-   START THE NEW FRAME   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
       // mRenderer.generateShadowMap();
@@ -284,10 +260,8 @@ namespace fc
       // FcPipeline* selected = mPipelines[currentBackgroundEffect];
       /* mRenderer.attachPipeline(selected); */
 
+      // TODO make sure we can comment out drawGUI without crashing
       drawGUI();
-
-      // TODO remove access into scene renderer
-      mRenderer.mSceneRenderer.updateSceneDataBuffer();
 
       //mRenderer.drawModels(swapchainImgIndex, mUbo);
       //mRenderer.drawBillboards(camera.Position(), frame, mUbo);
@@ -295,7 +269,6 @@ namespace fc
       //mRenderer.drawBackground(mPushConstants[currentBackgroundEffect]);
 
       // TODO may want to couple shadow map tighter with sceneRenderer
-      /* mRenderer.drawShadowMap(mDebugShadowMap); */
       mRenderer.drawFrame(mDebugShadowMap);
 
       mRenderer.endFrame(swapchainImgIndex);
@@ -333,9 +306,11 @@ namespace fc
       ImGui::SameLine(0.f, 10.f);
       ImGui::Text("| Update(ms): %.2f", stats->sceneUpdateTime);
       ImGui::SameLine(0.f, 10.f);
-      glm::vec4 pos = pSceneData->eye;
-      ImGui::Text("| Position: <%.3f,%.3f,%.3f>", pos.x, pos.y, pos.z);
-      ImGui::SameLine(0.f, 10.f);
+
+      // TODO UNCOMMENT
+      // ImGui::Text("| Position: <%.3f,%.3f,%.3f>", pos.x, pos.y, pos.z);
+      // ImGui::SameLine(0.f, 10.f);
+
       ImGui::Text("| Triangles Drawn: %i", stats->triangleCount);
       ImGui::SameLine(0.f, 10.f);
       ImGui::Text("| Objects Drawn: %i", stats->objectsRendered);
@@ -347,6 +322,9 @@ namespace fc
       // TODO check the official way to use ImGui via the imgui example source code
       ImGui::End();
     }
+
+    // ImGui::Render();
+    // return;
 
 
     if (mPlayer.lookSpeed() == 0.0f)

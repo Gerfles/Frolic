@@ -4,7 +4,7 @@
 
 namespace fc
 {
-  void FcNormalRenderer::initPipelines(VkDescriptorSetLayout sceneDescriptorLayout)
+  void FcNormalRenderer::buildPipelines(VkDescriptorSetLayout sceneDescriptorLayout)
   {
     FcPipelineConfig pipelineConfig{3};
     pipelineConfig.name = "Normal Draw Pipeline";
@@ -47,7 +47,7 @@ namespace fc
                               FrameAssets& currentFrame)
   {
     mNormalDrawPipeline.bind(cmd);
-    mNormalDrawPipeline.bindDescriptors(cmd, currentFrame.sceneDataDescriptorSet, 0);
+    mNormalDrawPipeline.bindDescriptorSet(cmd, currentFrame.sceneDataDescriptorSet, 0);
 
     // TODO could also draw the vectors for transparent objects but bypassed here
     for (auto& materialCollection : drawCollection.opaqueSurfaces)

@@ -205,6 +205,7 @@ namespace fc
     mViewMatrix[3][1] = -glm::dot(v, position);
     mViewMatrix[3][2] = -glm::dot(w, position);
 
+
 // Matrix corresponds to translate * Roty * Rotx * Rotz * scale transformation
    // Rotation convention uses tait-bryan (euler) angles with axis order Y(1), X(2), Z(3)
    // https://en.wikipedia.org/wiki/Euler_angles#Rotation_matrix

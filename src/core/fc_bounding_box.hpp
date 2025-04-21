@@ -33,7 +33,7 @@ namespace fc
    private:
      FcPipeline mBoundingBoxPipeline;
    public:
-     void initPipelines(VkDescriptorSetLayout sceneDescriptorLayout);
+     void buildPipelines(VkDescriptorSetLayout sceneDescriptorLayout);
      void draw(VkCommandBuffer cmd, FcDrawCollection& drawCollection
                ,FrameAssets& currentFrame, int boundingBoxID = -1);
      void destroy();

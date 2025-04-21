@@ -1,5 +1,6 @@
 // fc_surface.cpp
 #include "fc_surface.hpp"
+#include "core/utilities.hpp"
 //
 
 namespace fc
@@ -27,7 +28,6 @@ namespace fc
 
   bool FcSurface::isVisible(const glm::mat4& viewProjection)
   {
-
     std::array<glm::vec3, 8> corners { glm::vec3{1.0f, 1.0f, 1.0f}
                                      , glm::vec3{1.0f, 1.0f, -1.0f}
                                      , glm::vec3{1.0f, -1.0f, 1.0f}

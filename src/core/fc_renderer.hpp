@@ -3,6 +3,7 @@
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_frustum.hpp"
 #include "fc_terrain.hpp"
+#include "fc_camera.hpp"
 #include "shadow_map.hpp"
 #include "fc_skybox.hpp"
 #include "fc_billboard_render_system.hpp"
@@ -92,8 +93,6 @@ namespace fc
 
      std::vector<FrameAssets> mFrames {MAX_FRAME_DRAWS};
      FcFrustum mFrustum;
-     // // TODO should probably pass this in each frame
-     // SceneData* pSceneData;
 
      void createInstance(VkApplicationInfo& appInfo);
      bool areInstanceExtensionsSupported(const std::vector<const char*>& instanceExtensions);
@@ -118,18 +117,22 @@ namespace fc
      FcUIrenderSystem mUiRenderer;
      FcPipeline mUiPipeline;
       // - Billboard Rendering
-     FcBillboardRenderSystem mBillboardRenderer;
+     FcBillboardRenderer mBillboardRenderer;
      FcPipeline mBillboardPipeline;
      FcBuffer materialConstants;
 
      FcTerrain mTerrain;
      FcTextureAtlas textureAtlas;
      // TODO DELETE
-     VkDescriptorSetLayout mBackgroundDescriptorlayout;
+     /* VkDescriptorSetLayout mBackgroundDescriptorlayout; */
      glm::mat4 rotationMatrix{1.0f};
      // debugging effects
      FcBoundingBoxRenderer mBoundingBoxRenderer;
      FcNormalRenderer mNormalRenderer;
+     FcCamera* pActiveCamera;
+     SceneDataUbo mSceneData;
+     FcBuffer mSceneDataBuffer;
+     VkDescriptorSetLayout mSceneDataDescriptorLayout;
    public:
 
      // TODO Make these all private
@@ -204,12 +207,13 @@ namespace fc
      void drawBillboards(glm::vec3 cameraPosition, uint32_t swapchainImgIndex, SceneDataUbo& ubo);
      void drawUI(std::vector<FcText>& UIelements, uint32_t swapchainImgIndex);
      void drawFrame(bool drawDebugShadowMap);
+     void setActiveCamera(FcCamera* camera) { pActiveCamera = camera; }
       // - GETTERS -
      /* FcSceneRenderer* getMetalRoughMaterial() { return &mSceneRenderer; } */
      /* VkDescriptorSetLayout getSceneDescriptorLayout() { return mSceneDataDescriptorLayout; } */
      /* VkDescriptorSetLayout SkyboxDescriptorLayout() { return mSkybox.DescriptorLayout(); } */
       // TODO delete this probably and place background pipeline in renderer
-     VkDescriptorSetLayout getBackgroundDescriptorLayout() { return mBackgroundDescriptorlayout; }
+     /* VkDescriptorSetLayout getBackgroundDescriptorLayout() { return mBackgroundDescriptorlayout; } */
      FrameAssets& getCurrentFrame() { return mFrames[mFrameNumber % MAX_FRAME_DRAWS]; }
       // ?? is this used often enough to merit a member variable?
      float ScreenWidth() { return mWindow.ScreenSize().width; }

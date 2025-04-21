@@ -44,10 +44,6 @@ namespace fc
      std::vector<FcPipeline*> mPipelines;
      std::vector<ComputePushConstants> mPushConstants{2};
 
-     // SceneData mSceneData;
-     // FcBuffer mSceneDataBuffer;
-      // ComputePushConstants gradientPushConstants{};
-      // ComputePushConstants skyPushConstants{};
      SceneDataUbo* pSceneData {nullptr};
 
      // Note these do not necessarily enable the feature -> ONLY when it is already included in glTF
@@ -78,8 +74,6 @@ namespace fc
      std::vector<FcText> mUItextList;
      FcFont mUIfont;
 
-
-
      FcImage mFallbackTexture;
       // ideally, here it would be nice to
 
@@ -89,7 +83,6 @@ namespace fc
      void drawGUI();
      void loadGameObjects();
      void loadUIobjects();
-     void initPipelines();
 
      void update(float deltaTime);
      int calcFPS(float lastFrameTime);

@@ -77,8 +77,6 @@ void main()
   outWorldPos = position.xyz;
   outEyePos = vec3(ubo.modelView * position);
 
-
-
   // Texture interpolation
   // // get patch coordinate
   // float u = gl_TessCoord.x;

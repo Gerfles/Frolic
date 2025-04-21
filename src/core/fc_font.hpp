@@ -36,7 +36,7 @@ namespace fc
      };
 
      friend class FcText;
-     BillboardPushComponent mTextBoxSpecs;
+     BillboardPushes mTextBoxSpecs;
       //
 //     FcMesh mTextBoxMesh;
 
@@ -50,7 +50,7 @@ namespace fc
 
    public:
 //     VkBuffer& VertexBuffer() { return mTextBoxMesh.VertexBuffer(); }
-     BillboardPushComponent& Push() { return mTextBoxSpecs; }
+     BillboardPushes& Push() { return mTextBoxSpecs; }
       //   VkBuffer IndexBuffer() { return mTextBoxMesh.IndexBuffer(); }
 //     uint32_t IndexCount() { return mTextBoxMesh.VertexCount(); }
      void createRasterFont(std::string fontName

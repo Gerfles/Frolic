@@ -91,19 +91,19 @@ namespace fc
       mSwapchain.init(mGpu, mWindow.ScreenSize());
 
       // -*-*-*-*-*-*-*-*-*-*-*-*-   INITIALIZE DESCRIPTORS   -*-*-*-*-*-*-*-*-*-*-*-*- //
-      FcDescriptorClerk* descriptorClerk = new FcDescriptorClerk;
+      FcDescriptorClerk* descClerk = new FcDescriptorClerk;
       // TODO understand the pool ratios better
       std::vector<PoolSizeRatio> poolRatios = { {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 6},
-        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 6},
-        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 6},
-        {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 8}
+                                                {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 6},
+                                                {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 6},
+                                                {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 8}
       };
 
       //
-      descriptorClerk->initDescriptorPools(1000, poolRatios);
+      descClerk->initDescriptorPools(1000, poolRatios);
 
       // register the descriptor with the locator
-      FcLocator::provide(descriptorClerk);
+      FcLocator::provide(descClerk);
 
 
       initDrawImage();
@@ -159,26 +159,54 @@ namespace fc
       mDynamicScissors.extent.width = mDrawExtent.width;
       mDynamicScissors.extent.height = mDrawExtent.height;
 
-      FcDefaults::init(pDevice);
 
-      // FcModel model;
-      // model.createModel("models/smooth_vase.obj", mPipeline, mGpu);
-      // mModelList.push_back(model);
+
+      // *-*-*-*-*-*-*-*-*-*-*-*-   FRAME DATA INITIALIZATION   *-*-*-*-*-*-*-*-*-*-*-*- //
+      mSceneDataBuffer.allocate(sizeof(SceneDataUbo), FcBufferTypes::Uniform);
+      // TODO create temporary storage for this in descClerk so we can just write the
+      // descriptorSet and layout on the fly and destroy layout if not needed
+      // TODO see if layout is not needed.
+      FcDescriptorBindInfo sceneDescriptorBinding{};
+      sceneDescriptorBinding.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
+                                        , VK_SHADER_STAGE_VERTEX_BIT
+                                        // TODO DELETE after separating model from scene
+                                        | VK_SHADER_STAGE_FRAGMENT_BIT
+                                        | VK_SHADER_STAGE_GEOMETRY_BIT);
+
+      // TODO find out if there is any cost associated with binding to multiple un-needed stages...
+      //, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+
+      sceneDescriptorBinding.attachBuffer(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
+                                          , mSceneDataBuffer, sizeof(SceneDataUbo), 0);
+
+      // TODO find out if we need to keep descriptorLayout
+      // create descriptorSet for sceneData
+      mSceneDataDescriptorLayout = descClerk->createDescriptorSetLayout(sceneDescriptorBinding);
+
+      // Allocate a descriptorSet to each frame buffer
+      for (FrameAssets& frame : mFrames)
+      {
+        frame.sceneDataDescriptorSet =
+          descClerk->createDescriptorSet(mSceneDataDescriptorLayout,
+                                         sceneDescriptorBinding);
+      }
+
+      FcDefaults::init(pDevice);
     }
     catch (const std::runtime_error& err) {
       printf("ERROR: %s\n", err.what());
       return EXIT_FAILURE;
     }
 
-    *pSceneData = mSceneRenderer.getSceneDataUbo();
 
+    *pSceneData = &mSceneData;
     return EXIT_SUCCESS;
   }
 
   // TODO could pass pScene data here but probably better to just include this in mRenderer.init()
   void FcRenderer::initDefaults()//FcBuffer& sceneDataBuffer, SceneDataUbo* sceneData)
   {
-    mSceneRenderer.init(mFrames);
+    mSceneRenderer.init(mSceneData.viewProj);
     mShadowMap.init(mFrames);
     mTerrain.init("..//maps/terrain_heightmap_r16.ktx2");
     // mTerrain.init(this, "..//maps/iceland_heightmap.png");
@@ -197,13 +225,16 @@ namespace fc
     // TODO these should all be a part of frolic or game class, not the renderer
     mSkybox.loadTextures("..//models//skybox", ".jpg");
     // TODO should be more descriptive in name to show this has to happen after loadTextures
-    mSkybox.init(mSceneRenderer.getSceneDescriptorLayout(), mFrames);
+    mSkybox.init(mSceneDataDescriptorLayout, mFrames);
     //
-    // // TODO think about destroying layout here
-    mSceneRenderer.buildPipelines(this);
+
+    // TODO get rid of build pipeline calls and just do that within init
+    mSceneRenderer.buildPipelines(mSceneDataDescriptorLayout);
     // TODO see if we can decouple the scene descriptor layout
-    mBoundingBoxRenderer.initPipelines(mSceneRenderer.getSceneDescriptorLayout());
-    mNormalRenderer.initPipelines(mSceneRenderer.getSceneDescriptorLayout());
+    mBoundingBoxRenderer.buildPipelines(mSceneDataDescriptorLayout);
+    mNormalRenderer.buildPipelines(mSceneDataDescriptorLayout);
+
+    // // TODO think about destroying layout here
 
     // TODO implement with std::optional
     // TODO move to frolic.cpp
@@ -233,7 +264,8 @@ namespace fc
 
     // FIXME requires enabling one or more extensions in fastgltf
     //structure.loadGltf(this, "..//models//SheenWoodLeatherSofa.glb");
-
+    mSceneData.projection = pActiveCamera->Projection();
+    mSceneData.sunlightDirection = glm::vec4(0.1f, 1.f, 0.05f, 1.f);
     // initNormalDrawPipeline(sceneDataBuffer);
     // initBoundingBoxPipeline(sceneDataBuffer);
     // TODO remove at some point but prefer to leave in while debugging
@@ -442,8 +474,6 @@ namespace fc
     {
       throw std::runtime_error("Failed to create Vulkan Instance!");
     }
-
-
   }  // END void FcRenderer::createInstance(...)
 
 
@@ -477,16 +507,16 @@ namespace fc
   mDrawImage.create(mWindow.ScreenSize().width, mWindow.ScreenSize().height
                     , FcImageTypes::ScreenBuffer);
 
-    // *-*-*-*-*-*-*-*-*-*-*-   CREATE DRAW IMAGE DESCRIPTOR   *-*-*-*-*-*-*-*-*-*-*- //
-    // TODO some redundancy that might be able to be eliminated
-    FcDescriptorBindInfo bindingInfo;
-    bindingInfo.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT);
-    bindingInfo.attachImage(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
-                            , mDrawImage, VK_IMAGE_LAYOUT_GENERAL, nullptr);
+  // -*-*-*-*-*-*-*-*-*-   CREATE BACKGROUND IMAGE DESCRIPTOR   -*-*-*-*-*-*-*-*-*- //
+    // // TODO some redundancy that might be able to be eliminated
+    // FcDescriptorBindInfo bindingInfo;
+    // bindingInfo.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT);
+    // bindingInfo.attachImage(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
+    //                         , mDrawImage, VK_IMAGE_LAYOUT_GENERAL, nullptr);
 
-    FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
-    mBackgroundDescriptorlayout = descClerk.createDescriptorSetLayout(bindingInfo);
-    mDrawImageDescriptor = descClerk.createDescriptorSet(mBackgroundDescriptorlayout, bindingInfo);
+    // FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
+    // mBackgroundDescriptorlayout = descClerk.createDescriptorSetLayout(bindingInfo);
+    // mDrawImageDescriptor = descClerk.createDescriptorSet(mBackgroundDescriptorlayout, bindingInfo);
 
     // since we don't need the DSLayout, get rid of it
     //vkDestroyDescriptorSetLayout(pDevice, mBackgroundDescriptorlayout, nullptr);
@@ -515,8 +545,6 @@ namespace fc
     mDynamicScissors.extent.width = mDrawExtent.width;
     mDynamicScissors.extent.height = mDrawExtent.height;
   }
-
-
 
   // create the command buffers and command pools
   // TODO make two seperate functions, one for pool creation, one for command buffer allocation
@@ -639,6 +667,18 @@ namespace fc
   void FcRenderer::updateScene()
   {
     mTimer.start();
+
+    // TODO not robust as getview must happen before inverseView
+    //camera.setViewTarget(glm::vec3{0,0,4.0}, glm::vec3{0,0,-1});
+    // TODO store/return position as a vec4
+    mSceneData.eye = glm::vec4(pActiveCamera->Position(), 1.0f);
+    mSceneData.view = pActiveCamera->getViewMatrix();
+    // TODO pre-calculat this in camera
+    mSceneData.viewProj = mSceneData.projection * mSceneData.view;
+    mSceneData.lighSpaceTransform = mShadowMap.LightSpaceMatrix();
+    mSceneDataBuffer.write(&mSceneData, sizeof(SceneDataUbo));
+
+
     // TODO this is calling the destructor for all objects in draw, should flatten more
     // to just the necessary AND changing parameters...
     // mDrawCollection.opaqueSurfaces.clear();
@@ -673,11 +713,7 @@ namespace fc
     // TODO
     // could update frustum by sending camera in and then could in turn be sent to
     // various rendering methods
-
-    glm::mat4 viewProj = mSceneRenderer.getSceneDataUbo()->projection
-                         * mSceneRenderer.getSceneDataUbo()->view;
-
-    mFrustum.update(viewProj);
+    mFrustum.update(mSceneData.viewProj);
 
     // TEST if needed
     mFrustum.normalize();
@@ -688,56 +724,56 @@ namespace fc
   }
 
 
-  // ?? TODO do we need camera position
+
   void FcRenderer::drawBillboards(glm::vec3 cameraPosition, uint32_t swapchainImageIndex, SceneDataUbo& ubo)
   {
-    std::vector<FcBillboard* >& billboards = FcLocator::Billboards();
+    // std::vector<FcBillboard* >& billboards = FcLocator::Billboards();
 
-    // sort the billboards by distance to the camera
-    // TODO sort within update instead
-    std::multimap<float, size_t> sortedIndices; // TODO?? uint32 or size_t
-    for (size_t i = 0; i < billboards.size(); ++i)
-    {
-      // calculate distance
-      auto distance = ubo.eye - billboards[i]->PushComponent().position;
-      float distanceSquared = glm::dot(distance, distance);
-      sortedIndices.insert(std::pair(distanceSquared, i));
-    }
+    // // sort the billboards by distance to the camera
+    // // TODO sort within update instead
+    // std::multimap<float, size_t> sortedIndices; // TODO?? uint32 or size_t
+    // for (size_t i = 0; i < billboards.size(); ++i)
+    // {
+    //   // calculate distance
+    //   auto distance = ubo.eye - billboards[i]->PushComponent().position;
+    //   float distanceSquared = glm::dot(distance, distance);
+    //   sortedIndices.insert(std::pair(distanceSquared, i));
+    // }
 
-    VkCommandBuffer currCommandBuffer = getCurrentFrame().commandBuffer;
+    // VkCommandBuffer currCommandBuffer = getCurrentFrame().commandBuffer;
 
-    // bind pipeline to be used in render pass
-    mBillboardPipeline.bind(currCommandBuffer);
-    // DRAW ALL UI COMPONENTS (LAST)
-    // draw text box
+    // // bind pipeline to be used in render pass
+    // mBillboardPipeline.bind(currCommandBuffer);
+    // // DRAW ALL UI COMPONENTS (LAST)
+    // // draw text box
 
-    // iterate through billboards in reverse order (to draw them back to front)
-    for (auto index = sortedIndices.rbegin(); index != sortedIndices.rend(); ++index )
-    {
-      vkCmdPushConstants(currCommandBuffer, mBillboardPipeline.Layout()
-                         , VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(BillboardPushComponent)
-                         , &billboards[index->second]->PushComponent());
+    // // iterate through billboards in reverse order (to draw them back to front)
+    // for (auto index = sortedIndices.rbegin(); index != sortedIndices.rend(); ++index )
+    // {
+    //   vkCmdPushConstants(currCommandBuffer, mBillboardPipeline.Layout()
+    //                      , VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(BillboardPushes)
+    //                      , &billboards[index->second]->PushComponent());
 
-      //VkDeviceSize offsets[] = { 0 };
-      // vkCmdBindVertexBuffers(mCommandBuffers[swapChainImageIndex], 0, 1, &font.VertexBuffer(), offsets);
-      // vkCmdBindIndexBuffer(mCommandBuffers[swapChainImageIndex], font.IndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
+    //   //VkDeviceSize offsets[] = { 0 };
+    //   // vkCmdBindVertexBuffers(mCommandBuffers[swapChainImageIndex], 0, 1, &font.VertexBuffer(), offsets);
+    //   // vkCmdBindIndexBuffer(mCommandBuffers[swapChainImageIndex], font.IndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
-      FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
+    //   FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
 
-      // TODO  update the global Ubo only once per frame, not each draw call
-      // descClerk.update(swapchainImageIndex, &ubo);
+    //   // TODO  update the global Ubo only once per frame, not each draw call
+    //   // descClerk.update(swapchainImageIndex, &ubo);
 
-      std::array<VkDescriptorSet, 2> descriptorSets;
-      descriptorSets[0] =  mFrames[swapchainImageIndex].sceneDataDescriptorSet;
-      descriptorSets[1] = billboards[index->second]->getDescriptor();
+    //   std::array<VkDescriptorSet, 2> descriptorSets;
+    //   descriptorSets[0] =  mFrames[swapchainImageIndex].sceneDataDescriptorSet;
+    //   descriptorSets[1] = billboards[index->second]->getDescriptor();
 
-      vkCmdBindDescriptorSets(currCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS
-                              , mBillboardPipeline.Layout(), 0, static_cast<uint32_t>(descriptorSets.size())
-                              , descriptorSets.data() , 0, nullptr);
+    //   vkCmdBindDescriptorSets(currCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS
+    //                           , mBillboardPipeline.Layout(), 0, static_cast<uint32_t>(descriptorSets.size())
+    //                           , descriptorSets.data() , 0, nullptr);
 
-      //vkCmdDrawIndexed(mCommandBuffers[swapChainImageIndex], font.IndexCount(), 1, 0, 0, 0);
-      vkCmdDraw(currCommandBuffer, 6, 1, 0, 0);
-    }
+    //   //vkCmdDrawIndexed(mCommandBuffers[swapChainImageIndex], font.IndexCount(), 1, 0, 0, 0);
+    //   vkCmdDraw(currCommandBuffer, 6, 1, 0, 0);
+    // }
   }
 
 
@@ -753,7 +789,7 @@ namespace fc
     for (size_t i = 0; i < UIelements.size(); i++)
     {
       vkCmdPushConstants(currCommandBuffer, mUiPipeline.Layout()
-                         , VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(BillboardPushComponent), &UIelements[i].Push());
+                         , VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(BillboardPushes), &UIelements[i].Push());
 
       VkDeviceSize offsets[] = { 0 };
       // vkCmdBindVertexBuffers(mCommandBuffers[swapChainImageIndex], 0, 1, &font.VertexBuffer(), offsets);
@@ -893,7 +929,7 @@ namespace fc
         mNormalRenderer.draw(cmd, mDrawCollection, getCurrentFrame());
       }
 
-      mTerrain.draw(cmd, mSceneRenderer.getSceneDataUbo(), drawWireframe);
+      mTerrain.draw(cmd, mSceneData, drawWireframe);
 
       // Draw the skybox last so that we can skip pixels with ANY object in front of it
       mSkybox.draw(cmd, getCurrentFrame());
@@ -1270,6 +1306,9 @@ namespace fc
     // wait until no actions being run on device before destroying
     vkDeviceWaitIdle(pDevice);
 
+    // Destroy data buffer with scene data
+    mSceneDataBuffer.destroy();
+
     //loadedScenes.clear();
     structure.clearAll();
 
@@ -1283,8 +1322,8 @@ namespace fc
     mSceneRenderer.clearResources(pDevice);
     mBoundingBoxRenderer.destroy();
     mNormalRenderer.destroy();
-    vkDestroyDescriptorSetLayout(pDevice, mBackgroundDescriptorlayout, nullptr);
-
+    /* vkDestroyDescriptorSetLayout(pDevice, mBackgroundDescriptorlayout, nullptr); */
+    vkDestroyDescriptorSetLayout(pDevice, mSceneDataDescriptorLayout, nullptr);
     // TODO should think about locating mImgGui into Descriptor Clerk
     FcLocator::DescriptorClerk().destroy();
 

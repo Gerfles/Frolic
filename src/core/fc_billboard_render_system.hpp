@@ -17,10 +17,8 @@ namespace fc
    // *-*-*-*-*-*-*-*-*-*-*-*-*-   FORWARD DECLARATIONS   *-*-*-*-*-*-*-*-*-*-*-*-*- //
   class FcPipeline;
 
-
-
    // should this be inside billboard class
-  struct BillboardPushComponent
+  struct BillboardPushes
   {
       // TODO vec4 used to simplify alignment. may want to do differently but also
       // could use the w component to signify point/vector (eg, point lignt vs directional light)
@@ -30,16 +28,13 @@ namespace fc
      float height;
   };
 
-
   class FcBillboard
   {
    private:
-
-      //uint32_t mTextureId;
      FcImage mTexture;
      VkDescriptorSet mDescriptor{nullptr};
      uint32_t mHandleIndex; // ?? find out if we even need a handle index
-     BillboardPushComponent mPush;
+     BillboardPushes mPush;
 
    public:
       // - CTORS -
@@ -51,7 +46,7 @@ namespace fc
      FcBillboard& operator=(FcBillboard&&) = delete;
 
      void placeInHandleTable();
-     BillboardPushComponent& PushComponent() { return mPush; }
+     BillboardPushes& PushComponent() { return mPush; }
      void loadTexture(std::string filename, VkDescriptorSetLayout layout);
      void loadTexture(VkDescriptorSetLayout layout);
       //uint32_t TextureId() { return mTextureId; }
@@ -61,17 +56,21 @@ namespace fc
   };
 
 
-  class FcBillboardRenderSystem
+  class FcBillboardRenderer
   {
    private:
+     FcPipeline mPipeline;
       //
    public:
-     void createPipeline(FcPipeline& pipeline);
-     FcBillboardRenderSystem() = default;
-     ~FcBillboardRenderSystem() = default;
-     FcBillboardRenderSystem(const FcBillboardRenderSystem&) = delete;
-     FcBillboardRenderSystem &operator=(const FcBillboardRenderSystem&) = delete;
-      //
+     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CTORS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     FcBillboardRenderer() = default;
+     ~FcBillboardRenderer() = default;
+     FcBillboardRenderer(const FcBillboardRenderer&) = delete;
+     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   OVERLOADS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     FcBillboardRenderer &operator=(const FcBillboardRenderer&) = delete;
+     //
+     /* void draw(glm::vec3 cameraPosition, uint32_t swapchainImageIndex, SceneDataUbo& ubo); */
+     void createPipeline();
      void sortBillboardsByDistance(glm::vec3& cameraPosition);
   };
 
