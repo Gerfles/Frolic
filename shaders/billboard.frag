@@ -1,9 +1,8 @@
-// BILLBOARD FRAGMENT SHADER - SWITCH TO VERTEX SHADER WITH s-p, a
+// billboard.frag
 // use GLSL version 4.5
 #version 450
 
-layout(location = 0) in vec4 fragColor;
-layout(location = 1) in vec2 texCoords;
+layout(location = 0) in vec2 texCoords;
 
 // struct Billboard
 // {
@@ -11,23 +10,11 @@ layout(location = 1) in vec2 texCoords;
 //    vec4 color; // w is intensity
 // };
 
-struct PointLight
-{
-   vec4 position; // ignore w
-   vec4 color; // w is intensity
-};
-
-
-layout(set = 0, binding = 0) uniform GlobalUbo
-{
-  mat4 projection;
-  mat4 view;
-  mat4 invView;
-  vec4 ambientLightColor;
-  PointLight pointLights[10];
-  int numLights;
-} ubo;
-
+// struct PointLight
+// {
+//    vec4 position; // ignore w
+//    vec4 color; // w is intensity
+// };
 
 // this actually isn't supplied by the pipeline to the fragment shader
 // billboard specific parameters
@@ -47,7 +34,12 @@ layout(location = 0) out vec4 outColor; // final output color (out and in are di
 
 void main()
 {
-  outColor = texture(textureSampler, texCoords) * fragColor;
+  outColor = texture(textureSampler, texCoords);
+  // if (outColor.a < 0.5)
+  // {
+  //   discard;
+  // }
+
   //outColor = vec4(0.0, 0.0, 1.0, 1.0);
   //outColor = fragColor;
   //outColor = vec4(push.color.xyz, 1.0);

@@ -76,8 +76,8 @@ void main()
 
   // TODO verify equivalence
 //  outPosLightSpace = sceneData.lightSpaceTransform * positionWorld;
+  // outPosLightSpace = (biasMat * sceneData.lightSpaceTransform * model.renderMatrix) * vec4(v.position, 1.0);
   outPosLightSpace = (sceneData.lightSpaceTransform * model.renderMatrix) * vec4(v.position, 1.0);
-
   // outNormal = mat3(sceneData.proj * sceneData.view * model.normalTransform) * v.normal;
   outNormal = mat3(model.normalTransform) * v.normal;
   // outNormal = mat3(inverse(transpose(model.renderMatrix))) * v.normal;

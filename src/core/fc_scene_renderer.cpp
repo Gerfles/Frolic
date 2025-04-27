@@ -192,10 +192,10 @@ namespace fc
       {
         FcSurface& surface = drawCollection.opaqueSurfaces[i].second[index];
 
-        if (surface.isVisible(*pViewProjection))
-        {
+        // if (surface.isVisible(*pViewProjection))
+        // {
           drawCollection.visibleSurfaceIndices[i].push_back(index);
-        }
+          // }
       }
     }
 
@@ -330,6 +330,7 @@ namespace fc
       //   triangleCount += surface->indexCount / 3;
       // }
       // return triangleCount;
+      return 0;
     }
 
 

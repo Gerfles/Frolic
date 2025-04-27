@@ -140,6 +140,12 @@ namespace fc
 
   void Frolic::loadGameObjects()
   {
+    // TODO research why there seems to be no constructor for a ::path from const char*
+    std::filesystem::path filename = "..//textures//point_light.png";
+    mSunBillboard.loadTexture(filename);
+    mSunBillboard.setPosition(pSceneData->sunlightDirection);
+    mRenderer.addBillboard(mSunBillboard);
+
     // TODO keep this behavior for Fc_Scene
     // castle->transform.rotation = {glm::pi<float>(), 0.f, 0.f};
     // castle->transform.translation = {0.f, 1.f, 0.f};
@@ -168,21 +174,19 @@ namespace fc
 
     // load everything we need for the scene
     //loadUIobjects();
-    //loadGameObjects();
-    // TODO this should be abstracted into engine
+    loadGameObjects();
 
+
+    // TODO this should be abstracted into engine
     fcLog("Frolic Initialized: Starting main run loop", 0);
     FcTimer mTimer;
     mTimer.start();
     float deltaTime = 0.0f;
 
-
-    bool ao;
-
     // TODO separate to make entirely own function
     while (!mShouldClose)
     {
-      bool shouldresize = false;
+      bool shouldResize = false;
       // Check for events every cycle of the game loop
       while (SDL_PollEvent(&mEvent))
       {
@@ -205,7 +209,7 @@ namespace fc
               //    // TODO handle better here
 
               //   mRenderer.handleWindowResize();
-              //   shouldresize = true;
+              //   shouldResize = true;
               //    //break;
               // }
               default:
@@ -292,7 +296,7 @@ namespace fc
   {
     // test ImGui UI
     // Left here to add a demo windo that names all the features for (handy for searching)
-    // ImGui::ShowDemoWindow();
+    /* ImGui::ShowDemoWindow(); */
 
     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   STATISTICS WINDOW   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     if (ImGui::Begin("Frolic Stats", NULL, ImGuiWindowFlags_NoTitleBar))
@@ -308,8 +312,10 @@ namespace fc
       ImGui::SameLine(0.f, 10.f);
 
       // TODO UNCOMMENT
-      // ImGui::Text("| Position: <%.3f,%.3f,%.3f>", pos.x, pos.y, pos.z);
-      // ImGui::SameLine(0.f, 10.f);
+      // TODO should probably have a Position() method in FcPlayer
+      glm::vec3 pos = mPlayer.Camera().Position();
+      ImGui::Text("| Position: <%.3f,%.3f,%.3f>", pos.x, pos.y, pos.z);
+      ImGui::SameLine(0.f, 10.f);
 
       ImGui::Text("| Triangles Drawn: %i", stats->triangleCount);
       ImGui::SameLine(0.f, 10.f);
@@ -400,11 +406,19 @@ namespace fc
         // FIXME
         ImGui::SliderFloat("Expansion Factor", &mRenderer.ExpansionFactor(), -1.f, 2.f);
 
-        ImGui::SetNextItemWidth(60);
-        if(ImGui::SliderFloat4("Sunlight", (float*)&pSceneData->sunlightDirection, -1.f, 1.f))
+        // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   SUNLIGHT   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+        glm::vec4 sunlightPos = pSceneData->sunlightDirection;
+        if (ImGui::SliderFloat("X", &sunlightPos.x, -100.f, 100.f)
+            || ImGui::SliderFloat("Y", &sunlightPos.y, 5.f, 100.f)
+            || ImGui::SliderFloat("Z", &sunlightPos.z, -100.f, 100.f))
         {
-          glm::vec4 lightPos = pSceneData->sunlightDirection - pSceneData->eye;
-          mRenderer.mShadowMap.updateLightSource(lightPos, glm::vec3(0.f, 0.f, 0.f));
+          // Update sun's location
+          mSunBillboard.setPosition(sunlightPos);
+          pSceneData->sunlightDirection = sunlightPos;
+
+          // Update shadow map light source
+          glm::vec3 lookDirection{sunlightPos.x, 0.f, sunlightPos.z};
+          mRenderer.mShadowMap.updateLightSource(sunlightPos, lookDirection);
         }
 
         // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   SHADOW MAP   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //

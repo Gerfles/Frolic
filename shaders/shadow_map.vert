@@ -20,8 +20,7 @@ layout (buffer_reference, std430) readonly buffer VertexBuffer
 // TODO lower memory constraints required
 layout (push_constant) uniform constants
 {
-  mat4 lightSpaceMatrix;
-  mat4 model;
+  mat4 MVP;
   VertexBuffer vertexBuffer;
 } push;
 
@@ -36,7 +35,7 @@ void main()
 {
   Vertex vert = push.vertexBuffer.vertices[gl_VertexIndex];
 
-  gl_Position = push.lightSpaceMatrix * push.model * vec4(vert.position, 1.0);
+  gl_Position = push.MVP * vec4(vert.position, 1.0);
 
   //outPosition = push.lightSpaceMatrix * pos;
 }

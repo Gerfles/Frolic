@@ -221,7 +221,7 @@ void main()
   vec3 viewDirection = normalize(sceneData.eye.xyz - inPosWorld);
   // TODO this might be the case for sun(ambient) light but not for point lights
   //vec3 lightDirection = normalize(-sceneData.sunDirection.xyz);// - inPosWorld);
-  vec3 lightDirection = normalize(sceneData.sunDirection.xyz);// - inPosWorld);
+  vec3 lightDirection = normalize(sceneData.sunDirection.xyz - inPosWorld);
 //  vec3 lightDirection = normalize(-(2,10,0) + inPosWorld);// - inPosWorld);
 //  vec3 lightDirection = normalize(sceneData.sunDirection.xyz - inPosWorld);
   //vec3 lightDirection = normalize(inPosWorld - sceneData.sunDirection.xyz);
@@ -343,29 +343,33 @@ float shadowCalculation(vec4 posLightSpace, vec3 normal, vec3 lightDirection)
   vec3 coordsFromLight = posLightSpace.xyz / posLightSpace.w;
 
   // Make sure the shadow is not present when outside the far plane region of the lights frustrum
-  if (coordsFromLight.z > 1.0)
-  {
-    return 0.0;
-  }
+  // if (coordsFromLight.z > 1.0)
+  // {
+  //   return 0.0;
+  // }
 
+  // ?? may not need if multiplying by bias transform matrix
   // transform NDC from [-1, 1] to [0,1] range since depthmap is in that range
   // note that coordsFromLight.z is alread in [0,1] range for Vulkan NDC
-  coordsFromLight.x = coordsFromLight.x * 0.5 + 0.5;
-  coordsFromLight.y = coordsFromLight.y * 0.5 + 0.5;
+  // coordsFromLight.x = coordsFromLight.x * 0.5 + 0.5;
+  // coordsFromLight.y = coordsFromLight.y * 0.5 + 0.5;
 
   // get closest depth value from light's perspective
   float maxLightReach = texture(shadowMap, coordsFromLight.xy).r;
 
   // calculate offset of depth in order to reduce shadow acne
-//  vec3 lightDirection = vec3(0.0,0.0,0.0);//normalize(lightPos - inPosWorld);
+  //  vec3 lightDirection = vec3(0.0,0.0,0.0);//normalize(lightPos - inPosWorld);
   float depthBias = max(0.05 * (1.0 - dot(normal, lightDirection)), 0.005);
 
   // get depth of current fragment from light's perspective
-  float fragDistanceFromLight = coordsFromLight.z - depthBias;
+  float fragDistanceFromLight = coordsFromLight.z + depthBias;
 
   // check whether current frag is in shadow or not
   //float shadow = maxLightReach < fragDistanceFromLight? 1.0 : 0.0;
 
+
+  // TODO Develop alternative pipelines that use different shaders for enabling/disabling features
+  // That way we can implement all the features but decide at compile time and avoid branches
   // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   PCF   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
   float shadow = 0.0;
   float ambientLight = 0.25;
@@ -377,7 +381,7 @@ float shadowCalculation(vec4 posLightSpace, vec3 normal, vec3 lightDirection)
     for(int y = -1; y <= 1; ++y)
     {
       float maxLightReach = texture(shadowMap, coordsFromLight.xy + vec2(x, y) * texelSize).r;
-      if (fragDistanceFromLight < maxLightReach)
+      if (fragDistanceFromLight > maxLightReach)
       {
         shadow += 1.0;
       }
@@ -385,7 +389,7 @@ float shadowCalculation(vec4 posLightSpace, vec3 normal, vec3 lightDirection)
       {
         shadow += ambientLight;
       }
-      //shadow += fragDistanceFromLight > maxLightReach ? 1.0 : 0.0;
+      //shadow += (fragDistanceFromLight > maxLightReach) ? 1.0 : ambientLight;
     }
   }
   // Take the average of all 9 sourounding texels

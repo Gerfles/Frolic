@@ -68,7 +68,9 @@ vec3 sampleTerrainLayer()
 float fog(float density)
 {
   const float LOG2 = -1.442695;
-  float dist = gl_FragCoord.z / gl_FragCoord.w * 10;
-  float d = density * dist;
+  float dist = (inEyePos.z - gl_FragCoord.z);// - (gl_FragCoord.z/gl_FragCoord.w) ;
+  // float dist = distance(inEyePos.z, gl_FragCoord.z);// - (gl_FragCoord.z/gl_FragCoord.w) ;
+  // float dist = gl_FragCoord.z / gl_FragCoord.w * 0.1;
+  float d = density * dist * 0.05;
   return 1.0 - clamp(exp2(d * d * LOG2), 0.0, 1.0);
 }

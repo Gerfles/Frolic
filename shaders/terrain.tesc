@@ -5,7 +5,7 @@
 layout (location = 0) in vec2 inTexCoord[];
 layout (location = 1) in vec3 inNormal[];
 
-// specify number of control points per patch output, this value controls the size of the I/O arrays
+// specify number of control points per patch out--controls the size of the I/O arrays
 layout (vertices = 4) out;
 layout (location = 0) out vec2 outTexCoord[];
 layout (location = 1) out vec3 outNormal[];

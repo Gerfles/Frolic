@@ -60,6 +60,8 @@ namespace fc
      FcPlayer mPlayer;
      FcPlayer uvnPlayer;
 
+     FcBillboard mSunBillboard;
+
 
       // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   (END) NEW   -**-*-*-*-*-*-*-*-*-*-*-*-*- //
      FcRenderer mRenderer;

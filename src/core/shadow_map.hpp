@@ -15,10 +15,11 @@ namespace fc
   constexpr uint32_t shadowMapSize{2048};
 
 
-  struct ShadowPushConstants
+  struct ShadowPushConsts
   {
-     glm::mat4 lightSpaceMatrix;
-     glm::mat4 modelMatrix;
+     glm::mat4 MVP;
+     /* glm::mat4 lightSpaceMatrix; */
+     /* glm::mat4 modelMatrix; */
      VkDeviceAddress vertexBuffer;
   };
 

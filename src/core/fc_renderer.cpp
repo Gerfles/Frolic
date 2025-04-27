@@ -233,7 +233,7 @@ namespace fc
     // TODO see if we can decouple the scene descriptor layout
     mBoundingBoxRenderer.buildPipelines(mSceneDataDescriptorLayout);
     mNormalRenderer.buildPipelines(mSceneDataDescriptorLayout);
-
+    mBillboardRenderer.buildPipelines();
     // // TODO think about destroying layout here
 
     // TODO implement with std::optional
@@ -265,9 +265,15 @@ namespace fc
     // FIXME requires enabling one or more extensions in fastgltf
     //structure.loadGltf(this, "..//models//SheenWoodLeatherSofa.glb");
     mSceneData.projection = pActiveCamera->Projection();
-    mSceneData.sunlightDirection = glm::vec4(0.1f, 1.f, 0.05f, 1.f);
+
+
+    mSceneData.sunlightDirection = glm::vec4(47.f, 25.f, 23.f, 1.f);
+    glm::vec3 target{mSceneData.sunlightDirection.x, 0.0, mSceneData.sunlightDirection.z};
+    target = {45.0f, 8.0f, 20.0f};
+    mShadowMap.updateLightSource(mSceneData.sunlightDirection, target);
     // initNormalDrawPipeline(sceneDataBuffer);
     // initBoundingBoxPipeline(sceneDataBuffer);
+
     // TODO remove at some point but prefer to leave in while debugging
     vkDeviceWaitIdle(pDevice);
   }
@@ -675,7 +681,15 @@ namespace fc
     mSceneData.view = pActiveCamera->getViewMatrix();
     // TODO pre-calculat this in camera
     mSceneData.viewProj = mSceneData.projection * mSceneData.view;
-    mSceneData.lighSpaceTransform = mShadowMap.LightSpaceMatrix();
+
+    // Use to bias shadow coordinates to match with vulkan
+    // TODO should maybe incorporate clip into orthographic function
+    const glm::mat4 clip = glm::mat4(0.5f, 0.0f, 0.0f, 0.0f,
+                                     0.0f, 0.5f, 0.0f, 0.0f,
+                                     0.0f, 0.0f, 1.0f, 0.0f,
+                                     0.5f, 0.5f, 0.0f, 1.0f);
+
+    mSceneData.lighSpaceTransform = clip * mShadowMap.LightSpaceMatrix();
     mSceneDataBuffer.write(&mSceneData, sizeof(SceneDataUbo));
 
 
@@ -721,59 +735,6 @@ namespace fc
 
     // ?? elapsed time should already be in ms
     mDrawCollection.stats.sceneUpdateTime = mTimer.elapsedTime() * 1000;
-  }
-
-
-
-  void FcRenderer::drawBillboards(glm::vec3 cameraPosition, uint32_t swapchainImageIndex, SceneDataUbo& ubo)
-  {
-    // std::vector<FcBillboard* >& billboards = FcLocator::Billboards();
-
-    // // sort the billboards by distance to the camera
-    // // TODO sort within update instead
-    // std::multimap<float, size_t> sortedIndices; // TODO?? uint32 or size_t
-    // for (size_t i = 0; i < billboards.size(); ++i)
-    // {
-    //   // calculate distance
-    //   auto distance = ubo.eye - billboards[i]->PushComponent().position;
-    //   float distanceSquared = glm::dot(distance, distance);
-    //   sortedIndices.insert(std::pair(distanceSquared, i));
-    // }
-
-    // VkCommandBuffer currCommandBuffer = getCurrentFrame().commandBuffer;
-
-    // // bind pipeline to be used in render pass
-    // mBillboardPipeline.bind(currCommandBuffer);
-    // // DRAW ALL UI COMPONENTS (LAST)
-    // // draw text box
-
-    // // iterate through billboards in reverse order (to draw them back to front)
-    // for (auto index = sortedIndices.rbegin(); index != sortedIndices.rend(); ++index )
-    // {
-    //   vkCmdPushConstants(currCommandBuffer, mBillboardPipeline.Layout()
-    //                      , VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(BillboardPushes)
-    //                      , &billboards[index->second]->PushComponent());
-
-    //   //VkDeviceSize offsets[] = { 0 };
-    //   // vkCmdBindVertexBuffers(mCommandBuffers[swapChainImageIndex], 0, 1, &font.VertexBuffer(), offsets);
-    //   // vkCmdBindIndexBuffer(mCommandBuffers[swapChainImageIndex], font.IndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
-
-    //   FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
-
-    //   // TODO  update the global Ubo only once per frame, not each draw call
-    //   // descClerk.update(swapchainImageIndex, &ubo);
-
-    //   std::array<VkDescriptorSet, 2> descriptorSets;
-    //   descriptorSets[0] =  mFrames[swapchainImageIndex].sceneDataDescriptorSet;
-    //   descriptorSets[1] = billboards[index->second]->getDescriptor();
-
-    //   vkCmdBindDescriptorSets(currCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS
-    //                           , mBillboardPipeline.Layout(), 0, static_cast<uint32_t>(descriptorSets.size())
-    //                           , descriptorSets.data() , 0, nullptr);
-
-    //   //vkCmdDrawIndexed(mCommandBuffers[swapChainImageIndex], font.IndexCount(), 1, 0, 0, 0);
-    //   vkCmdDraw(currCommandBuffer, 6, 1, 0, 0);
-    // }
   }
 
 
@@ -856,7 +817,9 @@ namespace fc
     // begin clock
     mTimer.start();
 
-    VkCommandBuffer cmd = getCurrentFrame().commandBuffer;
+    FrameAssets& currentFrame = getCurrentFrame();
+
+    VkCommandBuffer cmd = currentFrame.commandBuffer;
 
     // transition draw image from undefined layout to best format we can draw to
     mDrawImage.transitionLayout(cmd, VK_IMAGE_LAYOUT_UNDEFINED,
@@ -865,9 +828,7 @@ namespace fc
     mDepthImage.transitionLayout(cmd, VK_IMAGE_LAYOUT_UNDEFINED,
                                  VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
 
-
     mShadowMap.generateMap(cmd, mDrawCollection);
-
 
     // TODO extract into builder...
     // begin a render pass connected to our draw image
@@ -909,11 +870,11 @@ namespace fc
     //
     if (drawDebugShadowMap)
     {
-      mShadowMap.drawDebugMap(cmd, getCurrentFrame());
+      mShadowMap.drawDebugMap(cmd, currentFrame);
     }
     else
     {
-      mSceneRenderer.draw(cmd, mDrawCollection, getCurrentFrame());
+      mSceneRenderer.draw(cmd, mDrawCollection, currentFrame);
 
       // TODO condense this into an array of function pointers so that we can build
       // the specific 'pipeline' of function calls and avoid branches
@@ -921,18 +882,23 @@ namespace fc
       // Draw the bounding box around the object if enabled
       if (mDrawBoundingBoxes)
       {
-        mBoundingBoxRenderer.draw(cmd, mDrawCollection, getCurrentFrame(), mBoundingBoxId);
+        mBoundingBoxRenderer.draw(cmd, mDrawCollection, currentFrame, mBoundingBoxId);
       }
 
       if(mDrawNormalVectors)
       {
-        mNormalRenderer.draw(cmd, mDrawCollection, getCurrentFrame());
+        mNormalRenderer.draw(cmd, mDrawCollection, currentFrame);
       }
 
       mTerrain.draw(cmd, mSceneData, drawWireframe);
 
+
+
       // Draw the skybox last so that we can skip pixels with ANY object in front of it
-      mSkybox.draw(cmd, getCurrentFrame());
+      mSkybox.draw(cmd, currentFrame);
+
+
+      mBillboardRenderer.draw(cmd, mSceneData, currentFrame);
     }
 
     vkCmdEndRendering(cmd);
@@ -1322,6 +1288,7 @@ namespace fc
     mSceneRenderer.clearResources(pDevice);
     mBoundingBoxRenderer.destroy();
     mNormalRenderer.destroy();
+    mBillboardRenderer.destroy();
     /* vkDestroyDescriptorSetLayout(pDevice, mBackgroundDescriptorlayout, nullptr); */
     vkDestroyDescriptorSetLayout(pDevice, mSceneDataDescriptorLayout, nullptr);
     // TODO should think about locating mImgGui into Descriptor Clerk
@@ -1350,7 +1317,7 @@ namespace fc
     // TODO conditionalize all elements that might not need destroying if outside
     // game is using engine and does NOT create all expected elements
     mModelPipeline.destroy();
-    mBillboardPipeline.destroy();
+
     mUiPipeline.destroy();
 
     mSwapchain.destroy();

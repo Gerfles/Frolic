@@ -20,8 +20,7 @@ layout (buffer_reference, std430) readonly buffer VertexBuffer
 // TODO set push constant max to be 128 for most implementations (guaranteed amount)
 layout (push_constant) uniform constants
 {
-  mat4 lightSpaceMatrix;
-  mat4 model;
+  mat4 MVP;
   VertexBuffer vertexBuffer;
 } push;
 
@@ -54,8 +53,8 @@ const vec2 UV_COORDS[6] =
 
 void main()
 {
-  zNear = push.model[0][0];
-  zFar = push.model[1][1];
+  zNear = push.MVP[0][0];
+  zFar = push.MVP[1][1];
   // first pick the appropriate vertex from the box
   vec2 boxVertex = SCREEN_VERTICES[gl_VertexIndex];
 

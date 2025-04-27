@@ -53,17 +53,11 @@ namespace fc
 
     // Setup pipeline parameters
     terrainPipeline.setColorAttachment(VK_FORMAT_R16G16B16A16_SFLOAT);
-
-    // ?? Needed if disabling depthtest
     terrainPipeline.setDepthFormat(VK_FORMAT_D32_SFLOAT);
-    //terrainPipeline.disableDepthtest();
-
+    terrainPipeline.enableDepthtest(VK_TRUE, VK_COMPARE_OP_GREATER_OR_EQUAL);
     terrainPipeline.setInputTopology(VK_PRIMITIVE_TOPOLOGY_PATCH_LIST);
     terrainPipeline.setPolygonMode(VK_POLYGON_MODE_FILL);
-    /* terrainPipeline.setPolygonMode(VK_POLYGON_MODE_LINE); */
     terrainPipeline.setCullMode(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
-
-    terrainPipeline.enableDepthtest(VK_TRUE, VK_COMPARE_OP_GREATER_OR_EQUAL);
     terrainPipeline.setMultiSampling(FcLocator::Gpu().Properties().maxMsaaSamples);
     terrainPipeline.disableBlending();
     terrainPipeline.enableTessellationShader(4);
@@ -81,7 +75,6 @@ namespace fc
     // and cut down on ubo if that matters
     VkPushConstantRange tessellationShaderPCs;
     tessellationShaderPCs.stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
-
     tessellationShaderPCs.offset = sizeof(VertexBufferPushes);
     tessellationShaderPCs.size = sizeof(glm::mat4);
     //
@@ -116,7 +109,6 @@ namespace fc
                          // FIXME note we're using the height map sampler here
                          , FcDefaults::Samplers.Terrain);
 
-
     FcDescriptorClerk& deskClerk = FcLocator::DescriptorClerk();
     // TODO do in one function call overload
     mHeightMapDescriptorLayout = deskClerk.createDescriptorSetLayout(bindInfo);
@@ -132,6 +124,7 @@ namespace fc
     // TODO check for capability
     if (true)
     {
+      terrainPipeline.name = "Terrain WireFrame";
       terrainPipeline.setPolygonMode(VK_POLYGON_MODE_LINE);
       mWireframePipeline.create(terrainPipeline);
     }
@@ -234,6 +227,7 @@ namespace fc
 
             // Normalize pixel value to be in [0,1] range
             heights[hx + 1][hy + 1] = pixel / static_cast<double>(UINT16_MAX);
+
             // USED FOR TESTING pixel values, DELETE eventually
             // if (true)//pixel != 0)
             // {
@@ -299,7 +293,8 @@ namespace fc
     ubo.modelView = sceneData.view * mModelTransform;
     ubo.projection = sceneData.projection;
     ubo.modelViewProj = ubo.projection * ubo.modelView;
-    ubo.lightPos = glm::vec4(100.f, 150.f, 100.f, 1.0);//pSceneData->sunlightDirection;
+    ubo.lightPos = sceneData.sunlightDirection;
+    /* ubo.lightPos = glm::vec4(-100.f, 150.f, -100.f, 1.0);//pSceneData->sunlightDirection; */
     // TODO might prefer to update the frustum here instead
 
     //printMat(ubo.modelViewProj);

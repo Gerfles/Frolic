@@ -48,14 +48,17 @@ layout(push_constant, std430) uniform constants
 
 void main()
 {
-  // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   TEXTURE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-  // Interpolate UV coordinates
+  // -*-*-*-*-*-*-*-*-*-*-*-*-*-   INTERPOLATE TEXTURE   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
   vec2 texCoord1 = mix(inTexCoord[0], inTexCoord[1], gl_TessCoord.x);
   vec2 texCoord2 = mix(inTexCoord[3], inTexCoord[2], gl_TessCoord.x);
   outTexCoord = mix(texCoord1, texCoord2, gl_TessCoord.y);
 
-  // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   POSITION   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-  // Interpolate positions
+  // -*-*-*-*-*-*-*-*-*-*-*-*-*-   INTERPOLATE NORMALS   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
+  vec3 norm1 = mix(inNormal[0], inNormal[1], gl_TessCoord.x);
+  vec3 norm2 = mix(inNormal[3], inNormal[2], gl_TessCoord.x);
+  outNormal = mix(norm1, norm2, gl_TessCoord.y);
+
+// *-*-*-*-*-*-*-*-*-*-*-*-*-   INTERPOLATE POSITION   *-*-*-*-*-*-*-*-*-*-*-*-*- //
   vec4 pos1 = mix(gl_in[0].gl_Position, gl_in[1].gl_Position, gl_TessCoord.x);
   vec4 pos2 = mix(gl_in[3].gl_Position, gl_in[2].gl_Position, gl_TessCoord.x);
   vec4 position = mix(pos1, pos2, gl_TessCoord.y);
@@ -67,15 +70,12 @@ void main()
   gl_Position = ubo.modelViewProj * position;
 
   // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   LIGHTING   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-  // Interpolate Normals
-  vec3 n1 = mix(inNormal[0], inNormal[1], gl_TessCoord.x);
-  vec3 n2 = mix(inNormal[3], inNormal[2], gl_TessCoord.x);
-  outNormal = mix(n1, n2, gl_TessCoord.y);
 
   outViewVec = -position.xyz;
-  outLightVec = normalize(ubo.lightPos.xyz + outViewVec);
   outWorldPos = position.xyz;
   outEyePos = vec3(ubo.modelView * position);
+  outLightVec = normalize(ubo.lightPos.xyz + outViewVec);
+  // outLightVec = normalize(ubo.lightPos.xyz - outWorldPos);
 
   // Texture interpolation
   // // get patch coordinate

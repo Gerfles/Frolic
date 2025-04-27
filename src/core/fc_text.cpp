@@ -30,9 +30,6 @@ namespace fc
     mTextBoxSpecs.position.x =  -1.0f + 2.0f * (float)xPos / screenDimensions.width + mTextBoxSpecs.width;
     mTextBoxSpecs.position.y =  -1.0f + 2.0f * (float)yPos / screenDimensions.height + mTextBoxSpecs.height;
 
-     //TODO remove
-    mTextBoxSpecs.color = glm::vec4(1.0f, 0.30f, 1.0f, 1.0f);
-
     // TODO get rid of, TEMPORARILY CREATE A BLACK TEXTURE
      // create an array of "pixels" that will be used to create the underlying texture
     size_t imageSize = width * height;

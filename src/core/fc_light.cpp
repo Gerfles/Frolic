@@ -8,6 +8,9 @@
 #include "core/utilities.hpp"
 
 
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   TODO   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DELETE ALL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
 namespace fc
 {
 
@@ -73,10 +76,9 @@ namespace fc
   PointLight FcLight::generatePointLight()
   {
 
-//    TODO return initialized
+    //    TODO return initialized
     PointLight light;
     light.position = mBillboard.PushComponent().position;
-    light.color = mBillboard.PushComponent().color;
     return light;
 
      //return {mBillboard.PushComponent().position, mBillboard.PushComponent().color};

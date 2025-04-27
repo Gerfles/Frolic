@@ -30,10 +30,10 @@ namespace fc
     // as possible
     // // TODO create default up, center, etc. vectors for every time they are needed
 
-    mLightView = glm::lookAt(glm::vec3(47.0f, 25.0f, 23.0f)
-    /* mLightView = glm::lookAt(glm::vec3(2.0f, 14.0f, 2.0f) */
-                             , glm::vec3(45.0f, 8.0f, 20.0f)
-                             , glm::vec3(0.0f, 1.0f, 1.0f));
+    // mLightView = glm::lookAt(glm::vec3(47.0f, 25.0f, 23.0f)
+    // /* mLightView = glm::lookAt(glm::vec3(2.0f, 14.0f, 2.0f) */
+    //                          , glm::vec3(45.0f, 8.0f, 20.0f)
+    //                          , glm::vec3(0.0f, 0.0f, 1.0f));
     mFrustum.setAll(-15.f, 15.f, -15.f, 15.f, .1f, 15.f);
 
     updateLightSpaceTransform();
@@ -56,7 +56,7 @@ namespace fc
     VkPushConstantRange matrixRange;
     matrixRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     matrixRange.offset = 0;
-    matrixRange.size = sizeof(ShadowPushConstants);
+    matrixRange.size = sizeof(ShadowPushConsts);
 
     shadowPipeline.addPushConstants(matrixRange);
     //
@@ -65,6 +65,7 @@ namespace fc
     shadowPipeline.setPolygonMode(VK_POLYGON_MODE_FILL);
     shadowPipeline.setCullMode(VK_CULL_MODE_FRONT_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
     shadowPipeline.setMultiSampling(VK_SAMPLE_COUNT_1_BIT);
+
     // shadowPipeline.disableDepthtest();
     shadowPipeline.enableDepthtest(VK_TRUE, VK_COMPARE_OP_GREATER_OR_EQUAL);
     shadowPipeline.disableBlending();
@@ -86,7 +87,7 @@ namespace fc
     VkPushConstantRange pushRange;
     pushRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     pushRange.offset = 0;
-    pushRange.size = sizeof(ShadowPushConstants);
+    pushRange.size = sizeof(ShadowPushConsts);
     //
     debugPipelineConfig.addPushConstants(pushRange);
 
@@ -136,11 +137,12 @@ namespace fc
   }
 
 
-
+  // TODO eliminate confusion about which of the two following functions to call
   void FcShadowMap::updateLightSource(glm::vec3 lightPos, glm::vec3 target)
   {
     // TODO find a strategy to account for the fact that the up vector may be pointing in the x dir, etc.
-    mLightView = glm::lookAt(lightPos, target, glm::vec3(0.0f, 1.0f, 0.0f));
+    /* lightPos = glm::normalize(lightPos); */
+    mLightView = glm::lookAt(lightPos,target, glm::vec3(0.0f, 0.0f, -1.0f));
 
     updateLightSpaceTransform();
   }
@@ -148,16 +150,10 @@ namespace fc
 
   void FcShadowMap::updateLightSpaceTransform()
   {
-    // TODO should maybe incorporate clip into orthographic function
-    const glm::mat4 clip = glm::mat4(1.0f, 0.0f, 0.0f, 0.0f,
-                                     0.0f,-1.0f, 0.0f, 0.0f,
-                                     0.0f, 0.0f, 0.5f, 0.0f,
-                                     0.0f, 0.0f, 0.5f, 1.0f);
-
     mLightProjection = orthographic(mFrustum.left, mFrustum.right, mFrustum.bottom
                                     , mFrustum.top, mFrustum.far, mFrustum.near);
 
-    mLightSpaceTransform =  clip * mLightProjection * mLightView;
+    mLightSpaceTransform =  mLightProjection * mLightView;
   }
 
 
@@ -192,7 +188,8 @@ namespace fc
     shadowViewport.width = mapExtent.width;
     shadowViewport.height = mapExtent.height;
     shadowViewport.minDepth = 0.f;
-    // NOTE: setting maxDepth is essential! Otherwise maxDepth defaults to 0 and gl_FragCoord.z = 0
+    // NOTE: setting maxDepth is essential! (source of painful error)
+    // Otherwise maxDepth defaults to 0 and gl_FragCoord.z = 0
     shadowViewport.maxDepth = 1.0f;
 
     VkRect2D shadowScissors{};
@@ -204,19 +201,19 @@ namespace fc
     vkCmdSetViewport(cmd, 0, 1, &shadowViewport);
     vkCmdSetScissor(cmd, 0, 1, &shadowScissors);
 
-    ShadowPushConstants shadowPCs;
-    shadowPCs.lightSpaceMatrix = mLightSpaceTransform;
-
+    /* shadowPCs.MVP = mLightSpaceTransform * sur; */
 
     for (auto& materialCollection : drawContext.opaqueSurfaces)
     {
       for (const FcSurface& surface : materialCollection.second)
       {
+        ShadowPushConsts shadowPCs;
         shadowPCs.vertexBuffer = surface.vertexBufferAddress;
-        shadowPCs.modelMatrix = surface.transform;
+        shadowPCs.MVP = mLightSpaceTransform * surface.transform;
+        /* shadowPCs.modelMatrix = surface.transform; */
 
         vkCmdPushConstants(cmd, mShadowPipeline.Layout()
-                           , VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(ShadowPushConstants), &shadowPCs);
+                           , VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(ShadowPushConsts), &shadowPCs);
 
         surface.bindIndexBuffer(cmd);
 
@@ -298,17 +295,16 @@ namespace fc
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mShadowDebugPipeline.Layout()
                             , 0, 1, &currentFrame.shadowMapDescriptorSet, 0, nullptr);
 
-    ShadowPushConstants push;
+    ShadowPushConsts push;
     // TODO develop own push constants for shadow maps
     // TODO check if data exceeds typical PC limits
     // Display shadow map does not use model matrix so we use two of the elements of matrix to send znear and zfar
-    push.modelMatrix = glm::mat4{1.0f};
-    push.modelMatrix[0][0] = mFrustum.near;
-    push.modelMatrix[1][1] = mFrustum.far;
-    push.lightSpaceMatrix = mLightSpaceTransform;
+    push.MVP = glm::mat4();
+    push.MVP[0][0] = mFrustum.near;
+    push.MVP[1][1] = mFrustum.far;
 
     vkCmdPushConstants(cmd, mShadowDebugPipeline.Layout(), VK_SHADER_STAGE_VERTEX_BIT,
-                       0, sizeof(ShadowPushConstants), &push);
+                       0, sizeof(ShadowPushConsts), &push);
 
     vkCmdDraw(cmd, 3, 1, 0, 0);
   }

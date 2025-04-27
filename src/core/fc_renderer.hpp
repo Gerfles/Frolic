@@ -118,9 +118,7 @@ namespace fc
      FcPipeline mUiPipeline;
       // - Billboard Rendering
      FcBillboardRenderer mBillboardRenderer;
-     FcPipeline mBillboardPipeline;
      FcBuffer materialConstants;
-
      FcTerrain mTerrain;
      FcTextureAtlas textureAtlas;
      // TODO DELETE
@@ -182,6 +180,7 @@ namespace fc
      void setAmbientOcclussionUse(bool enable);
      void setNormalMapUse(bool enable);
      void setEmissiveTextureUse(bool enable);
+
      /* void initNormalDrawPipeline(FcBuffer& sceneDataBuffer); */
      /* void initBoundingBoxPipeline(FcBuffer& sceneDataBuffer); */
      /* void drawNormals(VkCommandBuffer cmd, const FcRenderObject& surface); */
@@ -204,10 +203,11 @@ namespace fc
       //FcDescriptor& DescriptorManager() { return mDescriptorManager; }
      uint32_t beginFrame();
      void endFrame(uint32_t swapchainImgIndex);
-     void drawBillboards(glm::vec3 cameraPosition, uint32_t swapchainImgIndex, SceneDataUbo& ubo);
      void drawUI(std::vector<FcText>& UIelements, uint32_t swapchainImgIndex);
      void drawFrame(bool drawDebugShadowMap);
      void setActiveCamera(FcCamera* camera) { pActiveCamera = camera; }
+     void addBillboard(FcBillboard& billboard) { mBillboardRenderer.addBillboard(billboard); }
+
       // - GETTERS -
      /* FcSceneRenderer* getMetalRoughMaterial() { return &mSceneRenderer; } */
      /* VkDescriptorSetLayout getSceneDescriptorLayout() { return mSceneDataDescriptorLayout; } */

@@ -273,18 +273,18 @@ namespace fc
 
   std::vector<char> readFile(const std::string& filename)
   {
-     // open stream from given file ('ate' tells stream to start reading from end (AT End))
+    // open stream from given file ('ate' tells stream to start reading from end (AT End))
     std::ifstream file(filename, std::ios::binary | std::ios::ate);
 
-     // make sure file stream sucsessfully opened
+    // make sure file stream sucsessfully opened
     if (!file.is_open())
     {
       throw std::runtime_error("Failed to open file: " + filename);
     }
 
-     // *-*-*-*-*-   SANITY CHECK TO VERIFY SHADERS WERE COMPILED RECENTLY   *-*-*-*-*- //
-     // TODO probably best to print in cmake instead but keep this template for future
-     // read back from the filesystem
+    // *-*-*-*-*-   SANITY CHECK TO VERIFY SHADERS WERE COMPILED RECENTLY   *-*-*-*-*- //
+    // TODO probably best to print in cmake instead but keep this template for future
+    // read back from the filesystem
     std::filesystem::file_time_type last_write = std::filesystem::last_write_time(filename);
 
     using namespace std::chrono;
@@ -293,25 +293,31 @@ namespace fc
                                                       + system_clock::now());
     std::time_t file_time =  system_clock::to_time_t(st);
 
-    std::cout << filename << " - Last Updated: " << std::asctime(std::localtime(&file_time));
-     //  NOTE: Easier than above but requires C+23
-     //std::println("Last Update: {}", fileTime);
+    //
+    bool wantFileUpdateTime = false;
+    if (wantFileUpdateTime)
+    {
+      std::cout << filename << " - Last Updated: " << std::asctime(std::localtime(&file_time));
+      //  NOTE: Easier than above but requires C+23
+      //std::println("Last Update: {}", fileTime);
+    }
 
-     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   CONTINUE LOADING   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-     // get current read position (since this is at the end of file) to get file size
+
+    // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   CONTINUE LOADING   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    // get current read position (since this is at the end of file) to get file size
     size_t fileSize = static_cast<size_t>(file.tellg());
     std::vector<char> fileBuffer(fileSize);
 
-     // move read position to start of file
+    // move read position to start of file
     file.seekg(0);
 
-     // read all the file data into the file buffer
+    // read all the file data into the file buffer
     file.read(fileBuffer.data(), fileSize);
 
-     // close stream
+    // close stream
     file.close();
 
-     // TODO re-write this function to accept a std::vector<char> pointer so nothing is copied
+    // TODO re-write this function to accept a std::vector<char> pointer so nothing is copied
     return fileBuffer;
   }
 
