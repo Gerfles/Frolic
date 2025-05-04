@@ -294,6 +294,7 @@ namespace fc
     ubo.projection = sceneData.projection;
     ubo.modelViewProj = ubo.projection * ubo.modelView;
     ubo.lightPos = sceneData.sunlightDirection;
+    ubo.eye = sceneData.eye;
     /* ubo.lightPos = glm::vec4(-100.f, 150.f, -100.f, 1.0);//pSceneData->sunlightDirection; */
     // TODO might prefer to update the frustum here instead
 
@@ -320,8 +321,13 @@ namespace fc
 
     VertexBufferPushes pushConstants;
     pushConstants.address = mMesh.VertexBufferAddress();
-    // TODO simp
-    /* pushConstants.padding = mMesh.VertexBufferAddress(); */
+
+    float time =
+      std::chrono::duration<float>(std::chrono::steady_clock::now().time_since_epoch()).count();
+
+    // std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+    // float time = std::chrono::duration<float>
+    pushConstants.time = time;
 
     // BUG
     vkCmdPushConstants(cmd, mPipeline.Layout(), VK_SHADER_STAGE_VERTEX_BIT

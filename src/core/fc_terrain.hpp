@@ -23,6 +23,7 @@ namespace fc
         glm::mat4 projection;
         glm::mat4 modelView; // TODO model is currently sent via push constants
         glm::mat4 modelViewProj;
+        glm::vec4 eye;
         glm::vec4 lightPos;
         glm::vec4 frustumPlanes[6];
         float displacementFactor;

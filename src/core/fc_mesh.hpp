@@ -67,12 +67,10 @@ namespace fc
   };
 
 
-
-
   struct VertexBufferPushes
   {
      VkDeviceAddress address;
-     float padding;
+     float time;
      /* VkDeviceAddress padding; */
   };
 

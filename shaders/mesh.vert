@@ -53,6 +53,7 @@ const mat4 biasMat = mat4(
 	0.0, 0.0, 1.0, 0.0,
 	0.5, 0.5, 0.0, 1.0 );
 
+
 void main()
 {
   // try 1000.0f instead of 10000.0f in persp...
@@ -66,6 +67,7 @@ void main()
 
   // TODO find out which version is correct
   outPosWorld = positionWorld.xyz;
+
   // outPosWorld = (sceneData.view * vec4(positionWorld.xyz, 1.0)).xyz;
   gl_Position = sceneData.viewProj * positionWorld;
   // gl_Position = sceneData.viewProj * model.renderMatrix * vec4(v.position, 1.0f);

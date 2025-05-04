@@ -12,6 +12,7 @@ layout(std140, set = 0, binding = 0) uniform UBO
   mat4 projection;
   mat4 modelView;
   mat4 modelViewProj;
+  vec4 eye;
   vec4 lightPos;
   vec4 frustumPlanes[6];
   float displacementFactor;
@@ -25,6 +26,7 @@ layout(set = 0, binding = 1) uniform sampler2D heightMap;
 // Input texture coordinates from tessellation control shader
 layout (location = 0) in vec2 inTexCoord[];
 layout (location = 1) in vec3 inNormal[];
+layout (location = 2) in float inTime[];
 
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   OUTPUT   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 // output height to frag shader for coloring
@@ -35,6 +37,7 @@ layout (location = 3) out vec3 outViewVec;
 layout (location = 4) out vec3 outLightVec;
 layout (location = 5) out vec3 outEyePos;
 layout (location = 6) out vec3 outWorldPos;
+layout (location = 7) out float outTime;
 
 
 layout(push_constant, std430) uniform constants
@@ -69,13 +72,19 @@ void main()
 
   gl_Position = ubo.modelViewProj * position;
 
+  // simple time needs no interpolation
+  outTime = inTime[0];
+
   // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   LIGHTING   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
-  outViewVec = -position.xyz;
   outWorldPos = position.xyz;
-  outEyePos = vec3(ubo.modelView * position);
-  outLightVec = normalize(ubo.lightPos.xyz + outViewVec);
-  // outLightVec = normalize(ubo.lightPos.xyz - outWorldPos);
+  outViewVec = normalize(ubo.eye.xyz - outWorldPos);
+
+  // outWorldPos = (ubo.modelView * position).xyz;
+  // outEyePos = vec3(ubo.modelView * position);
+  outEyePos = ubo.eye.xyz;
+  // outLightVec = normalize(ubo.lightPos.xyz + outViewVec);
+  outLightVec = normalize(ubo.lightPos.xyz - outWorldPos);
 
   // Texture interpolation
   // // get patch coordinate

@@ -21,33 +21,35 @@ layout(buffer_reference, std430) readonly buffer VertexBuffer
 layout(push_constant, std430) uniform PushConstants
 {
   VertexBuffer vertexBuffer;
-  VertexBuffer padding;
-} terrain;
+  float time;
+} push;
 
 layout (location = 0) out vec2 outTexCoord;
 layout (location = 1) out vec3 outNormal;
+layout (location = 2) out float outTime;
 
 void main()
 {
   // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CPU TERRAIN   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-  //  Vertex vertex = terrain.vertexBuffer.vertices[gl_VertexIndex];
+  //  Vertex vertex = push.vertexBuffer.vertices[gl_VertexIndex];
 
   // outHeight = vertex.position.y;
-  // vec4 positionWorld = terrain.model * vertex.position;
+  // vec4 positionWorld = push.model * vertex.position;
 
   // gl_Position = sceneData.viewProj * positionWorld;
 
   // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   GPU TERRAIN   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-  Vertex vertex = terrain.vertexBuffer.vertices[gl_VertexIndex];
+  Vertex vertex = push.vertexBuffer.vertices[gl_VertexIndex];
 
   // convert xyz vertex to xyzw homogeneous coordinate
   gl_Position = vec4(vertex.position, 1.0);
 
   outTexCoord = vec2(vertex.uv_x, vertex.uv_y);
   outNormal = vertex.normal;
+
+  outTime = push.time;
   // // convert xyz vertex to xyzw homogeneous coordinate
   //gl_Position = vec4(1.0, 1.0, 1.0, 1.0);
 
   // outTexCoord = vec2(0.0, 0.0);
-
 }

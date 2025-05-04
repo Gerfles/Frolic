@@ -4,17 +4,20 @@
 // varying input from vertex shader
 layout (location = 0) in vec2 inTexCoord[];
 layout (location = 1) in vec3 inNormal[];
+layout (location = 2) in float inTime[];
 
 // specify number of control points per patch out--controls the size of the I/O arrays
 layout (vertices = 4) out;
 layout (location = 0) out vec2 outTexCoord[];
 layout (location = 1) out vec3 outNormal[];
+layout (location = 2) out float outTime[];
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
   mat4 projection;
   mat4 modelView;
   mat4 modelViewProj;
+  vec4 eye;
   vec4 lightPos;
   vec4 frustumPlanes[6];
   float displacementFactor;
@@ -43,6 +46,7 @@ void main()
   gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
   outTexCoord[gl_InvocationID] = inTexCoord[gl_InvocationID];
   outNormal[gl_InvocationID] = inNormal[gl_InvocationID];
+  outTime[gl_InvocationID] = inTime[gl_InvocationID];
 
   // invocation zero controls tessellation levels for the entire patch
   if (gl_InvocationID == 0)
@@ -127,6 +131,7 @@ void main()
     }
   }
 }
+
 
 // Checks the current patch visibility against the frustum using a sphere check
 bool checkFrustum()

@@ -175,7 +175,6 @@ void main()
     discard;
   }
 
-
   vec3 normalDirection = normalize(inNormal);
   vec3 preNormal = normalDirection;
 
@@ -219,6 +218,7 @@ void main()
   // mat4 inverseView = inverse(sceneData.view);
   // vec3 cameraPosWorld = inverseView[3].xyz;
   vec3 viewDirection = normalize(sceneData.eye.xyz - inPosWorld);
+
   // TODO this might be the case for sun(ambient) light but not for point lights
   //vec3 lightDirection = normalize(-sceneData.sunDirection.xyz);// - inPosWorld);
   vec3 lightDirection = normalize(sceneData.sunDirection.xyz - inPosWorld);
