@@ -115,8 +115,8 @@ namespace fc
      void buildPipelines(VkDescriptorSetLayout sceneDescriptorLayout);
      FcPipeline* TransparentPipeline() { return &mTransparentPipeline; }
      FcPipeline* OpaquePipeline() { return &mOpaquePipeline; }
-     void clearResources(VkDevice device);
      void draw(VkCommandBuffer cmd, FcDrawCollection& drawCollection, FrameAssets& currentFrame);
+     void destroy();
      // TODO DELETE or refactor the following
      /* VkDescriptorSetLayout getSceneDescriptorLayout() { return mSceneDataDescriptorLayout; } */
      /* SceneDataUbo* getSceneDataUbo() { return &mSceneData; } */

@@ -142,7 +142,7 @@ namespace fc
 
     // TODO hardcoded for now
     std::filesystem::path file = "..//maps/terrain_texturearray_rgba.ktx";
-    mTerrainTexture.loadKtxFile(file, FcImageTypes::TextureArray);
+    mTerrainTexture.loadKtxFile(file, FcImageTypes::TextureArrayGenerateMipmaps);
 
     generateTerrain();
   }

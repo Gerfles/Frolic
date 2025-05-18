@@ -141,7 +141,7 @@ namespace fc
   void Frolic::loadGameObjects()
   {
     // TODO research why there seems to be no constructor for a ::path from const char*
-    std::filesystem::path filename = "..//textures//point_light.png";
+    std::filesystem::path filename = "..//textures//sun.png";
     mSunBillboard.loadTexture(filename);
     mSunBillboard.setPosition(pSceneData->sunlightDirection);
     mRenderer.addBillboard(mSunBillboard);

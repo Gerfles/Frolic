@@ -34,7 +34,7 @@ namespace fc
      // mBillboard.Push().width = mBillboard.Push().height = radius;
     placeInHandleTable();
      //mBillboard.setTextureId(mTextureId);
-    mBillboard.placeInHandleTable();
+    /* mBillboard.placeInHandleTable(); */
   }
 
 

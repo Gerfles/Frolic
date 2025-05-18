@@ -25,18 +25,18 @@ namespace fc
   // FORWARD DECLARATIONS
   class FcBuffer;
 
-  enum class FcImageTypes : uint8_t
-  {
-    Texture,             // Default texture image
-    TextureWithMipmaps,  //
-    TextureGenerateMipmaps,    // Texture with mipMaps
-    Cubemap,           // Cubemap image (with layers)
-    HeightMap,         // HeightMap
-    DrawBuffer,        // Draw buffer
-    NormalMap,         // Normal map
-    DepthBuffer,       // Depth buffer
-    Custom,            // User defined image using a passed in create info
-    TextureArray,      // Texture but with multiple array layers
+  enum class FcImageTypes : uint8_t {
+    Texture,                 // Default texture image
+    TextureWithMipmaps,      //
+    TextureGenerateMipmaps,  // Texture with mipMaps
+    Cubemap,                 // Cubemap image (with layers)
+    HeightMap,               // HeightMap
+    DrawBuffer,              // Draw buffer
+    NormalMap,               // Normal map
+    DepthBuffer,             // Depth buffer
+    Custom,                  // User defined image using a passed in create info
+    TextureArray,            // Texture but with multiple array layers
+    TextureArrayGenerateMipmaps, // Same as above but generates mipmaps
     ScreenBuffer,  // Draw image into this buffer before copying to swapchain
     ShadowMap,
   };
@@ -130,7 +130,6 @@ namespace fc
      uint16_t saschaFetchPixel(const int x, const int y, uint32_t scale);
      const bool isValid() const { return mImage != VK_NULL_HANDLE; }
      const VkImageView& ImageView() const { return mImageView; }
-     /* VkSampler TextureSampler() { return mTextureSampler; } */
      VkImage Image() { return mImage; }
      VkExtent2D Extent() { return {mWidth, mHeight}; }
      uint32_t Width() { return mWidth; }

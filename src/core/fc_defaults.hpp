@@ -14,9 +14,10 @@ namespace fc
      struct DefaultSamplers
      {
         static VkSampler Terrain;
-        // TODO create NEAREST
         static VkSampler Nearest;
         static VkSampler Linear;
+        static VkSampler Bilinear;
+        static VkSampler Trilinear;
         static VkSampler ShadowMap;
         static void init(VkDevice device);
         static void destroy();

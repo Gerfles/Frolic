@@ -32,38 +32,6 @@ FcBillboard::FcBillboard(float width, float height, glm::vec4 color)
   }
 
 
-  [[deprecated("Delete soon")]]
-  void FcBillboard::placeInHandleTable()
-  {
-    std::vector<FcBillboard* >& billboardList = FcLocator::Billboards();
-
-     // first check to see if there's already a slot available that's just been set to nullptr
-    for(size_t i = 0; i < billboardList.size(); i++)
-    {
-      if (billboardList[i] == nullptr)
-      {
-        billboardList[i] = this;
-        /* mHandleIndex = i; */
-        return;
-      }
-    }
-
-    // if no slots are vacant, grow the vector of game objects as long as it doesn't exceed the maximum
-    // TODO add error code to handle too big of vector
-    if (billboardList.size() < MAX_BILLBOARDS)
-    {
-      billboardList.push_back(this);
-      /* mHandleIndex = billboardList.size() - 1; */
-    }
-    else
-    {
-       // if no open slots are found, return the last index, TODO should save last element for special case (ie. invalid index);
-      /* mHandleIndex = MAX_BILLBOARDS; */
-      std::cout << "ERROR: too many billboards!" << std::endl;
-       // BUG dangling pointers and such!!!
-    }
-  }
-
 
 
   void FcBillboardRenderer::addBillboard(FcBillboard& billboard)
@@ -266,7 +234,6 @@ FcBillboard::FcBillboard(float width, float height, glm::vec4 color)
     VkDevice pDevice = FcLocator::Device();
 
     vkDestroyDescriptorSetLayout(pDevice, mUboDescriptorSetLayout, nullptr);
-    vkDestroyDescriptorSetLayout(pDevice, mImageDescriptorSetLayout, nullptr);
   }
 
 

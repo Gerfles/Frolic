@@ -80,7 +80,7 @@ namespace fc
 
      VkCommandPool mImmediateCommandPool;
      VkCommandBuffer mImmediateCmdBuffer;
-     /* VkDescriptorSetLayout mSceneDataDescriptorLayout; */
+
      // TODO think about integrating into descriptorClerk
      VkDescriptorPool mImgGuiDescriptorPool;
 
@@ -121,8 +121,6 @@ namespace fc
      FcBuffer materialConstants;
      FcTerrain mTerrain;
      FcTextureAtlas textureAtlas;
-     // TODO DELETE
-     /* VkDescriptorSetLayout mBackgroundDescriptorlayout; */
      glm::mat4 rotationMatrix{1.0f};
      // debugging effects
      FcBoundingBoxRenderer mBoundingBoxRenderer;
@@ -200,7 +198,6 @@ namespace fc
      int init(VkApplicationInfo& appInfo, VkExtent2D screenSize, SceneDataUbo** pSceneData);
       //
      void handleWindowResize();
-      //FcDescriptor& DescriptorManager() { return mDescriptorManager; }
      uint32_t beginFrame();
      void endFrame(uint32_t swapchainImgIndex);
      void drawUI(std::vector<FcText>& UIelements, uint32_t swapchainImgIndex);
@@ -210,10 +207,7 @@ namespace fc
 
       // - GETTERS -
      /* FcSceneRenderer* getMetalRoughMaterial() { return &mSceneRenderer; } */
-     /* VkDescriptorSetLayout getSceneDescriptorLayout() { return mSceneDataDescriptorLayout; } */
-     /* VkDescriptorSetLayout SkyboxDescriptorLayout() { return mSkybox.DescriptorLayout(); } */
-      // TODO delete this probably and place background pipeline in renderer
-     /* VkDescriptorSetLayout getBackgroundDescriptorLayout() { return mBackgroundDescriptorlayout; } */
+     // TODO delete this probably and place background pipeline in renderer
      FrameAssets& getCurrentFrame() { return mFrames[mFrameNumber % MAX_FRAME_DRAWS]; }
       // ?? is this used often enough to merit a member variable?
      float ScreenWidth() { return mWindow.ScreenSize().width; }

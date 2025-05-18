@@ -124,7 +124,6 @@ namespace fc
    public:
       //void create2(FcPipelineCreateInfo* pipelineInfo);
      void create(FcPipelineConfig& configInfo);
-     void connectDescriptorSet(VkDescriptorSet descriptorSet);
      void bindDescriptorSet(VkCommandBuffer cmdBuffer, VkDescriptorSet descriptorSet
                           , uint32_t firstSet) const;
      void bindDescriptorSets(VkCommandBuffer cmdBuffer, std::vector<VkDescriptorSet> sets

@@ -134,17 +134,33 @@ namespace fc
         // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   TEXTURE ARRAY   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
         case FcImageTypes::TextureArray:
         {
-          // NOTE here that we do not have a 3D image so this flag must not be set,
-          // it's intended to allow a 3D image to be used as multi-array sampled
-          //imageInfo.flags |= VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT;
+          // NOTE: unfortunately named, but we do not have a 3D image so this flag must
+          // not be set, it's intended to allow a 3D image to be used as multi-array
+          // sampled imageInfo.flags |= VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT;
+
           imageInfo.arrayLayers = mLayerCount;
-          imageInfo.imageType = VK_IMAGE_TYPE_2D;
           imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT
                             | VK_IMAGE_USAGE_SAMPLED_BIT;
           imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
           imageViewInfo.subresourceRange.layerCount = mLayerCount;
           break;
         }
+        // -*-*-*-*-*-*-*-*-*-*-*-   TEXTURE ARRAY WITH MIPMAPS   -*-*-*-*-*-*-*-*-*-*-*- //
+
+        case FcImageTypes::TextureArrayGenerateMipmaps:
+        {
+          imageInfo.arrayLayers = mLayerCount;
+          // transfer src only needs to be set when generating mipmaps from original image
+        imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT
+                          | VK_IMAGE_USAGE_SAMPLED_BIT
+                          | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+        imageViewInfo.subresourceRange.layerCount = mLayerCount;
+        generateMipmaps = true;
+        break;
+        }
+
+
         // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CUBE MAP   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
         case FcImageTypes::Cubemap:
         {
@@ -183,10 +199,7 @@ namespace fc
           mMipLevels = 1;
           break;
         }
-        // FIXME this is the default for now until the class gets refactored
-        // at which point, Custom will be commented out until all instances that
-        // specify custom are changed to their actual type, then recast custom to be
-        // the type that can be utilized if needed for finer grain detail
+        // TODO Custom can be utilized if needed for finer grain detail
         case FcImageTypes::Custom:
         {
           break;
@@ -493,7 +506,10 @@ namespace fc
     // create the image
     create(mWidth, mHeight, imageType);
     // store our ktx data to image
-    writeToImage(pData, dataLength, false);
+
+    bool generateMipmaps = (mMipLevels > 1) ? true : false;
+
+    writeToImage(pData, dataLength, generateMipmaps);
 
     // destroy any ktx texture data we have loaded
     if (texture != nullptr)
@@ -801,19 +817,19 @@ namespace fc
 
 
   // It should be noted that it is uncommon in practice to generate the mipmap levels at
-  // runtime anyway. Usually they are pregenerated and stored in the texture file
-  // alongside the base level to improve loading speed.
-  // TODO - feature that turns mipMaping off on the fly
+  // runtime. Usually they are pregenerated and stored in the texture file alongside the
+  // base level to improve loading speed.
   void FcImage::generateMipMaps()
   {
     // first select the largest dimension (widht or height), then calc the number of
     // times that can divided by 2. floor gets the gretest integer number of times and
     // then add 1 so original image has mip level.
-    // TODO determine if this really needs to go all the way down to 1x1 pixel
+
     mMipLevels = static_cast<uint32_t>
                  (std::floor(std::log2(std::max(mWidth, mHeight)))) + 1;
 
     FcGpu& gpu = FcLocator::Gpu();
+
     // check if image format supports linear blitting first
     // TODO check this once at startup - NOT FOR EVERY IMAGE
     VkFormatProperties formatProperties;
@@ -826,7 +842,8 @@ namespace fc
       // could search for a common image format that does support linear blitting
       // here or use software like stb_image_resize to generate mipmaps before
       // hand--for now, just throw an error
-      throw std::runtime_error("Failed to generate mipmaps - graphics device not capable of linear blitting for this texture format!");
+      throw std::runtime_error("Failed to generate mipmaps - graphics device not capable"
+                               " of linear blitting for this texture format!");
     }
 
     // this part will remain the same for all barriers - the rest will change
@@ -838,7 +855,7 @@ namespace fc
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     barrier.subresourceRange.baseArrayLayer = 0;
-    barrier.subresourceRange.layerCount = 1;
+    barrier.subresourceRange.layerCount = mLayerCount;
     barrier.subresourceRange.levelCount = 1;
 
     int32_t mipWidth = mWidth;
@@ -852,11 +869,12 @@ namespace fc
     blit.srcOffsets[0] = {0,0,0};
     blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     blit.srcSubresource.baseArrayLayer = 0;
-    blit.srcSubresource.layerCount = 1;
+    blit.srcSubresource.layerCount = mLayerCount;
     blit.dstOffsets[0] = {0,0,0};
     blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     blit.dstSubresource.baseArrayLayer = 0;
-    blit.dstSubresource.layerCount = 1;
+    blit.dstSubresource.layerCount = mLayerCount;
+
     // copying 2D images so always set depth to 1
     blit.srcOffsets[1].z = 1;
     blit.dstOffsets[1].z = 1;

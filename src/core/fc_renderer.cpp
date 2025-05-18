@@ -892,13 +892,11 @@ namespace fc
 
       mTerrain.draw(cmd, mSceneData, drawWireframe);
 
-
-
       // Draw the skybox last so that we can skip pixels with ANY object in front of it
       mSkybox.draw(cmd, currentFrame);
 
 
-      mBillboardRenderer.draw(cmd, mSceneData, currentFrame);
+      /* mBillboardRenderer.draw(cmd, mSceneData, currentFrame); */
     }
 
     vkCmdEndRendering(cmd);
@@ -1284,13 +1282,13 @@ namespace fc
     //mUiRenderer.destroy();
 
     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   SCENE DATA   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    // TODO create consistency with naming LOL
-    mSceneRenderer.clearResources(pDevice);
+    mSceneRenderer.destroy();
     mBoundingBoxRenderer.destroy();
     mNormalRenderer.destroy();
     mBillboardRenderer.destroy();
-    /* vkDestroyDescriptorSetLayout(pDevice, mBackgroundDescriptorlayout, nullptr); */
+
     vkDestroyDescriptorSetLayout(pDevice, mSceneDataDescriptorLayout, nullptr);
+
     // TODO should think about locating mImgGui into Descriptor Clerk
     FcLocator::DescriptorClerk().destroy();
 

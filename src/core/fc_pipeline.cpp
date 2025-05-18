@@ -516,15 +516,6 @@ namespace fc
     vkCmdBindPipeline(commandBuffer, mBindPoint, mPipeline);
   }
 
-   // TODO verify proper operation
-  void FcPipeline::connectDescriptorSet(VkDescriptorSet descriptorSet)
-  {
-    // mDescriptorSets[mSetIndex] = descriptorSet;
-
-    //  // TODO TRY
-    //  //mSetIndex = ++mSetIndex % mNumDescriptorSets;
-    // mSetIndex = (mSetIndex + 1) % mNumDescriptorSets;
-  }
 
 
   void FcPipeline::bindDescriptorSet(VkCommandBuffer cmdBuffer, VkDescriptorSet descriptorSet
@@ -678,28 +669,6 @@ namespace fc
   }
 
 
-
-  void FcPipeline::destroy()
-  {
-    std::cout << "calling: FcPipeline::destroy" << std::endl;
-
-    // if (mDescriptorSetLayout != nullptr)
-    // {
-    //   vkDestroyDescriptorSetLayout(FcLocator::Device(), mDescriptorSetLayout, nullptr);
-    // }
-
-
-    if (mPipelineLayout != nullptr)
-    {
-      vkDestroyPipelineLayout(FcLocator::Device(), mPipelineLayout, nullptr);
-    }
-
-    if (mPipeline != nullptr)
-    {
-      vkDestroyPipeline(FcLocator::Device(), mPipeline, nullptr);
-    }
-  }
-
   // TODO rewrite to pass shader module in and maybe return a bool for sucess and delete runtime error
   VkShaderModule FcPipeline::createShaderModule(const std::vector<char>& code)
   {
@@ -718,6 +687,24 @@ namespace fc
     }
 
     return shaderModule;
-  }// END  createShaderModule(...)
+  } // --- FcPipeline::createShaderModule (_) --- (END)
 
-} //  namespace fc -END-
+
+
+  void FcPipeline::destroy()
+  {
+    std::cout << "calling: FcPipeline::destroy" << std::endl;
+
+    if (mPipelineLayout != nullptr)
+    {
+      vkDestroyPipelineLayout(FcLocator::Device(), mPipelineLayout, nullptr);
+    }
+
+    if (mPipeline != nullptr)
+    {
+      vkDestroyPipeline(FcLocator::Device(), mPipeline, nullptr);
+    }
+  }// --- FcPipeline::destroy (_) --- (END)
+
+
+} // --- namespace fc --- (END)

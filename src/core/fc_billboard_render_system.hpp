@@ -75,7 +75,6 @@ namespace fc
   };
 
 
-
   class FcBillboardRenderer
   {
    private:
@@ -85,7 +84,6 @@ namespace fc
      FcBuffer mUboBuffer;
      VkDescriptorSetLayout mUboDescriptorSetLayout;
      VkDescriptorSet mUboDescriptorSet;
-     VkDescriptorSetLayout mImageDescriptorSetLayout;
 
    public:
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CTORS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //

@@ -1,4 +1,4 @@
-// TODO find out how assert works
+// TODO research assert workings
 //   #define assert(e)  \
 //     ((void) ((e) ? ((void)0) : __assert (#e, __ASSERT_FILE_NAME, __LINE__)))
 // #define __assert(e, file, line) \

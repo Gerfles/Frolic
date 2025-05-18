@@ -16,6 +16,8 @@ namespace fc
   //
   VkSampler FcDefaults::DefaultSamplers::Terrain;
   VkSampler FcDefaults::DefaultSamplers::Linear;
+  VkSampler FcDefaults::DefaultSamplers::Bilinear;
+  VkSampler FcDefaults::DefaultSamplers::Trilinear;
   VkSampler FcDefaults::DefaultSamplers::Nearest;
   VkSampler FcDefaults::DefaultSamplers::ShadowMap;
   //
@@ -44,11 +46,12 @@ namespace fc
     VkSamplerCreateInfo samplerInfo{};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 
-    // -*-*-*-*-*-*-*-*-*-*-*-*-   DEFAULT LINEAR SAMPLER   -*-*-*-*-*-*-*-*-*-*-*-*- //
+    // *-*-*-*-*-*-*-*-*-*-   NEAREST SAMPLER / NEAREST MIPMAP   *-*-*-*-*-*-*-*-*-*- //
     // How to render when image is magnified on the screen
-    samplerInfo.magFilter = VK_FILTER_LINEAR;
+    samplerInfo.magFilter = VK_FILTER_NEAREST;
     // How to render when image is minified on the screen
-    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.minFilter = VK_FILTER_NEAREST;
+    /* samplerInfo.minFilter = VK_FILTER_NEAREST; */
     // How to handle wrap in the U (x) direction
     samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     // How to handle wrap in the V (y) direction
@@ -60,7 +63,7 @@ namespace fc
     // WILL USE NORMALIZED COORD. (coords will be between 0-1)
     samplerInfo.unnormalizedCoordinates = VK_FALSE;
     // Mipmap interpolation mode (between two levels of mipmaps)
-    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
     // used to force vulkan to use lower level of detail and mip level
     samplerInfo.mipLodBias = 0.0f;
     samplerInfo.minLod = 0.0f;
@@ -72,32 +75,48 @@ namespace fc
     /* samplerInfo.maxLod = static_cast<float>(mMipLevels); */
     samplerInfo.maxLod = 0.0f;
     // enable anisotropy
-    samplerInfo.anisotropyEnable = VK_FALSE;
+    samplerInfo.anisotropyEnable = VK_TRUE;
     // TODO should allow this to be user definable or at least profiled at install/runtime
     // Amount of anisotropic samples being taken
     /* samplerInfo.maxAnisotropy = gpu.Properties().maxSamplerAnisotropy; */
-    samplerInfo.maxAnisotropy = VK_SAMPLE_COUNT_1_BIT;
+    // TODO DON'T hard code
+    samplerInfo.maxAnisotropy = VK_SAMPLE_COUNT_16_BIT;
 
-    if (vkCreateSampler(device, &samplerInfo, nullptr, &Samplers.Linear) != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to create a Vulkan Texture Sampler!");
-    }
-
-    // -*-*-*-*-*-*-*-*-*-*-*-*-   DEFAULT NEAREST SAMPLER   -*-*-*-*-*-*-*-*-*-*-*-*- //
-    samplerInfo.magFilter = VK_FILTER_NEAREST;
-    samplerInfo.minFilter = VK_FILTER_NEAREST;
     if (vkCreateSampler(device, &samplerInfo, nullptr, &Samplers.Nearest) != VK_SUCCESS)
     {
       throw std::runtime_error("Failed to create a Vulkan Texture Sampler!");
     }
 
+    // -*-*-*-*-*-*-*-*-*-*-   NEAREST SAMPLER / LINEAR MIPMAP   -*-*-*-*-*-*-*-*-*-*- //
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    samplerInfo.maxLod = VK_LOD_CLAMP_NONE;
+    /* samplerInfo.maxLod = 0.0; */
+    if (vkCreateSampler(device, &samplerInfo, nullptr, &Samplers.Bilinear) != VK_SUCCESS)
+    {
+      throw std::runtime_error("Failed to create a Vulkan Texture Sampler!");
+    }
+
+    // *-*-*-*-*-*-*-*-*-*-   LINEAR SAMPLER / NEAREST MIPMAP   *-*-*-*-*-*-*-*-*-*- //
+    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.magFilter = VK_FILTER_LINEAR;
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+    if (vkCreateSampler(device, &samplerInfo, nullptr, &Samplers.Linear) != VK_SUCCESS)
+    {
+      throw std::runtime_error("Failed to create a Vulkan Texture Sampler!");
+    }
+
+    // -*-*-*-*-*-*-*-*-*-*-   LINEAR SAMPLER / LINEAR MIPMAP   -*-*-*-*-*-*-*-*-*-*- //
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    if (vkCreateSampler(device, &samplerInfo, nullptr, &Samplers.Trilinear) != VK_SUCCESS)
+    {
+      throw std::runtime_error("Failed to create a Vulkan Texture Sampler!");
+    }
 
     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   TERRAIN SAMPLER   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    samplerInfo.magFilter = VK_FILTER_LINEAR;
-    samplerInfo.minFilter = VK_FILTER_LINEAR;
     samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
     samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
     samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+    /* samplerInfo.maxLod = 0.0f; */
     if (vkCreateSampler(device, &samplerInfo, nullptr, &Samplers.Terrain) != VK_SUCCESS)
     {
       throw std::runtime_error("Failed to create a Vulkan Texture Sampler!");
@@ -111,7 +130,7 @@ namespace fc
     // ORIGINAL VALUE
     samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_WHITE;
     /* samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK; */
-    samplerInfo.maxLod = 1.0f;
+    /* samplerInfo.maxLod = 1.0f; */
     if (vkCreateSampler(device, &samplerInfo, nullptr, &Samplers.ShadowMap) != VK_SUCCESS)
     {
       throw std::runtime_error("Failed to create a Vulkan Texture Sampler!");

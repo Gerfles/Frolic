@@ -154,6 +154,8 @@ namespace fc
     //pipelineConfig.enableBlendingAdditive();
     pipelineConfig.enableDepthtest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
 
+
+
     // TODO make pipeline and config and descriptors friend classes
     mOpaquePipeline.create(pipelineConfig);
 
@@ -233,7 +235,6 @@ namespace fc
 
     // Reset the previously used draw instruments for the new draw call
     // defined outside of the draw function, this is the state we will try to skip
-
     mPreviousIndexBuffer = VK_NULL_HANDLE;
 
     // First draw the opaque mesh nodes in draw collection
@@ -283,57 +284,6 @@ namespace fc
     }
   }
 
-  [[deprecated("use draw surface")]]
-  uint32_t FcSceneRenderer::drawMeshNode(VkCommandBuffer cmd
-                                           , const FcMeshNode& meshNode, FrameAssets& currentFrame)
-    {
-      // uint32_t triangleCount = 0;
-
-      // for (const FcSurface* surface : meshNode.visibleSurfaces)
-      // {
-      //   // Only rebind material descriptors if the material changed
-      //   // TODO have each object track state of its own descriptorSets
-      //   if (surface->material.get() != mPreviousMaterial)
-      //   {
-      //     mPreviousMaterial = surface->material.get();
-      //     pCurrentPipeline->bindDescriptors(cmd, surface->material->materialSet, 3);
-      //   }
-
-      //   // Only bind index buffer if it has changed
-      //   if (meshNode.mMesh->IndexBuffer() != mPreviousIndexBuffer)
-      //   {
-      //     mPreviousIndexBuffer = meshNode.mMesh->IndexBuffer();
-      //     meshNode.mMesh->bindIndexBuffer(cmd);
-      //   }
-
-      //   // Calculate final mesh matrix
-      //   DrawPushConstants pushConstants;
-      //   pushConstants.vertexBuffer = meshNode.mMesh->VertexBufferAddress();
-      //   pushConstants.worldMatrix = meshNode.worldTransform;
-      //   pushConstants.normalTransform = glm::inverse(glm::transpose(meshNode.worldTransform));
-
-      //   //
-      //   vkCmdPushConstants(cmd, pCurrentPipeline->Layout()
-      //                      , VK_SHADER_STAGE_VERTEX_BIT
-      //                      , 0, sizeof(DrawPushConstants), &pushConstants);
-      //   //
-      //   // Note here that we have to offset from the initially pushed data since we
-      //   // are really just filling a range alloted to us in total...
-      //   vkCmdPushConstants(cmd, pCurrentPipeline->Layout()
-      //                      , VK_SHADER_STAGE_GEOMETRY_BIT
-      //                      , sizeof(DrawPushConstants), sizeof(float), &expansionFactor);
-
-      //   vkCmdDrawIndexed(cmd, surface->indexCount, 1, surface->startIndex, 0, 0);
-
-      //   // TODO
-      //   // add counters for triangles and draws calls
-      //   triangleCount += surface->indexCount / 3;
-      // }
-      // return triangleCount;
-      return 0;
-    }
-
-
 
     void FcSceneRenderer::drawSurface(VkCommandBuffer cmd, const FcSurface& surface)
     {
@@ -375,10 +325,10 @@ namespace fc
 
 
 
-    void FcSceneRenderer::clearResources(VkDevice device)
+    void FcSceneRenderer::destroy()
     {
+      vkDestroyDescriptorSetLayout(FcLocator::Device(), mMaterialDescriptorLayout, nullptr);
       mOpaquePipeline.destroy();
       mTransparentPipeline.destroy();
-      vkDestroyDescriptorSetLayout(device, mMaterialDescriptorLayout, nullptr);
     }
   }

@@ -35,13 +35,16 @@ void main()
 
   // Simple fog based on distance
   const vec4 fogColor = vec4(0.44, 0.48, 0.63, 0.0);
-  vec4 terrainColor = mix(color, fogColor, distanceFog(0.25));
+
+  // Calculate the final color of the fragment, factoring in distance fog, and volumetric fog
+  // vec4 terrainColor = mix(color, fogColor, distanceFog(0.25));
+  // outFragColor = fogFactor * terrainColor + (1.0 - fogFactor) * fogColor;
 
   // Dynamic, volumetric Fog
   float fogFactor = volumeFog();
 
-  // Calculate the final color of the fragment, factoring in distance fog, and volumetric fog
-  outFragColor = fogFactor * terrainColor + (1.0 - fogFactor) * fogColor;
+  // Disable distance fog
+  outFragColor = fogFactor * color + (1.0 - fogFactor) * fogColor;
 }
 
 
@@ -76,8 +79,8 @@ vec3 sampleTerrainLayer()
 float distanceFog(float density)
 {
   const float LOG2 = -1.442695;
-  float dist = (inEyePos.z - gl_FragCoord.z);// / gl_FragCoord.w;
-  float d = density * dist * 0.05;
+  float dist = distance(inEyePos, inWorldPos);// / gl_FragCoord.w;
+  float d = density * dist * 0.04;
   return 1.0 - clamp(exp2(d * d * LOG2), 0.0, 1.0);
 }
 

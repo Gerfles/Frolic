@@ -351,7 +351,7 @@ VkDescriptorSet FcDescriptorClerk::allocateDescriptorSet(VkDescriptorSetLayout l
 
   void FcDescriptorClerk::destroy()
   {
-    std::cout << "calling: FcDescriptor::destroy" << std::endl;
+    std::cout << "calling: FcDescriptorClerk::destroy" << std::endl;
     // REFERENCE FOR DYNAMIC UBOs
      // release the memory block we have allocated for our model matrix Uniform Buffer Objects
      // free(pModelTransferSpace);

@@ -125,7 +125,7 @@ namespace fc
     // //
     // mDescriptorClerk.initDescriptorPools(gltf.materials.size(), poolRatios);
 
-    // TODO handle more cases with fastgltf samplers and handle mipmap and wrap
+    // TODO handle more cases with fastgltf samplers and handle mipmap and wrap.
     // Load samplers using helper functions that translate from OpenGL to vulkan specs
     for (fastgltf::Sampler& sampler : gltf.samplers)
     {
@@ -144,16 +144,32 @@ namespace fc
         }
         else
         {
-          fcLog("USING LINEAR VKSAMPLER");
-          // Get a pointer to default linear sampler
-          pSamplers.push_back(&FcDefaults::Samplers.Linear);
+          if (mipMode == VK_SAMPLER_MIPMAP_MODE_NEAREST)
+          {
+            fcLog("USING BILINEAR VKSAMPLER");
+            // Get a pointer to default linear sampler
+            pSamplers.push_back(&FcDefaults::Samplers.Bilinear);
+          }
+          else if (mipMode == VK_SAMPLER_MIPMAP_MODE_LINEAR)
+          {
+            fcLog("USING TRILINEAR VKSAMPLER");
+            // Get a pointer to default linear sampler
+            pSamplers.push_back(&FcDefaults::Samplers.Trilinear);
+          }
+          else
+          {
+            fcLog("USING LINEAR VKSAMPLER");
+            // Get a pointer to default linear sampler
+            pSamplers.push_back(&FcDefaults::Samplers.Linear);
+          }
+
         }
       }
       else
       {
-          fcLog("USING DEFAULT VKSAMPLER");
-          // Get a pointer to default linear sampler
-          pSamplers.push_back(&FcDefaults::Samplers.Linear);
+        fcLog("USING DEFAULT VKSAMPLER");
+        // Get a pointer to default linear sampler
+        pSamplers.push_back(&FcDefaults::Samplers.Trilinear);
       }
     }
 
@@ -178,13 +194,17 @@ namespace fc
         //mImages[gltfImage.name.c_str()] = fcImage;
         mTextures.push_back(fcImage);// = fcImage;
 
+
       }
       else
       { // failed to load image so assign default image so we can continue loading scene
         mTextures.push_back(FcDefaults::Textures.checkerboard);
         std::cout << "Failed to load texture: " << gltfImage.name << std::endl;
       }
+      size++;
     }
+
+    std::cout << "Number of Textures Loaded: " << size << std::endl;
 
     // Create buffer to hold the material data
     mMaterialDataBuffer.allocate(sizeof(MaterialConstants) * gltf.materials.size()
@@ -413,10 +433,10 @@ namespace fc
       }
       if (material.sheen != nullptr)
       {
-        fcLog("Sheen Data");
+        fcLog("Unimplemented Sheen Data");
         if (material.sheen->sheenColorTexture.has_value())
         {
-          fcLog("Sheen Color Texture");
+          fcLog("Unimplemented Sheen Color Texture");
         }
       }
 
@@ -424,23 +444,23 @@ namespace fc
       {
         if (material.transmission->transmissionTexture.has_value())
         {
-          fcLog("Transmission Data");
+          fcLog("Unimplemented Transmission Data");
         }
 
         float transmission = material.transmission->transmissionFactor;
-        std::cout << "transmission factor: " << transmission << std::endl;
+        std::cout << "Unimplemented transmission factor: " << transmission << std::endl;
       }
       if (material.clearcoat != nullptr)
       {
-        fcLog("Clearcoat Data");
+        fcLog("Unimplemented Clearcoat Data");
       }
       if (material.anisotropy != nullptr)
       {
-        fcLog("Anisotropy Data");
+        fcLog("Unimplemented Anisotropy Data");
       }
       if (material.iridescence != nullptr)
       {
-        fcLog("Iridescence Data");
+        fcLog("Unimplemented Iridescence Data");
       }
 
       // Write material parameters to buffer.
@@ -481,7 +501,7 @@ namespace fc
         FcSubMesh newSurface;
         newSurface.startIndex = static_cast<uint32_t>(indices.size());
         newSurface.indexCount = static_cast
-                           <uint32_t>(gltf.accessors[primitive.indicesAccessor.value()].count);
+                                <uint32_t>(gltf.accessors[primitive.indicesAccessor.value()].count);
 
         size_t initialVertex = vertices.size();
 
@@ -689,9 +709,6 @@ namespace fc
         gltfNode->update(glm::mat4{1.f});
       }
     }
-
-
-    fcLog("Finised loading GLTF");
   }
 
 
