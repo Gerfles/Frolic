@@ -21,7 +21,7 @@ namespace fc
      uint32_t firstIndex;
      VkBuffer indexBuffer;
      // TODO make reference members
-     glm::mat4 transform;
+     glm::mat4 transform;//{1.0f};
      glm::mat4 invModelMatrix;
      Bounds bounds;
      VkDeviceAddress vertexBufferAddress;

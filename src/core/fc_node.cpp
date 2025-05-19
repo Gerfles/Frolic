@@ -8,15 +8,15 @@
 namespace fc
 {
 
-  // void FcNode::refreshTransform(const glm::mat4& parentMatrix)
-  // {
-  //   worldTransform = parentMatrix * localTransform;
+  void FcNode::refreshTransform(const glm::mat4& parentMatrix)
+  {
+    worldTransform = parentMatrix * localTransform;
 
-  //   for (std::shared_ptr<FcNode> child : children)
-  //   {
-  //     child->refreshTransform(worldTransform);
-  //   }
-  // }
+    for (std::shared_ptr<FcNode> child : children)
+    {
+      child->refreshTransform(worldTransform);
+    }
+  }
 
   void FcNode::addToDrawCollection(FcDrawCollection& collection)
   {
@@ -28,15 +28,18 @@ namespace fc
   }
 
 
+
+
+
+
   // TODO solidify the transform updates
-  void FcNode::update(const glm::mat4& topMatrix)
+  void FcNode::update(const glm::mat4& topMatrix, FcDrawCollection& collection)
   {
-    /* worldTransform = topMatrix * localTransform; */
-    localTransform = topMatrix * worldTransform;
+    worldTransform = topMatrix * localTransform;
 
     for (std::shared_ptr<FcNode>& child : children)
     {
-      child->update(topMatrix);
+      child->update(topMatrix, collection);
     }
   }
 
@@ -90,7 +93,48 @@ namespace fc
   }
 
 
+  void FcMeshNode::updateDrawCollection(FcDrawCollection& collection)
+  {
+    using MaterialSurfacePair = std::pair<FcMaterial*, std::vector<FcSurface>>;
 
+    for (const FcSubMesh& subMesh : mMesh->Surfaces())
+    {
+      // First figure out if this material subMesh will belong in transparent or opaque pipeline
+      std::vector<MaterialSurfacePair>* selectedCollection;
+      if (subMesh.material->materialType == FcMaterial::Type::Transparent)
+      {
+        selectedCollection = &collection.transparentSurfaces;
+      } else {
+        selectedCollection = &collection.opaqueSurfaces;
+      }
+
+      // Narrow by finding the associated material
+      for (MaterialSurfacePair& pair : *selectedCollection)
+      {
+        if (subMesh.material.get() == pair.first)
+        {
+          // go through all the associated FcSurfaces
+          for (FcSurface& surface : pair.second)
+          {
+            // update the subMesh
+            if (surface.firstIndex == subMesh.startIndex
+                && surface.indexCount == subMesh.indexCount)
+            {
+              surface.transform = worldTransform;
+              break;
+            }
+          }
+        }
+      }
+    }
+    // recurse down children nodes
+    /* FcNode::addToDrawCollection(collection); */
+  }
+
+  // TODO document the following in other places as well.  This structure is structured in
+  // a way that allows a given material to keep track of all of the surfaces that require
+  // it to draw. That way we can simply bind a material and then draw all of the surfaces
+  // associated with that material before moving the the next material...
   void FcMeshNode::addToDrawCollection(FcDrawCollection& collection)
   {
     using MaterialSurfacePair = std::pair<FcMaterial*, std::vector<FcSurface>>;
@@ -140,11 +184,14 @@ namespace fc
   }
 
 
-  void FcMeshNode::update(const glm::mat4& topMatrix)
+
+  void FcMeshNode::update(const glm::mat4& topMatrix, FcDrawCollection& collection)
   {
     /* localTransform = topMatrix * worldTransform; */
     worldTransform = topMatrix * localTransform;
-    FcNode::update(topMatrix);
+    updateDrawCollection(collection);
+    FcNode::update(topMatrix, collection);
+
   }
 
 }// --- namespace fc --- (END)

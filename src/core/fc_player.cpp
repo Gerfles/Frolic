@@ -8,8 +8,8 @@
 #include <glm/vec3.hpp>
 #include <glm/geometric.hpp>
 #include <glm/gtc/constants.hpp>
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/quaternion.hpp>
+// #define GLM_ENABLE_EXPERIMENTAL
+// #include <glm/gtx/quaternion.hpp>
 
 namespace fc
 {
@@ -67,15 +67,19 @@ namespace fc
     //   mYaw += TWO_PI;
     // }
 
-    glm::quat pitch = glm::angleAxis(mPitch, glm::vec3{1.f, 0.f, 0.f});
-    glm::quat yaw = glm::angleAxis(mYaw, glm::vec3{0.f, -1.f, 0.f});
 
-    mRotationMatrix = glm::toMat4(yaw * pitch);
-    //mRotationMatrix = glm::toMat4(yaw)  * glm::toMat4(pitch);
+    // TODO implement custom quaternion interface for things like this where only the angle changes
+    // while the rotation axis stays the same (if even possible)
+    mPitchRotation = glm::angleAxis(mPitch, glm::vec3{1.f, 0.f, 0.f});
+    mYawRotation = glm::angleAxis(mYaw, glm::vec3{0.f, -1.f, 0.f});
+
+    mRotationMatrix = glm::toMat4(mYawRotation * mPitchRotation);
+    //mRotationMatrix = glm::toMat4(mYawRotation)  * glm::toMat4(mPitchRotation);
     mPosition += glm::vec3(mRotationMatrix * glm::vec4(mVelocity * mMoveSpeed, 0.f)) * dt;
   }
 
 
+  [[deprecated("use FcPlayer::move(float dt)")]]
   void FcPlayer::moveNew(float dt)
   {
     // TODO find a way to make this branchless... maybe fill an array with 0 or 1 and multiply all
@@ -97,7 +101,6 @@ namespace fc
 
     // limit pitch values between about +/- 85ish degrees
     mPitch = glm::clamp(mPitch, -1.5f, 1.5f);
-
     mYaw = glm::mod(mYaw, glm::two_pi<float>());
 
     // make sure not to normalize a zero vector
@@ -136,7 +139,7 @@ namespace fc
   }
 
 
-
+  [[deprecated("use FcPlayer::move(float dt)")]]
   // TODO compare this method with the new one and performance TEST
   void FcPlayer::moveOLD(float dt)
   {

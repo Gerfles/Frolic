@@ -241,7 +241,7 @@ namespace fc
     /* structure.loadGltf(mSceneRenderer, "..//models//MosquitoInAmber.glb"); */
     /* structure.loadGltf(mSceneRenderer, "..//models//MaterialsVariantsShoe.glb"); */
     structure.loadGltf(mSceneRenderer, "..//models//helmet//DamagedHelmet.gltf");
-
+    structure.addToDrawCollection(mDrawCollection);
     // glm::mat4 translationMat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 15.0f, -24.0f));
     // structure.update(translationMat);
 
@@ -250,6 +250,7 @@ namespace fc
     /* structure2.loadGltf(mSceneRenderer, "..//models//ToyCar.glb"); */
     /* structure2.loadGltf(mSceneRenderer, "..//models//structure.glb"); */
     structure2.loadGltf(mSceneRenderer, "..//models//sponza//Sponza.gltf");
+    structure2.addToDrawCollection(mDrawCollection);
     // glm::mat4 buildingTranslate = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 12.0f, -24.0f));
     // structure2.update(buildingTranslate);
 
@@ -693,43 +694,29 @@ namespace fc
     mSceneDataBuffer.write(&mSceneData, sizeof(SceneDataUbo));
 
 
-    // TODO this is calling the destructor for all objects in draw, should flatten more
-    // to just the necessary AND changing parameters...
-    // mDrawCollection.opaqueSurfaces.clear();
-    // mDrawCollection.transparentSurfaces.clear();
-
     rotationMatrix = glm::rotate(rotationMatrix
                                  , rotationSpeed * .0001f * glm::pi<float>(), {0.f, -1.f, 0.f});
 
     // TODO alter the independence of these two separate calls
     // Might be better to combine them but also a waste when considering that many objects are
     // stationary and therefore do not require an update. Probably better to have static & dynamic
-    // objects be "drawn differently" also hate that this functio is called draw just because
+    // objects be "drawn differently" also hate that this function is called draw just because
     // it adds the meshNodes to the drawContext...
     glm::mat4 translationMat = glm::translate(glm::mat4(1.0f), glm::vec3(45.0f, 9.0f, 20.0f));
-    // TODO update must add to draw collection
-    structure.update(rotationMatrix * translationMat);
+    /* structure.update(rotationMatrix * translationMat, mDrawCollection); */
 
     translationMat = glm::translate(translationMat, glm::vec3(0.0f, -3.0f, 0.0f));
-    structure2.update(translationMat);
+    /* structure2.update(rotationMatrix, mDrawCollection); */
+    angle += rotationSpeed * 0.0001f;
+    structure2.translate(glm::vec3(45.0f, 9.0f, 20.0f));
+    structure2.rotate(angle, {0.f, -1.f, 0.f});
 
-    // BUG change soon!!
-    if (test == 0)
-    {
-      mDrawCollection.opaqueSurfaces.clear();
-      mDrawCollection.transparentSurfaces.clear();
-      structure2.addToDrawCollection(mDrawCollection);
-      structure.addToDrawCollection(mDrawCollection);
-    }
-    test++;
-
+    structure2.update(mDrawCollection);
 
     // TODO
     // could update frustum by sending camera in and then could in turn be sent to
     // various rendering methods
     mFrustum.update(mSceneData.viewProj);
-
-    // TEST if needed
     mFrustum.normalize();
     mTerrain.update(mFrustum);
 
@@ -896,7 +883,7 @@ namespace fc
       mSkybox.draw(cmd, currentFrame);
 
 
-      /* mBillboardRenderer.draw(cmd, mSceneData, currentFrame); */
+      mBillboardRenderer.draw(cmd, mSceneData, currentFrame);
     }
 
     vkCmdEndRendering(cmd);

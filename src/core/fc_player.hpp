@@ -8,7 +8,8 @@
 // libs
 #include "SDL2/SDL_scancode.h"
 #include "SDL2/SDL_video.h"
-
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/quaternion.hpp>
 
 namespace fc
 {
@@ -39,11 +40,13 @@ namespace fc
      float mMoveSpeed{5.f};
      float mLookSpeed{0.01f};
      FcInput* pInput;
-     glm::vec3 mPosition{0.f, 0.f, 0.f};
-     glm::vec3 mForwardDir{0.f, 0.f, 0.f};
-     glm::vec3 mVelocity{0.f, 0.f, 0.f};
+     glm::vec3 mPosition{0.f};
+     glm::vec3 mForwardDir;
+     glm::vec3 mVelocity{0.f};
      float mYaw{0.f};
      float mPitch{0.f};
+     glm::quat mYawRotation;
+     glm::quat mPitchRotation;
      glm::mat4 mRotationMatrix {1.0f};
      FcCamera mCamera{mRotationMatrix, mPosition, mPosition, mPosition};
 

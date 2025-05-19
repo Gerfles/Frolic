@@ -6,6 +6,7 @@
 namespace fc
 {
 
+  // TODO should probably hash the FcSurface for quicker lookup so we can update the surface within the draw collection by using a simple hash lookup
   FcSurface::FcSurface(const FcSubMesh& surface, FcMeshNode* meshNode)
   {
     firstIndex = surface.startIndex;

@@ -229,7 +229,7 @@ void main()
   //vec3 lightDirection = normalize(mix(sceneData.sun))
   vec3 halfDirection = normalize(viewDirection + lightDirection);
 
-  // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CHROME EFFECT   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+  // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CHROME EFFECT   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
   // // Get reflected view ray from the surface to calculate cube map reflection
   // //TODO do in one call
   // vec3 incident = -viewDirection;
@@ -238,7 +238,7 @@ void main()
   // outFragColor = reflectedColor;
   // return;
 
-  // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   GLASS/WATER/ETC EFFECT   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+  // -*-*-*-*-*-*-*-*-*-*-*-*-   GLASS/WATER/ETC EFFECT   -*-*-*-*-*-*-*-*-*-*-*-*- //
   // float iorRatio = 1.00 / 1.309;
   // vec3 incident = -viewDirection;
   // vec3 refraction = refract(incident, normalDirection, iorRatio);

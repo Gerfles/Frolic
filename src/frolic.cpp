@@ -247,7 +247,6 @@ namespace fc
 
       // Move the mPlayer with the updated input, which will automatically update the camera
       mPlayer.move(deltaTime);
-      uvnPlayer.moveNew(deltaTime);
 
       //update(deltaTime);
 

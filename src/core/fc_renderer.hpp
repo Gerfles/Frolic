@@ -83,14 +83,6 @@ namespace fc
 
      // TODO think about integrating into descriptorClerk
      VkDescriptorPool mImgGuiDescriptorPool;
-
-     // DELETE lastUsed...
-     // FcPipeline* lastUsedPipeline;
-     // MaterialInstance* lastUsedMaterial;
-     /* VkBuffer lastUsedIndexBuffer; */
-     // DELETE
-     int test{0};
-
      std::vector<FrameAssets> mFrames {MAX_FRAME_DRAWS};
      FcFrustum mFrustum;
 
@@ -129,6 +121,8 @@ namespace fc
      SceneDataUbo mSceneData;
      FcBuffer mSceneDataBuffer;
      VkDescriptorSetLayout mSceneDataDescriptorLayout;
+     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   TEMP   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     float angle {0.f};
    public:
 
      // TODO Make these all private

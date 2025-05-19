@@ -35,11 +35,11 @@ namespace fc
      // parent pointer must be a weak pointer to avoid circular dependencies
      std::weak_ptr<FcNode> parent;
      std::vector<std::shared_ptr<FcNode>> children;
-     glm::mat4 localTransform {1.0f};
-     glm::mat4 worldTransform {1.0f};
-     /* void refreshTransform(const glm::mat4& parentMatrix); */
-     virtual void addToDrawCollection(FcDrawCollection& context);
-     virtual void update(const glm::mat4& topMatrix);
+     glm::mat4 localTransform;// {1.0f};
+     glm::mat4 worldTransform;// {1.0f};
+     void refreshTransform(const glm::mat4& parentMatrix);
+     virtual void addToDrawCollection(FcDrawCollection& collection);
+     virtual void update(const glm::mat4& topMatrix, FcDrawCollection& collection);
   };
 
   // TODO reserve space for visible surfaces in constructor (enough for all surfaces in mMesh)
@@ -48,8 +48,9 @@ namespace fc
      std::shared_ptr<FcMesh> mMesh;
      std::vector<const FcSubMesh*> visibleSurfaces;
      void sortVisibleSurfaces(const glm::mat4& viewProj);
-     virtual void addToDrawCollection(FcDrawCollection& context) override;
-     virtual void update(const glm::mat4& topMatrix) override;
+     void updateDrawCollection(FcDrawCollection& collection);
+     virtual void addToDrawCollection(FcDrawCollection& collection) override;
+     virtual void update(const glm::mat4& topMatrix, FcDrawCollection& collection) override;
   };
 
 

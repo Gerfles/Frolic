@@ -38,7 +38,6 @@ namespace fc
     {
       image.destroy();
     }
-
     // for (auto& [key, val] : mImages)
     // {
     //   // TODO get rid of dependency on FcRenderer
@@ -589,7 +588,7 @@ namespace fc
         {
           fcLog("Model has un-utilized colors per vertex");
           // NOTE: Left for reference
-          // fastgltf::iterateAccessorWithIndex<glm::vec4>(gltf, gltf.accessors[(*colors).accessorIndex]
+          // fastgltf::iterateAccessorWithIndex<glm::vec4>(gltf, gltf.acces		sors[(*colors).accessorIndex]
           //                                               , [&](glm::vec4 vec, size_t index)
           //                                                {
           //                                                  vertices[initialVertex + index].color = vec;
@@ -704,9 +703,7 @@ namespace fc
       if (gltfNode->parent.lock() == nullptr)
       {
         mTopNodes.push_back(gltfNode);
-        // ??Not sure why we would need this?? I think it's just an initialization thing
-        // if so, better done in class
-        gltfNode->update(glm::mat4{1.f});
+        gltfNode->refreshTransform(glm::mat4{1.0f});
       }
     }
   }
@@ -765,12 +762,11 @@ namespace fc
   }
 
 
-  void FcScene::update(const glm::mat4& topMatrix)
+  void FcScene::update(FcDrawCollection& collection)
   {
-
     for (std::shared_ptr<FcNode>& node : mTopNodes)
     {
-      node->update(topMatrix);
+      node->update(mTransformMat, collection);
     }
   }
 
@@ -958,6 +954,32 @@ namespace fc
 //     mDescriptorSets.emplace_back(std::move(descriptorSet));
     return mTextures.size() - 1;
   }
+
+
+  void FcScene::rotate(float angleDegrees, glm::vec3 axis)
+  {
+    mTransformMat = glm::toMat4(glm::angleAxis(angleDegrees, axis));
+  }
+
+
+
+  void FcScene::translate(glm::vec3 offset)
+  {
+    mTransformMat = glm::translate(mTransformMat, offset);
+  }
+
+
+
+  void FcScene::scale(const glm::vec3 axisFactors)
+  {
+
+  }
+
+
+
+
+
+
 
 
   void FcScene::destroy()
