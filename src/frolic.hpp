@@ -56,6 +56,8 @@ namespace fc
      bool mRotateModel{false};
      bool mCycleExpansion{false};
      bool mDebugShadowMap{false};
+     bool mUseAlternatePipeline{false};
+     float mPlayerMovementSpeed;
      //
      FcPlayer mPlayer;
      FcPlayer uvnPlayer;

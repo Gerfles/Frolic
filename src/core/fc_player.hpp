@@ -62,8 +62,8 @@ public:
      void setPosition(const glm::vec3& position);
      const glm::vec3 position() const { return mPosition; }
      const glm::vec3 velocity() const { return mVelocity; }
-     // TODO don't allow access to private variable like this
-     float& moveSpeed() { return mMoveSpeed; }
+     const float& getMoveSpeed() const { return mMoveSpeed; }
+     void setMoveSpeed(const float moveSpeed) { mMoveSpeed = moveSpeed; }
      //
      float lookSpeed() { return mLookSpeed; }
      const glm::mat4 rotationMatrix() const { return mRotationMatrix; }

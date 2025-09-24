@@ -277,6 +277,7 @@ namespace fc
       constants.metalRoughFactors.y = material.pbrData.roughnessFactor;
       // Index of Refraction
       constants.iorF0 = pow((1 - material.ior) / (1 + material.ior), 2);
+      std::cout << "iorF0: " << constants.iorF0 << std::endl;
       // emmisive factors
       constants.emmisiveFactors = glm::vec4(material.emissiveFactor.x()
                                             , material.emissiveFactor.y()
@@ -762,13 +763,6 @@ namespace fc
   }
 
 
-  void FcScene::update(FcDrawCollection& collection)
-  {
-    for (std::shared_ptr<FcNode>& node : mTopNodes)
-    {
-      node->update(mTransformMat, collection);
-    }
-  }
 
 
   // TODO rename most of these function to what they actually do - ie generateTextureList();
@@ -956,27 +950,64 @@ namespace fc
   }
 
 
+  //
   void FcScene::rotate(float angleDegrees, glm::vec3 axis)
   {
-    mTransformMat = glm::toMat4(glm::angleAxis(angleDegrees, axis));
+    // TODO optimize rotational proceedure via matrix/quaternion manipulation
+    mRotationMat = glm::toMat4(glm::angleAxis(angleDegrees, axis));
+    /* mTransformMat = glm::rotate(mTransformMat, angleDegrees, axis); */
+    mTransformMat = mRotationMat * mTransformMat;
   }
 
 
+  //
+  void FcScene::rotateInPlace(float angleDegrees, glm::vec3 axis)
+  {
+    // First create rotation matrix
+    mRotationMat = glm::toMat4(glm::angleAxis(angleDegrees, axis));
 
+    // Next, translate the rotation matrix by the inverse of the original translation
+    mRotationMat[3] = mRotationMat[0] * -mTranslationMat[3][0]
+                      + mRotationMat[1] * -mTranslationMat[3][1]
+                      + mRotationMat[2] * -mTranslationMat[3][2]
+                      + mRotationMat[3];
+
+    // Finally, apply transforms so we first translate scene back to origin, then rotate,
+    // then translate back to the original position
+    mTransformMat = mTranslationMat * mRotationMat * mTransformMat;
+  }
+
+
+  //
   void FcScene::translate(glm::vec3 offset)
   {
-    mTransformMat = glm::translate(mTransformMat, offset);
+    mTranslationMat = glm::translate(glm::mat4(1.0f), offset);
+    mTransformMat = mTranslationMat * mTransformMat;
   }
 
 
-
+  // TODO implement
   void FcScene::scale(const glm::vec3 axisFactors)
   {
 
   }
 
 
+  void FcScene::update(glm::mat4& mat, FcDrawCollection& collection)
+  {
+    /* mTransformMat = mRotationMat * mTransformMat; */
+  }
 
+
+  void FcScene::update(FcDrawCollection& collection)
+  {
+    /* mTransformMat = mTranslationMat * mRotationMat * mTransformMat; */
+
+    for (std::shared_ptr<FcNode>& node : mTopNodes)
+    {
+      node->update(mTransformMat, collection);
+    }
+  }
 
 
 

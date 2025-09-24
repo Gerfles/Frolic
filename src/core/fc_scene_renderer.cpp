@@ -87,7 +87,9 @@ namespace fc
     pipelineConfig.name = "Opaque Pipeline";
     pipelineConfig.shaders[0].filename = "mesh.vert.spv";
     pipelineConfig.shaders[0].stageFlag = VK_SHADER_STAGE_VERTEX_BIT;
-    pipelineConfig.shaders[1].filename = "brdf.frag.spv";
+    /* pipelineConfig.shaders[1].filename = "brdf.frag.spv"; */
+    /* pipelineConfig.shaders[1].filename = "scene.frag.spv"; */
+    pipelineConfig.shaders[1].filename = "scene2.frag.spv";
     pipelineConfig.shaders[1].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
     pipelineConfig.shaders[2].filename = "explode.geom.spv";
     pipelineConfig.shaders[2].stageFlag = VK_SHADER_STAGE_GEOMETRY_BIT;
@@ -237,6 +239,7 @@ namespace fc
     // defined outside of the draw function, this is the state we will try to skip
     mPreviousIndexBuffer = VK_NULL_HANDLE;
 
+
     // First draw the opaque mesh nodes in draw collection
     mOpaquePipeline.bind(cmd);
     pCurrentPipeline = &mOpaquePipeline;
@@ -248,18 +251,18 @@ namespace fc
     mExternalDescriptors[2] = currentFrame.shadowMapDescriptorSet;
     mOpaquePipeline.bindDescriptorSets(cmd, mExternalDescriptors, 0);
 
-    for (size_t i = 0; i < drawCollection.opaqueSurfaces.size(); ++i)
+    for (auto& materialCollection : drawCollection.opaqueSurfaces)
     {
-      mOpaquePipeline.bindDescriptorSet(cmd, drawCollection.opaqueSurfaces[i].first->materialSet, 3);
+      mOpaquePipeline.bindDescriptorSet(cmd, materialCollection.first->materialSet, 3);
 
-      /* drawSurface(cmd, drawCollection.opaqueSurfaces[i].second[0]); */
-      for (size_t index : drawCollection.visibleSurfaceIndices[i])
+      for (FcSurface& surface : materialCollection.second)
       {
-        drawSurface(cmd, drawCollection.opaqueSurfaces[i].second[index]);
+        drawSurface(cmd, surface);
       }
-      // drawCollection.stats.triangleCount += drawMeshNode(cmd, meshNode, currentFrame);
-      // drawCollection.stats.objectsRendered += meshNode.mMesh->Surfaces().size();
     }
+
+
+
 
     // Next, we draw all the transparent MeshNodes in draw collection
     mTransparentPipeline.bind(cmd);

@@ -37,7 +37,10 @@ class FcScene
    // just the nodes that don't have a parent, for iterating through the file in tree order
    std::vector<std::shared_ptr<FcNode>> mTopNodes;
    std::vector<VkSampler*> pSamplers;
-   glm::mat4 mTransformMat{1.0f};
+   glm::mat4 mTransformMat{1.f};
+   glm::mat4 mRotationMat{1.f};
+   glm::mat4 mTranslationMat{1.0f};
+   glm::vec3 mTranslation{0.f};
  public:
    // TODO change to private
    FcBuffer mMaterialDataBuffer;
@@ -58,11 +61,13 @@ class FcScene
    VkSamplerMipmapMode extractMipmapMode(fastgltf::Filter filter);
    // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   TRANSFORMS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
    void rotate(float angleDegrees, glm::vec3 axis);
+   void rotateInPlace(float angleDegrees, glm::vec3 axis);
    void translate(glm::vec3 offset);
    void scale(const glm::vec3 axisFactors);
    // NOTE: must call update after any transform in order to change the scene in DrawCollection
    void update(FcDrawCollection& collection);
-
+   // update only using the supplied matrix (not the member matrix)
+   void update(glm::mat4& mat, FcDrawCollection& collection);
 
    // TODO separate FcModel from LoadedGLTF classes
    std::vector<std::string> LoadMaterials(const aiScene* scene);

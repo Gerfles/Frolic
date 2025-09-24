@@ -2,6 +2,7 @@
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "core/fc_game_object.hpp"
+#include "core/fc_cvar_system.hpp"
 #include "core/fc_font.hpp"
 #include "core/fc_light.hpp"
 #include "core/fc_locator.hpp"
@@ -31,6 +32,10 @@
 
 namespace fc
 {
+
+  // float CVar
+
+
   Frolic::Frolic()
   {
     // Application Specs for developer use
@@ -146,6 +151,8 @@ namespace fc
     mSunBillboard.setPosition(pSceneData->sunlightDirection);
     mRenderer.addBillboard(mSunBillboard);
 
+
+    mPlayerMovementSpeed = mPlayer.getMoveSpeed();
     // TODO keep this behavior for Fc_Scene
     // castle->transform.rotation = {glm::pi<float>(), 0.f, 0.f};
     // castle->transform.translation = {0.f, 1.f, 0.f};
@@ -168,13 +175,14 @@ namespace fc
     //mPlayer.setPosition(glm::vec3(30.f, -00.f, -85.f));
     //mPlayer.setPosition(glm::vec3(-5.f, 5.5f, .20f));
     /* mPlayer.setPosition(glm::vec3(0.f, 0.f, 2.f)); */
-    mPlayer.setPosition(glm::vec3(-2.5f, 21.4f, -0.28f));
+    mPlayer.setPosition(glm::vec3(36.f, 25.f, 19.f));
     uvnPlayer.setPosition(glm::vec3(0.f, 0.f, 2.f));
-
 
     // load everything we need for the scene
     //loadUIobjects();
     loadGameObjects();
+
+    AutoCVarFloat cvarMovementSpeed("movementSpeed.float", "controls camera movement speed", 5.0f);
 
 
     // TODO this should be abstracted into engine
@@ -388,8 +396,24 @@ namespace fc
         ImGui::SetNextItemWidth(60);
         ImGui::SliderInt("Model Rotation Speed", &mRenderer.rotationSpeed, -5, 5);
         ImGui::SetNextItemWidth(60);
-        // TODO don't allow access into class like this
-        ImGui::SliderFloat("Movement Speed", &mPlayer.moveSpeed(), 1, 50, "%.1f");
+
+
+
+        // TODO don't allow access into class like this USE CVAR SYSTEM
+        // float* movementSpeed = CVarSystem::Get()->GetFloatCVar("movementSpeed.float");
+        // if (movementSpeed)
+        // {
+        //   CVarSystem::Get()->setFloatCVar("movementSpeed.float", 41.5f);
+        // }
+        /* ImGui::SliderFloat("Movement Speed", &movementSpeed, 1, 50, "%.1f"); */
+
+
+        if (ImGui::SliderFloat("Movement Speed", &mPlayerMovementSpeed, 1, 50, "%.1f"))
+        {
+          mPlayer.setMoveSpeed(mPlayerMovementSpeed);
+        }
+
+
         ImGui::Checkbox("Cycle", &mCycleExpansion);
 
         if (mCycleExpansion)
@@ -440,7 +464,7 @@ namespace fc
         {
           mRenderer.mShadowMap.updateLightSpaceTransform();
         }
-        if(ImGui::SliderFloat("Near", &frustum.near, -.01f, 10.f))
+        if(ImGui::SliderFloat("Near", &frustum.near, -.01f, 75.f))
         {
           mRenderer.mShadowMap.updateLightSpaceTransform();
         }

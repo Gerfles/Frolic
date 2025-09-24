@@ -254,6 +254,13 @@ namespace fc
     // glm::mat4 buildingTranslate = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 12.0f, -24.0f));
     // structure2.update(buildingTranslate);
 
+    glm::vec3 translationVec = {45.0f, 9.0f, 20.0f};
+    structure.translate(translationVec);
+    translationVec.y -= 2.0f;
+    structure2.translate(translationVec);
+    structure.update(mDrawCollection);
+    structure2.update(mDrawCollection);
+
     // // NOTE: This moves the object not the camera/lights/etc...
     // glm::mat4 drawMat{1.f};
     // glm::vec3 translate{30.f, -00.f, 85.f};
@@ -268,9 +275,9 @@ namespace fc
     mSceneData.projection = pActiveCamera->Projection();
 
 
-    mSceneData.sunlightDirection = glm::vec4(47.f, 25.f, 23.f, 1.f);
+    mSceneData.sunlightDirection = glm::vec4(43.1f, 25.f, 23.f, 1.f);
     glm::vec3 target{mSceneData.sunlightDirection.x, 0.0, mSceneData.sunlightDirection.z};
-    target = {45.0f, 8.0f, 20.0f};
+
     mShadowMap.updateLightSource(mSceneData.sunlightDirection, target);
     // initNormalDrawPipeline(sceneDataBuffer);
     // initBoundingBoxPipeline(sceneDataBuffer);
@@ -693,25 +700,19 @@ namespace fc
     mSceneData.lighSpaceTransform = clip * mShadowMap.LightSpaceMatrix();
     mSceneDataBuffer.write(&mSceneData, sizeof(SceneDataUbo));
 
+    angle = rotationSpeed * 0.001f;
+    glm::vec3 rotationAxis = {0.f, -1.f, 0.f};
 
-    rotationMatrix = glm::rotate(rotationMatrix
-                                 , rotationSpeed * .0001f * glm::pi<float>(), {0.f, -1.f, 0.f});
+    // structure = helmet, structure2 = building
+    structure.rotateInPlace(angle, rotationAxis);
+    /* structure2.rotateInPlace(angle, rotationAxis); */
 
-    // TODO alter the independence of these two separate calls
-    // Might be better to combine them but also a waste when considering that many objects are
-    // stationary and therefore do not require an update. Probably better to have static & dynamic
-    // objects be "drawn differently" also hate that this function is called draw just because
-    // it adds the meshNodes to the drawContext...
-    glm::mat4 translationMat = glm::translate(glm::mat4(1.0f), glm::vec3(45.0f, 9.0f, 20.0f));
-    /* structure.update(rotationMatrix * translationMat, mDrawCollection); */
 
-    translationMat = glm::translate(translationMat, glm::vec3(0.0f, -3.0f, 0.0f));
-    /* structure2.update(rotationMatrix, mDrawCollection); */
-    angle += rotationSpeed * 0.0001f;
-    structure2.translate(glm::vec3(45.0f, 9.0f, 20.0f));
-    structure2.rotate(angle, {0.f, -1.f, 0.f});
+    // TODO could flag draw collection items with nodes that "know" they need to be updated
+    // then draw collection could do all the updating in one go.
+    structure.update(mDrawCollection);
+    /* structure2.update(mDrawCollection); */
 
-    structure2.update(mDrawCollection);
 
     // TODO
     // could update frustum by sending camera in and then could in turn be sent to

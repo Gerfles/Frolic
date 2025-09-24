@@ -34,7 +34,7 @@ namespace fc
     // /* mLightView = glm::lookAt(glm::vec3(2.0f, 14.0f, 2.0f) */
     //                          , glm::vec3(45.0f, 8.0f, 20.0f)
     //                          , glm::vec3(0.0f, 0.0f, 1.0f));
-    mFrustum.setAll(-15.f, 15.f, -15.f, 15.f, .1f, 15.f);
+    mFrustum.setAll(3.5f, 31.f, -20.f, 20.f, -15.f, 10.f);
 
     updateLightSpaceTransform();
   }
