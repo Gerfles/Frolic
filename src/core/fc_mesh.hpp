@@ -24,7 +24,6 @@ namespace fc
 {
   // *-*-*-*-*-*-*-*-*-*-*-*-*-   FORWARD DECLARATIONS   *-*-*-*-*-*-*-*-*-*-*-*-*- //
 //  class FcMesh;
-  class FcModel;
 
 
   // TEST see if initialization is necessary since usually we know they must be set
@@ -76,7 +75,7 @@ namespace fc
 
 
   // Represents a raw mesh asset loaded from file.
-class FcMesh
+  class FcMesh
   {
    private:
      // ModelMatrix mUboModel;

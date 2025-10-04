@@ -49,7 +49,7 @@ namespace fc
   };
 
 
-  // TODO unitialize maybe
+  // TODO unitialize maybe ?? might be too big for some system UBOs
   struct SceneDataUbo
   {
      glm::vec4 eye {0.0};
@@ -86,43 +86,53 @@ namespace fc
   };
 
 
-  // TODO relocate or rename fc_materials.hpp
-  class FcSceneRenderer
+  // -*-*-*-*-*-*-*-*-*-*-*-*-*-   DRAW INDIRECT DATA   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
+  struct IndirectBatch
   {
-   private:
-     FcPipeline mOpaquePipeline;
-     FcPipeline mTransparentPipeline;
-     std::vector<uint32_t> mSortedObjectIndices;
-     VkDescriptorSetLayout mMaterialDescriptorLayout;
-     FcPipeline* pCurrentPipeline;
-     glm::mat4* pViewProjection;
-     /* FcMaterial* mPreviousMaterial; */
-     VkBuffer mPreviousIndexBuffer;
-     float expansionFactor{0};
-     /* VkDescriptorSetLayout mSceneDataDescriptorLayout; */
-     // TODO should probably pass this in each frame
-     // SceneDataUbo mSceneData;
-     // FcBuffer mSceneDataBuffer;
-     std::vector<VkDescriptorSet> mExternalDescriptors {3};
-     void sortByVisibility(FcDrawCollection& drawCollection);
-     uint32_t drawMeshNode(VkCommandBuffer cmd,
-                           const FcMeshNode& surface,
-                           FrameAssets& currentFrame);
-     void drawSurface(VkCommandBuffer cmd, const FcSurface& surface);
-   public:
-     // TODO think about including a local descriptorClerk
-     void init(glm::mat4& viewProj);
-     void buildPipelines(VkDescriptorSetLayout sceneDescriptorLayout);
-     FcPipeline* TransparentPipeline() { return &mTransparentPipeline; }
-     FcPipeline* OpaquePipeline() { return &mOpaquePipeline; }
-     void draw(VkCommandBuffer cmd, FcDrawCollection& drawCollection, FrameAssets& currentFrame);
-     void destroy();
-     // TODO DELETE or refactor the following
-     /* VkDescriptorSetLayout getSceneDescriptorLayout() { return mSceneDataDescriptorLayout; } */
-     /* SceneDataUbo* getSceneDataUbo() { return &mSceneData; } */
-     /* void updateSceneDataBuffer() { mSceneDataBuffer.write(&mSceneData, sizeof(SceneDataUbo)); } */
-     float& ExpansionFactor() { return expansionFactor; }
-};
+     FcMesh* mesh;
+     FcMaterial* material;
+     uint32_t first;
+     uint32_t count;
+  };
+
+  // TODO relocate or rename fc_materials.hpp
+    class FcSceneRenderer
+    {
+     private:
+       FcPipeline mOpaquePipeline;
+       FcPipeline mTransparentPipeline;
+       std::vector<uint32_t> mSortedObjectIndices;
+       VkDescriptorSetLayout mMaterialDescriptorLayout;
+       FcPipeline* pCurrentPipeline;
+       glm::mat4* pViewProjection;
+       /* FcMaterial* mPreviousMaterial; */
+       VkBuffer mPreviousIndexBuffer;
+       float expansionFactor{0};
+       /* VkDescriptorSetLayout mSceneDataDescriptorLayout; */
+       // TODO should probably pass this in each frame
+       // SceneDataUbo mSceneData;
+       // FcBuffer mSceneDataBuffer;
+       std::vector<VkDescriptorSet> mExternalDescriptors {3};
+       void sortByVisibility(FcDrawCollection& drawCollection);
+       std::vector<IndirectBatch> compactDraws(FcSurface* objects, int count);
+       uint32_t drawMeshNode(VkCommandBuffer cmd,
+                             const FcMeshNode& surface,
+                             FrameAssets& currentFrame);
+       void drawSurface(VkCommandBuffer cmd, const FcSurface& surface);
+     public:
+       // TODO think about including a local descriptorClerk
+       void init(glm::mat4& viewProj);
+       void buildPipelines(VkDescriptorSetLayout sceneDescriptorLayout);
+       FcPipeline* TransparentPipeline() { return &mTransparentPipeline; }
+       FcPipeline* OpaquePipeline() { return &mOpaquePipeline; }
+       void draw(VkCommandBuffer cmd, FcDrawCollection& drawCollection, FrameAssets& currentFrame);
+       void destroy();
+       // TODO DELETE or refactor the following
+       /* VkDescriptorSetLayout getSceneDescriptorLayout() { return mSceneDataDescriptorLayout; } */
+       /* SceneDataUbo* getSceneDataUbo() { return &mSceneData; } */
+       /* void updateSceneDataBuffer() { mSceneDataBuffer.write(&mSceneData, sizeof(SceneDataUbo)); } */
+       float& ExpansionFactor() { return expansionFactor; }
+    };
 
 
 }// --- namespace fc --- (END)

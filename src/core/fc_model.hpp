@@ -30,6 +30,12 @@ class aiNode;
 
 namespace fc {
 
+  // -*-*-*-*-*-*-*-*-*-*-*-*-*-   MAPPING TO VKGUIDE   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
+  // RenderObject -> FcModel?
+  //
+  //
+  //
+  // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END MAP   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
 
   // FIXME implement a better system of extrapolating/expressing the relationship between
@@ -46,6 +52,7 @@ namespace fc {
        std::vector<FcMesh> mMeshList;
        std::vector<FcImage> mTextures;
        std::vector<VkDescriptorSet> mDescriptorSets;
+       // TODO probably want to have a collection of all model matrices on GPU already
        glm::mat4 mModelMatrix;
        std::string name;
        // uint32_t mIndexCount;

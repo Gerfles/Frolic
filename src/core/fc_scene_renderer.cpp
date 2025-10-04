@@ -53,7 +53,7 @@ namespace fc
     // // TODO create temporary storage for this in descClerk so we can just write the
     // // descriptorSet and layout on the fly and destroy layout if not needed
     // // TODO see if layout is not needed.
-    // FcDescriptorBindInfo sceneDescriptorBinding{};
+   // FcDescriptorBindInfo sceneDescriptorBinding{};
     // sceneDescriptorBinding.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
     //                                   , VK_SHADER_STAGE_VERTEX_BIT
     //                                   // TODO DELETE after separating model from scene
@@ -172,7 +172,9 @@ namespace fc
   }
 
 
-
+  // BUG culling is not working properly as there are many triangles drawn
+  // while no objects in view frustum even when rotating more towards the objects will
+  // often reduce that count to zero just before the object actually appears on screen
   // sort objects by pipeline and material prior to drawing them
   void FcSceneRenderer::sortByVisibility(FcDrawCollection& drawCollection)
   {
@@ -196,10 +198,10 @@ namespace fc
       {
         FcSurface& surface = drawCollection.opaqueSurfaces[i].second[index];
 
-        // if (surface.isVisible(*pViewProjection))
-        // {
+        if (surface.isVisible(*pViewProjection))
+        {
           drawCollection.visibleSurfaceIndices[i].push_back(index);
-          // }
+        }
       }
     }
 
@@ -229,10 +231,58 @@ namespace fc
     }
 
 
-  void FcSceneRenderer::draw(VkCommandBuffer cmd
-                             , FcDrawCollection& drawCollection, FrameAssets& currentFrame)
+  // TODO maybe pass vector instead
+  std::vector<IndirectBatch> FcSceneRenderer::compactDraws(FcSurface* objects, int count)
   {
-    // TODO just sort once and store the sorted indices unless something changes
+    std::vector<IndirectBatch> draws;
+
+    // IndirectBatch firstDraw;
+    // firstDraw.mesh = objects[0].mesh;
+    // firstDraw.material = objects[0].material;
+    // firstDraw.first = 0;
+    // firstDraw.count = 1;
+
+    // draws.push_back(firstDraw);
+
+    // for (int i = 0; i < count; i++)
+    // {
+    //   // compare the mesh and material with the end of the vector of draws
+    //   bool sameMesh = objects[i].mesh == draws.back().mesh;
+    //   bool sameMaterial = objects[i].material == draws.back().material;
+
+    //   if (sameMesh && sameMaterial)
+    //   {
+    //     draws.back().count++;
+    //   }
+    //   else
+    //   {
+    //     // add a new draw
+    //     IndirectBatch newDraw;
+    //     newDraw.mesh = objects[i].mesh;
+    //     newDraw.material = objects[i].material;
+    //     newDraw.first = i;
+    //     newDraw.count = 1;
+
+    //     draws.push_back(newDraw);
+    //   }
+    // }
+
+    return draws;
+  }
+
+
+
+  void FcSceneRenderer::draw(VkCommandBuffer cmd, FcDrawCollection& drawCollection,
+                             FrameAssets& currentFrame)
+  {
+    // *-*-*-*-*-*-*-*-*-*-*-*-   ATTEMPTING DRAW INDIRECT   *-*-*-*-*-*-*-*-*-*-*-*- //
+
+    // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END DI ATTEMPT   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
+    // Reset the draw statistics
+    drawCollection.stats.triangleCount = 0;
+
+    // TODO just sort once and store the sorted indices unless something is added or removed
     sortByVisibility(drawCollection);
 
     // Reset the previously used draw instruments for the new draw call
@@ -251,29 +301,38 @@ namespace fc
     mExternalDescriptors[2] = currentFrame.shadowMapDescriptorSet;
     mOpaquePipeline.bindDescriptorSets(cmd, mExternalDescriptors, 0);
 
-    for (auto& materialCollection : drawCollection.opaqueSurfaces)
-    {
-      mOpaquePipeline.bindDescriptorSet(cmd, materialCollection.first->materialSet, 3);
+    // TO be used when no culling is desired
+    // for (auto& materialCollection : drawCollection.opaqueSurfaces)
+    // {
+    //   mOpaquePipeline.bindDescriptorSet(cmd, materialCollection.first->materialSet, 3);
 
-      for (FcSurface& surface : materialCollection.second)
+    //   for (FcSurface& surface : materialCollection.second)
+    //   {
+    //     drawSurface(cmd, surface);
+    //   }
+    // }
+
+    for (size_t i = 0; i < drawCollection.opaqueSurfaces.size(); ++i)
+    {
+      mOpaquePipeline.bindDescriptorSet(cmd, drawCollection.opaqueSurfaces[i].first->materialSet, 3);
+
+      for (size_t index : drawCollection.visibleSurfaceIndices[i])
       {
+        const FcSurface& surface = drawCollection.opaqueSurfaces[i].second[index];
+
         drawSurface(cmd, surface);
+
+        // Update the engine statistics
+        drawCollection.stats.triangleCount += surface.indexCount / 3;
+        drawCollection.stats.objectsRendered += 1;
       }
     }
-
-
-
 
     // Next, we draw all the transparent MeshNodes in draw collection
     mTransparentPipeline.bind(cmd);
     pCurrentPipeline = &mTransparentPipeline;
 
     // TODO update like above
-    // ?? Do I need to re-bind these
-    mTransparentPipeline.bindDescriptorSet(cmd, currentFrame.sceneDataDescriptorSet, 0);
-    mTransparentPipeline.bindDescriptorSet(cmd, currentFrame.skyBoxDescriptorSet, 1);
-    mTransparentPipeline.bindDescriptorSet(cmd, currentFrame.shadowMapDescriptorSet, 2);
-
     for (auto& materialCollection : drawCollection.transparentSurfaces)
     {
       mTransparentPipeline.bindDescriptorSet(cmd, materialCollection.first->materialSet, 3);
@@ -282,8 +341,8 @@ namespace fc
       {
         drawSurface(cmd, surface);
       }
-      // drawCollection.stats.triangleCount += drawMeshNode(cmd, meshNode, currentFrame);
-      // drawCollection.stats.objectsRendered += meshNode.mMesh->Surfaces().size();
+      // drawCollection.stats.triangleCount += surface.indexCount / 3;
+      // drawCollection.stats.objectsRendered += 1;
     }
   }
 
@@ -325,7 +384,6 @@ namespace fc
       // currstats.objectsRendered++;
       // stats.triangleCount += surface.indexCount / 3;
     }
-
 
 
     void FcSceneRenderer::destroy()

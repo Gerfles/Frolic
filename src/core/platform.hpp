@@ -40,7 +40,7 @@ namespace fc
 #define    FROLIC_FILELINE(MESSAGE)                __FILE__ "(" FROLIC_LINE_STRING ") : " MESSAGE
 
 // unique names
-#define    FROLIC_UNIQUE_SUFFIX(PARAM)             RAPTOR_CONCAT(PARAM, __LINE__)
+#define    FROLIC_UNIQUE_SUFFIX(PARAM)             FROLIC_CONCAT(PARAM, __LINE__)
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-   NATIVE TYPE TYPEDEFS   *-*-*-*-*-*-*-*-*-*-*-*-*- //
 typedef  uint8_t   u8;
@@ -54,22 +54,22 @@ typedef  int32_t   i32;
 typedef  int64_t   i64;
 
 // ?? Not sure this is correct for every implementation
-typedef  float     f32;
-typedef  double    f64;
+// typedef  float     f32;
+// typedef  double    f64;
 
-typedef  size_t    sizet;
+typedef  size_t    sizeT;
 
 typedef const char*  cstring;
 
-static const u64  u64_max  =  UINT64_MAX;
-static const u32  u32_max  =  UINT32_MAX;
-static const u16  u16_max  =  UINT16_MAX;
-static const u8   u8_max   =  UINT8_MAX;
+static const u64  U64_MAX  =  UINT64_MAX;
+static const u32  U32_MAX  =  UINT32_MAX;
+static const u16  U16_MAX  =  UINT16_MAX;
+static const u8   U8_MAX   =  UINT8_MAX;
 
-static const i64  i64_max  =  INT64_MAX;
-static const i32  i32_max  =  INT32_MAX;
-static const i16  i16_max  =  INT16_MAX;
-static const i8   i8_max   =  INT8_MAX;
+static const i64  I64_MAX  =  INT64_MAX;
+static const i32  I32_MAX  =  INT32_MAX;
+static const i16  I16_MAX  =  INT16_MAX;
+static const i8   I8_MAX   =  INT8_MAX;
 
 
 }

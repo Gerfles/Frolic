@@ -46,6 +46,7 @@ namespace fc
   {
    private:
      // -*-*-*-*-*-*-*-   USED WHEN MAPPING DATA TO READ PIXEL VALUES   -*-*-*-*-*-*-*- //
+     // TODO think about getting rid of local Copy since not always needed I think
      std::shared_ptr<FcBuffer> localCopy;
      void* localCopyAddress {nullptr};
      // TODO create a heading for blank lines (without gap)
@@ -54,22 +55,26 @@ namespace fc
      VkImageView mImageView {VK_NULL_HANDLE};
      VmaAllocation mAllocation {nullptr};
      VkFormat mFormat;
+     // TODO think about formating this differently
      int mBytesPerPixel;
      // TODO create a synced state variable to track current image layout
      // NOTE this layout may not be exactly up to date based on image barriers in GPU etc.
      // VkImageLayout mCurrentLayout{VK_IMAGE_LAYOUT_UNDEFINED};
      // ?? might want to save a copy of ImageType locally in case we need it for ops
-     uint32_t mWidth;
-     uint32_t mHeight;
+     uint16_t mWidth;
+     uint16_t mHeight;
+     uint8_t mLayerCount {1};
+     uint8_t mMipLevels {1};
 
-     // ?? could use uint_8 instead or make part of a bitmask
-     uint32_t mLayerCount {1};
-     uint32_t mMipLevels {1};
+     static uint32_t index;
+     uint32_t handle;
+
      //
      void generateMipMaps();
      void setPixelFormat();
      void writeToImage(void* pData, VkDeviceSize dataLength, bool generateMipmaps);
    public:
+     // TODO could we just do this for images that need this function aka FcMappableImage?
      // TODO implement for the non GPU images->anything that is vmaAllocate-able
      // TODO should be type agnostic or get that info from somewhere since this could
      // be RGBA_8 or R16 or D32 etc.

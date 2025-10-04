@@ -28,9 +28,11 @@
 namespace fc
 {
 
+  uint32_t FcImage::index = 0;
+
   FcImage::FcImage(VkImage image)
   {
-
+    index = 0;
     mImage = image;
   }
 
@@ -208,14 +210,13 @@ namespace fc
           break;
     }
 
+    // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FINALIZE IMAGE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     if (generateMipmaps)
     {
       mMipLevels = static_cast<uint32_t>
                    (std::floor(std::log2(std::max(mWidth, mHeight)))) + 1;
     }
-    //
 
-    // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FINALIZE IMAGE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     imageInfo.mipLevels = mMipLevels;
     imageInfo.format = mFormat;
 
@@ -1183,5 +1184,8 @@ namespace fc
     }
 
     writeToImage(pixelData, size, generateMipmaps);
+
+    // ?? May want to eliminate this since may not be able to multithread
+    ++index;
   }
 }// --- namespace fc --- (END)

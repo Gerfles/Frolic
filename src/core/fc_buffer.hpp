@@ -33,6 +33,7 @@ enum class FcBufferTypes : uint8_t {
   Vertex,
   Index,
   Uniform,
+  Gpu,
   Custom,
 };
 

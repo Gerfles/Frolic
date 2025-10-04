@@ -62,6 +62,7 @@ namespace fc
     terrainPipeline.disableBlending();
     terrainPipeline.enableTessellationShader(4);
 
+
     // add Vertex shader push constants
     VkPushConstantRange vertexShaderPCs;
     vertexShaderPCs.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;

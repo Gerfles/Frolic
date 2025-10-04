@@ -41,26 +41,27 @@ namespace  fc
     {
         case FcBufferTypes::Staging:
         {
-          bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-          allocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT
-                            | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+          bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
+                             VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+          allocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT |
+                            VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
           // ?? This may allow easier mapping for pixel read if needed
                             /* |VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT; */
           break;
         }
         case FcBufferTypes::Vertex:
         {
-          bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT
-                             | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
-                             | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+          bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+                             VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
+                             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
           allocInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
           allocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
           break;
         }
         case FcBufferTypes::Index:
         {
-          bufferInfo.usage =  VK_BUFFER_USAGE_TRANSFER_DST_BIT
-                              | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+          bufferInfo.usage =  VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+                              VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
           break;
         }
         case FcBufferTypes::Uniform:
@@ -72,9 +73,19 @@ namespace  fc
           allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
                             // | VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT
                             // | VMA_ALLOCATION_CREATE_MAPPED_BIT;
-          bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT
+          bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
                              // This flag is needed if BAR mem is not available->requires transfer
-                             | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+                             VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+          break;
+        }
+        case FcBufferTypes::Gpu:
+        {
+          // May want to rename eventually but for now this is a buffer we can send to the gpu
+          // for things like drawIndirect
+          bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+                             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                             VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
+          allocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
           break;
         }
         case FcBufferTypes::Custom:

@@ -20,6 +20,8 @@ namespace fc
   const int MAX_LIGHTS = 10;
   const int MAX_BILLBOARDS = 30;
 
+
+
    // struct PointLight
    // {
    //    glm::vec4 position{}; // ignore w
@@ -62,6 +64,11 @@ namespace fc
   class FcDescriptorClerk
   {
    private:
+     // Total number of textures allowed to be bound dynamically
+     static const uint32_t MAX_BINDLESS_TEXTURES = 1024;
+     //?? not sure why we use 10 here
+     static const uint32_t BINDLESS_TEXTURE_BIND_SLOT = 10;
+
      size_t mModelUniformAlignment;
      VkDevice pDevice;
      // ?? Could use as an atlas if wanted/needed
@@ -70,6 +77,11 @@ namespace fc
      std::vector<VkDescriptorPool> mFullPools;
      std::vector<VkDescriptorPool> mReadyPools;
      uint32_t mSetsPerPool;
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-   BINDLESS RESOURCES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     bool isBindlessSupported = false;
+     VkDescriptorPool mBindlessDescriptorPool;
+     VkDescriptorSetLayout mBindlessDescriptorLayout;
+     VkDescriptorSet mBindlessDescriptorSet;
 
    public:
      FcDescriptorClerk() = default;
@@ -78,6 +90,7 @@ namespace fc
      FcDescriptorClerk& operator=(const FcBuffer&) = delete;
      FcDescriptorClerk& operator=(FcDescriptorClerk&&) = delete;
      void initDescriptorPools(uint32_t maxSets, std::span<PoolSizeRatio> poolRatios);
+     void createBindlessDescriptorLayout();
      VkDescriptorSetLayout createDescriptorSetLayout(FcDescriptorBindInfo& bindingInfo
                                                      , VkDescriptorSetLayoutCreateFlags flags = 0);
      VkDescriptorSet createDescriptorSet(VkDescriptorSetLayout layout, FcDescriptorBindInfo& bindInfo);
@@ -87,7 +100,7 @@ namespace fc
      void clearPools();
      void destroyPools();
      VkDescriptorPool getPool();
-     VkDescriptorPool createPool(uint32_t setCount, std::span<PoolSizeRatio> poolRatios);
+     VkDescriptorPool createPools(uint32_t setCount, std::span<PoolSizeRatio> poolRatios);
      //
      void destroy();
   };

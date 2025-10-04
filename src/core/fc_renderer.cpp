@@ -100,7 +100,7 @@ namespace fc
       };
 
       //
-      descClerk->initDescriptorPools(1000, poolRatios);
+      descClerk->initDescriptorPools(1024, poolRatios);
 
       // register the descriptor with the locator
       FcLocator::provide(descClerk);
@@ -291,21 +291,23 @@ namespace fc
   void FcRenderer::initImgui()
   {
     // Create the descriptor pool for IMGUI
-    // MASSIVELY oversized, doesn't seem to be in any imgui demo that was mentioned
+    // probably oversized, doesn't seem to be in any imgui demo that was mentioned
     // TODO /TRY try and follow this up by recreating the example from ImgGUI site
-    VkDescriptorPoolSize poolSizes[] = {
-      {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1}
-    };
-    // {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000},
-    // {VK_DESCRIPTOR_TYPE_SAMPLER, 1000},
-    // {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000},
-    // {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000},
-    // {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000},
-    // {VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000},
-    // {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000},
-    // {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000},
-    // {VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000},
-    // {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000}
+    static const uint32_t maxPoolSets = 128;
+    VkDescriptorPoolSize poolSizes[] =
+      {
+        {VK_DESCRIPTOR_TYPE_SAMPLER, maxPoolSets},
+        {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, maxPoolSets},
+        {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, maxPoolSets},
+        {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, maxPoolSets},
+        {VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, maxPoolSets},
+        {VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, maxPoolSets},
+        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, maxPoolSets},
+        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, maxPoolSets},
+        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, maxPoolSets},
+        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, maxPoolSets},
+        {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, maxPoolSets}
+      };
 
 
     VkDescriptorPoolCreateInfo poolInfo{};

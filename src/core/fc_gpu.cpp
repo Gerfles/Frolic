@@ -114,7 +114,10 @@ namespace fc
       {  // something in the list wasn't supported so move on to next device
         continue;
       }
+      // TODO check for each specific feature in a branch so we can provide
+      // alternitives in a release version
 
+      // TODO add features to a builder vector to add and use with device creation
       // First populate the supported features, making sure to chain in the vulkan ext features
       VkPhysicalDeviceVulkan12Features extFeatures_1_2 = {};
       extFeatures_1_2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
@@ -123,35 +126,31 @@ namespace fc
       extFeatures_1_3.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
       extFeatures_1_3.pNext = &extFeatures_1_2;
 
-      VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{};
-      indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
-      // TODO check for each specific feature in a branch so we can provide alternitives in a release version
-      indexingFeatures.pNext = &extFeatures_1_3;
-
       VkPhysicalDeviceFeatures2 supportedFeatures = {};
       supportedFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-      supportedFeatures.pNext = &indexingFeatures;
+      supportedFeatures.pNext = &extFeatures_1_3;
 
       vkGetPhysicalDeviceFeatures2(potentialDevice, &supportedFeatures);
 
-      if (extFeatures_1_2.bufferDeviceAddress == false || extFeatures_1_2.descriptorIndexing == false
-          || extFeatures_1_3.dynamicRendering == false || extFeatures_1_3.synchronization2 == false)
+      if (extFeatures_1_2.bufferDeviceAddress == VK_FALSE ||
+          extFeatures_1_2.descriptorIndexing == VK_FALSE ||
+
+          extFeatures_1_3.dynamicRendering == VK_FALSE ||
+          extFeatures_1_3.synchronization2 == VK_FALSE ||
+          // Check for support of bindless rendering so that we can automatically bind
+          // an array of textures that can be used across multiple shaders and accessed
+          // via index (note that this is an avaialable feature of the Nintendo Switch)
+          // Gives us the ability to partially bind a descriptor, since some entries in the
+          // bindless array will need to be empty
+          extFeatures_1_2.descriptorBindingPartiallyBound == VK_FALSE ||
+          // Gives us the binless descriptor usage with SpirV
+          extFeatures_1_2.runtimeDescriptorArray == VK_FALSE)
       {
         continue;
         // TODO should not throw an error here but might be helpful to print a list of devices and
         // print the choice of device that way the user can verify the proper device is being selected
         // in the case of multiple GPUs
       }
-
-      // Check for support of bindless rendering so that we can automatically bind an array of textures
-      // that can be used across multiple shaders and accessed via index
-      // TODO add features to a builder vector to add and use with device creation
-      if (extFeatures_1_2.descriptorBindingPartiallyBound == VK_FALSE
-          || extFeatures_1_2.runtimeDescriptorArray == VK_FALSE)
-      {
-        continue;
-      }
-
 
       // TODO think about makeing this VK...Properties2
       VkPhysicalDeviceProperties deviceProperties = {};
@@ -225,12 +224,13 @@ namespace fc
     // ?? TEST
     deviceFeatures.shaderStorageImageMultisample = VK_TRUE;
     deviceFeatures.sampleRateShading = VK_TRUE;
+
     // TODO test for this feature first
     deviceFeatures.geometryShader = VK_TRUE;
     deviceFeatures.tessellationShader = VK_TRUE;
     // TODO test for this feature first!!
     deviceFeatures.fillModeNonSolid = VK_TRUE;
-
+    //
     // TODO abstract this out into a builder structure
     // vulkan features to request from version 1.2
     VkPhysicalDeviceVulkan12Features features1_2 = {};

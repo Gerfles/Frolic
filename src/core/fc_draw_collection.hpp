@@ -25,9 +25,11 @@ namespace fc
   // a separate vector or FcSurfaces...
   struct FcDrawCollection
   {
-     std::vector<std::pair<FcMaterial*, std::vector<FcSurface>>> opaqueSurfaces;
+     using RenderObject = std::pair<FcMaterial*, std::vector<FcSurface>>;
+
+     std::vector<RenderObject> opaqueSurfaces;
+     std::vector<RenderObject> transparentSurfaces;
      std::vector<std::vector<size_t>> visibleSurfaceIndices;
-     std::vector<std::pair<FcMaterial*, std::vector<FcSurface>>> transparentSurfaces;
      FcStats stats;
      uint32_t numSurfaces{0};
   };
