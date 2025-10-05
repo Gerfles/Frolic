@@ -3,19 +3,16 @@
 
 // - FROLIC ENGINE -
 #include "core/fc_node.hpp"
-#include "fc_pipeline.hpp"
 #include "fc_bounding_box.hpp"
 //#include "core/utilities.hpp"
 //#include "fc_materials.hpp"
 //#include "core/fc_model.hpp"
 #include "fc_buffer.hpp"
 // - EXTERNAL LIBRARIES -
-#include "glm/mat4x4.hpp"
 #include "vulkan/vulkan_core.h"
 // - STD LIBRARIES -
 #include <cstdint>
 /* #include <glm/ext/matrix_float4x4.hpp> */
-#include <iostream>
 #include <memory>
 #include <span>
 #include <vector>
@@ -48,9 +45,9 @@ namespace fc
      // TODO merge with MaterialFeatures
      enum class Type : uint8_t
      {
-       Opaque,
-      Transparent,
-      Other,
+       	Opaque,
+	Transparent,
+	Other,
      };
      VkDescriptorSet materialSet;
      Type materialType;

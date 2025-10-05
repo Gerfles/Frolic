@@ -1,6 +1,6 @@
 // fc_surface.cpp
 #include "fc_surface.hpp"
-#include "core/utilities.hpp"
+
 //
 
 namespace fc

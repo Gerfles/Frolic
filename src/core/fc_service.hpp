@@ -1,7 +1,5 @@
 #pragma once
 
-#include "platform.hpp"
-
 namespace fc
 {
   struct Service

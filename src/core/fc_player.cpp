@@ -1,8 +1,6 @@
 #include "fc_player.hpp"
 
 #include "core/fc_camera.hpp"
-#include "core/fc_game_object.hpp"
-#include "core/platform.hpp"
 // LIBRARIES
 #include <limits>
 #include <glm/vec3.hpp>

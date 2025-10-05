@@ -1,13 +1,10 @@
 #pragma once
 
 // CORE
-#include "core/fc_descriptors.hpp"
-#include "core/fc_gpu.hpp"
 #include "fc_pipeline.hpp"
+#include <glm/ext/matrix_float4x4.hpp>
 // EXTERNAL
-#include "vulkan/vulkan_core.h"
 // STD
-#include <memory>
 
 namespace fc
 {

@@ -2,12 +2,9 @@
 
  // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 //#include "core/fc_gpu.hpp"
-#include "fc_descriptors.hpp"
 #include "fc_image.hpp"
 #include "fc_mesh.hpp"
 #include "fc_scene_renderer.hpp"
-#include "fc_pipeline.hpp"
-#include "fc_defaults.hpp"
  // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 //#include <assimp/mesh.h>
 // #include <assimp/scene.h>
@@ -16,12 +13,10 @@
 #include <fastgltf/types.hpp>
  // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <glm/ext/matrix_float4x4.hpp>
-#include <optional>
 #include <string>
  // #include <vector>
  // #include <unordered_map>
 #include <filesystem>
-#include <unordered_map>
  // #include <cstdint>
 
 class aiScene;

@@ -7,7 +7,6 @@
 //#include "core/mesh.h"
 //#include "fc_pipeline.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "glm/glm.hpp"
 #include <ft2build.h>
 #include <vulkan/vulkan_core.h>
 #include <unordered_map>

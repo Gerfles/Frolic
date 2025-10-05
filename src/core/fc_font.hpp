@@ -8,7 +8,6 @@
 //#include "core/mesh.h"
 //#include "fc_pipeline.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "glm/glm.hpp"
 #include <ft2build.h>
 #include <vulkan/vulkan_core.h>
 //?? what's up with the following includes

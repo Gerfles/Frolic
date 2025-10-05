@@ -5,7 +5,6 @@
 #include "fc_image.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
-#include "SDL2/SDL_video.h"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <cstdint>
 #include <vector>

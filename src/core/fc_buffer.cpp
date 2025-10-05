@@ -2,7 +2,6 @@
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_renderer.hpp"
 #include "fc_locator.hpp"
-#include "core/log.hpp"
 #include "fc_gpu.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES -*-*-*-*-*-*-*-*-*-*-*-*-*-
 #include <SDL_log.h>

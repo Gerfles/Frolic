@@ -1,5 +1,6 @@
 #pragma once
 
+#include "fc_memory.hpp"
 #include <cstdint>
 #include <iostream>
 
@@ -8,6 +9,8 @@ namespace fc
   //
   struct ResourcePool
   {
+     FcAllocator* pAllocator = nullptr;
+     //
      uint8_t* mMemory = nullptr;
      uint32_t* mFreeIndices = nullptr;
      //
@@ -16,7 +19,7 @@ namespace fc
      uint32_t mResourceSize = 4;
      uint32_t mUsedIndices = 0;
      //
-     void init(uint32_t poolSize, uint32_t resourceSize);
+     void init(FcAllocator* allocator, uint32_t poolSize, uint32_t resourceSize);
      // Returns an index to the resource
      uint32_t getIndex();
      void* get(uint32_t index);
@@ -32,7 +35,7 @@ namespace fc
   template <typename T>
   struct ResourcePoolTyped : public ResourcePool
   {
-     void init(uint32_t poolSize);
+     void init(FcAllocator* allocator, uint32_t poolSize);
      T* getIndex();
      T* get(uint32_t index);
      const T* get(uint32_t index) const;
@@ -46,9 +49,9 @@ namespace fc
 
   // <T> instantiation of in resource pool init
   template<typename T>
-  inline void ResourcePoolTyped<T>::init(uint32_t poolSize)
+  inline void ResourcePoolTyped<T>::init(FcAllocator* allocator, uint32_t poolSize)
   {
-    ResourcePool::init(poolSize, sizeof(T) );
+    ResourcePool::init(allocator, poolSize, sizeof(T) );
   }
 
 

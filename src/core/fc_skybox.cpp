@@ -1,13 +1,10 @@
 #include "fc_skybox.hpp"
-
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "core/fc_frame_assets.hpp"
 #include "fc_descriptors.hpp"
 #include "fc_locator.hpp"
 #include "fc_defaults.hpp"
-#include "fc_renderer.hpp"
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <array>
-#include <iostream>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
 
 

@@ -1,5 +1,6 @@
 #include "fc_debug.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include <iostream>
 #include <unordered_set>
 
 namespace fc

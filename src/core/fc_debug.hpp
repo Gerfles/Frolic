@@ -1,19 +1,19 @@
 #pragma once
 
-#include "SDL2/SDL_log.h"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include <SDL_log.h>
+/* #include <vulkan/vulkan.h> */
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL / UTIL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include <cstdarg>
 #include <cstring>
-#include <iostream>
-#include <ostream>
-#include <stdexcept>
 #include <vector>
-#include <vulkan/vulkan.h>
 #include <signal.h>
 #include <stdio.h> //vsprintf_s
 // TODO look into assert.h for proper debug asserts
 // #include <assert.h>
 
+//
 // TODO
 // Lots of testing required to see if the following code is working correctly.
 // #if defined(_WIN32) // or _MSC_VER

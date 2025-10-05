@@ -2,19 +2,14 @@
 
 // - FROLIC ENGINE -
 #include "core/utilities.hpp"
-#include "fc_model.hpp"
 
 // - EXTERNAL LIBRARIES -
 #include "core/fc_locator.hpp"
 #include "vulkan/vulkan_core.h"
 // - STD LIBRARIES -
-#include <cstddef>
 #include <cstdio>
 #include <cstring>
-#include <iostream>
-#include <memory>
 #include <span>
-#include <stdexcept>
 
 //#include "utilities.hpp"
 

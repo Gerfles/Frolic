@@ -4,15 +4,14 @@
 //#include "core/fc_descriptors.hpp"
 #include "core/fc_descriptors.hpp"
 #include "core/fc_locator.hpp"
-#include "core/fc_renderer.hpp"
-#include "fc_swapChain.hpp"
+#include "core/fc_mesh.hpp"
 #include "utilities.hpp"
 // - EXTERNAL LIBRARIES -
 #include "vulkan/vulkan_core.h"
 // - STD LIBRARIES -
 #include <cstdint>
+#include <iostream>
 #include <stdexcept>
-#include <vector>
 // #include <cstddef>
 //#include <type_traits>
 

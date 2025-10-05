@@ -8,9 +8,7 @@
 #include "fc_locator.hpp"
 #include "fc_mesh.hpp"
 #include "fc_scene_renderer.hpp"
-#include "fc_defaults.hpp"
 // TODO delete
-#include "fc_renderer.hpp"
 
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES -*-*-*-*-*-*-*-*-*-*-*-*-*-
 // GLTF loading
@@ -18,6 +16,7 @@
 #include <fastgltf/core.hpp>
 #include <fastgltf/glm_element_traits.hpp>
 #include <fastgltf/tools.hpp>
+#include <iostream>
 // #include <fastgltf/parser.hpp>
 // #include "fastgltf/types.hpp"l
 // #include "fastgltf/util.hpp"
@@ -34,7 +33,6 @@
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <vulkan/vulkan_core.h>
-#include "SDL2/SDL_stdinc.h"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 // #include <cstddef>
 #include <filesystem>

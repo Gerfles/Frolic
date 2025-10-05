@@ -1,29 +1,21 @@
+//>  fc_font.cpp  <//
 #include "fc_font.hpp"
 
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC CORE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_renderer.hpp"
-#include "core/fc_gpu.hpp"
-#include "core/fc_descriptors.hpp"
-#include "core/fc_locator.hpp"
+#include "fc_locator.hpp"
 #include "fc_debug.hpp"
- // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "freetype/config/ftheader.h"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
 #include "stb_image.h"
-#include "SDL2/SDL_log.h"
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL / UTIL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <cstdint>
 #include <cstring>
-#include <unordered_map>
 #include <utility>
 #include <vector>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
-// UTILS
-//#include <ft2build.h>
-//#include FT_BITMAP_H
-//#include FT_FREETYPE_H /*weird font lock issues*/
-//#include FT_GLYPH_H  /* wierd font-lock issue */
-
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 namespace fc
 {
 

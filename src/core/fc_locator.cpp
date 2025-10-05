@@ -1,7 +1,6 @@
 #include "fc_locator.hpp"
 
 #include "core/fc_billboard_render_system.hpp"
-#include "core/fc_game_object.hpp"
 #include "core/fc_light.hpp"
 #include "core/fc_renderer.hpp"
 #include "vulkan/vulkan_core.h"

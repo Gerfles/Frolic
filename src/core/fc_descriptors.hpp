@@ -1,16 +1,16 @@
 #pragma once
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "fc_light.hpp"
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC CORE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_buffer.hpp"
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "glm/mat4x4.hpp"
+#include "fc_image.hpp"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include <glm/ext/vector_float4.hpp>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL / UTILS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <cstdint>
 #include <deque>
-#include <glm/ext/vector_float4.hpp>
+#include <span>
 #include <vector>
-#include <array>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
 
 namespace fc
@@ -48,6 +48,8 @@ namespace fc
        void attachBuffer(uint32_t bindSlot, VkDescriptorType type
                          ,const FcBuffer& buffer, VkDeviceSize size, VkDeviceSize offset);
        void attachImage(uint32_t bindSlot, VkDescriptorType type
+                        ,const FcImage& image, VkImageLayout layout, VkSampler imageSampler);
+       void attachImageBindless(uint32_t bindSlot, VkDescriptorType type
                         ,const FcImage& image, VkImageLayout layout, VkSampler imageSampler);
        void addBinding(uint32_t bindSlot, VkDescriptorType type, VkShaderStageFlags shaderStages);
     };

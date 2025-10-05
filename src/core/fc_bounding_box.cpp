@@ -1,10 +1,10 @@
 // fc_bounding_box.cpp
 #include "fc_bounding_box.hpp"
-#include "fc_draw_collection.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "fc_mesh.hpp"
+#include "fc_draw_collection.hpp"
 
 
+//
 namespace fc
 {
   void FcBoundingBoxRenderer::buildPipelines(VkDescriptorSetLayout sceneDescriptorLayout)

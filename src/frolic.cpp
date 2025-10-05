@@ -1,12 +1,10 @@
 #include "frolic.hpp"
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "core/fc_game_object.hpp"
 #include "core/fc_cvar_system.hpp"
 #include "core/fc_font.hpp"
 #include "core/fc_light.hpp"
 #include "core/fc_locator.hpp"
-#include "core/fc_model.hpp"
 #include "core/fc_player.hpp"
 #include "core/fc_text.hpp"
 #include "core/utilities.hpp"
@@ -16,9 +14,10 @@
 //
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
-#include "imgui_impl_vulkan.h"
 //
 #include "vulkan/vulkan_core.h"
+#include <SDL_log.h>
+#include <SDL_timer.h>
 //
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/transform.hpp>
@@ -26,7 +25,6 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include <iostream>
 #include <string>
 
 
@@ -75,6 +73,11 @@ namespace fc
     // features13.dynamicRendering = true;
     // features13.synchronization2 = true;
 
+
+    // Initialize the memory allocator
+    // TODO make this part of our FcLocator scheme instead of the singleton it is
+    MemoryService::instance()->init(nullptr);
+    pAllocator = &MemoryService::instance()->systemAllocator;
 
     // TODO TRY to pull some stuff out of render initialize and have init VK systems?
     //TODO define our own exit_success and failure codes for debugging later
@@ -572,6 +575,8 @@ namespace fc
      // }
 
     mRenderer.shutDown();
+
+    MemoryService::instance()->shutdown();
   }
 
 } // namespace fc END

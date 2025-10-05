@@ -1,12 +1,11 @@
 // fc_scene_renderer.hpp
 #pragma once
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "core/fc_model.hpp"
-#include "fc_descriptors.hpp"
 #include "fc_pipeline.hpp"
 // #include "fc_image.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 //#include <vulkan/vulkan_handles.hpp>
+#include <glm/ext/matrix_float4x4.hpp>
 #include <vulkan/vulkan_core.h>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 //#include <cstdint>
@@ -16,9 +15,12 @@ namespace fc
 {
   class FcRenderer;
   class FcImage;
+  class FcMesh;
+  class FcMaterial;
   class FrameAssets;
   class FcMeshNode;
   class FcSurface;
+  class FcDrawCollection;
 
   // Useful for signalling to the fragment shader which features are available
   enum class MaterialFeatures : uint32_t {

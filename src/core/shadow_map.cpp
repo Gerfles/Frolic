@@ -1,12 +1,13 @@
 #include "shadow_map.hpp"
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "fc_draw_collection.hpp"
+#include "fc_frame_assets.hpp"
+#include "fc_surface.hpp"
 #include "fc_descriptors.hpp"
 #include "fc_locator.hpp"
-#include "fc_renderer.hpp"
 #include "fc_defaults.hpp"
 #include "utilities.hpp"
-#include "fc_model.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
@@ -22,7 +23,7 @@ namespace fc
     // TODO this image should be device local only since no need to map for CPU... check that's the case
     // on this and all other images created with vma allocation
 
-    mShadowMapImage.create(shadowMapSize, shadowMapSize, FcImageTypes::ShadowMap);
+    mShadowMapImage.createImage(shadowMapSize, shadowMapSize, FcImageTypes::ShadowMap);
 
     initPipelines(frames);
 

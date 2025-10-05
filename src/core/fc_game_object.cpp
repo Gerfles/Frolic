@@ -1,13 +1,10 @@
 #include "fc_game_object.hpp"
 
-#include "core/fc_locator.hpp"
-#include "core/utilities.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
-#include "glm/glm.hpp"
+#include "glm/trigonometric.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <memory>
-#include <vector>
 
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 namespace fc
 {
   // FcGameObject::FcGameObject(FcModel* model, int type) : pModel(model)

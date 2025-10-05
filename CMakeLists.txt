@@ -342,7 +342,7 @@ if (WIN32)
 
   target_include_directories(${PROJECT_NAME} PUBLIC
     ${PROJECT_SOURCE_DIR}/src
-#    ${PROJECT_SOURCE_DIR}/external
+    # ${PROJECT_SOURCE_DIR}/external
     ${Vulkan_INCLUDE_DIRS}
     ${TINYOBJ_PATH}
     #${GLFW_INCLUDE_DIRS}
@@ -363,7 +363,7 @@ elseif (UNIX)
 
     target_include_directories(${PROJECT_NAME} PUBLIC
       ${PROJECT_SOURCE_DIR}/src
- #     ${PROJECT_SOURCE_DIR}/external
+      # ${PROJECT_SOURCE_DIR}/external
       ${TINYOBJ_PATH}
       ${FREETYPE_INCLUDE_DIRS}
     )
@@ -379,6 +379,7 @@ elseif (UNIX)
       simdjson
       stb
       ktx
+      tlsf
     )
 
   endif()

@@ -6,7 +6,6 @@
 #include "fc_buffer.hpp"
 #include "fc_pipeline.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
-#include "glm/vec3.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <filesystem>
 

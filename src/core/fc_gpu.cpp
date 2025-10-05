@@ -2,7 +2,6 @@
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "core/fc_locator.hpp"
-#include "core/fc_renderer.hpp"
 #include "utilities.hpp"
 // #include "log.hpp"
 #include "assert.hpp"
@@ -237,7 +236,10 @@ namespace fc
     features1_2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
     features1_2.bufferDeviceAddress = VK_TRUE;
     features1_2.descriptorIndexing = VK_TRUE;
+    // TODO make this an optional branch path
     features1_2.descriptorBindingPartiallyBound = VK_TRUE;
+    mGpuPerformanceProperties.isBindlessSupported = true;
+    //
     features1_2.runtimeDescriptorArray = VK_TRUE;
 
     // vulkan features to request from version 1.3

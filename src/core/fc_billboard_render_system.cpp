@@ -2,19 +2,16 @@
 
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "fc_defaults.hpp"
 #include "core/fc_descriptors.hpp"
 #include "core/fc_frame_assets.hpp"
-#include "core/fc_game_object.hpp"
 #include "core/fc_gpu.hpp"
 #include "core/fc_scene_renderer.hpp"
-#include "core/fc_text.hpp"
 #include "core/fc_locator.hpp"
 #include "core/fc_pipeline.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "core/utilities.hpp"
 #include "vulkan/vulkan_core.h"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <algorithm>
 #include <array>
 #include <map>
 #include <utility>

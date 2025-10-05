@@ -1,17 +1,13 @@
 #pragma once
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
+//
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
 #include "vk_mem_alloc.h"
-#include "ktx.h"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <filesystem>
-#include <ostream>
-#include <string>
 #include <vector>
-#include <algorithm> // std::clamp
 // *-*-*-*-*-*-*-*-*-*-*-*-*-   FORWARD DECLARATIONS   *-*-*-*-*-*-*-*-*-*-*-*-*- //
 namespace fastgltf
 {
@@ -42,15 +38,20 @@ namespace fc
   };
 
   // TODO Figure out if we should be defaulting to Unorm or SRGB
+  // TODO think about creating a separate class for texture
   class FcImage
   {
    private:
      // -*-*-*-*-*-*-*-   USED WHEN MAPPING DATA TO READ PIXEL VALUES   -*-*-*-*-*-*-*- //
-     // TODO think about getting rid of local Copy since not always needed I think
+     // TODO think about getting rid of local Copy since not always needed
      std::shared_ptr<FcBuffer> localCopy;
      void* localCopyAddress {nullptr};
-     // TODO create a heading for blank lines (without gap)
-     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-      *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     static uint32_t index;
+     uint32_t handle;
+     /* VkSampler* sampler; */
+
+
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      VkImage mImage {VK_NULL_HANDLE};
      VkImageView mImageView {VK_NULL_HANDLE};
      VmaAllocation mAllocation {nullptr};
@@ -65,10 +66,6 @@ namespace fc
      uint16_t mHeight;
      uint8_t mLayerCount {1};
      uint8_t mMipLevels {1};
-
-     static uint32_t index;
-     uint32_t handle;
-
      //
      void generateMipMaps();
      void setPixelFormat();
@@ -107,7 +104,7 @@ namespace fc
      FcImage(std::filesystem::path& filename, FcImageTypes imageType)
       	{ loadStbi(filename, imageType); }
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-   IMAGE MANIPULATION   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
-     void create(uint32_t width, uint32_t height, FcImageTypes imageType);
+     void createImage(uint32_t width, uint32_t height, FcImageTypes imageType);
      void createImageView(VkFormat imageFormat, VkImageAspectFlags aspectFlags
                           , VkImageViewType imageViewType = VK_IMAGE_VIEW_TYPE_2D);
      void transitionLayout(VkCommandBuffer cmd

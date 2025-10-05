@@ -1,13 +1,10 @@
 #pragma once
 
 // core
-#include "core/platform.hpp"
 #include "fc_camera.hpp"
 #include "fc_input.hpp"
-#include "fc_game_object.hpp"
 // libs
 #include "SDL2/SDL_scancode.h"
-#include "SDL2/SDL_video.h"
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/quaternion.hpp>
 

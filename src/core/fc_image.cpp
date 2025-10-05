@@ -2,12 +2,11 @@
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "core/fc_buffer.hpp"
-#include "core/fc_descriptors.hpp"
 #include "core/fc_locator.hpp"
 #include "core/fc_renderer.hpp"
 #include "core/utilities.hpp"
 #include "fc_gpu.hpp"
-#include "fc_pipeline.hpp"
+#include <ktx.h>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 // TODO place all implementation header defines into one header file??
 #define STB_IMAGE_IMPLEMENTATION
@@ -17,12 +16,10 @@
 /* #define STBI_FAILURE_USERMSG */
 #include <stb_image.h>
 #include "vulkan/vulkan_core.h"
-#include "ktxvulkan.h"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <stdexcept>
 #include <cstddef>
 #include <cstdint>
-#include <ratio>
 #include <cmath>
 
 namespace fc
@@ -38,7 +35,7 @@ namespace fc
 
   // TODO create a create() function that allows us to pass a VkImageCreateInfo, etc...
   // for highly specialized image creation
-  void FcImage::create(uint32_t width, uint32_t height, FcImageTypes imageType)
+  void FcImage::createImage(uint32_t width, uint32_t height, FcImageTypes imageType)
   {
     mWidth = width;
     mHeight = height;
@@ -92,7 +89,7 @@ namespace fc
           break;
         }
 
-        // -*-*-*-*-*-*-*-*-*-*-*-*-*-   MIP-MAPPED TEXTURE   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
+        // -*-*-*-*-*-*-*-*-*-*-*-*-   TEXTURE NEEDING MIPMAPS   -*-*-*-*-*-*-*-*-*-*-*-*- //
         case FcImageTypes::TextureGenerateMipmaps:
         {
           // transfer src only needs to be set when generating mipmaps from original image
@@ -153,13 +150,13 @@ namespace fc
         {
           imageInfo.arrayLayers = mLayerCount;
           // transfer src only needs to be set when generating mipmaps from original image
-        imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT
-                          | VK_IMAGE_USAGE_SAMPLED_BIT
-                          | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-        imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
-        imageViewInfo.subresourceRange.layerCount = mLayerCount;
-        generateMipmaps = true;
-        break;
+          imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT
+                            | VK_IMAGE_USAGE_SAMPLED_BIT
+                            | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+          imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+          imageViewInfo.subresourceRange.layerCount = mLayerCount;
+          generateMipmaps = true;
+          break;
         }
 
 
@@ -220,7 +217,9 @@ namespace fc
     imageInfo.mipLevels = mMipLevels;
     imageInfo.format = mFormat;
 
-    if (vmaCreateImage(FcLocator::Gpu().getAllocator(), &imageInfo
+    FcGpu& gpu = FcLocator::Gpu();
+
+    if (vmaCreateImage(gpu.getAllocator(), &imageInfo
                        , &allocInfo, &mImage, &mAllocation, nullptr)
         != VK_SUCCESS)
     {
@@ -238,6 +237,14 @@ namespace fc
     {
       throw std::runtime_error("Failed to create an Image View!");
     }
+
+    // Add image to the bindless array for deferred updating
+
+    if (gpu.Properties().isBindlessSupported)
+    {
+
+    }
+
 
 
     // *-*-*-*-*-*-*-   CUSTOM MEMORY ALLOCATION SAVED FOR REFERENCE   *-*-*-*-*-*-*- //
@@ -505,7 +512,7 @@ namespace fc
 
     setPixelFormat();
     // create the image
-    create(mWidth, mHeight, imageType);
+    createImage(mWidth, mHeight, imageType);
     // store our ktx data to image
 
     bool generateMipmaps = (mMipLevels > 1) ? true : false;
@@ -641,7 +648,7 @@ namespace fc
     // First find out image specs and then create a suitable image
     int width, height, channels;
     stbi_info(filename.c_str(), &width, &height, &channels);
-    create(width, height, imageType);
+    createImage(width, height, imageType);
     setPixelFormat();
 
     // Now load image from file. Note: that we must pass channels to stbi_load but we will
@@ -676,7 +683,7 @@ namespace fc
     int width, height, numChannels;
     stbi_info(filenames[0].c_str(), &width, &height, &numChannels);
 
-    create(width, height, imageType);
+    createImage(width, height, imageType);
     setPixelFormat();
 
     VkDeviceSize layerSize = width * height * mBytesPerPixel;
@@ -1146,7 +1153,7 @@ namespace fc
     {
       // transition image and submit command buffer within GenerateMipMaps()
       generateMipMaps();
-    }
+   }
     else
     {
       VkCommandBuffer cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
@@ -1176,11 +1183,11 @@ namespace fc
     // create image and imageView to hold final texture
     if (generateMipmaps)
     {
-      create(width, height, FcImageTypes::TextureGenerateMipmaps);
+      createImage(width, height, FcImageTypes::TextureGenerateMipmaps);
     }
     else
     {
-      create(width, height, FcImageTypes::Texture);
+      createImage(width, height, FcImageTypes::Texture);
     }
 
     writeToImage(pixelData, size, generateMipmaps);

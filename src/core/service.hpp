@@ -1,14 +1,14 @@
 #pragma once
 
-#include "platform.hpp"
+//#include "platform.hpp"
 
 namespace fc
 {
 
   struct Service
   {
-     virtual void init(void* configuration){};
-     virtual void shutdown(){};
+     virtual void init(void* configuration) { }
+     virtual void shutdown() { }
       // ?? shouldn't there be an instance() function
   };
 

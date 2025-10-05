@@ -7,21 +7,18 @@
 // - STD LIBRARIES -
 #include <chrono>
 #include <cstddef>
-#include <cstdint>
 #include <cstring>
 #include <fstream>
 #include <functional>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <ios>
 #include <stdexcept>
-#include <unordered_set>
 #include <vector>
 #include <iostream>
 
 
 // DELETE
 #include <filesystem>
-#include <format>
 #include "core/platform.hpp"
 
 namespace fc

@@ -4,7 +4,6 @@
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <cstddef>
 // TODO remove any vulkan initialization stuff from here and relocate if need be
 #include <vulkan/vulkan.h>
 #include <functional>

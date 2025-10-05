@@ -1,9 +1,9 @@
 #include "fc_memory.hpp"
 
-//
-#include "../external/tlsf/tlsf.h"
+
 #include "core/assert.hpp"
 #include "core/log.hpp"
+#include <tlsf.h>
 #include <cstdlib>
 #include <cstring>
 
@@ -21,6 +21,7 @@ namespace fc
 {
   // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   MEMORY DEBUG   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
   // #define FROLIC_MEMORY_DEBUG
+  // BUG I think that mem_assert should be switched to something else... I think it's undefined??
 #if defined (FROLIC_MEMORY_DEBUG)
 	#define hy_mem_assert(cond) hy_assert(cond)
 #else

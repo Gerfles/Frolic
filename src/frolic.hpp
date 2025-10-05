@@ -1,9 +1,7 @@
 #pragma once
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "core/fc_descriptors.hpp"
 #include "core/fc_input.hpp"
-#include "core/fc_mesh.hpp"
 #include "core/fc_pipeline.hpp"
 #include "core/fc_renderer.hpp"
 #include "core/fc_text.hpp"
@@ -66,6 +64,7 @@ namespace fc
 
 
       // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   (END) NEW   -**-*-*-*-*-*-*-*-*-*-*-*-*- //
+     FcAllocator* pAllocator;
      FcRenderer mRenderer;
      FcInput mInput;
      bool mShouldClose = false;

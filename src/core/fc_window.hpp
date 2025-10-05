@@ -7,10 +7,9 @@
 
 // - STD LIBRARIES -
 #include <string>
-#include <vector>
-#include <algorithm>
 
- // forward declarations
+
+// forward declarations
 struct SDL_Window;
 
 namespace fc {

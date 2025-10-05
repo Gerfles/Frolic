@@ -2,7 +2,6 @@
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
 // //
-#include "core/utilities.hpp"
 #include "fc_buffer.hpp"
 #include "fc_pipeline.hpp"
 #include "fc_image.hpp"

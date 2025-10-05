@@ -3,9 +3,9 @@
 
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "core/fc_node.hpp"
+#include "core/fc_resource_pool.hpp"
 #include "core/fc_scene_renderer.hpp"
-#include "fc_mesh.hpp"
-#include "fc_defaults.hpp"
+#include "core/fc_buffer.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #define ASSIMP_USE_HUNTER
 #include <assimp/scene.h>
@@ -28,7 +28,13 @@ class FcScene
    // TODO initialize or delete
    uint32_t mNumMaterials;
    // storage for all the data on a given glTF file
+
+   // -*-*-*-*-*-*-*-*-*-*-*-   SWITCHING TO RESOURCE POOLS   -*-*-*-*-*-*-*-*-*-*-*- //
    std::vector<FcImage> mTextures;
+   ResourcePool* texturePool {nullptr};
+
+   // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
    // Used for faster loading of materials
    VkDescriptorSetLayout mMaterialDescriptorLayout;
    // TODO May be better to have simple vectors instead and convert names to IDs

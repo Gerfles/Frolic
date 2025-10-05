@@ -1,8 +1,10 @@
-// fc_draw_collection.cpp
-#include "fc_draw_collection.hpp"
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "fc_mesh.hpp"
+//> fc_draw_collection.cpp <//
 
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC CORE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "fc_draw_collection.hpp"
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 namespace fc
 {
   // uint32_t FcDrawCollection::totalOpaqueSurfaces()

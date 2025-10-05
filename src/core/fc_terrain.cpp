@@ -1,18 +1,19 @@
 #include "fc_terrain.hpp"
 
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
-#include "core/utilities.hpp"
 /* #include "fc_renderer.hpp" */
+#include "core/fc_descriptors.hpp"
 #include "fc_gpu.hpp"
 #include "fc_frustum.hpp"
 #include "fc_locator.hpp"
 #include "fc_defaults.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
+#include <cstring>
 #include <stb_image.h>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
 #include <filesystem>
 #include <glm/ext/matrix_clip_space.hpp>
-
+#include <algorithm>
 
 namespace fc
 {

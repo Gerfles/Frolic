@@ -5,7 +5,6 @@
 #include "core/fc_descriptors.hpp"
 #include "core/fc_image.hpp"
 #include "core/fc_locator.hpp"
-#include "core/utilities.hpp"
 
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   TODO   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //

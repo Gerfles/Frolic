@@ -1,7 +1,6 @@
 #include "fc_model_render_system.hpp"
 
  // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "fc_descriptors.hpp"
 #include "fc_gpu.hpp"
 #include "fc_pipeline.hpp"
 #include "fc_locator.hpp"

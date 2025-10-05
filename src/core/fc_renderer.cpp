@@ -1,14 +1,14 @@
 // fc_renderer.cpp
 #include "fc_renderer.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "core/fc_game_object.hpp"
 #include "core/fc_locator.hpp"
 #include "core/platform.hpp"
 #include "utilities.hpp"
 #include "fc_debug.hpp"
 #include "fc_text.hpp"
+#include "fc_descriptors.hpp"
+#include "fc_defaults.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "SDL2/SDL_stdinc.h"
 #include <SDL_events.h>
 // #define GLM_FORCE_RADIANS
 // #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -30,9 +30,7 @@
 #include <imgui_impl_sdl2.h>
 #include <imgui_impl_vulkan.h>
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <mutex>
 #include <string>
-#include <exception>
 #include <array>
 #include <cstddef>
 #include <cstring>
@@ -65,7 +63,7 @@ namespace fc
     // TODO get rid of this perhaps
     try
     {
-      // TODO get rid of this within renderer
+      // TODO get rid of this within renderer and instead initialize in frolic.cpp probably or GPU
       FcLocator::init();
 
       mWindow.initWindow(screenSize.width, screenSize.height);
@@ -192,6 +190,11 @@ namespace fc
       }
 
       FcDefaults::init(pDevice);
+
+      // *-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE RESOURCE POOLS   *-*-*-*-*-*-*-*-*-*-*-*-*- //
+      // TODO get rid of in favor of FcLocator pattern
+      pAllocator = &MemoryService::instance()->systemAllocator;
+      mTextures.init(pAllocator, 512, sizeof(FcImage));
     }
     catch (const std::runtime_error& err) {
       printf("ERROR: %s\n", err.what());
@@ -520,7 +523,7 @@ namespace fc
   void FcRenderer::initDrawImage()
   {
     // match our draw image to the window extent
-  mDrawImage.create(mWindow.ScreenSize().width, mWindow.ScreenSize().height
+  mDrawImage.createImage(mWindow.ScreenSize().width, mWindow.ScreenSize().height
                     , FcImageTypes::ScreenBuffer);
 
   // -*-*-*-*-*-*-*-*-*-   CREATE BACKGROUND IMAGE DESCRIPTOR   -*-*-*-*-*-*-*-*-*- //
@@ -538,7 +541,7 @@ namespace fc
     //vkDestroyDescriptorSetLayout(pDevice, mBackgroundDescriptorlayout, nullptr);
 
     // -*-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE DEPTH IMAGE   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    mDepthImage.create(mWindow.ScreenSize().width, mWindow.ScreenSize().height
+    mDepthImage.createImage(mWindow.ScreenSize().width, mWindow.ScreenSize().height
                        ,FcImageTypes::DepthBuffer);
 
 
@@ -675,7 +678,7 @@ namespace fc
       throw std::runtime_error("Failed to submit Vulkan Command Buffer to the queue!");
     }
 
-    vkWaitForFences(pDevice, 1, &mImmediateFence, true, u64_max);
+    vkWaitForFences(pDevice, 1, &mImmediateFence, true, U64_MAX);
   }
 
 
@@ -1003,7 +1006,7 @@ namespace fc
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR)
     {
-      fcLog("ERRROR OUT of date submit1");
+      fcLog("ERROR out of date submit1");
       mShouldWindowResize = true;
       //handleWindowResize();
       return -1;

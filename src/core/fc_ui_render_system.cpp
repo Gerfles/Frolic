@@ -2,15 +2,12 @@
 
 // CORE
 //#include "core/fc_billboard_render_system.hpp"
-#include "core/fc_descriptors.hpp"
 #include "core/fc_gpu.hpp"
-#include "core/fc_font.hpp"
 #include "core/fc_locator.hpp"
 #include "core/fc_pipeline.hpp"
 // EXTERNAL
 //#include "core/mesh.h"
 #include "vulkan/vulkan_core.h"
-#include <array>
 
 
 namespace fc

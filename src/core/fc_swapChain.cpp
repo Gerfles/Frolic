@@ -3,17 +3,12 @@
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "core/fc_renderer.hpp"
 #include "fc_locator.hpp"
-#include "core/fc_window.hpp"
 #include "fc_gpu.hpp"
 #include "utilities.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "SDL2/SDL_events.h"
-#include "SDL2/SDL_video.h"
-#include "SDL2/SDL_vulkan.h"
 #include "vulkan/vulkan_core.h"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <array>
-#include <cstddef>
 #include <cstdint>
 #include <iostream>
 #include <stdexcept>

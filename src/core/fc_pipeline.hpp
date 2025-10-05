@@ -1,13 +1,4 @@
 #pragma once
-
- // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-//#include "fc_font.hpp"
-//#include "core/fc_renderer.hpp"
-//#include "fc_gpu.hpp"
-//#include "fc_swapChain.hpp"
-//#include "core/fc_model.hpp"
-//#include "fc_descriptors.hpp"
-//#include "mesh.h"
  // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
 #include <glm/vec4.hpp>
@@ -15,9 +6,9 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-#include <span>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
-
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 namespace fc
 {
 

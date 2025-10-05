@@ -1,8 +1,9 @@
-//  fc_materials.cpp
+//>  fc_scene_renderer.cpp <//
 #include "fc_scene_renderer.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "fc_renderer.hpp"
 #include "core/fc_descriptors.hpp"
+#include "core/fc_draw_collection.hpp"
+#include "core/fc_gpu.hpp"
 #include "core/fc_locator.hpp"
 #include "core/fc_pipeline.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //

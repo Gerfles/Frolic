@@ -4,7 +4,6 @@
 #include "SDL2/SDL_keycode.h"
 #include "SDL2/SDL_scancode.h"
 #include "SDL2/SDL_stdinc.h"
-#include "core/utilities.hpp"
 #include <cstring>
 
 namespace fc

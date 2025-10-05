@@ -2,11 +2,12 @@
 #include "fc_scene.hpp"
 
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "core/fc_image.hpp"
 #include "fc_locator.hpp"
+#include "fc_descriptors.hpp"
+#include "fc_defaults.hpp"
 // TODO rename utilities to fc_utilities
 #include "utilities.hpp"
-// DELETE
-#include "fc_renderer.hpp"
 #include "fc_mesh.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
 // GLTF loading

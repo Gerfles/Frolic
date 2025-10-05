@@ -6,7 +6,7 @@
 // EXTERNAL
 #include "vulkan/vulkan_core.h"
 // STD
-#include <memory>
+
 
 
 namespace fc

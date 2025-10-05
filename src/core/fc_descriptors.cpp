@@ -1,18 +1,13 @@
 #include "fc_descriptors.hpp"
 
-
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC CORE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "core/fc_buffer.hpp"
 #include "core/fc_image.hpp"
 #include "core/fc_locator.hpp"
-//#include "fc_mesh.hpp"
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "core/fc_pipeline.hpp"
-#include "core/utilities.hpp"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL / UTIL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <array>
-#include <cstddef>
 #include <cstdint>
 #include <deque>
 #include <iostream>
@@ -20,8 +15,10 @@
 #include <utility>
 #include <vector>
 #include <span>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
-
+//
+//
 namespace fc
 {
   void FcDescriptorBindInfo::addBinding(uint32_t bindSlot, VkDescriptorType type, VkShaderStageFlags shaderStages)
