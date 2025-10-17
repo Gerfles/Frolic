@@ -3,10 +3,11 @@
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
 #include "fc_pipeline.hpp"
 #include "fc_frame_assets.hpp"
-#include "fc_draw_collection.hpp"
 //
 namespace fc
 {
+  class FcDrawCollection;
+
   class FcNormalRenderer
   {
    private:

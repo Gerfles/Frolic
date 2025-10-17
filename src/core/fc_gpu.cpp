@@ -2,6 +2,7 @@
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "core/fc_locator.hpp"
+
 #include "utilities.hpp"
 // #include "log.hpp"
 #include "assert.hpp"
@@ -133,7 +134,6 @@ namespace fc
 
       if (extFeatures_1_2.bufferDeviceAddress == VK_FALSE ||
           extFeatures_1_2.descriptorIndexing == VK_FALSE ||
-
           extFeatures_1_3.dynamicRendering == VK_FALSE ||
           extFeatures_1_3.synchronization2 == VK_FALSE ||
           // Check for support of bindless rendering so that we can automatically bind
@@ -218,18 +218,31 @@ namespace fc
     }
 
     // features the logical device will be using
-    VkPhysicalDeviceFeatures deviceFeatures = {};
-    deviceFeatures.samplerAnisotropy = VK_TRUE; // enable Anisotropy
-    // ?? TEST
-    deviceFeatures.shaderStorageImageMultisample = VK_TRUE;
-    deviceFeatures.sampleRateShading = VK_TRUE;
+    // VkPhysicalDeviceFeatures deviceFeatures = {};
+    // deviceFeatures.samplerAnisotropy = VK_TRUE; // enable Anisotropy
+    // // ?? TEST
+    // deviceFeatures.shaderStorageImageMultisample = VK_TRUE;
+    // deviceFeatures.sampleRateShading = VK_TRUE;
+    // // TODO test for this feature first
+    // deviceFeatures.geometryShader = VK_TRUE;
+    // deviceFeatures.tessellationShader = VK_TRUE;
+    // // TODO test for this feature first!!
+    // deviceFeatures.fillModeNonSolid = VK_TRUE;
 
+
+    VkPhysicalDeviceFeatures2 deviceFeatures = {};
+    deviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    deviceFeatures.features.samplerAnisotropy = VK_TRUE; // enable Anisotropy
+    // ?? TEST
+    deviceFeatures.features.shaderStorageImageMultisample = VK_TRUE;
+    deviceFeatures.features.sampleRateShading = VK_TRUE;
     // TODO test for this feature first
-    deviceFeatures.geometryShader = VK_TRUE;
-    deviceFeatures.tessellationShader = VK_TRUE;
+    deviceFeatures.features.geometryShader = VK_TRUE;
+    deviceFeatures.features.tessellationShader = VK_TRUE;
     // TODO test for this feature first!!
-    deviceFeatures.fillModeNonSolid = VK_TRUE;
-    //
+    deviceFeatures.features.fillModeNonSolid = VK_TRUE;
+    deviceFeatures.pNext = nullptr;
+
     // TODO abstract this out into a builder structure
     // vulkan features to request from version 1.2
     VkPhysicalDeviceVulkan12Features features1_2 = {};
@@ -237,10 +250,15 @@ namespace fc
     features1_2.bufferDeviceAddress = VK_TRUE;
     features1_2.descriptorIndexing = VK_TRUE;
     // TODO make this an optional branch path
+    // BUG: some of these features are not checked for
     features1_2.descriptorBindingPartiallyBound = VK_TRUE;
-    mGpuPerformanceProperties.isBindlessSupported = true;
-    //
     features1_2.runtimeDescriptorArray = VK_TRUE;
+    features1_2.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
+    features1_2.descriptorBindingStorageImageUpdateAfterBind = VK_TRUE;
+    features1_2.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+    features1_2.pNext = &deviceFeatures;
+    //
+    mGpuPerformanceProperties.isBindlessSupported = true;
 
     // vulkan features to request from version 1.3
     VkPhysicalDeviceVulkan13Features features1_3 = {};
@@ -249,11 +267,17 @@ namespace fc
     features1_3.synchronization2 = VK_TRUE;
     features1_3.pNext = &features1_2;
 
-    VkPhysicalDeviceDynamicRenderingLocalReadFeaturesKHR dynamicRenderingFeatures{};
-    dynamicRenderingFeatures.sType =
-      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_LOCAL_READ_FEATURES_KHR;
-    dynamicRenderingFeatures.dynamicRenderingLocalRead = VK_TRUE;
-    dynamicRenderingFeatures.pNext = &features1_3;
+    // VkPhysicalDeviceDynamicRenderingLocalReadFeaturesKHR dynamicRenderingFeatures{};
+    // dynamicRenderingFeatures.sType =
+    //   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_LOCAL_READ_FEATURES_KHR;
+    // dynamicRenderingFeatures.dynamicRenderingLocalRead = VK_TRUE;
+    // dynamicRenderingFeatures.pNext = &features1_3;
+
+    // VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{};
+    // indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
+    // indexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;
+    // indexingFeatures.runtimeDescriptorArray = VK_TRUE;
+    // indexingFeatures.pNext = &dynamicRenderingFeatures;
 
     VkDeviceCreateInfo deviceInfo{};
     deviceInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -265,8 +289,9 @@ namespace fc
     deviceInfo.enabledLayerCount = 0;
     deviceInfo.ppEnabledLayerNames = nullptr;
     // finally attach our required version features
-    deviceInfo.pEnabledFeatures = &deviceFeatures;
-    deviceInfo.pNext = &dynamicRenderingFeatures;
+    /* deviceInfo.pEnabledFeatures = &deviceFeatures; */
+    deviceInfo.pEnabledFeatures = nullptr;
+    deviceInfo.pNext = &features1_3;
 
     // createt the "logical" device
     if (vkCreateDevice(mPhysicalGPU, &deviceInfo, nullptr, &mLogicalGPU) != VK_SUCCESS)

@@ -80,19 +80,22 @@ namespace fc
      std::vector<VkDescriptorPool> mReadyPools;
      uint32_t mSetsPerPool;
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-   BINDLESS RESOURCES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
-     bool isBindlessSupported = false;
+     bool isBindlessSupported = true;
      VkDescriptorPool mBindlessDescriptorPool;
-     VkDescriptorSetLayout mBindlessDescriptorLayout;
-     VkDescriptorSet mBindlessDescriptorSet;
 
    public:
+
+     // TODO
+     VkDescriptorSet mBindlessDescriptorSet;
+     VkDescriptorSetLayout mBindlessDescriptorLayout;
+
      FcDescriptorClerk() = default;
      FcDescriptorClerk(const FcDescriptorClerk&) = delete;
      FcDescriptorClerk(FcDescriptorClerk&&) = delete;
      FcDescriptorClerk& operator=(const FcBuffer&) = delete;
      FcDescriptorClerk& operator=(FcDescriptorClerk&&) = delete;
      void initDescriptorPools(uint32_t maxSets, std::span<PoolSizeRatio> poolRatios);
-     void createBindlessDescriptorLayout();
+     void createBindlessDescriptorSets();
      VkDescriptorSetLayout createDescriptorSetLayout(FcDescriptorBindInfo& bindingInfo
                                                      , VkDescriptorSetLayoutCreateFlags flags = 0);
      VkDescriptorSet createDescriptorSet(VkDescriptorSetLayout layout, FcDescriptorBindInfo& bindInfo);

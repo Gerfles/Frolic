@@ -1,7 +1,7 @@
 #pragma once
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "fc_resource_pool.hpp"
+#include "fc_draw_collection.hpp"
 #include "fc_frustum.hpp"
 #include "platform.hpp"
 #include "fc_terrain.hpp"
@@ -19,7 +19,6 @@
 #include "fc_gpu.hpp"
 #include "fc_window.hpp"
 #include "fc_pipeline.hpp"
-#include "fc_texture_atlas.hpp"
 #include "fc_timer.hpp"
 #include "fc_scene.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -35,20 +34,7 @@ namespace fc
   //static constexpr int MAX_FRAMES_IN_FLIGHT = 3; // used in swap chain
   // ?? Tried 3 but No idea why drawing with 4 frames is faster than 3??
   constexpr unsigned int MAX_FRAME_DRAWS = 4;
-
-  //
-  static const u32 INVALID_INDEX = 0xffffffff;
-
-  /* typedef u32 FcHandle; */
-  using FcHandle = u32;
-
-  //
-  //
-  struct ResourceUpdate
-  {
-     FcHandle handle;
-
-  };
+  constexpr unsigned int BINDLESS_DESCRIPTOR_SLOT = 10;
 
 
   // TODO //
@@ -86,7 +72,7 @@ namespace fc
        VkDescriptorSet mDrawImageDescriptor;
        //Fc[...]renderSystem m[...]Renderer;
        bool mShouldWindowResize{false};
-       int mFrameNumber {0};
+       u32 mFrameNumber {0};
        // TODO extrapolate into separate class
        VkFence mImmediateFence;
 
@@ -98,9 +84,8 @@ namespace fc
        std::vector<FrameAssets> mFrames {MAX_FRAME_DRAWS};
        FcFrustum mFrustum;
 
-       // TODO create slimmed down version of data structures e.g. FcArray
+       // TODO create agile version of data structures e.g. FcArray
        FcAllocator* pAllocator;
-       ResourcePool mTextures;
 
        // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FUNCTIONS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
        void createInstance(VkApplicationInfo& appInfo);
@@ -129,7 +114,6 @@ namespace fc
        FcBillboardRenderer mBillboardRenderer;
        FcBuffer materialConstants;
        FcTerrain mTerrain;
-       FcTextureAtlas textureAtlas;
        glm::mat4 rotationMatrix{1.0f};
        // debugging effects
        FcBoundingBoxRenderer mBoundingBoxRenderer;
@@ -138,6 +122,7 @@ namespace fc
        SceneDataUbo mSceneData;
        FcBuffer mSceneDataBuffer;
        VkDescriptorSetLayout mSceneDataDescriptorLayout;
+
        // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   TEMP   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
        float angle {0.f};
      public:
@@ -196,7 +181,6 @@ namespace fc
        /* void drawBoundingBox(VkCommandBuffer cmd, const FcRenderObject& surface); */
        // DELETE
        /* void drawSurface(VkCommandBuffer cmd, const FcRenderObject& surface); */
-
 
        // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 

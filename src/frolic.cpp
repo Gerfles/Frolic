@@ -46,7 +46,7 @@ namespace fc
     // the following does affect the program unlike the above
     appInfo.apiVersion         = VK_API_VERSION_1_3;       // the version of Vulkan ()
 
-    VkExtent2D screenDims {1200, 900};
+    VkExtent2D screenDims {1400, 1000};
     FcLocator::provide(screenDims);
     // Version info
     //TODO should do this in a builder class that goes out of scope when no longer needed
@@ -78,6 +78,9 @@ namespace fc
     // TODO make this part of our FcLocator scheme instead of the singleton it is
     MemoryService::instance()->init(nullptr);
     pAllocator = &MemoryService::instance()->systemAllocator;
+    // ?? Make sure this deallocates properly
+    mStackAllocator.init( megabytes(8) );
+
 
     // TODO TRY to pull some stuff out of render initialize and have init VK systems?
     //TODO define our own exit_success and failure codes for debugging later

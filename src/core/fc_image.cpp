@@ -2,8 +2,10 @@
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "core/fc_buffer.hpp"
+#include "fc_defaults.hpp"
 #include "core/fc_locator.hpp"
 #include "core/fc_renderer.hpp"
+#include "core/log.hpp"
 #include "core/utilities.hpp"
 #include "fc_gpu.hpp"
 #include <ktx.h>
@@ -24,14 +26,67 @@
 
 namespace fc
 {
-
-  uint32_t FcImage::index = 0;
+  // TRY could implement a static variable for keeping track of handles??
+  /* uint32_t FcImage::index = 0; */
 
   FcImage::FcImage(VkImage image)
   {
-    index = 0;
     mImage = image;
   }
+
+
+  void FcImage::init(u32 handle)
+  {
+    localCopyAddress = nullptr;
+    mImage = VK_NULL_HANDLE;
+    mImageView = VK_NULL_HANDLE;
+    mAllocation = nullptr;
+    mLayerCount = 1;
+    mMipLevels = 1;
+    mHandle = handle;
+  }
+
+  //
+  // Figure out which image sampler to use based on a given a  fastgltf sampler
+  void FcImage::setSampler(const fastgltf::Sampler& sampler)
+  {
+    // make sure the given fastgltf sampler has a value
+    if (sampler.minFilter.has_value() && sampler.magFilter.has_value())
+    {
+      if (sampler.minFilter.value() == fastgltf::Filter::Nearest
+          && sampler.magFilter.value() == fastgltf::Filter::Nearest)
+      {
+        mSampler = FcDefaults::Samplers.Nearest;
+      }
+
+      // TODO make sure we are handling MagFilter properly
+      // Extract the mip map filter mode
+      switch (sampler.minFilter.value())
+      {
+          case fastgltf::Filter::NearestMipMapNearest:
+          case fastgltf::Filter::LinearMipMapNearest:
+            // use a single mipmap without any blending
+            mSampler = FcDefaults::Samplers.Bilinear;
+            break;
+
+          case fastgltf::Filter::NearestMipMapLinear:
+          case fastgltf::Filter::LinearMipMapLinear:
+            // blend multiple mipmaps
+            mSampler = FcDefaults::Samplers.Trilinear;
+            break;
+
+          default:
+            mSampler = FcDefaults::Samplers.Linear;
+            break;
+      }
+    }
+    else
+    {
+      // TODO make sure the default sampler should be trilinear
+      mSampler = FcDefaults::Samplers.Trilinear;
+    }
+  }
+
 
   // TODO create a create() function that allows us to pass a VkImageCreateInfo, etc...
   // for highly specialized image creation
@@ -239,7 +294,6 @@ namespace fc
     }
 
     // Add image to the bindless array for deferred updating
-
     if (gpu.Properties().isBindlessSupported)
     {
 
@@ -257,7 +311,7 @@ namespace fc
     // VkMemoryRequirements memRequirments;
     // vkGetImageMemoryRequirements(device, mImage, &memRequirments);
 
-    //  // get properties of physical device memory
+     // get properties of physical device memory
     // VkPhysicalDeviceMemoryProperties memProperties;
     // vkGetPhysicalDeviceMemoryProperties(FcLocator::Gpu().physicalDevice(), &memProperties);
 
@@ -729,10 +783,10 @@ namespace fc
     FcLocator::Renderer().submitCommandBuffer();
   }
 
-
-
+  //
   // TODO make sure to test each of the 3 cases!!
-  void FcImage::loadFromGltf(std::filesystem::path& parentPath, fastgltf::Asset& asset, fastgltf::Image& image)
+  void FcImage::loadFromGltf(std::filesystem::path& parentPath, fastgltf::Asset& asset,
+                             fastgltf::Image& image)
   {
     int width, height, numChannels;
 
@@ -742,7 +796,8 @@ namespace fc
     // already defined function that accomplishes what we do with the visitor
     std::visit(fastgltf::visitor {
         [](auto& arg) {},
-  // -*-*-*-*-*-*-*-*-*-*-*-*-   CASE1: TEXTURE IS FILE   -*-*-*-*-*-*-*-*-*-*-*-*- //
+
+          // -*-*-*-*-*-*-*-*-*-*-*-*-   CASE1: TEXTURE IS FILE   -*-*-*-*-*-*-*-*-*-*-*-*- //
           // Texture is stored outside of the glTF/glb file (this is common)
           [&](fastgltf::sources::URI& filepath)
            {
@@ -755,7 +810,8 @@ namespace fc
 
              loadStbi(path, FcImageTypes::TextureGenerateMipmaps);
            },
-  // -*-*-*-*-*-*-*-*-*-*-*-*-   CASE2: TEXTURE IS ARRAY   -*-*-*-*-*-*-*-*-*-*-*-*- //
+
+          // -*-*-*-*-*-*-*-*-*-*-*-*-   CASE2: TEXTURE IS ARRAY   -*-*-*-*-*-*-*-*-*-*-*-*- //
           // fastgltf already loaded texture into a std::array structure (this is the case
           // on base64 or if we instruct fastgltf to load external image files
           [&](fastgltf::sources::Array& array)
@@ -779,7 +835,8 @@ namespace fc
                stbi_image_free(imageData);
              }
            },
-   // -*-*-*-*-*-*-*-*-*-   CASE3 TEXTURE IS EMBEDDED INTO GLB   -*-*-*-*-*-*-*-*-*- //
+
+          // -*-*-*-*-*-*-*-*-*-   CASE3 TEXTURE IS EMBEDDED INTO GLB   -*-*-*-*-*-*-*-*-*- //
           [&](fastgltf::sources::BufferView& view)
            {
              fastgltf::BufferView& bufferView = asset.bufferViews[view.bufferViewIndex];
@@ -1193,6 +1250,7 @@ namespace fc
     writeToImage(pixelData, size, generateMipmaps);
 
     // ?? May want to eliminate this since may not be able to multithread
-    ++index;
+    // ?? research multithreading static variables
+    /* ++index; */
   }
 }// --- namespace fc --- (END)

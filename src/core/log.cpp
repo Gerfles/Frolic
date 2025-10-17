@@ -1,3 +1,4 @@
+
 #include "log.hpp"
 
 #if defined(_MSC_VER)
@@ -8,6 +9,8 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+
+// TODO format according to Fc conventions
 namespace fc {
 
   LogService              s_log_service;

@@ -3,7 +3,6 @@
 
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "core/fc_node.hpp"
-#include "core/fc_resource_pool.hpp"
 #include "core/fc_scene_renderer.hpp"
 #include "core/fc_buffer.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -19,7 +18,6 @@
 
 namespace fc
 {
-
 class FcScene
 {
  private:
@@ -30,8 +28,8 @@ class FcScene
    // storage for all the data on a given glTF file
 
    // -*-*-*-*-*-*-*-*-*-*-*-   SWITCHING TO RESOURCE POOLS   -*-*-*-*-*-*-*-*-*-*-*- //
-   std::vector<FcImage> mTextures;
-   ResourcePool* texturePool {nullptr};
+   // TODO delete
+   /* std::vector<FcImage> mTextures; */
 
    // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
@@ -42,7 +40,7 @@ class FcScene
    std::unordered_map<std::string, std::shared_ptr<FcNode>> mNodes;
    // just the nodes that don't have a parent, for iterating through the file in tree order
    std::vector<std::shared_ptr<FcNode>> mTopNodes;
-   std::vector<VkSampler*> pSamplers;
+
    glm::mat4 mTransformMat{1.f};
    glm::mat4 mRotationMat{1.f};
    glm::mat4 mTranslationMat{1.0f};
@@ -61,10 +59,26 @@ class FcScene
    FcScene(FcScene&&) = delete;
    // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   MUTATORS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
    void addToDrawCollection(FcDrawCollection& ctx);
+   //
+   void loadGltf(FcDrawCollection& drawCollection, FcSceneRenderer& sceneRenderer,
+                 std::string_view filepath);
+   //
+   VkFilter extractFilter(fastgltf::Filter filter) noexcept;
+   //
+   VkSampler extractSampler(fastgltf::Sampler& sampler);
+   //
+   VkSamplerMipmapMode extractMipmapMode(fastgltf::Filter filter) noexcept;
+   //
+   void bindlessLoadAllMaterials(FcDrawCollection& drawCollection,
+                                 fastgltf::Asset& gltf,
+                                 std::vector<std::shared_ptr<FcMaterial>>& materials,
+                                 std::filesystem::path& parentPath);
+   //
+   void loadAllMaterials(FcDrawCollection& drawCollection,
+                         fastgltf::Asset& gltf,
+                         std::vector<std::shared_ptr<FcMaterial>>& materials,
+                         std::filesystem::path& parentPath);
 
-   void loadGltf(FcSceneRenderer& sceneRenderer, std::string_view filepath);
-   VkFilter extractFilter(fastgltf::Filter filter);
-   VkSamplerMipmapMode extractMipmapMode(fastgltf::Filter filter);
    // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   TRANSFORMS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
    void rotate(float angleDegrees, glm::vec3 axis);
    void rotateInPlace(float angleDegrees, glm::vec3 axis);

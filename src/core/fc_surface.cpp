@@ -60,7 +60,11 @@ namespace fc
     // check the clip space box is within the view
     if (max.x < -1.0f || min.x > 1.0f || max.y < -1.f || min.y > 1.f || max.z < 0.f || min.z > 1.f)
     {
-      return false;
+      // BUG this algorithm is inefficient and inprecise
+      if ((max.x > -1.0f && min.x < 1.0f) && (max.y > -1.f && min.y < 1.f))
+      {
+        return false;
+      }
     }
 
     return true;

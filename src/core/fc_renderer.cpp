@@ -1,7 +1,10 @@
 // fc_renderer.cpp
 #include "fc_renderer.hpp"
+
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "core/assert.hpp"
 #include "core/fc_locator.hpp"
+/* #include "core/log.hpp" */
 #include "core/platform.hpp"
 #include "utilities.hpp"
 #include "fc_debug.hpp"
@@ -99,7 +102,7 @@ namespace fc
 
       //
       descClerk->initDescriptorPools(1024, poolRatios);
-
+      descClerk->createBindlessDescriptorSets();
       // register the descriptor with the locator
       FcLocator::provide(descClerk);
 
@@ -194,7 +197,8 @@ namespace fc
       // *-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE RESOURCE POOLS   *-*-*-*-*-*-*-*-*-*-*-*-*- //
       // TODO get rid of in favor of FcLocator pattern
       pAllocator = &MemoryService::instance()->systemAllocator;
-      mTextures.init(pAllocator, 512, sizeof(FcImage));
+      mDrawCollection.init(pAllocator);
+
     }
     catch (const std::runtime_error& err) {
       printf("ERROR: %s\n", err.what());
@@ -243,8 +247,15 @@ namespace fc
     // TODO move to frolic.cpp
     /* structure.loadGltf(mSceneRenderer, "..//models//MosquitoInAmber.glb"); */
     /* structure.loadGltf(mSceneRenderer, "..//models//MaterialsVariantsShoe.glb"); */
-    structure.loadGltf(mSceneRenderer, "..//models//helmet//DamagedHelmet.gltf");
-    structure.addToDrawCollection(mDrawCollection);
+    // TODO might want to move separate instances of draw collection to scene renderer
+
+
+    structure.loadGltf(mDrawCollection, mSceneRenderer, "..//models//helmet//DamagedHelmet.gltf");
+    // structure.loadGltf(mSceneRenderer, "..//models//helmet//DamagedHelmet.gltf");
+    // structure.addToDrawCollection(mDrawCollection);
+
+
+
     // glm::mat4 translationMat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 15.0f, -24.0f));
     // structure.update(translationMat);
 
@@ -252,8 +263,13 @@ namespace fc
     //structure2.loadGltf(this, "..//models//GlassHurricaneCandleHolder.glb");
     /* structure2.loadGltf(mSceneRenderer, "..//models//ToyCar.glb"); */
     /* structure2.loadGltf(mSceneRenderer, "..//models//structure.glb"); */
-    structure2.loadGltf(mSceneRenderer, "..//models//sponza//Sponza.gltf");
-    structure2.addToDrawCollection(mDrawCollection);
+
+
+    structure2.loadGltf(mDrawCollection, mSceneRenderer, "..//models//sponza//Sponza.gltf");
+    // structure2.loadGltf(mSceneRenderer, "..//models//sponza//Sponza.gltf");
+    // structure2.addToDrawCollection(mDrawCollection);
+
+
     // glm::mat4 buildingTranslate = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 12.0f, -24.0f));
     // structure2.update(buildingTranslate);
 
@@ -894,6 +910,77 @@ namespace fc
 
     vkCmdEndRendering(cmd);
 
+    // ?? For now update bindless textures here, after the rendering with textures has ended
+    // TRY to relocate to a more descriptive/intuitive location if possible
+    if (mDrawCollection.bindlessTextureUpdates.size())
+    {
+      // Handle deferred writes to bindless textures
+      // TODO probably should define these as vectors of size bindlessTextureUpdates.size()
+      VkWriteDescriptorSet bindlessDescriptorWrites[MAX_BINDLESS_RESOURCES];
+      VkDescriptorImageInfo bindlessImageInfos[MAX_BINDLESS_RESOURCES];
+
+      FcImage* dummyTexture = &FcDefaults::Textures.checkerboard;
+
+      u32 currentWriteIndex = 0;
+      for (i32 i = mDrawCollection.bindlessTextureUpdates.size() - 1; i >= 0; --i)
+      {
+        ResourceUpdate& textureToUpdate = mDrawCollection.bindlessTextureUpdates[i];
+
+        // TRY
+        /* if (textureToUpdate.current_frame == current_frame) */
+        {
+          VkWriteDescriptorSet& descriptorWrite = bindlessDescriptorWrites[currentWriteIndex];
+          descriptorWrite = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+          descriptorWrite.descriptorCount = 1;
+          descriptorWrite.dstArrayElement = textureToUpdate.handle;
+          descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+          descriptorWrite.dstSet = FcLocator::DescriptorClerk().mBindlessDescriptorSet;
+          descriptorWrite.dstBinding = BINDLESS_DESCRIPTOR_SLOT;
+
+          FcImage* texture = mDrawCollection.mTextures.get(textureToUpdate.handle);
+          /* FCASSERT(textureToUpdate.handle == texture->Handle()); */
+
+          VkDescriptorImageInfo& imageInfo = bindlessImageInfos[currentWriteIndex];
+          // TODO provide dummy image view
+          imageInfo.imageView = texture->ImageView();
+          imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+          if (texture->hasSampler())
+          {
+            imageInfo.sampler = texture->Sampler();
+          }
+          else
+          {
+            fcPrint("Texture has no associated sampler:\n");
+            imageInfo.sampler = FcDefaults::Samplers.Linear;
+          }
+          //
+          descriptorWrite.pImageInfo = &imageInfo;
+          //
+          textureToUpdate.currentFrame = U32_MAX;
+
+          // ?? is this needed TODO fix to be better
+          /* bindlessTextureUpdates.delete_swap(i); */
+          uint32_t size = mDrawCollection.bindlessTextureUpdates.size();
+          mDrawCollection.bindlessTextureUpdates[i] = mDrawCollection.bindlessTextureUpdates[size - 1];
+          mDrawCollection.bindlessTextureUpdates.pop_back();
+          ++currentWriteIndex;
+        }
+      }
+      // BUG do this differently perhaps
+      mDrawCollection.bindlessTextureUpdates.clear();
+
+
+      if (currentWriteIndex)
+      {
+        fcPrint("Current write index: %u\n", currentWriteIndex);
+        uint32_t bindingDest = bindlessDescriptorWrites[currentWriteIndex].dstBinding;
+        fcPrint("binding Dest: %u\n", bindingDest);
+        /* vkUpdateDescriptorSets(pDevice, currentWriteIndex, bindlessDescriptorWrites, 0, nullptr); */
+        vkUpdateDescriptorSets(pDevice, currentWriteIndex, bindlessDescriptorWrites, 0, nullptr);
+      }
+    }
+
+
     // ?? elapsed time should already be in ms
     mDrawCollection.stats.meshDrawTime = mTimer.elapsedTime() * 1000;
   }
@@ -1227,6 +1314,7 @@ namespace fc
     // get next frame (use % MAX_FRAME_DRAWS to keep value below the number of frames we have in flight
     // increase the number of frames drawn
     mFrameNumber++;
+    mDrawCollection.stats.frame = mFrameNumber;
   }
 
 

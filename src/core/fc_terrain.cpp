@@ -33,7 +33,7 @@ namespace fc
     // TODO clarify screen dim vs screen pix
     //ubo.viewportDim = {renderer->ScreenWidth(), renderer->ScreenHeight()};
     // TODO no longer needed in terrain ubo
-    ubo.viewportDim = {1200, 900};
+    ubo.viewportDim = {1400, 100};
     mModelTransform = glm::mat4{1.0f};
   }
 

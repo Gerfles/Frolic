@@ -1,5 +1,6 @@
 // fc_node.cpp
 #include "fc_node.hpp"
+#include "core/log.hpp"
 #include "fc_mesh.hpp"
 #include "fc_draw_collection.hpp"
 // DELETE
@@ -18,6 +19,8 @@ namespace fc
     }
   }
 
+  //
+  //
   void FcNode::addToDrawCollection(FcDrawCollection& collection)
   {
     // draw children
@@ -28,10 +31,7 @@ namespace fc
   }
 
 
-
-
-
-
+  //
   // TODO solidify the transform updates
   void FcNode::update(const glm::mat4& topMatrix, FcDrawCollection& collection)
   {

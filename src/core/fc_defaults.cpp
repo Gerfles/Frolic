@@ -40,7 +40,7 @@ namespace fc
 
   }
 
-
+  // TODO check that mag filter is working properly with default linear
   // TODO place reference sampler at top (one with all settings and comments)
   void FcDefaults::DefaultSamplers::init(VkDevice device)
   {

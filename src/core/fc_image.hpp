@@ -3,6 +3,7 @@
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 //
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "core/platform.hpp"
 #include "vulkan/vulkan_core.h"
 #include "vk_mem_alloc.h"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -13,6 +14,7 @@ namespace fastgltf
 {
   class Image;
   class Asset;
+  class Sampler;
 }
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FCIMAGE CLASS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -20,6 +22,7 @@ namespace fc
 {
   // FORWARD DECLARATIONS
   class FcBuffer;
+  class FcDrawCollection;
 
   enum class FcImageTypes : uint8_t {
     Texture,                 // Default texture image
@@ -43,15 +46,14 @@ namespace fc
   {
    private:
      // -*-*-*-*-*-*-*-   USED WHEN MAPPING DATA TO READ PIXEL VALUES   -*-*-*-*-*-*-*- //
-     // TODO think about getting rid of local Copy since not always needed
+     // TODO get rid of local Copy since not always needed
      std::shared_ptr<FcBuffer> localCopy;
      void* localCopyAddress {nullptr};
-     static uint32_t index;
-     uint32_t handle;
-     /* VkSampler* sampler; */
-
+     /* static uint32_t index; */
+     uint32_t mHandle;
 
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     VkSampler mSampler {VK_NULL_HANDLE};
      VkImage mImage {VK_NULL_HANDLE};
      VkImageView mImageView {VK_NULL_HANDLE};
      VmaAllocation mAllocation {nullptr};
@@ -66,12 +68,17 @@ namespace fc
      uint16_t mHeight;
      uint8_t mLayerCount {1};
      uint8_t mMipLevels {1};
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      //
      void generateMipMaps();
      void setPixelFormat();
      void writeToImage(void* pData, VkDeviceSize dataLength, bool generateMipmaps);
    public:
-     // TODO could we just do this for images that need this function aka FcMappableImage?
+
+     // TRY
+     void init(u32 handle);
+
+// TODO could we just do this for images that need this function aka FcMappableImage?
      // TODO implement for the non GPU images->anything that is vmaAllocate-able
      // TODO should be type agnostic or get that info from somewhere since this could
      // be RGBA_8 or R16 or D32 etc.
@@ -127,15 +134,23 @@ namespace fc
                         , VkFormat format = VK_FORMAT_R8G8B8A8_UNORM);
      void copyToCPUAddress();
      void destroyCpuCopy();
+     //
+     void setSampler(const fastgltf::Sampler& sampler);
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   VALIDATORS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     const bool isValid() const { return mImage != VK_NULL_HANDLE; }
+     const bool hasSampler() const { return mSampler != VK_NULL_HANDLE; }
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   GETTERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      uint32_t fetchPixel(const int x, const int y);
      uint16_t saschaFetchPixel(const int x, const int y, uint32_t scale);
-     const bool isValid() const { return mImage != VK_NULL_HANDLE; }
      const VkImageView& ImageView() const { return mImageView; }
+     const VkSampler& Sampler() const { return mSampler; }
      VkImage Image() { return mImage; }
      VkExtent2D Extent() { return {mWidth, mHeight}; }
      uint32_t Width() { return mWidth; }
      uint32_t Height() { return mHeight; }
+     uint32_t Handle() { return mHandle; }
+     uint8_t LayerCount() { return mLayerCount; }
+     uint8_t MipMapCount() { return mMipLevels; }
      int byteDepth() { return mBytesPerPixel; }
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CLEANUP   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      void destroyImageView();

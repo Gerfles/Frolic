@@ -16,6 +16,9 @@ namespace fc
     mPoolSize = poolSize;
     mResourceSize = resourceSize;
 
+    // ?? determine if there is some reason the pool needs to be allocated this way instead
+    // of say, an initialized vector or other data structure. One thing that would change
+    // is we would no longer need the init fuction to initialize default values within a class
     // Group allocate (resource size + uint32)
     sizeT allocationSize = poolSize * (resourceSize + sizeof(u32));
     mMemory = (u8*)allocator->allocate(allocationSize, 1);
@@ -67,7 +70,7 @@ namespace fc
 
   //
   //
-  u32 ResourcePool::getIndex()
+  u32 ResourcePool::getNextResourceIndex()
   {
     // TODO add bits for checking if resource is alive and use bitmasks
     if (mFreeIndicesHead < mPoolSize)
@@ -75,12 +78,17 @@ namespace fc
       const u32 freeIndex = mFreeIndices[mFreeIndicesHead++];
       ++mUsedIndices;
 
+      // ?? drops the const, should use for index
       return freeIndex;
     }
     // ERROR: no more resources left!
     FCASSERT(false);
     return FC_INVALID_INDEX;
   }
+
+
+
+
 
   //
   //
@@ -109,6 +117,8 @@ namespace fc
   {
     if (handle != FC_INVALID_INDEX)
     {
+      // const void* resourcePtr = &mMemory[handle * mResourceSize];
+      // (FcImage*)resourcePtr->init();
       return &mMemory[handle * mResourceSize];
     }
     return nullptr;

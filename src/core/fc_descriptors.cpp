@@ -5,6 +5,7 @@
 #include "core/fc_image.hpp"
 #include "core/fc_locator.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "core/log.hpp"
 #include "vulkan/vulkan_core.h"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL / UTIL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <array>
@@ -192,11 +193,12 @@ namespace fc
 
 
 
-  void FcDescriptorClerk::createBindlessDescriptorLayout()
+  void FcDescriptorClerk::createBindlessDescriptorSets()
   {
     // First create the pool that will only be used for bindless resources
     if (isBindlessSupported)
     {
+      fcPrint("Creating Bindless Descriptor Set Layout\n");
       std::array<VkDescriptorPoolSize, 2> bindlessPoolSizes { {
           {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, MAX_BINDLESS_TEXTURES},
           {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, MAX_BINDLESS_TEXTURES} }
@@ -207,7 +209,8 @@ namespace fc
       // Create the layout binding for the textures
       layoutBindings[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
       // TODO may want to use a more fine grained approach
-      layoutBindings[0].stageFlags = VK_SHADER_STAGE_ALL;
+      /* layoutBindings[0].stageFlags = VK_SHADER_STAGE_ALL; */
+      layoutBindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
       layoutBindings[0].descriptorCount = MAX_BINDLESS_TEXTURES;
       layoutBindings[0].binding = BINDLESS_TEXTURE_BIND_SLOT;
       layoutBindings[0].pImmutableSamplers = nullptr;
@@ -220,14 +223,17 @@ namespace fc
       layoutBindings[1].pImmutableSamplers = nullptr;
 
       // bindless resources required flags
-      VkDescriptorBindingFlags bindlessFlags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
-                                               //VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT |
-                                               VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
+      VkDescriptorBindingFlags bindlessFlags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT |                                               					    //VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT |
+                                               VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT;
 
-      std::array<VkDescriptorBindingFlags, 2> bindingFlags = {{ bindlessFlags, bindlessFlags }};
+      std::array<VkDescriptorBindingFlags, 4> bindingFlags = {{ bindlessFlags, bindlessFlags }};
 
+      //
       VkDescriptorSetLayoutBindingFlagsCreateInfoEXT extendedInfo;
       extendedInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;
+      // ?? NOTE: this pNext must be set to nullptr, thought they were always initialized to
+      // that value but somehow that's not quite right. Maybe it only important when chaining
+      extendedInfo.pNext = nullptr;
       extendedInfo.bindingCount = bindlessPoolSizes.size();
       extendedInfo.pBindingFlags = bindingFlags.data();
 
@@ -248,6 +254,7 @@ namespace fc
       // -*-*-   CREATE DESCRIPTOR SET THAT WILL BE USED FOR REST OF APPLICATION   -*-*- //
       VkDescriptorSetVariableDescriptorCountAllocateInfo descCountInfo;
       descCountInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
+      descCountInfo.pNext = nullptr;
       descCountInfo.descriptorSetCount = 1;
       uint32_t maxBindingSlot = MAX_BINDLESS_TEXTURES - 1;
       descCountInfo.pDescriptorCounts = &maxBindingSlot;
@@ -257,7 +264,8 @@ namespace fc
       descAllocInfo.descriptorSetCount = 1;
       descAllocInfo.descriptorPool = mBindlessDescriptorPool;
       descAllocInfo.pSetLayouts = &mBindlessDescriptorLayout;
-      /* descAllocInfo.pNext = &descCountInfo; */
+      // BUG SEEMS this is needed but not in the original
+      descAllocInfo.pNext = &descCountInfo;
 
       if (vkAllocateDescriptorSets(pDevice, &descAllocInfo, &mBindlessDescriptorSet) != VK_SUCCESS)
       {

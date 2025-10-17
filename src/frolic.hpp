@@ -22,7 +22,7 @@ namespace fc
 
       // TODO should consider making some/all these cenntral to the engine and not the app
      static constexpr float MAX_FRAME_TIME = 0.05f;
-     static constexpr int MAX_FRAME_SAMPLES = 1000;
+     static constexpr int MAX_FRAME_SAMPLES = 2048;
 
      // performance tracking
      float mFrameTimeSum = 0;
@@ -65,6 +65,7 @@ namespace fc
 
       // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   (END) NEW   -**-*-*-*-*-*-*-*-*-*-*-*-*- //
      FcAllocator* pAllocator;
+     StackAllocator mStackAllocator;
      FcRenderer mRenderer;
      FcInput mInput;
      bool mShouldClose = false;

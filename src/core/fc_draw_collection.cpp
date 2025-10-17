@@ -2,12 +2,29 @@
 
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC CORE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_draw_collection.hpp"
+#include "core/log.hpp"
+#include "fc_image.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 namespace fc
 {
-  // uint32_t FcDrawCollection::totalOpaqueSurfaces()
+  void FcDrawCollection::init(FcAllocator* allocator)
+  {
+    // TODO more flexible initialization of draw collection
+    mTextures.init(allocator, 512);
+  }
+
+
+  // void FcDrawCollection::addTexture(const FcImage& texture)
+  // {
+  //   if (mIsBindlessSupported)
+  //   {
+
+  //   }
+  // }
+
+// uint32_t FcDrawCollection::totalOpaqueSurfaces()
   // {
   //   uint32_t tab = 0;
   //   for (FcMeshNode& meshNode : opaqueSurfaces)

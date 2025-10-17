@@ -54,7 +54,7 @@ namespace fc
     // // TODO create temporary storage for this in descClerk so we can just write the
     // // descriptorSet and layout on the fly and destroy layout if not needed
     // // TODO see if layout is not needed.
-   // FcDescriptorBindInfo sceneDescriptorBinding{};
+    // FcDescriptorBindInfo sceneDescriptorBinding{};
     // sceneDescriptorBinding.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
     //                                   , VK_SHADER_STAGE_VERTEX_BIT
     //                                   // TODO DELETE after separating model from scene
@@ -78,7 +78,7 @@ namespace fc
     // }
   }
 
-
+  //
   // TODO remove dependency on FcRenderer pointer
   void FcSceneRenderer::buildPipelines(VkDescriptorSetLayout sceneDescriptorLayout)
   {
@@ -90,7 +90,8 @@ namespace fc
     pipelineConfig.shaders[0].stageFlag = VK_SHADER_STAGE_VERTEX_BIT;
     /* pipelineConfig.shaders[1].filename = "brdf.frag.spv"; */
     /* pipelineConfig.shaders[1].filename = "scene.frag.spv"; */
-    pipelineConfig.shaders[1].filename = "scene2.frag.spv";
+    /* pipelineConfig.shaders[1].filename = "scene2.frag.spv"; */
+    pipelineConfig.shaders[1].filename = "scene3.frag.spv";
     pipelineConfig.shaders[1].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
     pipelineConfig.shaders[2].filename = "explode.geom.spv";
     pipelineConfig.shaders[2].stageFlag = VK_SHADER_STAGE_GEOMETRY_BIT;
@@ -111,33 +112,43 @@ namespace fc
     //
     pipelineConfig.addPushConstants(expansionFactorRange);
 
-    FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
-    // create the descriptor set layout for the material
-    FcDescriptorBindInfo bindInfo{};
-    bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
-    bindInfo.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-                        , VK_SHADER_STAGE_FRAGMENT_BIT);
-    bindInfo.addBinding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-                        , VK_SHADER_STAGE_FRAGMENT_BIT);
-    bindInfo.addBinding(3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-                        , VK_SHADER_STAGE_FRAGMENT_BIT);
-    bindInfo.addBinding(4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-                        , VK_SHADER_STAGE_FRAGMENT_BIT);
-    bindInfo.addBinding(5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-                        , VK_SHADER_STAGE_FRAGMENT_BIT);
-    // TODO check to see if we even need a member variable for the below?? could it be temporary
-    mMaterialDescriptorLayout = descClerk.createDescriptorSetLayout(bindInfo);
 
-    // place the scene descriptor layout in the first set (0), then cubemap, then material
-    // TODO find a better way to pass these descriptor sets around etc...
-    // ?? Are they even needed in here??
+    // // place the scene descriptor layout in the first set (0), then cubemap, then material
+    // // TODO find a better way to pass these descriptor sets around etc...
+    // // ?? Are they even needed in here??
     pipelineConfig.addDescriptorSetLayout(sceneDescriptorLayout);
+
     // Add single image descriptors for sky box image
     pipelineConfig.addSingleImageDescriptorSetLayout();
     // Add single image descriptors for shadow map image
     pipelineConfig.addSingleImageDescriptorSetLayout();
+
+    // *-*-*-*-*-*-*-*-*-*-*-   WITHOUT BINDLESS DESCRIPTORS   *-*-*-*-*-*-*-*-*-*-*- //
+    // create the descriptor set layout for the material
+    FcDescriptorBindInfo bindInfo{};
+    bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+
+
+    // bindInfo.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+    //                     , VK_SHADER_STAGE_FRAGMENT_BIT);
+    // bindInfo.addBinding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+    //                     , VK_SHADER_STAGE_FRAGMENT_BIT);
+    // bindInfo.addBinding(3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+    //                     , VK_SHADER_STAGE_FRAGMENT_BIT);
+    // bindInfo.addBinding(4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+    //                     , VK_SHADER_STAGE_FRAGMENT_BIT);
+    // bindInfo.addBinding(5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+    //                     , VK_SHADER_STAGE_FRAGMENT_BIT);
+    // // TODO check to see if we even need a member variable for the below?? could it be temporary
+    /* bindInfo.addBinding(10, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT); */
+
+    FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
+    mMaterialDescriptorLayout = descClerk.createDescriptorSetLayout(bindInfo);
+    // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     // Finally add the descriptor set layout for materials
     pipelineConfig.addDescriptorSetLayout(mMaterialDescriptorLayout);
+
+    pipelineConfig.addDescriptorSetLayout(descClerk.mBindlessDescriptorLayout);
 
     // TODO find a way to do this systematically with the format of the draw/depth image
     // ... probably by adding a pipeline builder to renderer and calling from frolic
@@ -156,8 +167,6 @@ namespace fc
     //pipelineConfig.enableBlendingAlpha();
     //pipelineConfig.enableBlendingAdditive();
     pipelineConfig.enableDepthtest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
-
-
 
     // TODO make pipeline and config and descriptors friend classes
     mOpaquePipeline.create(pipelineConfig);
@@ -206,30 +215,30 @@ namespace fc
       }
     }
 
-      // // ?? couldn't we sort drawn meshes into a set of vectors that're already sorted by material
-      // // and keep drawn object in linked list every iteration (unless removed manually) instead
-      // // of clearing the draw list every update...
+    // // ?? couldn't we sort drawn meshes into a set of vectors that're already sorted by material
+    // // and keep drawn object in linked list every iteration (unless removed manually) instead
+    // // of clearing the draw list every update...
 
 
-      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-      // TODO should consider sorting when first adding objects to draw, unless something changes
-      // or perhaps just inserting objects into draw via a hashmap. One thing to consider though
-      // is that we also perform visibility checks before we sort
-      // TODO should also make sure to sort using more than one thread
-      // Sort rendered objects according to material type and if the same sorted by indexBuffer
-      // A lot of big game engines do this to reduce the number of pipeline/descriptor set binds
+    // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    // TODO should consider sorting when first adding objects to draw, unless something changes
+    // or perhaps just inserting objects into draw via a hashmap. One thing to consider though
+    // is that we also perform visibility checks before we sort
+    // TODO should also make sure to sort using more than one thread
+    // Sort rendered objects according to material type and if the same sorted by indexBuffer
+    // A lot of big game engines do this to reduce the number of pipeline/descriptor set binds
 
-      // TODO should only have the the resize happen when we first add object to render then
-      // change IFF we add more scene objects
+    // TODO should only have the the resize happen when we first add object to render then
+    // change IFF we add more scene objects
 
-      // ?? couldn't we sort drawn meshes into a set of vectors that're already sorted by material
-      // and keep drawn object in linked list every iteration (unless removed manually) instead
-      // of clearing the draw list every update...
+    // ?? couldn't we sort drawn meshes into a set of vectors that're already sorted by material
+    // and keep drawn object in linked list every iteration (unless removed manually) instead
+    // of clearing the draw list every update...
 
-      // TODO sort algorithm could be improved by calculating a sort key, and then our sortedOpaqueIndices
-      // would be something like 20bits draw index and 44 bits for sort key/hash
-      // sort the opaque surfaces by material and mesh
-    }
+    // TODO sort algorithm could be improved by calculating a sort key, and then our sortedOpaqueIndices
+    // would be something like 20bits draw index and 44 bits for sort key/hash
+    // sort the opaque surfaces by material and mesh
+  }
 
 
   // TODO maybe pass vector instead
@@ -271,8 +280,8 @@ namespace fc
     return draws;
   }
 
-
-
+  //
+  //
   void FcSceneRenderer::draw(VkCommandBuffer cmd, FcDrawCollection& drawCollection,
                              FrameAssets& currentFrame)
   {
@@ -290,13 +299,13 @@ namespace fc
     // defined outside of the draw function, this is the state we will try to skip
     mPreviousIndexBuffer = VK_NULL_HANDLE;
 
-
     // First draw the opaque mesh nodes in draw collection
     mOpaquePipeline.bind(cmd);
     pCurrentPipeline = &mOpaquePipeline;
 
     // TODO follow this protocol for each subRenderer,
     // TODO group these together inside frameAssets for each renderer
+    // ?? for some reason the renderer still works somewhat well without binding skybox etc.??
     mExternalDescriptors[0] = currentFrame.sceneDataDescriptorSet;
     mExternalDescriptors[1] = currentFrame.skyBoxDescriptorSet;
     mExternalDescriptors[2] = currentFrame.shadowMapDescriptorSet;
@@ -313,8 +322,12 @@ namespace fc
     //   }
     // }
 
+    VkDescriptorSet bindlessTextures = FcLocator::DescriptorClerk().mBindlessDescriptorSet;
+    mOpaquePipeline.bindDescriptorSet(cmd, bindlessTextures, 4);
+
     for (size_t i = 0; i < drawCollection.opaqueSurfaces.size(); ++i)
     {
+      // TODO find a way to only bind once
       mOpaquePipeline.bindDescriptorSet(cmd, drawCollection.opaqueSurfaces[i].first->materialSet, 3);
 
       for (size_t index : drawCollection.visibleSurfaceIndices[i])
@@ -348,49 +361,50 @@ namespace fc
   }
 
 
-    void FcSceneRenderer::drawSurface(VkCommandBuffer cmd, const FcSurface& surface)
+  void FcSceneRenderer::drawSurface(VkCommandBuffer cmd, const FcSurface& surface) noexcept
+  {
+    // Only rebind pipeline and material descriptors if the material changed
+    // TODO have each object track state of its own descriptorSets
+    // There are only two pipelines so far so should just draw all opaque, then all transparent
+
+    // Only bind index buffer if it has changed
+    if (surface.indexBuffer != mPreviousIndexBuffer)
     {
-      // Only rebind pipeline and material descriptors if the material changed
-      // TODO have each object track state of its own descriptorSets
-      // There are only two pipelines so far so should just draw all opaque, then all transparent
-
-      // Only bind index buffer if it has changed
-      if (surface.indexBuffer != mPreviousIndexBuffer)
-      {
-        mPreviousIndexBuffer = surface.indexBuffer;
-        surface.bindIndexBuffer(cmd);
-      }
-
-      // Calculate final mesh matrix
-      DrawPushConstants pushConstants;
-      pushConstants.vertexBuffer = surface.vertexBufferAddress;
-      pushConstants.worldMatrix = surface.transform;
-      pushConstants.normalTransform = surface.invModelMatrix;
-
-      //
-      vkCmdPushConstants(cmd, pCurrentPipeline->Layout()
-                         , VK_SHADER_STAGE_VERTEX_BIT
-                         , 0, sizeof(DrawPushConstants), &pushConstants);
-      //
-      // Note here that we have to offset from the initially pushed data since we
-      // are really just filling a range alloted to us in total...
-      vkCmdPushConstants(cmd, pCurrentPipeline->Layout()
-                         , VK_SHADER_STAGE_GEOMETRY_BIT
-                         , sizeof(DrawPushConstants), sizeof(float), &expansionFactor);
-
-      vkCmdDrawIndexed(cmd, surface.indexCount, 1, surface.firstIndex, 0, 0);
-
-      // TODO
-      // add counters for triangles and draws calls
-      // currstats.objectsRendered++;
-      // stats.triangleCount += surface.indexCount / 3;
+      mPreviousIndexBuffer = surface.indexBuffer;
+      surface.bindIndexBuffer(cmd);
     }
 
+    // TODO make all push constants address to matrix buffer and texture indices
+    // Calculate final mesh matrix
+    DrawPushConstants pushConstants;
+    pushConstants.vertexBuffer = surface.vertexBufferAddress;
+    pushConstants.worldMatrix = surface.transform;
+    pushConstants.normalTransform = surface.invModelMatrix;
 
-    void FcSceneRenderer::destroy()
-    {
-      vkDestroyDescriptorSetLayout(FcLocator::Device(), mMaterialDescriptorLayout, nullptr);
-      mOpaquePipeline.destroy();
-      mTransparentPipeline.destroy();
-    }
+    //
+    vkCmdPushConstants(cmd, pCurrentPipeline->Layout()
+                       , VK_SHADER_STAGE_VERTEX_BIT
+                       , 0, sizeof(DrawPushConstants), &pushConstants);
+    //
+    // Note here that we have to offset from the initially pushed data since we
+    // are really just filling a range alloted to us in total...
+    vkCmdPushConstants(cmd, pCurrentPipeline->Layout()
+                       , VK_SHADER_STAGE_GEOMETRY_BIT
+                       , sizeof(DrawPushConstants), sizeof(float), &expansionFactor);
+
+    vkCmdDrawIndexed(cmd, surface.indexCount, 1, surface.firstIndex, 0, 0);
+
+    // TODO
+    // add counters for triangles and draws calls
+    // currstats.objectsRendered++;
+    // stats.triangleCount += surface.indexCount / 3;
   }
+
+
+  void FcSceneRenderer::destroy()
+  {
+    vkDestroyDescriptorSetLayout(FcLocator::Device(), mMaterialDescriptorLayout, nullptr);
+    mOpaquePipeline.destroy();
+    mTransparentPipeline.destroy();
+  }
+}
