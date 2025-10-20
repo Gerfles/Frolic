@@ -75,10 +75,6 @@ namespace fc
       return;
     }
 
-    // create a default texture that gets used whenever assimp cant find a texture
-    // Need to load this in first so it can be Texture 0 for default
-
-
     // TODO set this as a static variable
     mInput.init(mRenderer.Window());
 
@@ -88,45 +84,18 @@ namespace fc
 
     mPlayer.init(&mInput);
 
-
-
-    mPlayer.Camera().setPerspectiveProjection(60.0f, FcLocator::ScreenDims().width
+    // Initialize simple first person camera
+    mPlayer.Camera().setPerspectiveProjection(70.0f, FcLocator::ScreenDims().width
                                              , FcLocator::ScreenDims().height, 512.f, 0.1f);
     // TODO make sure all reference returns are const to avoid something like:
     // mPlayer.Camera().Projection()[1][1] *= -1;
 
-    /* mPlayer.Camera().setOrthographicProjection(-5.f, 5.f, -5.f, 5.f, 30.f, 0.1f); */
-
-    // uvnPlayer.Camera().setPerspectiveProjection(66.0f, FcLocator::ScreenDims().width
-    //                                 , FcLocator::ScreenDims().height, 500.f, 0.1f);
-
-    // Initialize simple first person camera
-    // FcCamera camera;
-    // FcCamera uvnCamera;
-
-    //    mSceneData.projection = glm::perspective(glm::radians(70.0f), mRenderer.aspectRatio(), 0.01f, 1000.f);
-    //    mSceneData.projection = glm::perspective(glm::radians(70.0f), mRenderer.aspectRatio(), .1f, 30.f);
-    //mSceneData.projection = glm::ortho(0.0f, 1350.0f, 900.0f, 0.0f, 0.1f, 1000.0f);
-    // mSceneData.projection = glm::orthoRH_ZO(0.0f, 1350.0f, 900.0f, 0.0f, 1111.1f, 0.10f);
-    // mSceneData.projection = glm::perspective(glm::radians(70.0f), mRenderer.aspectRatio(), 500.0f, 0.1f);
-    // mSceneData.projection[1][1] *= -1;
-    //
-
-    /* pSceneData->projection = mPlayer.Camera().Projection(); */
-
-    // mSceneData.projection = orthographic(-1.f, 1.f,
-    //                                     -1.f, 1.f,  100.f, 0.1f);
-    //camera.setViewTarget(glm::vec3{0,0,5}, glm::vec3{0,0,-1});
-
-
     mRenderer.setActiveCamera(&mPlayer.Camera());
     mRenderer.initDefaults();//mSceneDataBuffer, &mSceneData);
 
-    // zero out the ticklist for performance tracking
-    std::memset(mFrameTimeList, 0, sizeof(mFrameTimeList));
-
     stats = &mRenderer.getStats();
-  }
+
+  }// --- Frolic::Frolic (_) --- (END)
 
   //
   //
@@ -137,8 +106,6 @@ namespace fc
     mSunBillboard.loadTexture(filename);
     mSunBillboard.setPosition(pSceneData->sunlightDirection);
     mRenderer.addBillboard(mSunBillboard);
-
-    mPlayerMovementSpeed = mPlayer.getMoveSpeed();
 
     // TODO implement with std::optional
     helmet.loadGltf(mRenderer, "..//models//helmet//DamagedHelmet.gltf");
@@ -166,31 +133,21 @@ namespace fc
 
   void Frolic::run()
   {
-    fcLog("Initializing to begin main run loop", 0);
-
-    // FIXME
+    // FIXME if possible, may be an issue with linux
     SDL_ShowCursor(SDL_DISABLE);
 
-
-
-
     // Initialize player controls and position
-
-    //mPlayer.setPosition(glm::vec3(30.f, -00.f, -85.f));
-    //mPlayer.setPosition(glm::vec3(-5.f, 5.5f, .20f));
-    /* mPlayer.setPosition(glm::vec3(0.f, 0.f, 2.f)); */
     mPlayer.setPosition(glm::vec3(36.f, 25.f, 19.f));
-    /* uvnPlayer.setPosition(glm::vec3(0.f, 0.f, 2.f)); */
 
     // load everything we need for the scene
-    //loadUIobjects();
     loadGameObjects();
 
-    AutoCVarFloat cvarMovementSpeed("movementSpeed.float", "controls camera movement speed", 5.0f);
+    AutoCVarFloat cvarMovementSpeed("movementSpeed.float", "controls camera movement speed", 8.0f);
 
 
-    // TODO this should be abstracted into engine
-    fcLog("Frolic Initialized: Starting main run loop", 0);
+    // zero out the ticklist for performance tracking
+    std::memset(mFrameTimeList, 0, sizeof(mFrameTimeList));
+
     FcTimer mTimer;
     mTimer.start();
     float deltaTime = 0.0f;
@@ -358,6 +315,7 @@ namespace fc
         {
           // b
         }
+
         if (ImGui::Checkbox("Color Texture", &mUseColorTexture))
         {
           helmet.toggleTextureUse(MaterialFeatures::HasColorTexture, helmetTexIndices);
@@ -406,17 +364,11 @@ namespace fc
         ImGui::SliderInt("Model Rotation Speed", &rotationSpeed, -5, 5);
         ImGui::SetNextItemWidth(60);
 
-	// TODO don't allow access into class like this USE CVAR SYSTEM
-        // float* movementSpeed = CVarSystem::Get()->GetFloatCVar("movementSpeed.float");
-        // if (movementSpeed)
-        // {
-        //   CVarSystem::Get()->setFloatCVar("movementSpeed.float", 41.5f);
-        // }
-        /* ImGui::SliderFloat("Movement Speed", &movementSpeed, 1, 50, "%.1f"); */
-
-        if (ImGui::SliderFloat("Movement Speed", &mPlayerMovementSpeed, 1, 50, "%.1f"))
+        // TODO this shouldn't be a CVAR but left for reference
+        float* movementSpeed = CVarSystem::Get()->GetFloatCVar("movementSpeed.float");
+        if (ImGui::SliderFloat("Movement Speed", movementSpeed, 1, 50, "%1.f"))
         {
-          mPlayer.setMoveSpeed(mPlayerMovementSpeed);
+          mPlayer.setMoveSpeed(*movementSpeed);
         }
 
         ImGui::Checkbox("Cycle", &mCycleExpansion);

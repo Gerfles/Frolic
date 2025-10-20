@@ -44,7 +44,7 @@ namespace fc
 
      SceneDataUbo* pSceneData {nullptr};
 
-     // Note these do not necessarily enable the feature -> ONLY when it is already included in glTF
+     // // Note these do not necessarily enable the feature -> ONLY when it is already included in glTF
      bool mUseColorTexture {true};
      bool mUseRoughMetalTexture {true};
      bool mUseOcclussionTexture {true};
@@ -55,7 +55,6 @@ namespace fc
      bool mCycleExpansion{false};
      bool mDebugShadowMap{false};
      bool mUseAlternatePipeline{false};
-     float mPlayerMovementSpeed;
      //
      FcPlayer mPlayer;
      /* FcPlayer uvnPlayer; */
