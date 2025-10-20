@@ -243,29 +243,11 @@ namespace fc
     mBillboardRenderer.buildPipelines();
     // // TODO think about destroying layout here
 
-    // TODO implement with std::optional
-    // TODO move to frolic.cpp
-    /* structure.loadGltf(mSceneRenderer, "..//models//MosquitoInAmber.glb"); */
-    /* structure.loadGltf(mSceneRenderer, "..//models//MaterialsVariantsShoe.glb"); */
-    // TODO might want to move separate instances of draw collection to scene renderer
-
-
-    structure.loadGltf(mDrawCollection, mSceneRenderer, "..//models//helmet//DamagedHelmet.gltf");
-    // structure.loadGltf(mSceneRenderer, "..//models//helmet//DamagedHelmet.gltf");
-    // structure.addToDrawCollection(mDrawCollection);
 
 
 
-    // glm::mat4 translationMat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 15.0f, -24.0f));
-    // structure.update(translationMat);
 
-    //structure2.loadGltf(this, "..//models//Box.gltf");
-    //structure2.loadGltf(this, "..//models//GlassHurricaneCandleHolder.glb");
-    /* structure2.loadGltf(mSceneRenderer, "..//models//ToyCar.glb"); */
-    /* structure2.loadGltf(mSceneRenderer, "..//models//structure.glb"); */
-
-
-    structure2.loadGltf(mDrawCollection, mSceneRenderer, "..//models//sponza//Sponza.gltf");
+    /* sponza.loadGltf(*this, "..//models//sponza//Sponza.gltf"); */
     // structure2.loadGltf(mSceneRenderer, "..//models//sponza//Sponza.gltf");
     // structure2.addToDrawCollection(mDrawCollection);
 
@@ -273,12 +255,12 @@ namespace fc
     // glm::mat4 buildingTranslate = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 12.0f, -24.0f));
     // structure2.update(buildingTranslate);
 
-    glm::vec3 translationVec = {45.0f, 9.0f, 20.0f};
-    structure.translate(translationVec);
-    translationVec.y -= 2.0f;
-    structure2.translate(translationVec);
-    structure.update(mDrawCollection);
-    structure2.update(mDrawCollection);
+    // glm::vec3 translationVec = {45.0f, 9.0f, 20.0f};
+    // helmet.translate(translationVec);
+    // translationVec.y -= 2.0f;
+    // sponza.translate(translationVec);
+    // helmet.update();
+    // sponza.update();
 
     // // NOTE: This moves the object not the camera/lights/etc...
     // glm::mat4 drawMat{1.f};
@@ -390,65 +372,40 @@ namespace fc
     }
   }
 
-
-
+  //
+  // TODO delete
   void FcRenderer::updateUseFlags(MaterialFeatures featureToUpdate, bool enable)
   {
-    // Get the address for the buffer of material constant data being refd by the shader
-    MaterialConstants* changed
-      = static_cast<MaterialConstants*>(structure.mMaterialDataBuffer.getAddress());
+    // // Get the address for the buffer of material constant data being refd by the shader
+    // MaterialConstants* changed = helmet.materialBufferAddress();
 
-    // TODO need to do this for all "structures"
+    // // TODO need to do this for all "structures"
 
-    // FIXME this worlks for now since samplers.size() == material count but may want to
-    // do this a different way.
-    int numMaterial = structure.NumMaterials();
-    std::cout << "numMaterials = " << numMaterial << std::endl;
-    if (enable)
-    {
-      for (size_t i = 0; i < numMaterial; i++)
-      {
-        changed->flags |= featureToUpdate;
-        changed++;
-      }
-    }
-    else
-    {
-      for (size_t i = 0; i < numMaterial; i++)
-      {
-        changed->flags &= ~featureToUpdate;
-        changed++;
-      }
-    }
+
+    // // FIXME this worlks for now since samplers.size() == material count but may want to
+    // // do this a different way.
+    // int numMaterial = helmet.NumMaterials();
+    // std::cout << "numMaterials = " << numMaterial << std::endl;
+    // if (enable)
+    // {
+    //   for (size_t i = 0; i < numMaterial; i++)
+    //   {
+    //     changed->flags |= featureToUpdate;
+    //     changed++;
+    //   }
+    // }
+    // else
+    // {
+    //   for (size_t i = 0; i < numMaterial; i++)
+    //   {
+    //     changed->flags &= ~featureToUpdate;
+    //     changed++;
+    //   }
+    // }
   }
 
-  void FcRenderer::setColorTextureUse(bool enable)
-  {
-    updateUseFlags(MaterialFeatures::HasColorTexture, enable);
-  }
-
-  void FcRenderer::setRoughMetalUse(bool enable)
-  {
-    updateUseFlags(MaterialFeatures::HasRoughMetalTexture, enable);
-  }
-
-  void FcRenderer::setAmbientOcclussionUse(bool enable)
-  {
-    updateUseFlags(MaterialFeatures::HasOcclusionTexture, enable);
-  }
-
-  void FcRenderer::setNormalMapUse(bool enable)
-  {
-    updateUseFlags(MaterialFeatures::HasNormalTexture, enable);
-  }
-
-  void FcRenderer::setEmissiveTextureUse(bool enable)
-  {
-    updateUseFlags(MaterialFeatures::HasEmissiveTexture, enable);
-  }
-
-
-
+  //
+  //
   void FcRenderer::createInstance(VkApplicationInfo& appInfo)
   {
     // First determine all the extensions needed for SDL to run Vulkan instance
@@ -721,18 +678,18 @@ namespace fc
     mSceneData.lighSpaceTransform = clip * mShadowMap.LightSpaceMatrix();
     mSceneDataBuffer.write(&mSceneData, sizeof(SceneDataUbo));
 
-    angle = rotationSpeed * 0.001f;
-    glm::vec3 rotationAxis = {0.f, -1.f, 0.f};
-
-    // structure = helmet, structure2 = building
-    structure.rotateInPlace(angle, rotationAxis);
-    /* structure2.rotateInPlace(angle, rotationAxis); */
+    // angle = rotationSpeed * 0.001f;
+    // glm::vec3 rotationAxis = {0.f, -1.f, 0.f};
 
 
-    // TODO could flag draw collection items with nodes that "know" they need to be updated
-    // then draw collection could do all the updating in one go.
-    structure.update(mDrawCollection);
-    /* structure2.update(mDrawCollection); */
+    // helmet.rotateInPlace(angle, rotationAxis);
+    // /* structure2.rotateInPlace(angle, rotationAxis); */
+
+
+    // // TODO could flag draw collection items with nodes that "know" they need to be updated
+    // // then draw collection could do all the updating in one go.
+    // helmet.update();
+    // /* structure2.update(mDrawCollection); */
 
 
     // TODO
@@ -1344,7 +1301,6 @@ namespace fc
   }
 
 
-
   void FcRenderer::shutDown()
   {
     std::cout << "calling: FcRenderer::shutDown" << std::endl;
@@ -1354,12 +1310,8 @@ namespace fc
     // Destroy data buffer with scene data
     mSceneDataBuffer.destroy();
 
-    //loadedScenes.clear();
-    structure.clearAll();
-
     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DEFAULTS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     FcDefaults::destroy();
-
     //mUiRenderer.destroy();
 
     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   SCENE DATA   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //

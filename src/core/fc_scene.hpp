@@ -27,12 +27,6 @@ class FcScene
    uint32_t mNumMaterials;
    // storage for all the data on a given glTF file
 
-   // -*-*-*-*-*-*-*-*-*-*-*-   SWITCHING TO RESOURCE POOLS   -*-*-*-*-*-*-*-*-*-*-*- //
-   // TODO delete
-   /* std::vector<FcImage> mTextures; */
-
-   // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
    // Used for faster loading of materials
    VkDescriptorSetLayout mMaterialDescriptorLayout;
    // TODO May be better to have simple vectors instead and convert names to IDs
@@ -45,9 +39,12 @@ class FcScene
    glm::mat4 mRotationMat{1.f};
    glm::mat4 mTranslationMat{1.0f};
    glm::vec3 mTranslation{0.f};
+   FcBuffer mMaterialDataBuffer;
+
+   FcRenderer* pRenderer;
  public:
    // TODO change to private
-   FcBuffer mMaterialDataBuffer;
+   /* FcBuffer mMaterialDataBuffer; */
    // TODO try and just create the materials within model and keep a pointer via VkDescriptorSet
    /* std::vector<std::shared_ptr<FcMaterial>> mMaterials; */
    // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CTORS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -60,8 +57,8 @@ class FcScene
    // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   MUTATORS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
    void addToDrawCollection(FcDrawCollection& ctx);
    //
-   void loadGltf(FcDrawCollection& drawCollection, FcSceneRenderer& sceneRenderer,
-                 std::string_view filepath);
+   /* void loadGltf(FcDrawCollection& drawCollection, std::string_view filepath); */
+   void loadGltf(FcRenderer& renderer, std::string_view filepath);
    //
    VkFilter extractFilter(fastgltf::Filter filter) noexcept;
    //
@@ -78,14 +75,16 @@ class FcScene
                          fastgltf::Asset& gltf,
                          std::vector<std::shared_ptr<FcMaterial>>& materials,
                          std::filesystem::path& parentPath);
-
+   //
+   void toggleTextureUse(MaterialFeatures texture, std::array<std::vector<u32>, 5>& currentIndices);
+   //
    // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   TRANSFORMS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
    void rotate(float angleDegrees, glm::vec3 axis);
    void rotateInPlace(float angleDegrees, glm::vec3 axis);
    void translate(glm::vec3 offset);
    void scale(const glm::vec3 axisFactors);
    // NOTE: must call update after any transform in order to change the scene in DrawCollection
-   void update(FcDrawCollection& collection);
+   void update();
    // update only using the supplied matrix (not the member matrix)
    void update(glm::mat4& mat, FcDrawCollection& collection);
 
@@ -98,6 +97,8 @@ class FcScene
    const uint32_t NumMaterials() { return mNumMaterials; }
    /* void setModelMatrix(glm::mat4 modelMatrix) { mModelMatrix = modelMatrix; } */
    // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   GETTERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+   // MaterialConstants* materialBufferAddress()
+   //  { return static_cast<MaterialConstants*>( mMaterialDataBuffer.getAddress()); }
    // VkDeviceAddress vertexBufferAddress() const { return mVertexBufferAddress; }
    /* const glm::mat4& modelMatrix() const { return mModelMatrix; } */
    // size_t MeshCount() { return mMeshList.size(); }

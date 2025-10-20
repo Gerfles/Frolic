@@ -83,17 +83,21 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0);
 void main()
 {
   // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   ALBEDO   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+  vec4 albedo = colorFactors;
 
-  // Can choose either method of linearizing color
-  // vec4 albedo = texture(globalTextures[nonuniformEXT(colorIndex)], inUV);
-  // albedo.rgb = pow(albedo.rgb, vec3(2.2));
-  vec4 albedo = decode_srgba(texture(globalTextures[nonuniformEXT(colorIndex)], inUV));
-
-  if (albedo.a < 0.5)
+  if (colorIndex != INVALID_TEXTURE_INDEX)
   {
-    discard;
-  }
+    // Can choose either method of linearizing color
+    // vec4 albedo = texture(globalTextures[nonuniformEXT(colorIndex)], inUV);
+    // albedo.rgb = pow(albedo.rgb, vec3(2.2));
 
+    albedo = decode_srgba(texture(globalTextures[nonuniformEXT(colorIndex)], inUV));
+
+    if (albedo.a < 0.5)
+    {
+      discard;
+    }
+  }
 
   // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NORMAL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
   vec3 normal;

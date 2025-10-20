@@ -128,7 +128,6 @@ namespace fc
     FcDescriptorBindInfo bindInfo{};
     bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
 
-
     // bindInfo.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
     //                     , VK_SHADER_STAGE_FRAGMENT_BIT);
     // bindInfo.addBinding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
@@ -328,7 +327,8 @@ namespace fc
     for (size_t i = 0; i < drawCollection.opaqueSurfaces.size(); ++i)
     {
       // TODO find a way to only bind once
-      mOpaquePipeline.bindDescriptorSet(cmd, drawCollection.opaqueSurfaces[i].first->materialSet, 3);
+      mOpaquePipeline.bindDescriptorSet(cmd,
+                                        drawCollection.opaqueSurfaces[i].first->materialSet, 3);
 
       for (size_t index : drawCollection.visibleSurfaceIndices[i])
       {

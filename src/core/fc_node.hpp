@@ -34,7 +34,7 @@ namespace fc
      // TODO find out what is meant by the following
      // parent pointer must be a weak pointer to avoid circular dependencies
      std::weak_ptr<FcNode> parent;
-     std::vector<std::shared_ptr<FcNode>> children;
+     std::vector<std::shared_ptr<FcNode>> mChildren;
      glm::mat4 localTransform;// {1.0f};
      glm::mat4 worldTransform;// {1.0f};
      void refreshTransform(const glm::mat4& parentMatrix);

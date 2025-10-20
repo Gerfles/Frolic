@@ -98,11 +98,9 @@ namespace fc
        void initImgui();
 
        // -*-*-*-*-*-*-*-*-*-   TODO REFACTOR, ENCAPSULATE, OR DELETE   -*-*-*-*-*-*-*-*-*- //
-       // DELETE mainDrawContext
-       /* DrawCollection mainDrawContext; */
 
-       // TODO may want to add to sceneRenderer but might need for shadow map
-       // although shadow map may also need to be added to scene renderer
+       // TODO may want to add to sceneRenderer but need for shadow map
+       // although shadow map may also be preferred to be added to scene renderer
        FcDrawCollection mDrawCollection;
        // - Model Rendering
        FcModelRenderSystem mModelRenderer;
@@ -124,7 +122,7 @@ namespace fc
        VkDescriptorSetLayout mSceneDataDescriptorLayout;
 
        // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   TEMP   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-       float angle {0.f};
+
      public:
 
        // TODO Make these all private
@@ -132,10 +130,8 @@ namespace fc
        bool mDrawBoundingBoxes {false};
        bool drawWireframe {false};
        int mBoundingBoxId {-1};
-       int rotationSpeed{};
-       // DELETE eventually -> place models in draw calling function, not render class
-       FcScene structure;
-       FcScene structure2;
+
+
        void drawBackground(ComputePushConstants& pushConstans);
        FcShadowMap mShadowMap;
        /* void drawShadowMap(bool drawDebug); */
@@ -204,6 +200,7 @@ namespace fc
        /* FcSceneRenderer* getMetalRoughMaterial() { return &mSceneRenderer; } */
        // TODO delete this probably and place background pipeline in renderer
        FrameAssets& getCurrentFrame() { return mFrames[mFrameNumber % MAX_FRAME_DRAWS]; }
+       FcDrawCollection& DrawCollection() { return mDrawCollection; }
        // ?? is this used often enough to merit a member variable?
        float ScreenWidth() { return mWindow.ScreenSize().width; }
        float ScreenHeight() { return mWindow.ScreenSize().height; }
@@ -215,6 +212,7 @@ namespace fc
        const FcSwapChain& Swapchain() { return mSwapchain; }
        FcStats& getStats() { return mDrawCollection.stats; }
        void shutDown();
+
     };
 
 } // - End - NAMESPACE fc //

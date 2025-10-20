@@ -13,7 +13,7 @@ namespace fc
   {
     worldTransform = parentMatrix * localTransform;
 
-    for (std::shared_ptr<FcNode> child : children)
+    for (std::shared_ptr<FcNode> child : mChildren)
     {
       child->refreshTransform(worldTransform);
     }
@@ -24,7 +24,7 @@ namespace fc
   void FcNode::addToDrawCollection(FcDrawCollection& collection)
   {
     // draw children
-    for (std::shared_ptr<FcNode>& child : children)
+    for (std::shared_ptr<FcNode>& child : mChildren)
     {
       child->addToDrawCollection(collection);
     }
@@ -37,7 +37,7 @@ namespace fc
   {
     worldTransform = topMatrix * localTransform;
 
-    for (std::shared_ptr<FcNode>& child : children)
+    for (std::shared_ptr<FcNode>& child : mChildren)
     {
       child->update(topMatrix, collection);
     }

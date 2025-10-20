@@ -4,7 +4,7 @@
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "core/fc_image.hpp"
 #include "core/fc_resources.hpp"
-
+#include "fc_renderer.hpp"
 #include "core/log.hpp"
 #include "fc_locator.hpp"
 #include "fc_descriptors.hpp"
@@ -66,11 +66,11 @@ namespace fc
   //
   // TODO combine with below method (comments and such) then delete below
   // TODO brush up on the modern use of fastgltf -- seems vkguide is not the most up to date
-  void FcScene::loadGltf(FcDrawCollection& drawCollection, FcSceneRenderer& sceneRenderer,
-                         std::string_view filepath)
+  void FcScene::loadGltf(FcRenderer& renderer, std::string_view filepath)
   {
     // TODO delete renderer and pDevice dependencies
     VkDevice pDevice = FcLocator::Device();
+    pRenderer = &renderer;
 
     std::cout << "Loading GLTF file: " << filepath << std::endl;
 
@@ -147,6 +147,8 @@ namespace fc
     mNumMaterials = gltf.materials.size();
     std::cout << "Number of material in Scene: " << mNumMaterials << std::endl;
     std::vector<std::shared_ptr<FcMaterial>> materials(mNumMaterials);
+
+    FcDrawCollection& drawCollection = renderer.DrawCollection();
     bindlessLoadAllMaterials(drawCollection, gltf, materials, parentPath);
 
     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   LOAD ALL MESHES   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -369,7 +371,7 @@ namespace fc
 
       for (auto& child : gltfNode.children)
       {
-        sceneNode->children.push_back(nodes[child]);
+        sceneNode->mChildren.push_back(nodes[child]);
         nodes[child]->parent = sceneNode;
       }
     }
@@ -418,8 +420,8 @@ namespace fc
       // If image failed to load, assign default image so we can continue loading scene
       if (!newTexture->isValid())
       {
-        // BUG not working properly, test by deleting some textures from a gltf
-        newTexture = &FcDefaults::Textures.checkerboard;
+        // TEST by deleting some textures from a gltf
+        *newTexture = FcDefaults::Textures.checkerboard;
         fcPrint("Failed to load texture: %s\n", gltfTexture.name.data());
       }
 
@@ -1286,13 +1288,92 @@ namespace fc
 
   //
   //
-  void FcScene::update(FcDrawCollection& collection)
+  void FcScene::update()
   {
     /* mTransformMat = mTranslationMat * mRotationMat * mTransformMat; */
 
     for (std::shared_ptr<FcNode>& node : mTopNodes)
     {
-      node->update(mTransformMat, collection);
+      node->update(mTransformMat, pRenderer->DrawCollection());
+    }
+  }
+
+  //
+  // TODO dedicate a texture enum to just the textures renderable without features
+  // TODO should be able to create a index pool that leaves an extra space for an INVALID_TEXTURE_INDEX
+  // that way when updating the texture to not use for instance, we could place the old index into the
+  // slot that is at pos+1 and then at pos we place an INVALID_TEXTURE_INDEX so that if we are
+  // trying to replace the current I_T_INDEX and by simply referencing the slot one above current slot
+  void FcScene::toggleTextureUse(MaterialFeatures texture,
+                                 std::array<std::vector<u32>, 5>& currentIndices)
+  {
+    // Get the address for the buffer of material constant data being refd by the shader
+    MaterialConstants* currentMaterial =
+      static_cast<MaterialConstants*>(mMaterialDataBuffer.getAddress());
+
+    // If this is the first time using this structure (size[i]() == 0) then we must initialize
+    // the 5 vectors to hold all of the numMaterial indices
+    if (currentIndices[0].size() == 0)
+    {
+      for (size_t i = 0; i < currentIndices.size(); i++)
+      {
+        currentIndices[i].resize(mNumMaterials, INVALID_TEXTURE_INDEX);
+      }
+    }
+
+    for (size_t i = 0; i < mNumMaterials; i++)
+    {
+      u32* currentTextureIndex;
+      // 0 = color, 1 = normal, 2 = occlusion, 3 = emissive, 4 = roughness/metalic
+      size_t textureType;
+
+      // First set the parameters for the indices we want to change
+      switch (texture)
+      {
+          case MaterialFeatures::HasColorTexture:
+            textureType = 0; // COLOR TEXTURE
+            currentTextureIndex = &currentMaterial->colorIndex;
+            break;
+
+          case MaterialFeatures::HasNormalTexture:
+            textureType = 1; // NORMAL MAP
+            currentTextureIndex = &currentMaterial->normalIndex;
+            break;
+
+          case MaterialFeatures::HasOcclusionTexture:
+            textureType = 2; // OCCLUSION MAP
+            currentTextureIndex = &currentMaterial->occlusionIndex;
+            break;
+
+          case MaterialFeatures::HasEmissiveTexture:
+            textureType = 3; // EMISSIVE TEXTURE
+            currentTextureIndex = &currentMaterial->emissiveIndex;
+            break;
+
+          case MaterialFeatures::HasRoughMetalTexture:
+            textureType = 4; // ROUGHNESS METALIC MAP
+            currentTextureIndex = & currentMaterial->metalRoughIndex;
+            break;
+
+          default:
+            break;
+      }
+
+      // Make the actual swap of indices, by checking to see if the texture is already turned
+      // off (INVALID_TEXTURE_INDEX) and if so, assume the passed indices has the previous
+      // texture and swap. Otherwise, store current index for later and update to INVALID
+      if (*currentTextureIndex == INVALID_TEXTURE_INDEX)
+      {
+        // Toggle texture use ON
+        *currentTextureIndex = currentIndices[textureType][i];
+        currentIndices[textureType][i] = INVALID_TEXTURE_INDEX;
+      } else {
+        // Toggle texture use OFF
+        currentIndices[textureType][i] = *currentTextureIndex;
+        *currentTextureIndex = INVALID_TEXTURE_INDEX;
+      }
+
+      currentMaterial++;
     }
   }
 

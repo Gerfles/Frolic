@@ -6,7 +6,8 @@
 
 namespace fc
 {
-  // TODO improve this class with C++ and modern memory management
+  // TODO improve this class with C++ and modern memory management...
+  // think about integrating these features into a buffer object if plausible
   // start here: https://gameprogrammingpatterns.com/object-pool.html
   class ResourcePool
   {

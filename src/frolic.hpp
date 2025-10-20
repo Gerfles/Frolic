@@ -58,7 +58,10 @@ namespace fc
      float mPlayerMovementSpeed;
      //
      FcPlayer mPlayer;
-     FcPlayer uvnPlayer;
+     /* FcPlayer uvnPlayer; */
+     //
+     FcScene helmet;
+     FcScene sponza;
 
      FcBillboard mSunBillboard;
 
@@ -81,13 +84,17 @@ namespace fc
      FcImage mFallbackTexture;
       // ideally, here it would be nice to
 
+     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   TEMP   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     float angle {0.f};
+     int rotationSpeed{};
+     std::array<std::vector<u32>, 5> helmetTexIndices;
+     std::array<std::vector<u32>, 5> sponzaTexIndices;
+
    public:
      Frolic();
      void run();
      void drawGUI();
      void loadGameObjects();
-     void loadUIobjects();
-
      void update(float deltaTime);
      int calcFPS(float lastFrameTime);
      void close();
