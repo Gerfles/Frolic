@@ -42,7 +42,7 @@ namespace fc
       // TODO resize to make mgameobjectslist size of MAX_GAME_OBJECTS
      /* static std::vector<FcGameObject* > mGameObjectsList; */
      static std::vector<FcLight* > mLightsList;
-     static std::vector<FcBillboard* > mBillboardsList;
+     /* static std::vector<FcBillboard* > mBillboardsList; */
       // NULL DEFAULTS
      // static NullGpu mNullGpu;
      // static NullDescriptor mNullDescriptorClerk;
@@ -67,7 +67,7 @@ namespace fc
      static VkExtent2D& ScreenDims() { return mScreenDimensions; }
      /* static std::vector<FcGameObject* >& GameObjects() { return mGameObjectsList; } */
      static std::vector<FcLight* >& Lights() { return mLightsList; }
-     static std::vector<FcBillboard* >& Billboards() { return mBillboardsList; }
+     /* static std::vector<FcBillboard* >& Billboards() { return mBillboardsList; } */
 //     static std::vector<FcGameObject*>* GameObjectsTest() { return &mGameObjectsList; }
   };
 } // _END_ namespace fc

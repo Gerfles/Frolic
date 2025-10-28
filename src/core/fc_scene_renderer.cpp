@@ -43,7 +43,6 @@ namespace fc
   // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
 
-
   void FcSceneRenderer::init(glm::mat4& viewProj)
   {
     pViewProjection = &viewProj;
@@ -84,6 +83,7 @@ namespace fc
   {
     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   OPAQUE PIPELINE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     // TODO addshader() func
+    // TODO add separate pipeline for effects "explode, etc."
     FcPipelineConfig pipelineConfig{3};
     pipelineConfig.name = "Opaque Pipeline";
     pipelineConfig.shaders[0].filename = "mesh.vert.spv";

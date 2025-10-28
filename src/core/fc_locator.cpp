@@ -1,6 +1,6 @@
 #include "fc_locator.hpp"
 
-#include "core/fc_billboard_render_system.hpp"
+#include "core/fc_billboard_renderer.hpp"
 #include "core/fc_light.hpp"
 #include "core/fc_renderer.hpp"
 #include "vulkan/vulkan_core.h"
@@ -22,7 +22,8 @@ namespace fc
    //
   std::vector<FcLight*> FcLocator::mLightsList;
    //
-  std::vector<FcBillboard* > FcLocator::mBillboardsList;
+  // TODO make this part of drawCollection and delete
+  /* std::vector<FcBillboard* > FcLocator::mBillboardsList; */
 
 
   void FcLocator::init()

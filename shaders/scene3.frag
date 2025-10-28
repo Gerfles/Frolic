@@ -40,7 +40,7 @@ layout(std140, set = 3, binding = 0) uniform MaterialConstants
   uint occlusionIndex;
   uint emissiveIndex;
   uint flags;
-  vec4  padding[3];
+  vec4 padding[3];
 };
 
 // Bindless Textures - Aliased to use the same binding point since bindless

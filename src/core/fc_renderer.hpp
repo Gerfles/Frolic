@@ -8,7 +8,7 @@
 #include "fc_camera.hpp"
 #include "shadow_map.hpp"
 #include "fc_skybox.hpp"
-#include "fc_billboard_render_system.hpp"
+#include "fc_billboard_renderer.hpp"
 #include "fc_model_render_system.hpp"
 #include "fc_ui_render_system.hpp"
 #include "fc_frame_assets.hpp"
@@ -31,11 +31,9 @@
 
 namespace fc
 {
-  //static constexpr int MAX_FRAMES_IN_FLIGHT = 3; // used in swap chain
-  // ?? Tried 3 but No idea why drawing with 4 frames is faster than 3??
-  constexpr unsigned int MAX_FRAME_DRAWS = 4;
-  constexpr unsigned int BINDLESS_DESCRIPTOR_SLOT = 10;
 
+  static constexpr unsigned int MAX_FRAME_DRAWS = 3;
+  static constexpr unsigned int BINDLESS_DESCRIPTOR_SLOT = 10;
 
   // TODO //
   // create the instance first and figure out what kind of bufferring we can have (double,
@@ -194,7 +192,8 @@ namespace fc
        void drawUI(std::vector<FcText>& UIelements, uint32_t swapchainImgIndex);
        void drawFrame(bool drawDebugShadowMap);
        void setActiveCamera(FcCamera* camera) { pActiveCamera = camera; }
-       void addBillboard(FcBillboard& billboard) { mBillboardRenderer.addBillboard(billboard); }
+       // TODO add bilboards to draw collection
+       inline void addBillboard(FcBillboard& billboard) { mBillboardRenderer.addBillboard(billboard); }
 
        // - GETTERS -
        /* FcSceneRenderer* getMetalRoughMaterial() { return &mSceneRenderer; } */

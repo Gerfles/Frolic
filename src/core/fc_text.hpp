@@ -2,7 +2,7 @@
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 //#include "core/fc_descriptors.hpp"
-#include "fc_billboard_render_system.hpp"
+#include "fc_billboard_renderer.hpp"
 #include "fc_image.hpp"
 //#include "core/mesh.h"
 //#include "fc_pipeline.hpp"

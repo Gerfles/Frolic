@@ -1,4 +1,4 @@
-// BILLBOARD VERTEX SHADER
+//>_ bindless_billboard.vert _<//
 
 #version 450
 
@@ -15,8 +15,8 @@ layout(set = 0, binding = 0) uniform BillboardUbo
     vec3 position;
     float width;
     float height;
+    uint texIndex;
   } push;
-
 
 layout (location = 0) out vec2 texCoords;
 
@@ -65,7 +65,7 @@ void main()
 
   // gl_Position = ubo.projection * ubo.view * vec4(positionInCameraSpace);
 
-vec2 cornerVertex = CORNER_VERTICES[gl_VertexIndex];
+  vec2 cornerVertex = CORNER_VERTICES[gl_VertexIndex];
 
   // // vec3 cameraRightWorld = {ubo.view[0][0], ubo.view[1][0], ubo.view[2][0]};
   // // vec3 cameraUpWorld = {ubo.view[0][1], ubo.view[1][1], ubo.view[2][1]};
@@ -78,7 +78,7 @@ vec2 cornerVertex = CORNER_VERTICES[gl_VertexIndex];
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   IMPROVED METHOD   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
    // first transform billboard position to camera space
-vec4 billboardCenter = ubo.view * vec4(push.position, 1.0f);
+  vec4 billboardCenter = ubo.view * vec4(push.position, 1.0f);
 
   // now apply the offsets in camera space
   vec4 billboardCorner = billboardCenter + push.width * vec4(cornerVertex.x, 0.0, 0.0, 0.0)

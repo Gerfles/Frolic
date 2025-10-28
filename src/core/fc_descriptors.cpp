@@ -211,6 +211,7 @@ namespace fc
       // TODO may want to use a more fine grained approach
       /* layoutBindings[0].stageFlags = VK_SHADER_STAGE_ALL; */
       layoutBindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+      // TODO use index stop thingy
       layoutBindings[0].descriptorCount = MAX_BINDLESS_TEXTURES;
       layoutBindings[0].binding = BINDLESS_TEXTURE_BIND_SLOT;
       layoutBindings[0].pImmutableSamplers = nullptr;

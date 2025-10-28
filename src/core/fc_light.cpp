@@ -20,13 +20,13 @@ namespace fc
 
   void FcLight::loadDefaultTexture(std::string filename)
   {
-//    mPointLightTexture.loadTexture(filename);
-//  mBillboard.setTextureId(texID);
+    //    mPointLightTexture.loadTexture(filename);
+    //  mBillboard.setTextureId(texID);
   }
 
    //?? what
-  FcLight::FcLight(float intensity, float radius, glm::vec3 color)
-    : mBillboard{radius, radius, glm::vec4(color, intensity)}
+  FcLight::FcLight(float intensity, float radius)
+    : mBillboard{radius, radius}
   {
      //  // ?? TODO not sure if we can initialize a vec4 this way but try
      // mBillboard.Push().color = glm::vec4(color, intensity);
@@ -61,12 +61,12 @@ namespace fc
 
   void FcLight::setPosition(glm::vec3 position)
   {
-    mBillboard.PushComponent().position = glm::vec4(position, 1.f);
+    mBillboard.setPosition(glm::vec4(position, 1.0f));
   }
 
 
 
-  glm::vec4& FcLight::getPosition()
+  const glm::vec3& FcLight::getPosition()
   {
     return mBillboard.PushComponent().position;
   }
@@ -77,7 +77,7 @@ namespace fc
 
     //    TODO return initialized
     PointLight light;
-    light.position = mBillboard.PushComponent().position;
+    light.position = glm::vec4(mBillboard.PushComponent().position, 1.0f);
     return light;
 
      //return {mBillboard.PushComponent().position, mBillboard.PushComponent().color};

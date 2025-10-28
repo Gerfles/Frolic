@@ -1,7 +1,7 @@
 #pragma once
 
 #include "fc_image.hpp"
-#include "fc_billboard_render_system.hpp"
+#include "fc_billboard_renderer.hpp"
 #include "fc_game_object.hpp"
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
@@ -32,7 +32,7 @@ namespace fc
        uint32_t mHandleIndex; // ?? Not sure we need a handle into the index
        void placeInHandleTable();
      public:
-       FcLight(float intensity, float radius, glm::vec3 color);
+       FcLight(float intensity, float radius);
        FcLight();
 
        static void loadDefaultTexture(std::string filename);
@@ -40,7 +40,7 @@ namespace fc
         //void createLight(float intensity, float radius, glm::vec3 color);
 
        void setPosition(glm::vec3 position);
-       glm::vec4& getPosition();
+       const glm::vec3& getPosition();
 
         //
        PointLight generatePointLight();

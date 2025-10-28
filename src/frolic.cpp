@@ -30,9 +30,7 @@
 
 namespace fc
 {
-
   // float CVar
-
 
   Frolic::Frolic()
   {
@@ -101,17 +99,25 @@ namespace fc
   //
   void Frolic::loadGameObjects()
   {
-    // TODO research why there seems to be no constructor for a ::path from const char*
-    std::filesystem::path filename = "..//textures//sun.png";
-    mSunBillboard.loadTexture(filename);
+    // TODO draw collection should be part of frolic or cartridge since
+    // we may want multiple drawcollections to add to but may want to implement
+    // system in which we can swap out draw collections...
+    mSunBillboard.loadTexture(mRenderer, 0.5, 0.5, "..//textures//sun.png");
     mSunBillboard.setPosition(pSceneData->sunlightDirection);
     mRenderer.addBillboard(mSunBillboard);
 
+    mTest.loadTexture(mRenderer, 1.5, 1.5, "..//textures//sun.png");
+    mTest.setPosition(pSceneData->sunlightDirection.x + 5.f,
+                      pSceneData->sunlightDirection.y,
+                      pSceneData->sunlightDirection.z);
+    mRenderer.addBillboard(mTest);
+
     // TODO implement with std::optional
+    // TODO should not load and add to draw collection simultaneously
     helmet.loadGltf(mRenderer, "..//models//helmet//DamagedHelmet.gltf");
     sponza.loadGltf(mRenderer, "..//models//sponza//Sponza.gltf");
     // structure.loadGltf(mSceneRenderer, "..//models//MosquitoInAmber.glb");
-    // structure.loadGltf(mSceneRenderer, "..//models//MaterialsVariantsShoe.glb");
+      /* helmet.loadGltf(mRenderer, "..//models//MaterialsVariantsShoe.glb"); */
     // structure2.loadGltf(this, "..//models//Box.gltf");
     // structure2.loadGltf(this, "..//models//GlassHurricaneCandleHolder.glb");
     // structure2.loadGltf(mSceneRenderer, "..//models//ToyCar.glb");
@@ -143,7 +149,6 @@ namespace fc
     loadGameObjects();
 
     AutoCVarFloat cvarMovementSpeed("movementSpeed.float", "controls camera movement speed", 8.0f);
-
 
     // zero out the ticklist for performance tracking
     std::memset(mFrameTimeList, 0, sizeof(mFrameTimeList));
@@ -233,7 +238,7 @@ namespace fc
       /* mRenderer.attachPipeline(selected); */
 
       // TODO make sure we can comment out drawGUI without crashing
-      drawGUI();
+      gui.drawGUI(this);
 
       //mRenderer.drawModels(swapchainImgIndex, mUbo);
       //mRenderer.drawBillboards(camera.Position(), frame, mUbo);
@@ -241,7 +246,7 @@ namespace fc
       //mRenderer.drawBackground(mPushConstants[currentBackgroundEffect]);
 
       // TODO may want to couple shadow map tighter with sceneRenderer
-      mRenderer.drawFrame(mDebugShadowMap);
+      mRenderer.drawFrame(mShouldDrawDebugShadowMap);
 
       mRenderer.endFrame(swapchainImgIndex);
 
@@ -264,217 +269,20 @@ namespace fc
   }
 
 
-
-  void Frolic::drawGUI()
-  {
-    // test ImGui UI
-    // Left here to add a demo windo that names all the features for (handy for searching)
-    /* ImGui::ShowDemoWindow(); */
-
-    // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   STATISTICS WINDOW   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    if (ImGui::Begin("Frolic Stats", NULL, ImGuiWindowFlags_NoTitleBar))
-    {
-      // Stats
-      ImGui::Text("FPS(avg): %i ", stats->fpsAvg);
-      ImGui::SameLine(0.f, 10.f);
-      ImGui::Text("| Frame(ms): %.2f", stats->frametime);
-      ImGui::SameLine(0.f, 10.f);
-      ImGui::Text("| Draw(ms): %.2f", stats->meshDrawTime);
-      ImGui::SameLine(0.f, 10.f);
-      ImGui::Text("| Update(ms): %.2f", stats->sceneUpdateTime);
-      ImGui::SameLine(0.f, 10.f);
-
-      // TODO UNCOMMENT
-      // TODO should probably have a Position() method in FcPlayer
-      glm::vec3 pos = mPlayer.Camera().Position();
-      ImGui::Text("| Position: <%.3f,%.3f,%.3f>", pos.x, pos.y, pos.z);
-      ImGui::SameLine(0.f, 10.f);
-
-      ImGui::Text("| Triangles Drawn: %i", stats->triangleCount);
-      ImGui::SameLine(0.f, 10.f);
-      ImGui::Text("| Objects Drawn: %i", stats->objectsRendered);
-      // int relX, relY;
-      // mInput.RelativeMousePosition(relX, relY);
-      // ImGui::Text("Mouse X pos: %i", mInput.getMouseX());
-      // ImGui::Text("Mouse Y pos: %i", mInput.getMouseY());
-
-      // TODO check the official way to use ImGui via the imgui example source code
-      ImGui::End();
-    }
-
-    if (mPlayer.lookSpeed() == 0.0f)
-    {
-      // TODO probably best to enable disable this stuff eventually in a dedicated pipeline shader
-      // and then just bind the appropriate pipeline
-      // Draw Configuration panel
-      if (ImGui::Begin("Scene Data"))
-      {
-        // TODO update all options with bitfields instead of bools
-
-        if (ImGui::Checkbox("Wire Frame", &mRenderer.drawWireframe))
-        {
-          // b
-        }
-
-        if (ImGui::Checkbox("Color Texture", &mUseColorTexture))
-        {
-          helmet.toggleTextureUse(MaterialFeatures::HasColorTexture, helmetTexIndices);
-          sponza.toggleTextureUse(MaterialFeatures::HasColorTexture, sponzaTexIndices);
-        }
-
-        if (ImGui::Checkbox("Rough/Metal Texture", &mUseRoughMetalTexture))
-        {
-          helmet.toggleTextureUse(MaterialFeatures::HasRoughMetalTexture, helmetTexIndices);
-          sponza.toggleTextureUse(MaterialFeatures::HasRoughMetalTexture, sponzaTexIndices);
-        }
-
-        if(ImGui::Checkbox("Ambient Occlussion Texture", &mUseOcclussionTexture))
-        {
-          helmet.toggleTextureUse(MaterialFeatures::HasOcclusionTexture, helmetTexIndices);
-          sponza.toggleTextureUse(MaterialFeatures::HasOcclusionTexture, sponzaTexIndices);
-        }
-
-        if (ImGui::Checkbox("Normal Texture", &mUseNormalTexture))
-        {
-          helmet.toggleTextureUse(MaterialFeatures::HasNormalTexture, helmetTexIndices);
-          sponza.toggleTextureUse(MaterialFeatures::HasNormalTexture, sponzaTexIndices);
-        }
-
-        if (ImGui::Checkbox("Emissive Texture", &mUseEmissiveTexture))
-        {
-          helmet.toggleTextureUse(MaterialFeatures::HasEmissiveTexture, helmetTexIndices);
-          sponza.toggleTextureUse(MaterialFeatures::HasEmissiveTexture, sponzaTexIndices);
-        }
-
-        ImGui::Checkbox("Draw Normals", &mRenderer.mDrawNormalVectors);
-
-        ImGui::Checkbox("Box Bounds", &mRenderer.mDrawBoundingBoxes);
-        ImGui::SameLine();
-        ImGui::SetNextItemWidth(80);
-
-        // FIXME maybe create a struct of variables that we then pass
-        // as a whole to mRenderer...
-        if (ImGui::InputInt("Bounding Box", &mRenderer.mBoundingBoxId))
-        {
-          if (mRenderer.mBoundingBoxId < 0)
-            mRenderer.mBoundingBoxId = -1;
-        }
-
-        ImGui::SetNextItemWidth(60);
-        ImGui::SliderInt("Model Rotation Speed", &rotationSpeed, -5, 5);
-        ImGui::SetNextItemWidth(60);
-
-        // TODO this shouldn't be a CVAR but left for reference
-        float* movementSpeed = CVarSystem::Get()->GetFloatCVar("movementSpeed.float");
-        if (ImGui::SliderFloat("Movement Speed", movementSpeed, 1, 50, "%1.f"))
-        {
-          mPlayer.setMoveSpeed(*movementSpeed);
-        }
-
-        ImGui::Checkbox("Cycle", &mCycleExpansion);
-
-        if (mCycleExpansion)
-        {
-          float time = SDL_GetTicks() / 1000.0f;
-
-          // FIXME
-          mRenderer.ExpansionFactor() = sin(time) + 1.0f;
-        }
-        ImGui::SameLine();
-        ImGui::SetNextItemWidth(60);
-
-        // FIXME
-        ImGui::SliderFloat("Expansion Factor", &mRenderer.ExpansionFactor(), -1.f, 2.f);
-
-        // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   SUNLIGHT   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-        glm::vec4 sunlightPos = pSceneData->sunlightDirection;
-        if (ImGui::SliderFloat("Sun X", &sunlightPos.x, -100.f, 100.f)
-            || ImGui::SliderFloat("Sun Y", &sunlightPos.y, 5.f, 100.f)
-            || ImGui::SliderFloat("Sun Z", &sunlightPos.z, -100.f, 100.f))
-        {
-          // Update sun's location
-          mSunBillboard.setPosition(sunlightPos);
-          pSceneData->sunlightDirection = sunlightPos;
-
-          // Update shadow map light source
-          glm::vec3 lookDirection{sunlightPos.x, 0.f, sunlightPos.z};
-          mRenderer.mShadowMap.updateLightSource(sunlightPos, lookDirection);
-        }
-
-        // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   SHADOW MAP   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-        // TODO use frustum instead
-        Box& frustum = mRenderer.mShadowMap.Frustum();
-        ImGui::Checkbox("Draw Shadow Map", &mDebugShadowMap);
-        if(ImGui::SliderFloat("Left", &frustum.left, -20.f, 20.f))
-        {
-          mRenderer.mShadowMap.updateLightSpaceTransform();
-        }
-        if(ImGui::SliderFloat("Right", &frustum.right, -20.f, 20.f))
-        {
-          mRenderer.mShadowMap.updateLightSpaceTransform();
-        }
-        if(ImGui::SliderFloat("Top", &frustum.top, -20.f, 20.f))
-        {
-          mRenderer.mShadowMap.updateLightSpaceTransform();
-        }
-        if(ImGui::SliderFloat("Bottom", &frustum.bottom, -20.f, 20.f))
-        {
-          mRenderer.mShadowMap.updateLightSpaceTransform();
-        }
-        if(ImGui::SliderFloat("Near", &frustum.near, -.01f, 75.f))
-        {
-          mRenderer.mShadowMap.updateLightSpaceTransform();
-        }
-        if(ImGui::SliderFloat("Far", &frustum.far, 1.f, 100.f))
-        {
-          mRenderer.mShadowMap.updateLightSpaceTransform();
-        }
-
-        // -*-*-*-*-*-*-*-*-*-*-*-*-   VIEW MATRIX COMPARISON   -*-*-*-*-*-*-*-*-*-*-*-*- //
-        if (ImGui::Button("Display View Matrix"))
-        {
-          ImGui::OpenPopup("MatrixView");
-        }
-        if (ImGui::BeginPopup("MatrixView"))
-        {
-          glm::mat4 mat = mPlayer.Camera().getViewMatrix();
-          /* glm::mat4 mat2 = uvnPlayer.Camera().getViewMatrix(); */
-
-          ImGui::Text("Quaternion View Matrix");
-          ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat[0][0], mat[1][0], mat[2][0], mat[3][0]);
-          ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat[0][1], mat[1][1], mat[2][1], mat[3][1]);
-          ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat[0][2], mat[1][2], mat[2][2], mat[3][2]);
-          ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat[0][3], mat[1][3], mat[2][3], mat[3][3]);
-          // ImGui::Text("UVN View Matrix");
-          // ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat2[0][0], mat2[1][0], mat2[2][0], mat2[3][0]);
-          // ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat2[0][1], mat2[1][1], mat2[2][1], mat2[3][1]);
-          // ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat2[0][2], mat2[1][2], mat2[2][2], mat2[3][2]);
-          // ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat2[0][3], mat2[1][3], mat2[2][3], mat2[3][3]);
-          ImGui::EndPopup();
-        }
-      }
-      // ??
-      //ImGui::EndFrame();
-      ImGui::End();
-    }
-    // make ImGui calculate internal draw structures
-    ImGui::Render();
-  }
-
-
    // Keep a running total of 100 frame time samples in order to smooth the FPS calculation
   int Frolic::calcFPS(float lastFrameTime)
   {
-     // first remove the frame time at the current index from our running total
+    // first remove the frame time at the current index from our running total
     mFrameTimeSum -= mFrameTimeList[mFrameTimeIndex];
 
-     // then add the most recent frame time to our frame time total
+    // then add the most recent frame time to our frame time total
     mFrameTimeSum += lastFrameTime;
 
-     // store the most recent frame in our array so we can subtract it from the total the next time around
+    // store the most recent frame in our array so we can subtract it from the total the
+    // next time around
     mFrameTimeList[mFrameTimeIndex] = lastFrameTime;
 
-     // TODO eventually improve on this metric
+    // TODO eventually improve on this metric
     if (mFrameTimeIndex == MAX_FRAME_SAMPLES - 1)
     {
       float avgFrameTime = 0.0f;
@@ -484,12 +292,8 @@ namespace fc
       {
         avgFrameTime += mFrameTimeList[i];
       }
-
       avgFrameTime = (MAX_FRAME_SAMPLES - 1)/avgFrameTime;
-
-       //      std::cout << "average frames per second: " << avgFrameTime << std::endl;
     }
-
      // make sure we wrap around on the MAX_FRAME_SAMPLE'th sample
     mFrameTimeIndex = (mFrameTimeIndex + 1) % MAX_FRAME_SAMPLES;
 
@@ -504,34 +308,14 @@ namespace fc
     // TODO I think that since we have the one device wait idle, we can eliminate all others
     vkDeviceWaitIdle(FcLocator::Device());
 
-    helmet.clearAll();
     helmet.destroy();
-    sponza.clearAll();
     sponza.destroy();
 
     mInput.kill();
 
-     // free image resources
-    mFallbackTexture.destroy();
-    //
-    mMeshPipeline.destroy();
-
     FcLight::destroyDefaultTexture();
 
      // free all bilboards
-    for (auto& text : mUItextList)
-    {
-      text.free();
-    }
-
-    mUIfont.free();
-
-    mGradientPipeline.destroy();
-    mSkyPipeline.destroy();
-     // for (auto& model : mModelList)
-     // {
-     //   model.destroy();
-     // }
 
     mRenderer.shutDown();
 

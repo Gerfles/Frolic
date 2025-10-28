@@ -643,7 +643,8 @@ namespace fc
         std::cout << "Failed to load texture: " << gltfImage.name << std::endl;
       }
 
-      // TODO defer adding textures until we know we are not in the middle of a frame
+      // Add textures to draw collection to defer upload to GPU until we are no
+      // longer drawing a frame.
       bool isBindlessSupported = true;
       if (isBindlessSupported)
       {
@@ -1382,6 +1383,7 @@ namespace fc
   void FcScene::destroy()
   {
     clearAll();
+    // TODO additional housekeeping
   }
 
 }// --- namespace fc --- (END)

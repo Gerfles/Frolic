@@ -1,7 +1,5 @@
 #pragma once
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC CORE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "fc_buffer.hpp"
-#include "fc_image.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
 #include <glm/ext/vector_float4.hpp>
@@ -15,6 +13,10 @@
 
 namespace fc
 {
+  // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'S   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+  class FcImage;
+  class FcBuffer;
+
    // TODO handle this differently
   const int MAX_OBJECTS = 30;
   const int MAX_LIGHTS = 10;

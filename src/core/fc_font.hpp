@@ -3,7 +3,7 @@
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 //#include "core/fc_descriptors.hpp"
 #include "core/fc_text.hpp"
-#include "fc_billboard_render_system.hpp"
+#include "fc_billboard_renderer.hpp"
 #include "fc_image.hpp"
 //#include "core/mesh.h"
 //#include "fc_pipeline.hpp"
@@ -13,7 +13,7 @@
 //?? what's up with the following includes
 #include FT_FREETYPE_H /* wierd font-lock issue TODO solve issue */
 #include FT_GLYPH_H
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <string>
 #include <map>
 
