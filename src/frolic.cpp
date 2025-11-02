@@ -83,7 +83,7 @@ namespace fc
     mPlayer.init(&mInput);
 
     // Initialize simple first person camera
-    mPlayer.Camera().setPerspectiveProjection(70.0f, FcLocator::ScreenDims().width
+    mPlayer.Camera().setPerspectiveProjection(66.0f, FcLocator::ScreenDims().width
                                              , FcLocator::ScreenDims().height, 512.f, 0.1f);
     // TODO make sure all reference returns are const to avoid something like:
     // mPlayer.Camera().Projection()[1][1] *= -1;
@@ -102,15 +102,9 @@ namespace fc
     // TODO draw collection should be part of frolic or cartridge since
     // we may want multiple drawcollections to add to but may want to implement
     // system in which we can swap out draw collections...
-    mSunBillboard.loadTexture(mRenderer, 0.5, 0.5, "..//textures//sun.png");
+    mSunBillboard.loadTexture(mRenderer, 1., 1., "..//textures//sun.png");
     mSunBillboard.setPosition(pSceneData->sunlightDirection);
     mRenderer.addBillboard(mSunBillboard);
-
-    mTest.loadTexture(mRenderer, 1.5, 1.5, "..//textures//sun.png");
-    mTest.setPosition(pSceneData->sunlightDirection.x + 5.f,
-                      pSceneData->sunlightDirection.y,
-                      pSceneData->sunlightDirection.z);
-    mRenderer.addBillboard(mTest);
 
     // TODO implement with std::optional
     // TODO should not load and add to draw collection simultaneously

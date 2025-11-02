@@ -112,6 +112,7 @@ namespace fc
       std::cout << "Failed to load glTF (" << fastgltf::to_underlying(load.error())
                 << "): " << fastgltf::getErrorName(load.error())
                 << " - " << fastgltf::getErrorMessage(load.error()) << std::endl;
+
       // TODO still need a way to return null or empty
       return; //{}
     }
@@ -306,6 +307,7 @@ namespace fc
         newSurface.bounds.origin = (maxPos + minPos) * 0.5f;
         newSurface.bounds.extents = (maxPos - minPos) * 0.5f;
         newSurface.bounds.sphereRadius = glm::length(newSurface.bounds.extents);
+
 
         newMesh->mSurfaces.push_back(newSurface);
       }

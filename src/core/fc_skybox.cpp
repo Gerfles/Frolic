@@ -7,31 +7,16 @@
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
 
-
 namespace fc
 {
-  FcSkybox::FcSkybox()
+  //
+  //
+  void FcSkybox::init(VkDescriptorSetLayout sceneDescriptorLayout,
+                      std::vector<FrameAssets>& frames)
   {
-  }
-
-
-  void FcSkybox::init(VkDescriptorSetLayout sceneDescriptorLayout, std::vector<FrameAssets>& frames)
-  {
-    // Load default sampler
-    //VkDeviceSize bufferSize = sizeof(CubeVertex) * 36;
-    VkDeviceSize bufferSize = sizeof(skyboxVertices[0]) * 108;
-    mVertexBuffer.allocate(bufferSize, FcBufferTypes::Vertex);
-    mVertexBuffer.write(skyboxVertices, bufferSize);
-
-    // mVertexBuffer.storeData(skyboxVertices, bufferSize,
-    //                         // TODO don't need
-    //                         VK_BUFFER_USAGE_TRANSFER_DST_BIT
-    //                         | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
-    //                         | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-
     FcPipelineConfig pipelineConfig{2};
     pipelineConfig.name = "skybox";
-    pipelineConfig.shaders[0].filename = "skybox.vert.spv";
+    pipelineConfig.shaders[0].filename = "bindless_skybox.vert.spv";
     pipelineConfig.shaders[0].stageFlag = VK_SHADER_STAGE_VERTEX_BIT;
     pipelineConfig.shaders[1].filename = "skybox.frag.spv";
     pipelineConfig.shaders[1].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -41,22 +26,20 @@ namespace fc
 
     // create and then add the second descriptor set
     FcDescriptorBindInfo bindInfo{};
-    VkDescriptorSetLayout mDescriptorLayout;
+    VkDescriptorSetLayout descriptorLayout;
     FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
+
     bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
     //
-    mDescriptorLayout = descClerk.createDescriptorSetLayout(bindInfo);
+    descriptorLayout = descClerk.createDescriptorSetLayout(bindInfo);
     //
     bindInfo.attachImage(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, mCubeImage
                          , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
                          , FcDefaults::Samplers.Linear);
-    /* mDescriptor = descClerk.createDescriptorSet(mDescriptorLayout, bindInfo); */
+    //
+    pipelineConfig.addDescriptorSetLayout(descriptorLayout);
 
-    pipelineConfig.addDescriptorSetLayout(mDescriptorLayout);
-
-    // enable the vertex input attributes (position only here)
-    pipelineConfig.setVertexInputPositionOnly();
-
+    // Configure pipeline operation parameters
     pipelineConfig.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
     pipelineConfig.setPolygonMode(VK_POLYGON_MODE_FILL);
     pipelineConfig.setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE);
@@ -67,48 +50,38 @@ namespace fc
 
     mPipeline.create(pipelineConfig);
 
-
-        // Allocate a descriptorSet to each frame buffer
+    // Allocate a descriptorSet to each frame buffer
     for (FrameAssets& frame : frames)
     {
-      // ?? TODO should create a new Descriptor set per frame instead
-      // and may be able to then remove from shadowMap class
-      frame.skyBoxDescriptorSet = descClerk.createDescriptorSet(mDescriptorLayout, bindInfo);
-
-      // frame.sceneDataDescriptorSet = descClerk.createDescriptorSet(
-      //   mSceneDataDescriptorLayout, sceneDescriptorBinding);
+      frame.skyBoxDescriptorSet = descClerk.createDescriptorSet(descriptorLayout, bindInfo);
     }
   }
 
 
-  // Must provide a file path and then the load will do the rest assumming things are named correctly as
-  // top.jpg or top.png, etc.
-  // 1st = right
-  // 2nd = left
-  // 3rd = top
-  // 4th = bottom
-  // 5th = front
-  // 6th = back
-  void FcSkybox::loadTextures(std::string parentPath, std::string extension)
+  // Must provide a file path and then the load will do the rest assumming things are
+  // named correctly as top.jpg or top.png, etc.
+  // 1st = right, 2nd = left, 3rd = top, 4th = bottom, 5th = front, 6th = back
+  void FcSkybox::loadTextures(std::string_view parentPath, std::string_view extension)
   {
     // TODO add asserts such as
     // if (parentPath.has_extension())
     // {
     //   std::string extension = parentPath.extension().string();
     // }
-    constexpr int NUM_SIDES = 6;
-    std::string sides[NUM_SIDES] = {"right", "left", "top", "bottom", "front", "back"};
-    std::vector<std::filesystem::path> filenames(NUM_SIDES);
-    for (size_t i = 0; i < NUM_SIDES; ++i)
+
+    std::string sides[NUM_SIDES_CUBE] = {"right", "left", "top", "bottom", "front", "back"};
+    std::vector<std::string> filenames(NUM_SIDES_CUBE);
+    for (size_t i = 0; i < NUM_SIDES_CUBE; ++i)
     {
-      filenames[i] = parentPath + "//" + sides[i] + extension;
+      filenames[i] = std::string(parentPath) + "//" + sides[i] + std::string(extension);
     }
 
     mCubeImage.loadMultipleLayers(filenames, FcImageTypes::Cubemap);
   }
 
+  //
   // Use when the files are not named acording to the required conventions above
-  void FcSkybox::loadTextures(std::vector<std::filesystem::path>& filenames)
+  void FcSkybox::loadTextures(std::vector<std::string>& filenames)
   {
     // TODO add asserts such as
     // if (parentPath.has_extension())
@@ -118,7 +91,8 @@ namespace fc
     mCubeImage.loadMultipleLayers(filenames, FcImageTypes::Cubemap);
   }
 
-
+  //
+  //
   void FcSkybox::draw(VkCommandBuffer cmd, FrameAssets& currentFrame)
   {
     // first draw the skycube
@@ -130,11 +104,7 @@ namespace fc
 
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.Layout()
                             , 1, 1, &currentFrame.skyBoxDescriptorSet, 0, nullptr);
-
-    // Required to bind vertex buffer
-    VkDeviceSize offsets[] = { 0 }; // offsets into buffers being bound
-    vkCmdBindVertexBuffers(cmd, 0, 1, &mVertexBuffer.getVkBuffer(), offsets);
-
+    //
     vkCmdDraw(cmd, 36, 1, 0, 0);
   }
 }

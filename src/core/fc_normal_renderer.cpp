@@ -59,16 +59,16 @@ namespace fc
 
         // Calculate final mesh matrix
         DrawPushConstants pushConstants;
-        pushConstants.vertexBuffer = surface.vertexBufferAddress;
+        pushConstants.vertexBuffer = surface.mVertexBufferAddress;
         // BUG normal arrows are not drawn correctly!!
-        pushConstants.worldMatrix = surface.transform;
+        pushConstants.worldMatrix = surface.mTransform;
         // TODO update invModelMatrix when updating worldMatrix!!!!
-        pushConstants.normalTransform = surface.invModelMatrix;
+        pushConstants.normalTransform = surface.mInvModelMatrix;
 
         vkCmdPushConstants(cmd, mNormalDrawPipeline.Layout(), VK_SHADER_STAGE_VERTEX_BIT
                            , 0, sizeof(DrawPushConstants), &pushConstants);
 
-        vkCmdDrawIndexed(cmd, surface.indexCount, 1, surface.firstIndex, 0, 0);
+        vkCmdDrawIndexed(cmd, surface.mIndexCount, 1, surface.mFirstIndex, 0, 0);
       }
     }
   }

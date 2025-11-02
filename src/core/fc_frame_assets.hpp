@@ -18,6 +18,5 @@ namespace fc
      VkDescriptorSet sceneDataDescriptorSet;
      VkDescriptorSet shadowMapDescriptorSet;
      VkDescriptorSet skyBoxDescriptorSet;
-
   };
 }

@@ -126,7 +126,7 @@ namespace fc
        // TODO Make these all private
        bool mDrawNormalVectors {false};
        bool mDrawBoundingBoxes {false};
-       bool drawWireframe {false};
+       bool shouldDrawWireframe {false};
        int mBoundingBoxId {-1};
 
 
@@ -191,25 +191,25 @@ namespace fc
        void endFrame(uint32_t swapchainImgIndex);
        void drawUI(std::vector<FcText>& UIelements, uint32_t swapchainImgIndex);
        void drawFrame(bool drawDebugShadowMap);
-       void setActiveCamera(FcCamera* camera) { pActiveCamera = camera; }
+       inline void setActiveCamera(FcCamera* camera) { pActiveCamera = camera; }
        // TODO add bilboards to draw collection
        inline void addBillboard(FcBillboard& billboard) { mBillboardRenderer.addBillboard(billboard); }
 
        // - GETTERS -
        /* FcSceneRenderer* getMetalRoughMaterial() { return &mSceneRenderer; } */
        // TODO delete this probably and place background pipeline in renderer
-       FrameAssets& getCurrentFrame() { return mFrames[mFrameNumber % MAX_FRAME_DRAWS]; }
-       FcDrawCollection& DrawCollection() { return mDrawCollection; }
+       inline FrameAssets& getCurrentFrame() { return mFrames[mFrameNumber % MAX_FRAME_DRAWS]; }
+       inline FcDrawCollection& DrawCollection() { return mDrawCollection; }
        // ?? is this used often enough to merit a member variable?
-       float ScreenWidth() { return mWindow.ScreenSize().width; }
-       float ScreenHeight() { return mWindow.ScreenSize().height; }
-       SDL_Window* Window() { return mWindow.SDLwindow(); }
-       VkRenderPass RenderPass() { return mSwapchain.getRenderPass(); }
-       int BoundingBox() { return mBoundingBoxId; }
-       float& ExpansionFactor() { return mSceneRenderer.ExpansionFactor(); };
-       const FcGpu& Gpu() const { return mGpu; }
-       const FcSwapChain& Swapchain() { return mSwapchain; }
-       FcStats& getStats() { return mDrawCollection.stats; }
+       inline float ScreenWidth() { return mWindow.ScreenSize().width; }
+       inline float ScreenHeight() { return mWindow.ScreenSize().height; }
+       inline SDL_Window* Window() { return mWindow.SDLwindow(); }
+       inline VkRenderPass RenderPass() { return mSwapchain.getRenderPass(); }
+       inline int BoundingBox() { return mBoundingBoxId; }
+       inline float& ExpansionFactor() { return mSceneRenderer.ExpansionFactor(); };
+       inline const FcGpu& Gpu() const { return mGpu; }
+       inline const FcSwapChain& Swapchain() { return mSwapchain; }
+       inline FcStats& getStats() { return mDrawCollection.stats; }
        void shutDown();
 
     };

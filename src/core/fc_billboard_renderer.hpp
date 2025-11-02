@@ -17,7 +17,7 @@ namespace fc
   class SceneDataUbo;
   class FrameAssets;
 
-  // TODO starting with this one, we could make Ubos more modular, that way we could just
+  // TODO could make Ubos more modular, that way we could just
   // rebind them to other pipelines instead of resetting a lot of matrices and vectors etc...
   // LEARN the benefits and drawbacks to just binding an oversize UBO even if we only need
   // a couple items from that UBO. Ideally, we shoud store typical scene data in buffer on GPU
@@ -45,15 +45,18 @@ namespace fc
      FcBillboardRenderer() = default;
      ~FcBillboardRenderer() = default;
      FcBillboardRenderer(const FcBillboardRenderer&) = delete;
-     FcBillboardRenderer &operator=(const FcBillboardRenderer&) = delete;
+     FcBillboardRenderer(FcBillboardRenderer&&) = delete;
+     FcBillboardRenderer& operator=(const FcBillboardRenderer&) = delete;
+     FcBillboardRenderer& operator=(FcBillboardRenderer&&) = delete;
+
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   MUTATORS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      void addBillboard(FcBillboard& billboard);
      void draw(VkCommandBuffer cmd, SceneDataUbo& sceneData, FrameAssets& currentFrame);
      void buildPipelines();
-     void sortBillboardsByDistance(glm::vec3& cameraPosition);
+     void sortBillboardsByDistance(glm::vec4& cameraPosition);
+
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CLEANUP   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      void destroy();
   };
-
 
 }// --- namespace fc --- (END)

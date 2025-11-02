@@ -728,7 +728,7 @@ namespace fc
 
 
 
-  void FcImage::loadMultipleLayers(std::vector<std::filesystem::path>& filenames, FcImageTypes imageType)
+  void FcImage::loadMultipleLayers(std::vector<std::string>& filenames, FcImageTypes imageType)
   {
     mLayerCount = filenames.size();
     mMipLevels = 1;
@@ -761,7 +761,7 @@ namespace fc
                                   , mBytesPerPixel);
       if (!pixels)
       {
-        throw std::runtime_error("Failed to load texture file: " + filenames[i].string());
+        throw std::runtime_error("Failed to load texture file: " + filenames[i]);
       }
 
       // copy the actual image data into the staging buffer.

@@ -117,10 +117,10 @@ namespace fc
           for (FcSurface& surface : pair.second)
           {
             // update the subMesh
-            if (surface.firstIndex == subMesh.startIndex
-                && surface.indexCount == subMesh.indexCount)
+            if (surface.mFirstIndex == subMesh.startIndex
+                && surface.mIndexCount == subMesh.indexCount)
             {
-              surface.transform = worldTransform;
+              surface.mTransform = worldTransform;
               break;
             }
           }

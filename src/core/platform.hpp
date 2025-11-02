@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <limits>
 #include <stdint.h>
 #include <sys/types.h>
 
@@ -70,6 +71,9 @@ namespace fc
   static const i32  I32_MAX  =  INT32_MAX;
   static const i16  I16_MAX  =  INT16_MAX;
   static const i8   I8_MAX   =  INT8_MAX;
+
+  static const float FLOAT_MAX = std::numeric_limits<float>::max();
+  static const float FLOAT_MIN = std::numeric_limits<float>::min();
 
   // TODO Place here for now but relocate into tweaks file
   static const u32 MAX_BINDLESS_RESOURCES = 1024;

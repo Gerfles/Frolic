@@ -121,12 +121,9 @@ namespace fc
                          , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
                          , FcDefaults::Samplers.ShadowMap);
 
-
-
     debugPipelineConfig.addDescriptorSetLayout(descriptorSetLayout);
 
     mShadowDebugPipeline.create(debugPipelineConfig);
-
 
     // Allocate a descriptorSet to each frame buffer
     for (FrameAssets& frame : frames)
@@ -209,8 +206,8 @@ namespace fc
       for (const FcSurface& surface : materialCollection.second)
       {
         ShadowPushConsts shadowPCs;
-        shadowPCs.vertexBuffer = surface.vertexBufferAddress;
-        shadowPCs.MVP = mLightSpaceTransform * surface.transform;
+        shadowPCs.vertexBuffer = surface.mVertexBufferAddress;
+        shadowPCs.MVP = mLightSpaceTransform * surface.mTransform;
         /* shadowPCs.modelMatrix = surface.transform; */
 
         vkCmdPushConstants(cmd, mShadowPipeline.Layout()
@@ -218,7 +215,7 @@ namespace fc
 
         surface.bindIndexBuffer(cmd);
 
-        vkCmdDrawIndexed(cmd, surface.indexCount, 1, surface.firstIndex, 0, 0);
+        vkCmdDrawIndexed(cmd, surface.mIndexCount, 1, surface.mFirstIndex, 0, 0);
       }
     }
 
@@ -291,7 +288,8 @@ namespace fc
 
     vkCmdPipelineBarrier2(cmd, &dependencyInfo);
 
-    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mShadowDebugPipeline.getVkPipeline());
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                      mShadowDebugPipeline.getVkPipeline());
 
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mShadowDebugPipeline.Layout()
                             , 0, 1, &currentFrame.shadowMapDescriptorSet, 0, nullptr);

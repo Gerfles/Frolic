@@ -2,18 +2,19 @@
 
 #version 450
 
-const vec3 SCREEN_CORNERS[8] =
-  vec3[]
-  (
-    vec3(1.0, 1.0, 1.0),
-    vec3(1.0, 1.0, -1.0),
-    vec3(1.0, -1.0, 1.0),
-    vec3(1.0, -1.0, -1.0),
-    vec3(-1.0, 1.0, 1.0),
-    vec3(-1.0, 1.0, -1.0),
-    vec3(-1.0, -1.0, 1.0),
-    vec3(-1.0, -1.0, -1.0)
-   );
+// // TODO see if we could just use the screen corners instead
+// const vec3 SCREEN_CORNERS[8] =
+//   vec3[]
+//   (
+//     vec3(1.0, 1.0, 1.0),
+//     vec3(1.0, 1.0, -1.0),
+//     vec3(1.0, -1.0, 1.0),
+//     vec3(1.0, -1.0, -1.0),
+//     vec3(-1.0, 1.0, 1.0),
+//     vec3(-1.0, 1.0, -1.0),
+//     vec3(-1.0, -1.0, 1.0),
+//     vec3(-1.0, -1.0, -1.0)
+//    );
 
 
 const vec3 CUBE_VERTICES[36] =

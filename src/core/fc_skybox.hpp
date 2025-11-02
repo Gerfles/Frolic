@@ -1,102 +1,48 @@
-// fc_skybox.hpp
+//>_ fc_skybox.hpp _<//
 #pragma once
-
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC CORE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_image.hpp"
 #include "fc_buffer.hpp"
 #include "fc_pipeline.hpp"
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <filesystem>
 
 
 namespace fc
 {
+  // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECLS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
   class FrameAssets;
-// DEL
-  // struct CubeVertex
-  // {
-  //    glm::vec3 position;
-  //    //glm::vec3 normal;
-  //    //glm::vec4 color; // not needed with pbr
-  //    // TODO could add some features like a print function, etc.
-  // };
 
-
-
+  //
+  //
   class FcSkybox
   {
    private:
-// set up vertex data (and buffer(s)) and configure vertex attributes
-     // ------------------------------------------------------------------
-     // TODO DELETE
-       float skyboxVertices[108] = {
-        // positions
-        -1.0f,  1.0f, -1.0f,
-        -1.0f, -1.0f, -1.0f,
-         1.0f, -1.0f, -1.0f,
-         1.0f, -1.0f, -1.0f,
-         1.0f,  1.0f, -1.0f,
-        -1.0f,  1.0f, -1.0f,
-
-        -1.0f, -1.0f,  1.0f,
-        -1.0f, -1.0f, -1.0f,
-        -1.0f,  1.0f, -1.0f,
-        -1.0f,  1.0f, -1.0f,
-        -1.0f,  1.0f,  1.0f,
-        -1.0f, -1.0f,  1.0f,
-
-         1.0f, -1.0f, -1.0f,
-         1.0f, -1.0f,  1.0f,
-         1.0f,  1.0f,  1.0f,
-         1.0f,  1.0f,  1.0f,
-         1.0f,  1.0f, -1.0f,
-         1.0f, -1.0f, -1.0f,
-
-        -1.0f, -1.0f,  1.0f,
-        -1.0f,  1.0f,  1.0f,
-         1.0f,  1.0f,  1.0f,
-         1.0f,  1.0f,  1.0f,
-         1.0f, -1.0f,  1.0f,
-        -1.0f, -1.0f,  1.0f,
-
-        -1.0f,  1.0f, -1.0f,
-         1.0f,  1.0f, -1.0f,
-         1.0f,  1.0f,  1.0f,
-         1.0f,  1.0f,  1.0f,
-        -1.0f,  1.0f,  1.0f,
-        -1.0f,  1.0f, -1.0f,
-
-        -1.0f, -1.0f, -1.0f,
-        -1.0f, -1.0f,  1.0f,
-         1.0f, -1.0f, -1.0f,
-         1.0f, -1.0f, -1.0f,
-        -1.0f, -1.0f,  1.0f,
-         1.0f, -1.0f,  1.0f
-    };
-
      FcImage mCubeImage;
-     /* VkDescriptorSetLayout mDescriptorLayout; */
-     /* VkDescriptorSet mDescriptor; */
      FcPipeline mPipeline;
      VkSampler mCubeMapSampler;
-     FcBuffer mVertexBuffer;
-     FcBuffer mIndexBuffer;
-     //void initPipeline();
+     static constexpr int NUM_SIDES_CUBE = 6;
+
    public:
-     FcSkybox();
-     void loadTextures(std::string parentPath, std::string extension);
-     void loadTextures(std::vector<std::filesystem::path>& filenames);
-//     void loadTextures(std::array<std::filesystem::path, 6>& filenames);
-     // TODO try and remove sceneDescriptorLayout
+     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CTORS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     inline FcSkybox() = default;
+     FcSkybox& operator=(const FcSkybox&) = delete;
+     FcSkybox& operator=(FcSkybox&&) = delete;
+     FcSkybox(const FcSkybox&) = delete;
+     FcSkybox(FcSkybox&&) = delete;
+
+     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   MUTATORS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     void loadTextures(std::string_view parentPath, std::string_view extension);
+     //
+     void loadTextures(std::vector<std::string>& filenames);
+     //
+     // TODO Store scene data on GPU and ref with frame push constant
      void init(VkDescriptorSetLayout sceneDescriptorLayout, std::vector<FrameAssets>& frames);
+     //
      void draw(VkCommandBuffer cmd, FrameAssets& currentFrame);
+
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   GETTERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-     const FcImage& Image() { return mCubeImage; }
-     /* const VkDescriptorSetLayout DescriptorLayout() { return mDescriptorLayout; } */
-     /* const VkDescriptorSet Descriptor() { return mDescriptor; } */
+     inline const FcImage& Image() { return mCubeImage; }
 };
-
-
 
 }// --- namespace --- (END)

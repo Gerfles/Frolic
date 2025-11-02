@@ -8,6 +8,9 @@
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
 #include <glm/mat4x4.hpp>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include <array>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
 
 namespace fc
 {
@@ -25,6 +28,18 @@ namespace fc
      glm::vec3 origin;
      float sphereRadius;
      glm::vec3 extents;
+  };
+
+  //
+  //
+  class BoundaryBox
+  {
+   private:
+     std::array<glm::vec4, 8> mCorners;
+
+   public:
+     void init(Bounds& bounds);
+     inline const glm::vec4& operator[](size_t index) const { return mCorners[index]; }
   };
 
 

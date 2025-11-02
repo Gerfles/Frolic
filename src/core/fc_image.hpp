@@ -119,30 +119,43 @@ namespace fc
                            , VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT
                            , uint32_t mipLevels = 1);
      void copyFromBuffer(FcBuffer& srcBuffer, VkDeviceSize offset = 0, uint32_t arrayLayer = 0);
+     //
      void copyFromImage(VkCommandBuffer cmdBuffer, FcImage* source);
+     //
      void clear(VkCommandBuffer cmdBuffer, VkClearColorValue* pColor);
      // *-*-*-*-*-*-*-*-*-*-*-*-   TEXTURE LOADING FUNCTIONS   *-*-*-*-*-*-*-*-*-*-*-*- //
      void loadStbi(std::filesystem::path& filename, FcImageTypes imageType);
+     //
      void loadKtxFile(std::filesystem::path& filename, FcImageTypes imageType);
+     //
      void loadFromGltf(std::filesystem::path& path
                        , fastgltf::Asset& asset, fastgltf::Image& image);
-     void loadMultipleLayers(std::vector<std::filesystem::path>& filenames
-                             , FcImageTypes imageType);
+     void loadMultipleLayers(std::vector<std::string>& filenames, FcImageTypes imageType);
+     //
      void createTexture(uint32_t width, uint32_t height, void* pixelData
                         , VkDeviceSize storageSize, bool generateMipmaps = false
                         , VkFormat format = VK_FORMAT_R8G8B8A8_UNORM);
+     //
      void copyToCPUAddress();
+     //
      void destroyCpuCopy();
      //
      void setSampler(const fastgltf::Sampler& sampler);
+
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   VALIDATORS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      const bool isValid() const { return mImage != VK_NULL_HANDLE; }
+     //
      const bool hasSampler() const { return mSampler != VK_NULL_HANDLE; }
+
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   GETTERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      uint32_t fetchPixel(const int x, const int y);
+     //
      uint16_t saschaFetchPixel(const int x, const int y, uint32_t scale);
+     //
      const VkImageView& ImageView() const { return mImageView; }
+     //
      const VkSampler& Sampler() const { return mSampler; }
+     //
      VkImage Image() { return mImage; }
      VkExtent2D Extent() { return {mWidth, mHeight}; }
      uint32_t Width() { return mWidth; }

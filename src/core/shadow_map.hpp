@@ -67,7 +67,6 @@ namespace fc
      VkImageView ImageView() { return mShadowMapImage.ImageView(); }
      void updateLightSource(glm::vec3 lightPos, glm::vec3 target);
      void updateLightSpaceTransform();
-
   };// ---   class FcShadowMap --- (END)
 
 

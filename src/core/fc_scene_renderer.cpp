@@ -43,11 +43,12 @@ namespace fc
   // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
 
-  void FcSceneRenderer::init(glm::mat4& viewProj)
+  void FcSceneRenderer::init(VkDescriptorSetLayout sceneDescriptorLayout, glm::mat4& viewProj)
   {
     pViewProjection = &viewProj;
-    // FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
+    buildPipelines(sceneDescriptorLayout);
 
+    // FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
     // // *-*-*-*-*-*-*-*-*-*-*-*-   FRAME DATA INITIALIZATION   *-*-*-*-*-*-*-*-*-*-*-*- //
 
     // // TODO create temporary storage for this in descClerk so we can just write the
@@ -170,11 +171,24 @@ namespace fc
     // TODO make pipeline and config and descriptors friend classes
     mOpaquePipeline.create(pipelineConfig);
 
+    // -*-*-*-*-*-*-*-*-*-*-*-*-*-   WIREFRAME PIPELINE   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    // TODO check for capability
+    bool isWireframeAvailable = true;
+    if (isWireframeAvailable)
+    {
+      pipelineConfig.name = "Scene Wireframe Pipeline";
+      pipelineConfig.setPolygonMode(VK_POLYGON_MODE_LINE);
+      pipelineConfig.setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+      mWireframePipeline.create(pipelineConfig);
+    }
+
     // *-*-*-*-*-*-*-*-*-*-*-*-*-   TRANSPARENTE PIPELINE   *-*-*-*-*-*-*-*-*-*-*-*-*- //
     // using the same pipeline config, alter slightly for transparent models
     // TODO make sure the transparent pipeline handles things like shadow differently
     pipelineConfig.name = "Transparent Pipeline";
     pipelineConfig.enableBlendingAdditive();
+    pipelineConfig.setCullMode(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+    pipelineConfig.setPolygonMode(VK_POLYGON_MODE_FILL);
     pipelineConfig.enableDepthtest(false, VK_COMPARE_OP_GREATER_OR_EQUAL);
 
     mTransparentPipeline.create(pipelineConfig);
@@ -282,7 +296,7 @@ namespace fc
   //
   //
   void FcSceneRenderer::draw(VkCommandBuffer cmd, FcDrawCollection& drawCollection,
-                             FrameAssets& currentFrame)
+                             FrameAssets& currentFrame, bool shouldDrawWireFrame)
   {
     // *-*-*-*-*-*-*-*-*-*-*-*-   ATTEMPTING DRAW INDIRECT   *-*-*-*-*-*-*-*-*-*-*-*- //
 
@@ -299,8 +313,17 @@ namespace fc
     mPreviousIndexBuffer = VK_NULL_HANDLE;
 
     // First draw the opaque mesh nodes in draw collection
-    mOpaquePipeline.bind(cmd);
-    pCurrentPipeline = &mOpaquePipeline;
+    if (shouldDrawWireFrame)
+    {
+      mWireframePipeline.bind(cmd);
+      pCurrentPipeline = &mWireframePipeline;
+    }
+    else
+    {
+      mOpaquePipeline.bind(cmd);
+      pCurrentPipeline = &mOpaquePipeline;
+    }
+
 
     // TODO follow this protocol for each subRenderer,
     // TODO group these together inside frameAssets for each renderer
@@ -337,7 +360,7 @@ namespace fc
         drawSurface(cmd, surface);
 
         // Update the engine statistics
-        drawCollection.stats.triangleCount += surface.indexCount / 3;
+        drawCollection.stats.triangleCount += surface.mIndexCount / 3;
         drawCollection.stats.objectsRendered += 1;
       }
     }
@@ -368,18 +391,18 @@ namespace fc
     // There are only two pipelines so far so should just draw all opaque, then all transparent
 
     // Only bind index buffer if it has changed
-    if (surface.indexBuffer != mPreviousIndexBuffer)
+    if (surface.mIndexBuffer != mPreviousIndexBuffer)
     {
-      mPreviousIndexBuffer = surface.indexBuffer;
+      mPreviousIndexBuffer = surface.mIndexBuffer;
       surface.bindIndexBuffer(cmd);
     }
 
     // TODO make all push constants address to matrix buffer and texture indices
     // Calculate final mesh matrix
     DrawPushConstants pushConstants;
-    pushConstants.vertexBuffer = surface.vertexBufferAddress;
-    pushConstants.worldMatrix = surface.transform;
-    pushConstants.normalTransform = surface.invModelMatrix;
+    pushConstants.vertexBuffer = surface.mVertexBufferAddress;
+    pushConstants.worldMatrix = surface.mTransform;
+    pushConstants.normalTransform = surface.mInvModelMatrix;
 
     //
     vkCmdPushConstants(cmd, pCurrentPipeline->Layout()
@@ -392,7 +415,7 @@ namespace fc
                        , VK_SHADER_STAGE_GEOMETRY_BIT
                        , sizeof(DrawPushConstants), sizeof(float), &expansionFactor);
 
-    vkCmdDrawIndexed(cmd, surface.indexCount, 1, surface.firstIndex, 0, 0);
+    vkCmdDrawIndexed(cmd, surface.mIndexCount, 1, surface.mFirstIndex, 0, 0);
 
     // TODO
     // add counters for triangles and draws calls

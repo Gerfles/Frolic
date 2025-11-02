@@ -42,7 +42,6 @@ namespace fc
      FcScene sponza;
      //
      FcBillboard mSunBillboard;
-     FcBillboard mTest;
      // UI
      FcGUI gui;
      //

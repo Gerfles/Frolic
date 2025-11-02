@@ -53,7 +53,7 @@ namespace fc
      Type materialType;
   };
 
-  // TODO merge with FcMaterial
+  // TODO merge with FcMaterial or aleviate confusion between FcMesh, FcSubMesh, FcSurface, etc.
   struct FcSubMesh
   {
      uint32_t startIndex{0};

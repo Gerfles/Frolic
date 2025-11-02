@@ -46,9 +46,12 @@ namespace fc
      ResourcePoolTyped<FcImage> mTextures;
      FcStats stats;
      uint32_t numSurfaces{0};
-     void init(FcAllocator* allocator);
+
      /* void addTexture(const FcImage& texture); */
      std::vector<ResourceUpdate> bindlessTextureUpdates;
+
+     void init(FcAllocator* allocator);
+     const FcSurface& getSurfaceAtIndex(uint32_t surfaceIndex);
   };
 
 

@@ -4,6 +4,7 @@
 #include "fc_locator.hpp"
 #include "fc_gpu.hpp"
 #include "fc_scene.hpp"
+#include "fc_math.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <map>
 
@@ -12,6 +13,8 @@
 
 namespace fc
 {
+  //
+  //
   void FcBillboardRenderer::addBillboard(FcBillboard& billboard)
   {
     mBillboards.emplace_back(std::shared_ptr<FcBillboard>(&billboard));
@@ -79,31 +82,37 @@ namespace fc
 
   //
   //
-  void FcBillboardRenderer::sortBillboardsByDistance(glm::vec3& cameraPosition)
+  void FcBillboardRenderer::sortBillboardsByDistance(glm::vec4& cameraPosition)
   {
     std::sort(mBillboards.begin(), mBillboards.end(),
               [cameraPosition](const std::shared_ptr<FcBillboard>& lhs,
                                const std::shared_ptr<FcBillboard>& rhs)
                {
-                 auto tempDist = cameraPosition - lhs->Position();
+                 glm::vec3 tempDist = vec3FromSubtractMixed(cameraPosition, lhs->Position());
                  float distanceToLhs = glm::dot(tempDist, tempDist);
 
-                 tempDist = cameraPosition - rhs->Position();
+                 tempDist = vec3FromSubtractMixed(cameraPosition, rhs->Position());
                  float distanceToRhs = glm::dot(tempDist, tempDist);
 
                  return distanceToLhs > distanceToRhs;
                });
   }
 
-
+  //
+  //
   void FcBillboardRenderer::draw(VkCommandBuffer cmd, SceneDataUbo& sceneData, FrameAssets& currentFrame)
   {
     mUbo.view = sceneData.view;
     mUbo.projection = sceneData.projection;
     mUboBuffer.write(&mUbo, sizeof(BillboardUbo));
 
-    // sort the billboards by distance to the camera
     // TODO This is a good candidate for a compute shader
+    sortBillboardsByDistance(sceneData.eye);
+
+    // Alternate method
+    // TODO profile to see which sorting method prevails (std::sort vs. indexed draws)
+    // sort the billboards by distance to the camera
+
     // std::multimap<float, size_t> sortedIndices;
     // for (size_t i = 0; i < mBillboards.size(); ++i)
     // {
@@ -116,31 +125,22 @@ namespace fc
     //   sortedIndices.insert(std::pair(distanceSquared, i));
     // }
 
-    glm::vec3 cameraPos{sceneData.eye.x, sceneData.eye.y, sceneData.eye.z};
-    sortBillboardsByDistance(cameraPos);
-
     // bind pipeline to be used in render pass
     mPipeline.bind(cmd);
 
-    // TODO profile to see which sorting method prevails (std::sort vs. indexed draws)
-
     // iterate through billboards in reverse order (to draw them back to front)
     for (auto& billboard : mBillboards)
-      /* for (auto index = sortedIndices.rbegin(); index != sortedIndices.rend(); ++index) */
     {
       vkCmdPushConstants(cmd, mPipeline.Layout(),
                          VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
                          0, sizeof(BillboardPushes),
-                         /* &mBillboards[index->second]->PushComponent()); */
                          &billboard->PushComponent());
 
       FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
 
       // TODO  update the global Ubo only once per frame, not each draw call
-      // descClerk.update(swapchainImageIndex, &ubo);
       std::array<VkDescriptorSet, 1> descriptorSets;
       descriptorSets[0] = mUboDescriptorSet;
-      /* descriptorSets[1] = descClerk.mBindlessDescriptorSet; */
 
       vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
                               mPipeline.Layout(), 0,
@@ -149,7 +149,6 @@ namespace fc
 
       mPipeline.bindDescriptorSet(cmd, descClerk.mBindlessDescriptorSet, 1);
 
-      //vkCmdDrawIndexed(mCommandBuffers[swapChainImageIndex], font.IndexCount(), 1, 0, 0, 0);
       // TODO accomplish all billboard draws within one draw/bind
       vkCmdDraw(cmd, 6, 1, 0, 0);
     }
@@ -165,5 +164,4 @@ namespace fc
 
     vkDestroyDescriptorSetLayout(FcLocator::Device(), mUboDescriptorSetLayout, nullptr);
   }
-
 }// --- namespace fc --- (END)

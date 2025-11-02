@@ -7,6 +7,20 @@
 //
 namespace fc
 {
+  void BoundaryBox::init(Bounds &bounds)
+  {
+    mCorners[0] = glm::vec4{bounds.origin + glm::vec3{1.f, 1.f, 1.f} * bounds.extents, 1.f};
+    mCorners[1] = glm::vec4{bounds.origin + glm::vec3{1.f, 1.f, -1.f} * bounds.extents, 1.f};
+    mCorners[2] = glm::vec4{bounds.origin + glm::vec3{1.f, -1.f, 1.f} * bounds.extents, 1.f};
+    mCorners[3] = glm::vec4{bounds.origin + glm::vec3{1.f, -1.f, -1.f} * bounds.extents, 1.f};
+    mCorners[4] = glm::vec4{bounds.origin + glm::vec3{-1.f, 1.f, 1.f} * bounds.extents, 1.f};
+    mCorners[5] = glm::vec4{bounds.origin + glm::vec3{-1.f, 1.f, -1.f} * bounds.extents, 1.f};
+    mCorners[6] = glm::vec4{bounds.origin + glm::vec3{-1.f, -1.f, 1.f} * bounds.extents, 1.f};
+    mCorners[7] = glm::vec4{bounds.origin + glm::vec3{-1.f, -1.f, -1.f} * bounds.extents, 1.f};
+  }
+
+
+
   void FcBoundingBoxRenderer::buildPipelines(VkDescriptorSetLayout sceneDescriptorLayout)
   {
     FcPipelineConfig pipelineConfig{3};
@@ -67,11 +81,12 @@ namespace fc
           {
             // Send the bounding box to the shaders
             BoundingBoxPushes pushConstants;
-            pushConstants.modelMatrix = surface.transform;
-            pushConstants.origin = glm::vec4(surface.bounds.origin, 1.f);
-            /* pushConstants.extents = glm::vec4(surface.bounds.extents, 0.f); */
-            pushConstants.extents = glm::vec4(surface.bounds.extents, 1.f);
+            pushConstants.modelMatrix = surface.mTransform;
+            pushConstants.origin = glm::vec4(surface.mBounds.origin, 1.f);
+            pushConstants.extents = glm::vec4(surface.mBounds.extents, 0.f);
+            /* pushConstants.extents = glm::vec4(surface.bounds.extents, 1.f); */
 
+            // ?? not sure that we should be using pushConstants for each draw command like this
             vkCmdPushConstants(cmd, mBoundingBoxPipeline.Layout(), VK_SHADER_STAGE_VERTEX_BIT
                                , 0, sizeof(BoundingBoxPushes), &pushConstants);
 
@@ -80,30 +95,16 @@ namespace fc
           }
         }
       }
+      // TODO incorporate this code into the above to avoid duplication
       else // otherwise, just draw the object that we are told to
       {
-        // Figure out where to find desired surface since it should be per surface not per meshNode
-        // TODO Document
-        // TODO TRY with while loop and decrementing boundingBoxID
-        int surfaceIndex = 0;
-        int nodeIndex = -1;
-        for (int runningTotal = 0; runningTotal <= boundingBoxID;)
-        {
-          nodeIndex++;
-          /* int numSurfaces = drawCollection.opaqueSurfaces[nodeIndex].get().mMesh->Surfaces().size(); */
-          int numSurfaces = drawCollection.opaqueSurfaces[nodeIndex].second.size();
-          runningTotal += numSurfaces;
-          surfaceIndex = boundingBoxID - (runningTotal - numSurfaces);
-        }
-
-        auto& materialCollection = drawCollection.opaqueSurfaces[nodeIndex];
-        const FcSurface& surface = materialCollection.second[surfaceIndex];
+        const FcSurface& surface = drawCollection.getSurfaceAtIndex(boundingBoxID);
 
         // Send the bounding box to the shaders
         BoundingBoxPushes pushConstants;
-        pushConstants.modelMatrix = surface.transform;
-        pushConstants.origin = glm::vec4(surface.bounds.origin, 1.f);
-        pushConstants.extents = glm::vec4(surface.bounds.extents, 0.f);
+        pushConstants.modelMatrix = surface.mTransform;
+        pushConstants.origin = glm::vec4(surface.mBounds.origin, 1.f);
+        pushConstants.extents = glm::vec4(surface.mBounds.extents, 0.f);
 
         vkCmdPushConstants(cmd, mBoundingBoxPipeline.Layout(), VK_SHADER_STAGE_VERTEX_BIT
                            , 0, sizeof(BoundingBoxPushes), &pushConstants);
@@ -114,6 +115,8 @@ namespace fc
     }
   }
 
+  //
+  //
   void FcBoundingBoxRenderer::destroy()
   {
     mBoundingBoxPipeline.destroy();

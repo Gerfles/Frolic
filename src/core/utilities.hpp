@@ -90,6 +90,7 @@ namespace fc
   void printMat(glm::mat3& mat);
   void printVec(glm::vec3 vector, const char* title);
   void printVec(glm::vec4 vector, const char* title);
+
   // DELETE or move
   void initEnv();
 

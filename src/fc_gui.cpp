@@ -57,10 +57,7 @@ namespace fc
       {
         // TODO update all options with bitfields instead of bools
 
-        if (ImGui::Checkbox("Wire Frame", &fc->mRenderer.drawWireframe))
-        {
-          // b
-        }
+        ImGui::Checkbox("Wire Frame", &fc->mRenderer.shouldDrawWireframe);
 
         if (ImGui::Checkbox("Color Texture", &mUseColorTexture))
         {
@@ -183,32 +180,7 @@ namespace fc
         {
           fc->mRenderer.mShadowMap.updateLightSpaceTransform();
         }
-
-        // -*-*-*-*-*-*-*-*-*-*-*-*-   VIEW MATRIX COMPARISON   -*-*-*-*-*-*-*-*-*-*-*-*- //
-        if (ImGui::Button("Display View Matrix"))
-        {
-          ImGui::OpenPopup("MatrixView");
-        }
-        if (ImGui::BeginPopup("MatrixView"))
-        {
-          glm::mat4 mat = fc->mPlayer.Camera().getViewMatrix();
-          /* glm::mat4 mat2 = uvnPlayer.Camera().getViewMatrix(); */
-
-          ImGui::Text("Quaternion View Matrix");
-          ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat[0][0], mat[1][0], mat[2][0], mat[3][0]);
-          ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat[0][1], mat[1][1], mat[2][1], mat[3][1]);
-          ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat[0][2], mat[1][2], mat[2][2], mat[3][2]);
-          ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat[0][3], mat[1][3], mat[2][3], mat[3][3]);
-          // ImGui::Text("UVN View Matrix");
-          // ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat2[0][0], mat2[1][0], mat2[2][0], mat2[3][0]);
-          // ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat2[0][1], mat2[1][1], mat2[2][1], mat2[3][1]);
-          // ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat2[0][2], mat2[1][2], mat2[2][2], mat2[3][2]);
-          // ImGui::Text("|%.3f, %.3f, %.3f, %.3f|", mat2[0][3], mat2[1][3], mat2[2][3], mat2[3][3]);
-          ImGui::EndPopup();
-        }
       }
-      // ??
-      //ImGui::EndFrame();
       ImGui::End();
     }
     // make ImGui calculate internal draw structures

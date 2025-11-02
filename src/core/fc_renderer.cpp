@@ -213,7 +213,7 @@ namespace fc
   // TODO could pass pScene data here but probably better to just include this in mRenderer.init()
   void FcRenderer::initDefaults()//FcBuffer& sceneDataBuffer, SceneDataUbo* sceneData)
   {
-    mSceneRenderer.init(mSceneData.viewProj);
+    /* mSceneRenderer.init(mSceneData.viewProj); */
     mShadowMap.init(mFrames);
     mTerrain.init("..//maps/terrain_heightmap_r16.ktx2");
     // mTerrain.init(this, "..//maps/iceland_heightmap.png");
@@ -235,8 +235,8 @@ namespace fc
     mSkybox.init(mSceneDataDescriptorLayout, mFrames);
     //
 
+    mSceneRenderer.init(mSceneDataDescriptorLayout, mSceneData.viewProj);
     // TODO get rid of build pipeline calls and just do that within init
-    mSceneRenderer.buildPipelines(mSceneDataDescriptorLayout);
     // TODO see if we can decouple the scene descriptor layout
     mBoundingBoxRenderer.buildPipelines(mSceneDataDescriptorLayout);
     mNormalRenderer.buildPipelines(mSceneDataDescriptorLayout);
@@ -793,7 +793,7 @@ namespace fc
     //
     mDepthImage.transitionLayout(cmd, VK_IMAGE_LAYOUT_UNDEFINED,
                                  VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
-
+    //
     mShadowMap.generateMap(cmd, mDrawCollection);
 
     // TODO extract into builder...
@@ -840,7 +840,7 @@ namespace fc
     }
     else
     {
-      mSceneRenderer.draw(cmd, mDrawCollection, currentFrame);
+      mSceneRenderer.draw(cmd, mDrawCollection, currentFrame, shouldDrawWireframe);
 
       // TODO condense this into an array of function pointers so that we can build
       // the specific 'pipeline' of function calls and avoid branches
@@ -856,7 +856,14 @@ namespace fc
         mNormalRenderer.draw(cmd, mDrawCollection, currentFrame);
       }
 
-      mTerrain.draw(cmd, mSceneData, drawWireframe);
+      // only draw terrain when outside of building
+      const FcSurface& building = mDrawCollection.getSurfaceAtIndex(32);
+
+      if (building.isInBounds(mSceneData.eye))
+      {
+        mTerrain.draw(cmd, mSceneData, shouldDrawWireframe);
+      }
+
 
       // Draw the skybox last so that we can skip pixels with ANY object in front of it
       mSkybox.draw(cmd, currentFrame);

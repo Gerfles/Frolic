@@ -1,19 +1,17 @@
-// fc_scene_renderer.hpp
+//>_ fc_scene_renderer.hpp _<//
 #pragma once
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "core/fc_resources.hpp"
+#include "fc_resources.hpp"
 #include "fc_pipeline.hpp"
-// #include "fc_image.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-//#include <vulkan/vulkan_handles.hpp>
 #include <glm/ext/matrix_float4x4.hpp>
 #include <vulkan/vulkan_core.h>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-//#include <cstdint>
 
 
 namespace fc
 {
+  // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECLS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
   class FcRenderer;
   class FcImage;
   class FcMesh;
@@ -23,6 +21,7 @@ namespace fc
   class FcSurface;
   class FcDrawCollection;
 
+  // TODO define only if using bindless
   // Used for signalling to the fragment shader which features are available
   enum class MaterialFeatures : uint32_t {
     HasColorTexture = 0b1 << 0,
@@ -40,11 +39,10 @@ namespace fc
   MaterialFeatures& operator&=(MaterialFeatures& lhs, MaterialFeatures const& rhs);
 
 
-
   // TODO Can incrementally update push constants according to:
   // https://docs.vulkan.org/guide/latest/push_constants.html
   // May provide some benefits if done correctly
-  // TODO this may be too much data for most push constants
+  // TODO this is too much data for some GPU push constant limits
   struct DrawPushConstants
   {
      glm::mat4 worldMatrix;
@@ -52,8 +50,8 @@ namespace fc
      VkDeviceAddress vertexBuffer;
   };
 
-
-  // TODO unitialize maybe ?? might be too big for some system UBOs
+  //
+  // TODO unitialize maybe ??
   struct SceneDataUbo
   {
      glm::vec4 eye {0.0};
@@ -110,6 +108,7 @@ namespace fc
      private:
        FcPipeline mOpaquePipeline;
        FcPipeline mTransparentPipeline;
+       FcPipeline mWireframePipeline;
        std::vector<uint32_t> mSortedObjectIndices;
        VkDescriptorSetLayout mMaterialDescriptorLayout;
        FcPipeline* pCurrentPipeline;
@@ -128,13 +127,16 @@ namespace fc
                              const FcMeshNode& surface,
                              FrameAssets& currentFrame);
        void drawSurface(VkCommandBuffer cmd, const FcSurface& surface) noexcept;
+       void buildPipelines(VkDescriptorSetLayout sceneDescriptorLayout);
      public:
        // TODO think about including a local descriptorClerk
-       void init(glm::mat4& viewProj);
-       void buildPipelines(VkDescriptorSetLayout sceneDescriptorLayout);
+       void init(VkDescriptorSetLayout sceneDescriptorLayout, glm::mat4& viewProj);
        FcPipeline* TransparentPipeline() { return &mTransparentPipeline; }
        FcPipeline* OpaquePipeline() { return &mOpaquePipeline; }
-       void draw(VkCommandBuffer cmd, FcDrawCollection& drawCollection, FrameAssets& currentFrame);
+       //
+       void draw(VkCommandBuffer cmd, FcDrawCollection& drawCollection,
+                 FrameAssets& currentFrame, bool shouldDrawWireFrame);
+       //
        void destroy();
        // TODO DELETE or refactor the following
        /* VkDescriptorSetLayout getSceneDescriptorLayout() { return mSceneDataDescriptorLayout; } */

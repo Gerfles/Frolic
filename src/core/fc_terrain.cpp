@@ -122,11 +122,12 @@ namespace fc
     // Create the Mesh pipeline
     mPipeline.create(terrainPipeline);
 
-    // Create wireframe pipeline
+    // -*-*-*-*-*-*-*-*-*-*-*-*-*-   WIREFRAME PIPELINE   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
     // TODO check for capability
-    if (true)
+    bool isWireframeAvailable = true;
+    if (isWireframeAvailable)
     {
-      terrainPipeline.name = "Terrain WireFrame";
+      terrainPipeline.name = "Terrain Wireframe";
       terrainPipeline.setPolygonMode(VK_POLYGON_MODE_LINE);
       mWireframePipeline.create(terrainPipeline);
     }
