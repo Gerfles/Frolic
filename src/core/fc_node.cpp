@@ -51,7 +51,7 @@ namespace fc
     //?? make sure this does not unallocate
     visibleSurfaces.clear();
 
-    for (const FcSubMesh& surface : mMesh->Surfaces())
+    for (const FcSubMesh& surface : mMesh->mMeshes)
     {
       std::array<glm::vec3, 8> corners { glm::vec3{1.0f, 1.0f, 1.0f}
                                        , glm::vec3{1.0f, 1.0f, -1.0f}
@@ -97,7 +97,7 @@ namespace fc
   {
     using MaterialSurfacePair = std::pair<FcMaterial*, std::vector<FcSurface>>;
 
-    for (const FcSubMesh& subMesh : mMesh->Surfaces())
+    for (const FcSubMesh& subMesh : mMesh->mMeshes)
     {
       // First figure out if this material subMesh will belong in transparent or opaque pipeline
       std::vector<MaterialSurfacePair>* selectedCollection;
@@ -139,7 +139,7 @@ namespace fc
   {
     using MaterialSurfacePair = std::pair<FcMaterial*, std::vector<FcSurface>>;
 
-    for (const FcSubMesh& surface : mMesh->Surfaces())
+    for (const FcSubMesh& surface : mMesh->mMeshes)
     {
       // First figure out if this material surface will belong in transparent or opaque pipeline
       std::vector<MaterialSurfacePair>* selectedCollection;

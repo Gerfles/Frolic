@@ -2,7 +2,7 @@
 #pragma once
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 /* #include "fc_mesh.hpp" */
-#include "fc_node.hpp"
+#include "fc_surface.hpp"
 /* #include "fc_scene.hpp" */
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
 #include <glm/mat4x4.hpp>
@@ -45,7 +45,8 @@ namespace fc
   // TODO reserve space for visible surfaces in constructor (enough for all surfaces in mMesh)
   struct FcMeshNode : public FcNode
   {
-     std::shared_ptr<FcMesh> mMesh;
+     /* std::shared_ptr<FcMesh> mMesh; */
+     std::shared_ptr<FcSurface> mMesh;
      std::vector<const FcSubMesh*> visibleSurfaces;
      void sortVisibleSurfaces(const glm::mat4& viewProj);
      void updateDrawCollection(FcDrawCollection& collection);

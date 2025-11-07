@@ -4,6 +4,7 @@
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_scene_renderer.hpp"
 #include "fc_mesh.hpp"
+#include "fc_surface.hpp"
 #include "fc_pipeline.hpp"
 #include "fc_image.hpp"
 #include "fc_buffer.hpp"
@@ -41,7 +42,8 @@ namespace fc
      /* VkSampler mHeightMapSampler; */
      VkDescriptorSetLayout mHeightMapDescriptorLayout;
      VkDescriptorSet mHeightMapDescriptor;
-     FcMesh mMesh;
+     /* FcMesh mMesh; */
+     FcSurface mSurface;
      FcPipeline mPipeline;
      // wire frame meshes
      FcPipeline mWireframePipeline;

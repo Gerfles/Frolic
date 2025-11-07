@@ -856,6 +856,7 @@ namespace fc
         mNormalRenderer.draw(cmd, mDrawCollection, currentFrame);
       }
 
+      // TODO extrapolate functionality to frolic.cpp or cartridge
       // only draw terrain when outside of building
       const FcSurface& building = mDrawCollection.getSurfaceAtIndex(32);
 

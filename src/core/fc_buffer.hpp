@@ -37,6 +37,7 @@ enum class FcBufferTypes : uint8_t {
   Custom,
 };
 
+  // TODO create a transferToGpu function
   class FcBuffer
     {
      private:
@@ -63,6 +64,10 @@ enum class FcBufferTypes : uint8_t {
        void copyBuffer(const FcBuffer& srcBuffer, VkDeviceSize bufferSize);
        void fetchData(uint32_t location, size_t dataSize);
        const VkBuffer& getVkBuffer() const { return mBuffer; }
+
+       // TODO remove
+       inline void setVkBuffer(VkBuffer buffer) { mBuffer = buffer; }
+
        VkDeviceSize size() { return mSize; }
        void* getAddress();
        void destroy();

@@ -136,10 +136,10 @@ namespace fc
     // mDescriptorClerk.initDescriptorPools(gltf.materials.size(), poolRatios);
 
 
-
     // Temporary arrays for all the objects to use while creating the GLTF data
     // using this to first collect data then store in unordered maps later
-    std::vector<std::shared_ptr<FcMesh>> meshes;
+    /* std::vector<std::shared_ptr<FcMesh>> meshes; */
+    std::vector<std::shared_ptr<FcSurface>> meshes;
     std::vector<std::shared_ptr<FcNode>> nodes;
     /* std::vector<FcImage> images; */
     //std::vector<std::shared_ptr<GLTFMaterial>> materials;
@@ -163,9 +163,11 @@ namespace fc
 
     for (fastgltf::Mesh& mesh : gltf.meshes)
     {
-      std::shared_ptr<FcMesh> newMesh = std::make_shared<FcMesh>();
-      newMesh->mName = mesh.name;
+      /* std::shared_ptr<FcMesh> newMesh = std::make_shared<FcMesh>(); */
+      std::shared_ptr<FcSurface> newMesh = std::make_shared<FcSurface>();
+      /* newMesh->mName = mesh.name; */
       meshes.push_back(newMesh);
+
 
       //gltf.materials[primitive.materialIndex.value()].pbrData.;
 
@@ -308,19 +310,17 @@ namespace fc
         newSurface.bounds.extents = (maxPos - minPos) * 0.5f;
         newSurface.bounds.sphereRadius = glm::length(newSurface.bounds.extents);
 
-
-        newMesh->mSurfaces.push_back(newSurface);
+        /* newMesh->mSurfaces.push_back(newSurface); */
+        newMesh->mMeshes.push_back(newSurface);
       }
-
 
       // TODO check that we're not causing superfluous calls to copy constructor / destructors
       // TODO start here with optimizations, including a new constructor with name
       // TODO consider goin back to vector refererence from span since we can mandate that...
       // however, this limit future implementations that prefer arrays, etc.
       newMesh->uploadMesh(std::span(vertices), std::span(indices));
-      //meshes.emplace_back(std::make_shared<FcMesh>(std::move(newMesh)));
-      // TODO create constructor for mesh so we can emplace it in place
 
+      // TODO create constructor for mesh so we can emplace it in place
     }
 
     // -*-*-*-*-*-*-*-*-*-*-   LOAD ALL NODES AND THEIR MESHES   -*-*-*-*-*-*-*-*-*-*- //
@@ -334,9 +334,12 @@ namespace fc
       if (gltfNode.meshIndex.has_value())
       {
         newNode = std::make_shared<FcMeshNode>();
+        /* static_cast<FcMeshNode*>(newNode.get())->mMesh = meshes[*gltfNode.meshIndex]; */
         static_cast<FcMeshNode*>(newNode.get())->mMesh = meshes[*gltfNode.meshIndex];
         meshNodeCount++;
-      } else {
+      }
+      else
+      {
         newNode = std::make_shared<FcNode>();
       }
 

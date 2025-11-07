@@ -391,9 +391,9 @@ namespace fc
     // There are only two pipelines so far so should just draw all opaque, then all transparent
 
     // Only bind index buffer if it has changed
-    if (surface.mIndexBuffer != mPreviousIndexBuffer)
+    if (surface.mIndexBuffer.getVkBuffer() != mPreviousIndexBuffer)
     {
-      mPreviousIndexBuffer = surface.mIndexBuffer;
+      mPreviousIndexBuffer = surface.mIndexBuffer.getVkBuffer();
       surface.bindIndexBuffer(cmd);
     }
 

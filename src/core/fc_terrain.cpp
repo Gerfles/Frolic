@@ -279,7 +279,8 @@ namespace fc
     }
 
     // Create the final mesh
-    mMesh.uploadMesh(std::span(vertices), std::span(indices));
+    /* mMesh.uploadMesh(std::span(vertices), std::span(indices)); */
+    mSurface.uploadMesh(std::span(vertices), std::span(indices));
   }
 
 
@@ -320,10 +321,12 @@ namespace fc
                             , 0, 1, &mHeightMapDescriptor, 0, nullptr);
 
     // TODO abstract to mesh class
-    vkCmdBindIndexBuffer(cmd, mMesh.IndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
+    /* vkCmdBindIndexBuffer(cmd, mMesh.IndexBuffer(), 0, VK_INDEX_TYPE_UINT32); */
+    vkCmdBindIndexBuffer(cmd, mSurface.mIndexBuffer.getVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
     VertexBufferPushes pushConstants;
-    pushConstants.address = mMesh.VertexBufferAddress();
+    /* pushConstants.address = mMesh.VertexBufferAddress(); */
+    pushConstants.address = mSurface.mVertexBufferAddress;
 
     float time =
       std::chrono::duration<float>(std::chrono::steady_clock::now().time_since_epoch()).count();
@@ -337,12 +340,12 @@ namespace fc
                        , 0, sizeof(VertexBufferPushes), &pushConstants);
 
     // DELETE and relocate model to sceneData eventually
-    glm::mat4 model = glm::mat4(1.0f);
+    // glm::mat4 model = glm::mat4(1.0f);
 
-    // BUG no longer need to pass model here
-    vkCmdPushConstants(cmd, mPipeline.Layout()
-                       , VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT
-                       , sizeof(VertexBufferPushes), sizeof(glm::mat4), &model);
+    // // BUG no longer need to pass model here
+    // vkCmdPushConstants(cmd, mPipeline.Layout()
+    //                    , VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT
+    //                    , sizeof(VertexBufferPushes), sizeof(glm::mat4), &model);
 
     vkCmdDrawIndexed(cmd, mNumIndices, 1, 0, 0, 0);
 

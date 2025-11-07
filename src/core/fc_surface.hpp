@@ -2,6 +2,7 @@
 #pragma once
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_bounding_box.hpp"
+#include "fc_buffer.hpp"
 #include "fc_mesh.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <vulkan/vulkan_core.h>
@@ -16,22 +17,50 @@ namespace fc
 {
 
   // TODO probably should make a class
-  struct FcSurface
+  class FcSurface
   {
+   private:
+   public:
+     // ?? ?? for some reason we cant call the following class with fastgltf::mesh.name
+     // since it uses an std::pmr::string that only seems to be able to bind to a public
+     // class member?? TODO researce PMR
+     // std::string mName;
      uint32_t mIndexCount;
      uint32_t mFirstIndex;
-     VkBuffer mIndexBuffer;
-     // TODO make reference members
-     glm::mat4 mTransform;//{1.0f};
+     FcBuffer mIndexBuffer;
+     FcBuffer mVertexBuffer;
+     /* FcBuffer mIndexBufferDuplicate; */
+     glm::mat4 mTransform;
      glm::mat4 mInvModelMatrix;
      Bounds mBounds;
      BoundaryBox mBoundaryBox;
      VkDeviceAddress mVertexBufferAddress;
+     // TODO think about storing separate surface subMeshes based on material type / pipeline
+     // pair data structure so we can just iterate through the whole thing
+     std::vector<FcSubMesh> mMeshes;
      // Constructor used when adding to draw collection
+     // -*-*-*-*-*-*-*-*-*-*-*-*-   CONSTRUCTORS / CLEANUP   -*-*-*-*-*-*-*-*-*-*-*-*- //
      FcSurface(const FcSubMesh& surface, FcMeshNode* meshNode);
-     void bindIndexBuffer(VkCommandBuffer cmd) const;
+     //
+     FcSurface() = default;
+     // TODO should think about adding destructors on objects that call destroy() if needed.
+     void destroy();
+     // FIXME could help eliminate memory leaks since objects that go out of scope should also
+     // be destroyed
+     /* ~FcSurface() { destroy(); } */
+
+     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   MUTATORS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     inline void bindIndexBuffer(VkCommandBuffer cmd) const
+      { vkCmdBindIndexBuffer(cmd, mIndexBuffer.getVkBuffer(), 0, VK_INDEX_TYPE_UINT32); }
+     //
      bool isVisible(const glm::mat4& viewProjection);
+     //
      const bool isInBounds(const glm::vec4& position) const;
+     //
+     template <typename T> void uploadMesh(std::span<T> vertices, std::span<uint32_t> indices);
+
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   GETTERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     inline const VkBuffer VertexBuffer() const { return mVertexBuffer.getVkBuffer(); }
   };
 
 }// --- namespace fc --- (END)
