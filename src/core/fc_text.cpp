@@ -25,10 +25,11 @@ namespace fc
 
      // TODO document why this is the way it is (setting to NDC and doing this once on the cpu so it's easier for each vertex to process)
      // TODO could also make a dynamic box that moves constantly which would be easier to let the GPU calculate it's dimensions etc.
-    mTextBoxSpecs.width = (float)(width) / screenDimensions.width;
-    mTextBoxSpecs.height = (float)(height) / screenDimensions.height;
-    mTextBoxSpecs.position.x =  -1.0f + 2.0f * (float)xPos / screenDimensions.width + mTextBoxSpecs.width;
-    mTextBoxSpecs.position.y =  -1.0f + 2.0f * (float)yPos / screenDimensions.height + mTextBoxSpecs.height;
+    // FIXME these are disabled for now until class is re-written for current engine
+    // mTextBoxSpecs.width = (float)(width) / screenDimensions.width;
+    // mTextBoxSpecs.height = (float)(height) / screenDimensions.height;
+    // mTextBoxSpecs.position.x =  -1.0f + 2.0f * (float)xPos / screenDimensions.width + mTextBoxSpecs.width;
+    // mTextBoxSpecs.position.y =  -1.0f + 2.0f * (float)yPos / screenDimensions.height + mTextBoxSpecs.height;
 
     // TODO get rid of, TEMPORARILY CREATE A BLACK TEXTURE
      // create an array of "pixels" that will be used to create the underlying texture

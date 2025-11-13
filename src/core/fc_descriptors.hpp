@@ -83,12 +83,13 @@ namespace fc
      uint32_t mSetsPerPool;
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-   BINDLESS RESOURCES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
      bool isBindlessSupported = true;
-     VkDescriptorPool mBindlessDescriptorPool;
+
 
    public:
-
-     // TODO
+     VkDescriptorPool mBindlessDescriptorPool;
+     // DELETE mBindlessDescriptorSet and replace with a call to createBindless... for each frame!!
      VkDescriptorSet mBindlessDescriptorSet;
+     VkDescriptorSet mBindlessBillboardDesc;
      VkDescriptorSetLayout mBindlessDescriptorLayout;
 
      FcDescriptorClerk() = default;
@@ -97,7 +98,8 @@ namespace fc
      FcDescriptorClerk& operator=(const FcBuffer&) = delete;
      FcDescriptorClerk& operator=(FcDescriptorClerk&&) = delete;
      void initDescriptorPools(uint32_t maxSets, std::span<PoolSizeRatio> poolRatios);
-     void createBindlessDescriptorSets();
+     void  createBindlessDescriptorSetLayout();
+     VkDescriptorSet createBindlessDescriptorSet();
      VkDescriptorSetLayout createDescriptorSetLayout(FcDescriptorBindInfo& bindingInfo
                                                      , VkDescriptorSetLayoutCreateFlags flags = 0);
      VkDescriptorSet createDescriptorSet(VkDescriptorSetLayout layout, FcDescriptorBindInfo& bindInfo);

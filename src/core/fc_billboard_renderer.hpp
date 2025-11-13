@@ -53,6 +53,7 @@ namespace fc
      void addBillboard(FcBillboard& billboard);
      void draw(VkCommandBuffer cmd, SceneDataUbo& sceneData, FrameAssets& currentFrame);
      void buildPipelines();
+     void buildPipelines(std::vector<FrameAssets>& frames);
      void sortBillboardsByDistance(glm::vec4& cameraPosition);
 
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CLEANUP   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //

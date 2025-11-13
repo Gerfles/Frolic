@@ -44,6 +44,7 @@ namespace fc
      std::vector<RenderObject> transparentSurfaces;
      std::vector<std::vector<size_t>> visibleSurfaceIndices;
      ResourcePoolTyped<FcImage> mTextures;
+     ResourcePoolTyped<FcImage> mBillboards;
      FcStats stats;
      uint32_t numSurfaces{0};
 
@@ -53,7 +54,6 @@ namespace fc
      void init(FcAllocator* allocator);
      const FcSurface& getSurfaceAtIndex(uint32_t surfaceIndex);
   };
-
 
   // TODO create a class that is a collection of objects to draw with a particular pipeline
   // and descriptorSets etc, that way we can just render all those objects and then only

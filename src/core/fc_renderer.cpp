@@ -102,7 +102,19 @@ namespace fc
 
       //
       descClerk->initDescriptorPools(1024, poolRatios);
-      descClerk->createBindlessDescriptorSets();
+
+      // TODO DELETE since we will create bindless descriptor sets and store in frameAssets
+      descClerk->createBindlessDescriptorSetLayout();
+
+      for (FrameAssets& frame : mFrames)
+      {
+        frame.sceneBindlessTextureSet = descClerk->createBindlessDescriptorSet();
+      }
+
+      descClerk->mBindlessDescriptorSet = descClerk->createBindlessDescriptorSet();
+      descClerk->mBindlessBillboardDesc = descClerk->createBindlessDescriptorSet();
+
+
       // register the descriptor with the locator
       FcLocator::provide(descClerk);
 
@@ -235,16 +247,15 @@ namespace fc
     mSkybox.init(mSceneDataDescriptorLayout, mFrames);
     //
 
+    mSceneData.projection = pActiveCamera->Projection();
+
     mSceneRenderer.init(mSceneDataDescriptorLayout, mSceneData.viewProj);
     // TODO get rid of build pipeline calls and just do that within init
     // TODO see if we can decouple the scene descriptor layout
     mBoundingBoxRenderer.buildPipelines(mSceneDataDescriptorLayout);
     mNormalRenderer.buildPipelines(mSceneDataDescriptorLayout);
-    mBillboardRenderer.buildPipelines();
+    mBillboardRenderer.buildPipelines(mFrames);
     // // TODO think about destroying layout here
-
-
-
 
 
     /* sponza.loadGltf(*this, "..//models//sponza//Sponza.gltf"); */
@@ -273,7 +284,7 @@ namespace fc
 
     // FIXME requires enabling one or more extensions in fastgltf
     //structure.loadGltf(this, "..//models//SheenWoodLeatherSofa.glb");
-    mSceneData.projection = pActiveCamera->Projection();
+
 
 
     mSceneData.sunlightDirection = glm::vec4(43.1f, 25.f, 23.f, 1.f);
@@ -703,7 +714,9 @@ namespace fc
     mDrawCollection.stats.sceneUpdateTime = mTimer.elapsedTime() * 1000;
   }
 
-
+  //
+  //
+  // TODO - Remove from current engine since we no longer render our own UI
   void FcRenderer::drawUI(std::vector<FcText>& UIelements, uint32_t swapchainImageIndex)
   {
     // mUIrenderer.draw(UIelements, getCurrentFrame().commandBuffer, swapchainImageIndex);
@@ -715,8 +728,10 @@ namespace fc
     // draw text box
     for (size_t i = 0; i < UIelements.size(); i++)
     {
-      vkCmdPushConstants(currCommandBuffer, mUiPipeline.Layout()
-                         , VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(BillboardPushes), &UIelements[i].Push());
+      vkCmdPushConstants(currCommandBuffer, mUiPipeline.Layout(),
+                         VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(BillboardPushes),
+                         // TODO require that UI elements has top members equal to billboardpushes
+                         &UIelements[i]);
 
       VkDeviceSize offsets[] = { 0 };
       // vkCmdBindVertexBuffers(mCommandBuffers[swapChainImageIndex], 0, 1, &font.VertexBuffer(), offsets);
@@ -884,67 +899,66 @@ namespace fc
       VkWriteDescriptorSet bindlessDescriptorWrites[MAX_BINDLESS_RESOURCES];
       VkDescriptorImageInfo bindlessImageInfos[MAX_BINDLESS_RESOURCES];
 
-      FcImage* dummyTexture = &FcDefaults::Textures.checkerboard;
-
       u32 currentWriteIndex = 0;
       for (i32 i = mDrawCollection.bindlessTextureUpdates.size() - 1; i >= 0; --i)
       {
         ResourceUpdate& textureToUpdate = mDrawCollection.bindlessTextureUpdates[i];
 
-        // TRY
-        /* if (textureToUpdate.current_frame == current_frame) */
+        // Update the descriptor set of each frame, since each frame has a separate D.S.
+        for (FrameAssets& frame : mFrames)
         {
+          // TRY only doing under the following circumstance
+          /* if (textureToUpdate.current_frame == current_frame) */
           VkWriteDescriptorSet& descriptorWrite = bindlessDescriptorWrites[currentWriteIndex];
           descriptorWrite = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
           descriptorWrite.descriptorCount = 1;
           descriptorWrite.dstArrayElement = textureToUpdate.handle;
           descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-          descriptorWrite.dstSet = FcLocator::DescriptorClerk().mBindlessDescriptorSet;
           descriptorWrite.dstBinding = BINDLESS_DESCRIPTOR_SLOT;
 
-          FcImage* texture = mDrawCollection.mTextures.get(textureToUpdate.handle);
+          FcImage* texture;
           /* FCASSERT(textureToUpdate.handle == texture->Handle()); */
+
+          if (textureToUpdate.type == ResourceDeletionType::Texture)
+          {
+            descriptorWrite.dstSet = frame.sceneBindlessTextureSet;
+            texture = mDrawCollection.mTextures.get(textureToUpdate.handle);
+          }
+          else if (textureToUpdate.type == ResourceDeletionType::Billboard)
+          {
+            descriptorWrite.dstSet = frame.billboardDescriptorSet;
+            texture = mDrawCollection.mBillboards.get(textureToUpdate.handle);
+          }
+          else
+          {
+            std::cout << "Failed to Update Bindless Resource: " << textureToUpdate.handle << std::endl;
+            descriptorWrite.dstSet = frame.billboardDescriptorSet;
+            texture = &FcDefaults::Textures.checkerboard;
+          }
 
           VkDescriptorImageInfo& imageInfo = bindlessImageInfos[currentWriteIndex];
           // TODO provide dummy image view
           imageInfo.imageView = texture->ImageView();
           imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-          if (texture->hasSampler())
-          {
-            imageInfo.sampler = texture->Sampler();
-          }
-          else
-          {
-            fcPrint("Texture has no associated sampler:\n");
-            imageInfo.sampler = FcDefaults::Samplers.Linear;
-          }
-          //
+          imageInfo.sampler = texture->hasSampler() ?
+                              texture->Sampler() : FcDefaults::Samplers.Linear;
+
           descriptorWrite.pImageInfo = &imageInfo;
           //
-          textureToUpdate.currentFrame = U32_MAX;
-
-          // ?? is this needed TODO fix to be better
-          /* bindlessTextureUpdates.delete_swap(i); */
-          uint32_t size = mDrawCollection.bindlessTextureUpdates.size();
-          mDrawCollection.bindlessTextureUpdates[i] = mDrawCollection.bindlessTextureUpdates[size - 1];
-          mDrawCollection.bindlessTextureUpdates.pop_back();
           ++currentWriteIndex;
         }
-      }
-      // BUG do this differently perhaps
-      mDrawCollection.bindlessTextureUpdates.clear();
 
+        textureToUpdate.currentFrame = U32_MAX;
+        uint32_t size = mDrawCollection.bindlessTextureUpdates.size();
+        mDrawCollection.bindlessTextureUpdates[i] = mDrawCollection.bindlessTextureUpdates[size - 1];
+        mDrawCollection.bindlessTextureUpdates.pop_back();
+      }
 
       if (currentWriteIndex)
       {
-        fcPrint("Current write index: %u\n", currentWriteIndex);
-        uint32_t bindingDest = bindlessDescriptorWrites[currentWriteIndex].dstBinding;
-        fcPrint("binding Dest: %u\n", bindingDest);
-        /* vkUpdateDescriptorSets(pDevice, currentWriteIndex, bindlessDescriptorWrites, 0, nullptr); */
         vkUpdateDescriptorSets(pDevice, currentWriteIndex, bindlessDescriptorWrites, 0, nullptr);
       }
     }
-
 
     // ?? elapsed time should already be in ms
     mDrawCollection.stats.meshDrawTime = mTimer.elapsedTime() * 1000;
@@ -958,14 +972,8 @@ namespace fc
     colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
     colorAttachment.imageView = targetImageView;
     colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    //		colorAttachment.loadOp = clear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
     colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-
-    // if (clear)
-    // 	{
-    // 		colorAttachment.clearValue = *clear;
-    // 	}
 
     VkRenderingInfo renderInfo{};
     renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;

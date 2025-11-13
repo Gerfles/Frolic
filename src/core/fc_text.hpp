@@ -27,7 +27,8 @@ namespace fc
   {
    private:
      FcFont* pFont;
-     BillboardPushes mTextBoxSpecs;
+     // DELETE
+     /* BillboardPushes mTextBoxSpecs; */
 
      id_t mId;
      FcImage mTextImage;
@@ -47,7 +48,8 @@ namespace fc
      // - GETTERS -
      VkDescriptorSet getDescriptor() { return mDescriptor; }
      // -
-     BillboardPushes& Push() { return mTextBoxSpecs; }
+     // DELETE
+     /* BillboardPushes& Push() { return mTextBoxSpecs; } */
      void createTextBox(int x, int y, int width, int height);
      void createText(const std::string& text, int xPos, int yPos, float scale);
      void editText(const std::string newText, int xPos, int yPos, float scale);

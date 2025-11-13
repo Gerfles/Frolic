@@ -13,6 +13,7 @@ namespace fc
   {
     // TODO more flexible initialization of draw collection
     mTextures.init(allocator, 512);
+    mBillboards.init(allocator, 512);
   }
 
   // TODO update to work on all surfaces (opaque or transparent)

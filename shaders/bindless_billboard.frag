@@ -26,8 +26,8 @@ layout(location = 0) out vec4 outColor; // final output color (out and in are di
 
 void main()
 {
-
   outColor = texture(globalTextures[nonuniformEXT(push.texIndex)], texCoords);
+
   // if (outColor.a < 0.5)
   // {
   //   discard;

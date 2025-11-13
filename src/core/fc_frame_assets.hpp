@@ -16,7 +16,9 @@ namespace fc
      VkFence renderFence;
      // TODO allocate all the descriptorSets for each frame (skybox, terrain, etc.)
      VkDescriptorSet sceneDataDescriptorSet;
+     VkDescriptorSet sceneBindlessTextureSet;
      VkDescriptorSet shadowMapDescriptorSet;
      VkDescriptorSet skyBoxDescriptorSet;
+     VkDescriptorSet billboardDescriptorSet;
   };
 }

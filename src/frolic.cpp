@@ -142,7 +142,7 @@ namespace fc
     // load everything we need for the scene
     loadGameObjects();
 
-    AutoCVarFloat cvarMovementSpeed("movementSpeed.float", "controls camera movement speed", 8.0f);
+    AutoCVarFloat cvarMovementSpeed("movementSpeed.float", "controls camera movement speed", 10.0f);
 
     // zero out the ticklist for performance tracking
     std::memset(mFrameTimeList, 0, sizeof(mFrameTimeList));

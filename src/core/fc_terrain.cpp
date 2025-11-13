@@ -89,22 +89,22 @@ namespace fc
     mUboBuffer.allocate(sizeof(UBO), FcBufferTypes::Uniform);
 
     // TODO do in one functioncall overload if need be but first check to see if ever separate (i think it might be in materials but possibly can change)
-    bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
-                        , VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT
+    bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                        VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT
                         | VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
 
     bindInfo.attachBuffer(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, mUboBuffer, sizeof(UBO), 0);
 
-    bindInfo.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-                        , VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT
+    bindInfo.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                        VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT
                         | VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
 
-    bindInfo.attachImage(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, mHeightMap
-                         , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-                         , FcDefaults::Samplers.Terrain);
+    bindInfo.attachImage(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, mHeightMap,
+                         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                         FcDefaults::Samplers.Terrain);
 
-    bindInfo.addBinding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-                        , VK_SHADER_STAGE_FRAGMENT_BIT);
+    bindInfo.addBinding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                        VK_SHADER_STAGE_FRAGMENT_BIT);
 
     bindInfo.attachImage(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, mTerrainTexture
                          , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
@@ -320,20 +320,14 @@ namespace fc
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.Layout()
                             , 0, 1, &mHeightMapDescriptor, 0, nullptr);
 
-    // TODO abstract to mesh class
-    /* vkCmdBindIndexBuffer(cmd, mMesh.IndexBuffer(), 0, VK_INDEX_TYPE_UINT32); */
-    vkCmdBindIndexBuffer(cmd, mSurface.mIndexBuffer.getVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
+    mSurface.bindIndexBuffer(cmd);
 
     VertexBufferPushes pushConstants;
-    /* pushConstants.address = mMesh.VertexBufferAddress(); */
-    pushConstants.address = mSurface.mVertexBufferAddress;
-
-    float time =
-      std::chrono::duration<float>(std::chrono::steady_clock::now().time_since_epoch()).count();
+    pushConstants.address = mSurface.VertexBufferAddress();
 
     // std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
-    // float time = std::chrono::duration<float>
-    pushConstants.time = time;
+    pushConstants.time = std::chrono::duration<float>
+                         (std::chrono::steady_clock::now().time_since_epoch()).count();
 
     // BUG
     vkCmdPushConstants(cmd, mPipeline.Layout(), VK_SHADER_STAGE_VERTEX_BIT

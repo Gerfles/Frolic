@@ -12,7 +12,7 @@
 #include "fc_draw_collection.hpp"
 // TODO rename utilities to fc_utilities
 #include "utilities.hpp"
-#include "fc_mesh.hpp"
+/* #include "fc_mesh.hpp" */
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
 // GLTF loading
 #include <fastgltf/core.hpp>
@@ -138,11 +138,8 @@ namespace fc
 
     // Temporary arrays for all the objects to use while creating the GLTF data
     // using this to first collect data then store in unordered maps later
-    /* std::vector<std::shared_ptr<FcMesh>> meshes; */
     std::vector<std::shared_ptr<FcSurface>> meshes;
     std::vector<std::shared_ptr<FcNode>> nodes;
-    /* std::vector<FcImage> images; */
-    //std::vector<std::shared_ptr<GLTFMaterial>> materials;
 
     // -*-*-*-*-*-*-*-*-*-*-   LOAD ALL TEXTURES AND MATERIALS   -*-*-*-*-*-*-*-*-*-*- //
     mNumMaterials = gltf.materials.size();
@@ -163,9 +160,7 @@ namespace fc
 
     for (fastgltf::Mesh& mesh : gltf.meshes)
     {
-      /* std::shared_ptr<FcMesh> newMesh = std::make_shared<FcMesh>(); */
       std::shared_ptr<FcSurface> newMesh = std::make_shared<FcSurface>();
-      /* newMesh->mName = mesh.name; */
       meshes.push_back(newMesh);
 
 
@@ -310,7 +305,6 @@ namespace fc
         newSurface.bounds.extents = (maxPos - minPos) * 0.5f;
         newSurface.bounds.sphereRadius = glm::length(newSurface.bounds.extents);
 
-        /* newMesh->mSurfaces.push_back(newSurface); */
         newMesh->mMeshes.push_back(newSurface);
       }
 
@@ -334,7 +328,6 @@ namespace fc
       if (gltfNode.meshIndex.has_value())
       {
         newNode = std::make_shared<FcMeshNode>();
-        /* static_cast<FcMeshNode*>(newNode.get())->mMesh = meshes[*gltfNode.meshIndex]; */
         static_cast<FcMeshNode*>(newNode.get())->mMesh = meshes[*gltfNode.meshIndex];
         meshNodeCount++;
       }
@@ -346,7 +339,8 @@ namespace fc
       nodes.push_back(newNode);
       mNodes[gltfNode.name.c_str()];
 
-      // BUG ?? not sure if this is correct check with https://fastgltf.readthedocs.io/latest/guides.html#id8
+      // BUG ?? not sure if this is correct check with:
+      // https://fastgltf.readthedocs.io/latest/guides.html#id8
       std::visit(fastgltf::visitor {
           [&] (fastgltf::math::fmat4x4 matrix)
            {
@@ -648,16 +642,16 @@ namespace fc
         std::cout << "Failed to load texture: " << gltfImage.name << std::endl;
       }
 
-      // Add textures to draw collection to defer upload to GPU until we are no
-      // longer drawing a frame.
-      bool isBindlessSupported = true;
-      if (isBindlessSupported)
-      {
-        ResourceUpdate resourceUpdate{ResourceDeletionType::Texture
-                                    , newTexture->Handle()
-                                    , drawCollection.stats.frame};
-        drawCollection.bindlessTextureUpdates.push_back(resourceUpdate);
-      }
+      // // Add textures to draw collection to defer upload to GPU until we are no
+      // // longer drawing a frame.
+      // bool isBindlessSupported = true;
+      // if (isBindlessSupported)
+      // {
+      //   ResourceUpdate resourceUpdate{ResourceDeletionType::Texture
+      //                               , newTexture->Handle()
+      //                               , drawCollection.stats.frame};
+      //   drawCollection.bindlessTextureUpdates.push_back(resourceUpdate);
+      // }
 
       size++;
     }

@@ -42,7 +42,6 @@ namespace fc
      /* VkSampler mHeightMapSampler; */
      VkDescriptorSetLayout mHeightMapDescriptorLayout;
      VkDescriptorSet mHeightMapDescriptor;
-     /* FcMesh mMesh; */
      FcSurface mSurface;
      FcPipeline mPipeline;
      // wire frame meshes

@@ -11,14 +11,16 @@ namespace fc
 {
   //
   //
-  void FcBillboard::loadTexture(FcRenderer& renderer, float width
-                                , float height, std::string_view filename)
+  void FcBillboard::loadTexture(FcRenderer& renderer, float width,
+                                float height, std::string_view filename)
   {
-    mPush.width = width;
-    mPush.height = height;
+    // mPush.width = width;
+    // mPush.height = height;
+    mWidth = width;
+    mHeight = height;
 
     FcDrawCollection& drawCollection = renderer.DrawCollection();
-    FcImage* newTexture = drawCollection.mTextures.getNextFree();
+    FcImage* newTexture = drawCollection.mBillboards.getNextFree();
 
     // TODO check that we only need to throw error in one place and the other make noexcept
     if (newTexture == nullptr)
@@ -40,10 +42,10 @@ namespace fc
     bool isBindlessSupported = true;
     if (isBindlessSupported)
     {
-      mPush.textureIndex = newTexture->Handle();
-
-      ResourceUpdate resourceUpdate{ResourceDeletionType::Texture
-                                  , newTexture->Handle()
+      uint32_t handle = newTexture->Handle();
+      mTextureIndex = handle;
+      ResourceUpdate resourceUpdate{ResourceDeletionType::Billboard
+                                  , handle
                                   , drawCollection.stats.frame};
 
       drawCollection.bindlessTextureUpdates.push_back(resourceUpdate);
@@ -51,13 +53,13 @@ namespace fc
     else
     {
       // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NON-BINDLESS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-      // mTexture.loadStbi(filename, FcImageTypes::Texture);
+      // newTexture->loadStbi(filename, FcImageTypes::Texture);
       // FcDescriptorBindInfo descriptorInfo;
       // descriptorInfo.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
       //                           VK_SHADER_STAGE_FRAGMENT_BIT);
 
       // descriptorInfo.attachImage(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-      //                            mTexture, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+      //                            *newTexture, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
       //                            FcDefaults::Samplers.Linear);
 
       // FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();

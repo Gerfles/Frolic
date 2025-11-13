@@ -101,14 +101,14 @@ namespace fc
     VkPushConstantRange matrixRange;
     matrixRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     matrixRange.offset = 0;
-    matrixRange.size = sizeof(DrawPushConstants);
+    matrixRange.size = sizeof(ScenePushConstants);
     //
     pipelineConfig.addPushConstants(matrixRange);
 
     // Add push for the amount to expand the polygons
     VkPushConstantRange expansionFactorRange;
     expansionFactorRange.stageFlags = VK_SHADER_STAGE_GEOMETRY_BIT;
-    expansionFactorRange.offset = sizeof(DrawPushConstants);
+    expansionFactorRange.offset = sizeof(ScenePushConstants);
     expansionFactorRange.size = sizeof(float);
     //
     pipelineConfig.addPushConstants(expansionFactorRange);
@@ -345,7 +345,13 @@ namespace fc
     // }
 
     VkDescriptorSet bindlessTextures = FcLocator::DescriptorClerk().mBindlessDescriptorSet;
-    mOpaquePipeline.bindDescriptorSet(cmd, bindlessTextures, 4);
+    /* mOpaquePipeline.bindDescriptorSet(cmd, bindlessTextures, 4); */
+
+    mOpaquePipeline.bindDescriptorSet(cmd, currentFrame.sceneBindlessTextureSet, 4);
+
+
+
+
 
     for (size_t i = 0; i < drawCollection.opaqueSurfaces.size(); ++i)
     {
@@ -360,7 +366,7 @@ namespace fc
         drawSurface(cmd, surface);
 
         // Update the engine statistics
-        drawCollection.stats.triangleCount += surface.mIndexCount / 3;
+        drawCollection.stats.triangleCount += surface.IndexCount() / 3;
         drawCollection.stats.objectsRendered += 1;
       }
     }
@@ -391,31 +397,28 @@ namespace fc
     // There are only two pipelines so far so should just draw all opaque, then all transparent
 
     // Only bind index buffer if it has changed
-    if (surface.mIndexBuffer.getVkBuffer() != mPreviousIndexBuffer)
+    if (surface.IndexBuffer() != mPreviousIndexBuffer)
     {
-      mPreviousIndexBuffer = surface.mIndexBuffer.getVkBuffer();
+      mPreviousIndexBuffer = surface.IndexBuffer();
       surface.bindIndexBuffer(cmd);
     }
 
     // TODO make all push constants address to matrix buffer and texture indices
-    // Calculate final mesh matrix
-    DrawPushConstants pushConstants;
-    pushConstants.vertexBuffer = surface.mVertexBufferAddress;
-    pushConstants.worldMatrix = surface.mTransform;
-    pushConstants.normalTransform = surface.mInvModelMatrix;
-
-    //
     vkCmdPushConstants(cmd, pCurrentPipeline->Layout()
                        , VK_SHADER_STAGE_VERTEX_BIT
-                       , 0, sizeof(DrawPushConstants), &pushConstants);
+                       // TODO should check to see if we can just send the address of a data
+                       // structure given the sizeof(first 3 elements) and defining the first
+                       // three elements of the data structure as those we want to pass, that
+                       // way we don't have to copy data every upload.
+                       , 0, sizeof(ScenePushConstants), &surface);
     //
     // Note here that we have to offset from the initially pushed data since we
     // are really just filling a range alloted to us in total...
     vkCmdPushConstants(cmd, pCurrentPipeline->Layout()
                        , VK_SHADER_STAGE_GEOMETRY_BIT
-                       , sizeof(DrawPushConstants), sizeof(float), &expansionFactor);
+                       , sizeof(ScenePushConstants), sizeof(float), &expansionFactor);
 
-    vkCmdDrawIndexed(cmd, surface.mIndexCount, 1, surface.mFirstIndex, 0, 0);
+    vkCmdDrawIndexed(cmd, surface.IndexCount(), 1, surface.FirstIndex(), 0, 0);
 
     // TODO
     // add counters for triangles and draws calls

@@ -5,6 +5,7 @@
 #include "fc_gpu.hpp"
 #include "fc_scene.hpp"
 #include "fc_math.hpp"
+#include "vulkan/vulkan.h"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <map>
 
@@ -22,7 +23,7 @@ namespace fc
 
   //
   //
-  void FcBillboardRenderer::buildPipelines()
+  void FcBillboardRenderer::buildPipelines(std::vector<FrameAssets>& frames)
   {
     VkPushConstantRange pushConstantRange{};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -49,26 +50,29 @@ namespace fc
     // MUST signal vulkan that we won't be reading any vertex data
     billboardConfig.disableVertexReading();
 
+    // Create the uniform buffer object
+    mUboBuffer.allocate(sizeof(BillboardUbo), FcBufferTypes::Uniform);
+
     // Create descriptor sets and layouts
     FcDescriptorBindInfo bindInfo{};
-    //
     bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                         VK_SHADER_STAGE_VERTEX_BIT);
-    //
-    mUboBuffer.allocate(sizeof(BillboardUbo), FcBufferTypes::Uniform);
-    //
     bindInfo.attachBuffer(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
                           , mUboBuffer, sizeof(BillboardUbo), 0);
     //
-    FcDescriptorClerk& deskClerk = FcLocator::DescriptorClerk();
+    FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
     //
-    mUboDescriptorSetLayout = deskClerk.createDescriptorSetLayout(bindInfo);
-    mUboDescriptorSet = deskClerk.createDescriptorSet(mUboDescriptorSetLayout, bindInfo);
-
+    mUboDescriptorSetLayout = descClerk.createDescriptorSetLayout(bindInfo);
+    mUboDescriptorSet = descClerk.createDescriptorSet(mUboDescriptorSetLayout, bindInfo);
+    //
     billboardConfig.addDescriptorSetLayout(mUboDescriptorSetLayout);
-    billboardConfig.addDescriptorSetLayout(deskClerk.mBindlessDescriptorLayout);
+    billboardConfig.addDescriptorSetLayout(descClerk.mBindlessDescriptorLayout);
 
-    // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NON-BINDLESS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    for (FrameAssets& frame : frames)
+    {
+      frame.billboardDescriptorSet = descClerk.createBindlessDescriptorSet();
+    }
+
     // add descriptorset for the texture image
     /* billboardConfig.addSingleImageDescriptorSetLayout(); */
 
@@ -117,8 +121,6 @@ namespace fc
     // for (size_t i = 0; i < mBillboards.size(); ++i)
     // {
     //   // calculate distance
-    //   // TODO write vector functions to subtract 3-component from 4-component
-    //   // complete with error avoidance overrides like static_cast<T>
     //   glm::vec3 eyeLoc = glm::vec3(sceneData.eye.x, sceneData.eye.y, sceneData.eye.z);
     //   auto distance = eyeLoc - mBillboards[i]->PushComponent().position;
     //   float distanceSquared = glm::dot(distance, distance);
@@ -128,26 +130,39 @@ namespace fc
     // bind pipeline to be used in render pass
     mPipeline.bind(cmd);
 
+    FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
+
     // iterate through billboards in reverse order (to draw them back to front)
     for (auto& billboard : mBillboards)
     {
+      // TODO make billboard's first components compatible with pushConstants...
       vkCmdPushConstants(cmd, mPipeline.Layout(),
                          VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
                          0, sizeof(BillboardPushes),
-                         &billboard->PushComponent());
-
-      FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
+                         billboard.get());
 
       // TODO  update the global Ubo only once per frame, not each draw call
       std::array<VkDescriptorSet, 1> descriptorSets;
       descriptorSets[0] = mUboDescriptorSet;
 
+      // TODO provided by vulkan 1_4: use this structure and keep a static version as a member
+      // of billboard renderer so we don't need to repopulate every frame...
+      // VkBindDescriptorSetsInfo descSetsInfo{};
+      // descSetsInfo.sType = VK_STRUCTURE_TYPE_BIND_DESCRIPTOR_SETS_INFO;
+      // descSetsInfo.layout = mPipeline.Layout();
+      // /* descSetsInfo.firstSet = 0; */
+      // descSetsInfo.descriptorSetCount = static_cast<uint32_t>(descriptorSets.size());
+      // descSetsInfo.pDescriptorSets = descriptorSets.data();
+
+      // vkCmdBindDescriptorSets2(cmd, &descSetsInfo);
+
+      // TODO extrapolate like below or add below to array and bind once...
       vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
                               mPipeline.Layout(), 0,
                               static_cast<uint32_t>(descriptorSets.size()),
                               descriptorSets.data(), 0, nullptr);
 
-      mPipeline.bindDescriptorSet(cmd, descClerk.mBindlessDescriptorSet, 1);
+      mPipeline.bindDescriptorSet(cmd, currentFrame.billboardDescriptorSet, 1);
 
       // TODO accomplish all billboard draws within one draw/bind
       vkCmdDraw(cmd, 6, 1, 0, 0);

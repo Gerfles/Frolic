@@ -24,10 +24,11 @@ namespace fc
     // add the scene descriptor set layout (eye, view, proj, etc.)
     pipelineConfig.addDescriptorSetLayout(sceneDescriptorLayout);
 
+    FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
+
     // create and then add the second descriptor set
     FcDescriptorBindInfo bindInfo{};
     VkDescriptorSetLayout descriptorLayout;
-    FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
 
     bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
     //
@@ -39,6 +40,12 @@ namespace fc
     //
     pipelineConfig.addDescriptorSetLayout(descriptorLayout);
 
+    // Allocate a descriptorSet to each frame buffer
+    for (FrameAssets& frame : frames)
+    {
+      frame.skyBoxDescriptorSet = descClerk.createDescriptorSet(descriptorLayout, bindInfo);
+    }
+
     // Configure pipeline operation parameters
     pipelineConfig.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
     pipelineConfig.setPolygonMode(VK_POLYGON_MODE_FILL);
@@ -49,12 +56,6 @@ namespace fc
     pipelineConfig.setDepthFormat(VK_FORMAT_D32_SFLOAT);
 
     mPipeline.create(pipelineConfig);
-
-    // Allocate a descriptorSet to each frame buffer
-    for (FrameAssets& frame : frames)
-    {
-      frame.skyBoxDescriptorSet = descClerk.createDescriptorSet(descriptorLayout, bindInfo);
-    }
   }
 
 

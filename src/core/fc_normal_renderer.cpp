@@ -21,7 +21,7 @@ namespace fc
     matrixRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     matrixRange.offset = 0;
     // TODO see if we can get rid of this the fc_scene... include
-    matrixRange.size = sizeof(DrawPushConstants);
+    matrixRange.size = sizeof(ScenePushConstants);
 
     pipelineConfig.addPushConstants(matrixRange);
     pipelineConfig.addDescriptorSetLayout(sceneDescriptorLayout);
@@ -57,18 +57,12 @@ namespace fc
       {
         surface.bindIndexBuffer(cmd);
 
-        // Calculate final mesh matrix
-        DrawPushConstants pushConstants;
-        pushConstants.vertexBuffer = surface.mVertexBufferAddress;
-        // BUG normal arrows are not drawn correctly!!
-        pushConstants.worldMatrix = surface.mTransform;
-        // TODO update invModelMatrix when updating worldMatrix!!!!
-        pushConstants.normalTransform = surface.mInvModelMatrix;
-
+        // // BUG normal arrows are not drawn correctly!!
+        // // TODO update invModelMatrix when updating worldMatrix!!!!
         vkCmdPushConstants(cmd, mNormalDrawPipeline.Layout(), VK_SHADER_STAGE_VERTEX_BIT
-                           , 0, sizeof(DrawPushConstants), &pushConstants);
+                           , 0, sizeof(ScenePushConstants), &surface);
 
-        vkCmdDrawIndexed(cmd, surface.mIndexCount, 1, surface.mFirstIndex, 0, 0);
+        vkCmdDrawIndexed(cmd, surface.IndexCount(), 1, surface.FirstIndex(), 0, 0);
       }
     }
   }

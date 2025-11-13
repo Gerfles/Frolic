@@ -96,6 +96,7 @@ namespace fc
   //   descriptorWrites.push_back(descriptorWrite);
   // }
 
+  // TODO use or check that is being used!
   void FcDescriptorBindInfo::attachImageBindless(uint32_t bindSlot, VkDescriptorType type
                       ,const FcImage& image, VkImageLayout layout, VkSampler imageSampler)
   {
@@ -192,8 +193,7 @@ namespace fc
   }
 
 
-
-  void FcDescriptorClerk::createBindlessDescriptorSets()
+  void FcDescriptorClerk::createBindlessDescriptorSetLayout()
   {
     // First create the pool that will only be used for bindless resources
     if (isBindlessSupported)
@@ -224,10 +224,11 @@ namespace fc
       layoutBindings[1].pImmutableSamplers = nullptr;
 
       // bindless resources required flags
-      VkDescriptorBindingFlags bindlessFlags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT |                                               					    //VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT |
-                                               VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT;
+      VkDescriptorBindingFlags bindlessFlags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT
+                                               // | VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT
+                                               | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT;
 
-      std::array<VkDescriptorBindingFlags, 4> bindingFlags = {{ bindlessFlags, bindlessFlags }};
+      std::array<VkDescriptorBindingFlags, 2> bindingFlags = {{ bindlessFlags, bindlessFlags }};
 
       //
       VkDescriptorSetLayoutBindingFlagsCreateInfoEXT extendedInfo;
@@ -251,7 +252,15 @@ namespace fc
       {
         throw std::runtime_error("Failed to create a Vulkan descriptor set layout!");
       }
+    }
+  }
 
+
+
+  VkDescriptorSet FcDescriptorClerk::createBindlessDescriptorSet()
+  {
+    if (isBindlessSupported)
+    {
       // -*-*-   CREATE DESCRIPTOR SET THAT WILL BE USED FOR REST OF APPLICATION   -*-*- //
       VkDescriptorSetVariableDescriptorCountAllocateInfo descCountInfo;
       descCountInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
@@ -268,11 +277,16 @@ namespace fc
       // BUG SEEMS this is needed but not in the original
       descAllocInfo.pNext = &descCountInfo;
 
-      if (vkAllocateDescriptorSets(pDevice, &descAllocInfo, &mBindlessDescriptorSet) != VK_SUCCESS)
+      VkDescriptorSet bindlessDescSet;
+      if (vkAllocateDescriptorSets(pDevice, &descAllocInfo, &bindlessDescSet) != VK_SUCCESS)
       {
         throw std::runtime_error("Failed to create Vulkan descriptor set!");
       }
+
+      return bindlessDescSet;
     }
+
+    return VK_NULL_HANDLE;
   }
 
 

@@ -117,10 +117,12 @@ namespace fc
           for (FcSurface& surface : pair.second)
           {
             // update the subMesh
-            if (surface.mFirstIndex == subMesh.startIndex
-                && surface.mIndexCount == subMesh.indexCount)
+            if (surface.FirstIndex() == subMesh.startIndex
+                && surface.IndexCount() == subMesh.indexCount)
             {
-              surface.mTransform = worldTransform;
+              // TODO check to see that we're not copying un-needed matrices when we can just
+              // confine them to one location and use refrences
+              surface.setTransform(worldTransform);
               break;
             }
           }

@@ -68,7 +68,7 @@ namespace fc
 
   const glm::vec3& FcLight::getPosition()
   {
-    return mBillboard.PushComponent().position;
+    return mBillboard.position();
   }
 
 
@@ -77,7 +77,7 @@ namespace fc
 
     //    TODO return initialized
     PointLight light;
-    light.position = glm::vec4(mBillboard.PushComponent().position, 1.0f);
+    light.position = glm::vec4(mBillboard.Position(), 1.0f);
     return light;
 
      //return {mBillboard.PushComponent().position, mBillboard.PushComponent().color};

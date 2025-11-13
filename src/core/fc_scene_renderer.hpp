@@ -43,22 +43,28 @@ namespace fc
   // https://docs.vulkan.org/guide/latest/push_constants.html
   // May provide some benefits if done correctly
   // TODO this is too much data for some GPU push constant limits
-  struct DrawPushConstants
+  // ScenePCs are not created directly but instead are the values that the shader will recieve from
+  // pushing a FcSurface object with vkCmdPushConstants and using this struct as the size of the
+  // data sent. Then FcSurface must have the first members exactly match this structure. This will
+  // save us from having to create a ScenePushConstant to
+  struct ScenePushConstants
   {
      glm::mat4 worldMatrix;
      glm::mat4 normalTransform;
      VkDeviceAddress vertexBuffer;
+     // This structure should not be used directly but instead serves as a size indicator
+     ScenePushConstants() = delete;
   };
 
   //
   // TODO unitialize maybe ??
   struct SceneDataUbo
   {
-     glm::vec4 eye {0.0};
-     glm::mat4 view {1.f};
-     glm::mat4 projection {1.f};
-     glm::mat4 viewProj {1.f};
-     glm::mat4 lighSpaceTransform {1.f};
+     glm::vec4 eye;
+     glm::mat4 view;
+     glm::mat4 projection;
+     glm::mat4 viewProj;
+     glm::mat4 lighSpaceTransform;
      glm::vec4 sunlightDirection; // w for power
   };
 

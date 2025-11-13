@@ -206,8 +206,8 @@ namespace fc
       for (const FcSurface& surface : materialCollection.second)
       {
         ShadowPushConsts shadowPCs;
-        shadowPCs.vertexBuffer = surface.mVertexBufferAddress;
-        shadowPCs.MVP = mLightSpaceTransform * surface.mTransform;
+        shadowPCs.vertexBuffer = surface.VertexBufferAddress();
+        shadowPCs.MVP = mLightSpaceTransform * surface.ModelMatrix();
         /* shadowPCs.modelMatrix = surface.transform; */
 
         vkCmdPushConstants(cmd, mShadowPipeline.Layout()
@@ -215,7 +215,7 @@ namespace fc
 
         surface.bindIndexBuffer(cmd);
 
-        vkCmdDrawIndexed(cmd, surface.mIndexCount, 1, surface.mFirstIndex, 0, 0);
+        vkCmdDrawIndexed(cmd, surface.IndexCount(), 1, surface.FirstIndex(), 0, 0);
       }
     }
 

@@ -20,21 +20,27 @@ namespace fc
   class FcSurface
   {
    private:
-   public:
      // ?? ?? for some reason we cant call the following class with fastgltf::mesh.name
      // since it uses an std::pmr::string that only seems to be able to bind to a public
      // class member?? TODO researce PMR
      // std::string mName;
+     glm::mat4 mTransform;
+     glm::mat4 mInvModelMatrix;
+     VkDeviceAddress mVertexBufferAddress;
+
      uint32_t mIndexCount;
      uint32_t mFirstIndex;
      FcBuffer mIndexBuffer;
      FcBuffer mVertexBuffer;
-     /* FcBuffer mIndexBufferDuplicate; */
-     glm::mat4 mTransform;
-     glm::mat4 mInvModelMatrix;
+
+
+
+   public:
+
+
      Bounds mBounds;
      BoundaryBox mBoundaryBox;
-     VkDeviceAddress mVertexBufferAddress;
+
      // TODO think about storing separate surface subMeshes based on material type / pipeline
      // pair data structure so we can just iterate through the whole thing
      std::vector<FcSubMesh> mMeshes;
@@ -50,7 +56,7 @@ namespace fc
      /* ~FcSurface() { destroy(); } */
 
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   MUTATORS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-     inline void bindIndexBuffer(VkCommandBuffer cmd) const
+     inline const void bindIndexBuffer(VkCommandBuffer cmd) const
       { vkCmdBindIndexBuffer(cmd, mIndexBuffer.getVkBuffer(), 0, VK_INDEX_TYPE_UINT32); }
      //
      bool isVisible(const glm::mat4& viewProjection);
@@ -58,9 +64,27 @@ namespace fc
      const bool isInBounds(const glm::vec4& position) const;
      //
      template <typename T> void uploadMesh(std::span<T> vertices, std::span<uint32_t> indices);
+     //
+     inline void setTransform(glm::mat4& mat)
+      { mTransform = mat; }
+     //
 
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   GETTERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-     inline const VkBuffer VertexBuffer() const { return mVertexBuffer.getVkBuffer(); }
+     /* inline const VkBuffer VertexBuffer() const { return mVertexBuffer.getVkBuffer(); } */
+     //
+     inline const VkBuffer IndexBuffer() const { return mIndexBuffer.getVkBuffer(); }
+     //
+     inline const uint32_t IndexCount() const { return mIndexCount; }
+     //
+     inline const VkDeviceAddress VertexBufferAddress() const { return mVertexBufferAddress; }
+     //
+     inline const uint32_t FirstIndex() const { return mFirstIndex; }
+     //
+     inline glm::mat4 ModelMatrix() const { return mTransform; }
+     //
+     inline glm::mat4 InvModelMatrix() const { return mInvModelMatrix; }
+     // TODO improve usefulness or eliminate
+     inline const glm::mat4* Transform() const { return &mTransform;}
   };
 
 }// --- namespace fc --- (END)

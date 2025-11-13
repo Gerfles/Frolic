@@ -9,6 +9,7 @@ namespace fc
   {
     Buffer
   , Texture
+  , Billboard
   , Pipeline
   , Sampler
   , DescriptorSetLayout
