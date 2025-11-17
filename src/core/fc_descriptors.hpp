@@ -47,13 +47,15 @@ namespace fc
        std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
        std::deque<VkDescriptorBufferInfo> bufferInfos;
        std::deque<VkDescriptorImageInfo> imageInfos;
+       bool mIsBindlessIndexingUsed {false};
        void attachBuffer(uint32_t bindSlot, VkDescriptorType type
                          ,const FcBuffer& buffer, VkDeviceSize size, VkDeviceSize offset);
        void attachImage(uint32_t bindSlot, VkDescriptorType type
                         ,const FcImage& image, VkImageLayout layout, VkSampler imageSampler);
-       void attachImageBindless(uint32_t bindSlot, VkDescriptorType type
-                        ,const FcImage& image, VkImageLayout layout, VkSampler imageSampler);
+       // void attachImageBindless(uint32_t bindSlot, VkDescriptorType type
+       //                  ,const FcImage& image, VkImageLayout layout, VkSampler imageSampler);
        void addBinding(uint32_t bindSlot, VkDescriptorType type, VkShaderStageFlags shaderStages);
+       void enableBindlessTextures();
     };
 
   // TODO make this struct a public struct defined within FcDescriptorClerk so it would be
@@ -68,12 +70,6 @@ namespace fc
   class FcDescriptorClerk
   {
    private:
-     // Total number of textures allowed to be bound dynamically
-     static const uint32_t MAX_BINDLESS_TEXTURES = 1024;
-     //?? not sure why we use 10 here
-     static const uint32_t BINDLESS_TEXTURE_BIND_SLOT = 10;
-
-     size_t mModelUniformAlignment;
      VkDevice pDevice;
      // ?? Could use as an atlas if wanted/needed
       //std::vector<VkDescriptorSetLayout> mLayouts;
@@ -82,35 +78,34 @@ namespace fc
      std::vector<VkDescriptorPool> mReadyPools;
      uint32_t mSetsPerPool;
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-   BINDLESS RESOURCES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     // TODO default false and test to verify
      bool isBindlessSupported = true;
-
-
-   public:
+     // TODO Use mReadyPools instead of separate bindless
      VkDescriptorPool mBindlessDescriptorPool;
      // DELETE mBindlessDescriptorSet and replace with a call to createBindless... for each frame!!
-     VkDescriptorSet mBindlessDescriptorSet;
-     VkDescriptorSet mBindlessBillboardDesc;
-     VkDescriptorSetLayout mBindlessDescriptorLayout;
+     /* VkDescriptorSet mBindlessDescriptorSet; */
+     /* VkDescriptorSetLayout mBindlessDescriptorLayout; */
+     VkDescriptorPool getPool();
+     void destroyPools();
+     VkDescriptorPool createPools(uint32_t setCount, std::span<PoolSizeRatio> poolRatios);
+     void clearPools();
+   public:
 
+     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CTORS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      FcDescriptorClerk() = default;
      FcDescriptorClerk(const FcDescriptorClerk&) = delete;
      FcDescriptorClerk(FcDescriptorClerk&&) = delete;
      FcDescriptorClerk& operator=(const FcBuffer&) = delete;
      FcDescriptorClerk& operator=(FcDescriptorClerk&&) = delete;
-     void initDescriptorPools(uint32_t maxSets, std::span<PoolSizeRatio> poolRatios);
-     void  createBindlessDescriptorSetLayout();
-     VkDescriptorSet createBindlessDescriptorSet();
-     VkDescriptorSetLayout createDescriptorSetLayout(FcDescriptorBindInfo& bindingInfo
-                                                     , VkDescriptorSetLayoutCreateFlags flags = 0);
-     VkDescriptorSet createDescriptorSet(VkDescriptorSetLayout layout, FcDescriptorBindInfo& bindInfo);
-     VkDescriptorSet allocateDescriptorSet(VkDescriptorSetLayout layout, void* pNext);
-     size_t ModelUniformAlignment() { return mModelUniformAlignment; }
-     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   POOL MANAGEMENT   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-     void clearPools();
-     void destroyPools();
-     VkDescriptorPool getPool();
-     VkDescriptorPool createPools(uint32_t setCount, std::span<PoolSizeRatio> poolRatios);
      //
+     // TODO cleanup to reuse common code and eliminate duplicated methods
+     void initDescriptorPools(uint32_t maxSets, std::span<PoolSizeRatio> poolRatios);
+     //
+     VkDescriptorSetLayout createDescriptorSetLayout(FcDescriptorBindInfo& bindingInfo);
+     //
+     VkDescriptorSet createDescriptorSet(VkDescriptorSetLayout layout, FcDescriptorBindInfo& bindInfo);
+
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   POOL MANAGEMENT   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      void destroy();
   };
 

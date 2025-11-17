@@ -76,5 +76,8 @@ namespace fc
   static const float FLOAT_MIN = std::numeric_limits<float>::min();
 
   // TODO Place here for now but relocate into tweaks file
+  // Total number of textures allowed to be bound dynamically
   static const u32 MAX_BINDLESS_RESOURCES = 1024;
+  //?? not sure why we use 10 here
+  static const uint32_t BINDLESS_TEXTURE_BIND_SLOT = 10;
 }

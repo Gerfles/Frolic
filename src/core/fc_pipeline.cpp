@@ -394,15 +394,10 @@ namespace fc
   {
     // clear binding descriptions
     bindingDescription = {};
+
     // clear attribute descriptions
     attributeDescriptions.clear();
-    // from brendan galea ??
-    /* billboardConfig.disableVertexRendering(); */
   }
-
-
-
-
 
   // OLD pipeline configuration defaults
   // FcPipelineConfig::PipelineConfigInfo()
@@ -477,9 +472,9 @@ namespace fc
   //   depthStencilInfo.front = {};
   //   depthStencilInfo.back = {};
 
-  //    // -- DYNAMIC STATES --
+  // // -- DYNAMIC STATES --
 
-  //    // allow for window resizing on the fly (without recreating the pipeline)
+  //   // allow for window resizing on the fly (without recreating the pipeline)
   //    //dynamic viewport : can resize in command buffer with vkCmdSetViewPort // dynamic scissor : can resize in command buffer with vkCmdSetScissor
   //   dynamicStateEnables = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
   //    //
@@ -505,34 +500,7 @@ namespace fc
   //    // VkRect2D scissor{};
   //    // scissor.offset = {0,0};           // offset to use region from
   //    // scissor.extent = surfaceExtent; // extent to describe region to use, starting at offset
-
-
   // }
-
-
-  void FcPipeline::bind(VkCommandBuffer commandBuffer)
-  {
-    vkCmdBindPipeline(commandBuffer, mBindPoint, mPipeline);
-  }
-
-
-
-  void FcPipeline::bindDescriptorSet(VkCommandBuffer cmdBuffer, VkDescriptorSet descriptorSet
-                                   , uint32_t firstSet) const
-  {
-    // TODO make mBindPoint simpler if possible (separate compute pipeline)
-    vkCmdBindDescriptorSets(cmdBuffer, mBindPoint, mPipelineLayout
-                            , firstSet, 1, &descriptorSet, 0, nullptr);
-  }
-
-  void FcPipeline::bindDescriptorSets(VkCommandBuffer cmdBuffer, std::vector<VkDescriptorSet> sets
-                                      , uint32_t firstSet) const
-  {
-    vkCmdBindDescriptorSets(cmdBuffer, mBindPoint, mPipelineLayout, firstSet
-                            , sets.size(), sets.data(), 0, nullptr);
-  }
-
-
 
   void FcPipeline::create(FcPipelineConfig& pipelineConfig)
   {

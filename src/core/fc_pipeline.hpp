@@ -13,13 +13,13 @@ namespace fc
 {
 
 
-  struct ComputePushConstants
-  {
-     glm::vec4 data1;
-     glm::vec4 data2;
-     glm::vec4 data3;
-     glm::vec4 data4;
-  };
+  // struct ComputePushConstants
+  // {
+  //    glm::vec4 data1;
+  //    glm::vec4 data2;
+  //    glm::vec4 data3;
+  //    glm::vec4 data4;
+  // };
 
   struct ShaderInfo
   {
@@ -91,6 +91,8 @@ namespace fc
      void clear();
   }; // ---   struct FcPipelineConfigInfo2 --- (END)
 
+
+
    // TODO on all the classes that are only instantiated once per game, initialize all the vulkan pointer to VK_NULL_HANDLE
   class FcPipeline
   {
@@ -105,35 +107,58 @@ namespace fc
      const char* mName;
      uint32_t mNumDescriptorSets{0};
      uint32_t mSetIndex{0};
-      // TODO determine if this can be deleted
-     //VkDescriptorSetLayout mDescriptorSetLayout{nullptr};
-      //std::vector<VkDescriptorSet> mLinkedDescriptorSets{};
+     // TODO determine if this can be deleted
+     // VkDescriptorSetLayout mDescriptorSetLayout{nullptr};
+     // std::vector<VkDescriptorSet> mLinkedDescriptorSets{};
 
      VkShaderModule createShaderModule(const std::vector<char>& code);
      void createRenderPass();
 
    public:
-      //void create2(FcPipelineCreateInfo* pipelineInfo);
+      // void create2(FcPipelineCreateInfo* pipelineInfo);
      void create(FcPipelineConfig& configInfo);
-     void bindDescriptorSet(VkCommandBuffer cmdBuffer, VkDescriptorSet descriptorSet
-                          , uint32_t firstSet) const;
-     void bindDescriptorSets(VkCommandBuffer cmdBuffer, std::vector<VkDescriptorSet> sets
-                             , uint32_t firstSet) const;
-     void bind(VkCommandBuffer commandBuffer);
-      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     //
+     inline void bindDescriptorSet(VkCommandBuffer cmd, VkDescriptorSet descSet, uint32_t firstSet) const
+      {
+        // TODO make mBindPoint simpler if possible (separate compute pipeline)
+        // TODO provided by vulkan 1_4: use this structure and keep a static version as a
+        // member of billboard renderer so we don't need to repopulate every frame...
+        // VkBindDescriptorSetsInfo descSetsInfo{}; descSetsInfo.sType =
+        // VK_STRUCTURE_TYPE_BIND_DESCRIPTOR_SETS_INFO; descSetsInfo.layout =
+        // mPipeline.Layout(); /* descSetsInfo.firstSet = 0; */
+        // descSetsInfo.descriptorSetCount = static_cast<uint32_t>(descriptorSets.size());
+        // descSetsInfo.pDescriptorSets = descriptorSets.data();
+        // vkCmdBindDescriptorSets2(cmd, &descSetsInfo);
+        vkCmdBindDescriptorSets(cmd, mBindPoint, mPipelineLayout, firstSet, 1, &descSet, 0, nullptr);
+      }
+     //
+     inline void bindDescriptorSets(VkCommandBuffer cmd
+                                    , std::vector<VkDescriptorSet> sets, uint32_t firstSet) const
+      {
+        vkCmdBindDescriptorSets(cmd, mBindPoint, mPipelineLayout, firstSet, sets.size()
+                                , sets.data(), 0, nullptr);
+      }
+     //
+     inline void bind(VkCommandBuffer commandBuffer)
+      {
+        vkCmdBindPipeline(commandBuffer, mBindPoint, mPipeline);
+      }
+
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      FcPipeline() = default;
      ~FcPipeline() = default;
      FcPipeline(const FcPipeline&) = delete;
      FcPipeline& operator=(const FcPipeline&) = delete;
-      //
+     //
      //void populatePipelineConfig(PipelineConfigInfo& configInfo);
      // void create(const std::string& vertShaderFilename,
      //             const std::string& fragShaderFilename,
      //             const PipelineConfigInfo& configInfo);
-      // uint32_t updateTextureDescriptors(VkImageView textureImageView, VkSampler textureSampler)
-      //  { return mDescriptor.createTextureDescriptor(textureImageView, textureSampler); }
-      // GETTERS
-      //size_t ModelUniformAlignment() { return mDescriptor.ModelUniformAlignment(); }
+     // uint32_t updateTextureDescriptors(VkImageView textureImageView, VkSampler textureSampler)
+     //  { return mDescriptor.createTextureDescriptor(textureImageView, textureSampler); }
+
+     // GETTERS
+     //size_t ModelUniformAlignment() { return mDescriptor.ModelUniformAlignment(); }
      const VkPipeline& getVkPipeline()  { return mPipeline; }
      VkPipelineLayout& Layout() { return mPipelineLayout; }
      const char* Name() { return mName; }

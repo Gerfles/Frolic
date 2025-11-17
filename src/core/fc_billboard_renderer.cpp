@@ -8,10 +8,7 @@
 #include "vulkan/vulkan.h"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <map>
-
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
-
 namespace fc
 {
   //
@@ -59,20 +56,19 @@ namespace fc
                         VK_SHADER_STAGE_VERTEX_BIT);
     bindInfo.attachBuffer(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
                           , mUboBuffer, sizeof(BillboardUbo), 0);
-    //
+    bindInfo.enableBindlessTextures();
+
     FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
-    //
-    mUboDescriptorSetLayout = descClerk.createDescriptorSetLayout(bindInfo);
-    mUboDescriptorSet = descClerk.createDescriptorSet(mUboDescriptorSetLayout, bindInfo);
-    //
-    billboardConfig.addDescriptorSetLayout(mUboDescriptorSetLayout);
-    billboardConfig.addDescriptorSetLayout(descClerk.mBindlessDescriptorLayout);
+
+    VkDescriptorSetLayout bindlessLayout = descClerk.createDescriptorSetLayout(bindInfo);
 
     for (FrameAssets& frame : frames)
     {
-      frame.billboardDescriptorSet = descClerk.createBindlessDescriptorSet();
+      frame.billboardDescriptorSet = descClerk.createDescriptorSet(bindlessLayout, bindInfo);
     }
 
+    // TODO provied alternate path
+    // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NON-BINDLESS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     // add descriptorset for the texture image
     /* billboardConfig.addSingleImageDescriptorSetLayout(); */
 
@@ -80,9 +76,10 @@ namespace fc
     //                     VK_SHADER_STAGE_FRAGMENT_BIT);
     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
+    billboardConfig.addDescriptorSetLayout(bindlessLayout);
+
     mPipeline.create(billboardConfig);
   }
-
 
   //
   //
@@ -130,39 +127,16 @@ namespace fc
     // bind pipeline to be used in render pass
     mPipeline.bind(cmd);
 
-    FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
+    // bind the UBO and textures to pipeline
+    mPipeline.bindDescriptorSet(cmd, currentFrame.billboardDescriptorSet, 0);
 
-    // iterate through billboards in reverse order (to draw them back to front)
+    // iterate through billboards to draw them back to front
     for (auto& billboard : mBillboards)
     {
-      // TODO make billboard's first components compatible with pushConstants...
       vkCmdPushConstants(cmd, mPipeline.Layout(),
                          VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
                          0, sizeof(BillboardPushes),
                          billboard.get());
-
-      // TODO  update the global Ubo only once per frame, not each draw call
-      std::array<VkDescriptorSet, 1> descriptorSets;
-      descriptorSets[0] = mUboDescriptorSet;
-
-      // TODO provided by vulkan 1_4: use this structure and keep a static version as a member
-      // of billboard renderer so we don't need to repopulate every frame...
-      // VkBindDescriptorSetsInfo descSetsInfo{};
-      // descSetsInfo.sType = VK_STRUCTURE_TYPE_BIND_DESCRIPTOR_SETS_INFO;
-      // descSetsInfo.layout = mPipeline.Layout();
-      // /* descSetsInfo.firstSet = 0; */
-      // descSetsInfo.descriptorSetCount = static_cast<uint32_t>(descriptorSets.size());
-      // descSetsInfo.pDescriptorSets = descriptorSets.data();
-
-      // vkCmdBindDescriptorSets2(cmd, &descSetsInfo);
-
-      // TODO extrapolate like below or add below to array and bind once...
-      vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                              mPipeline.Layout(), 0,
-                              static_cast<uint32_t>(descriptorSets.size()),
-                              descriptorSets.data(), 0, nullptr);
-
-      mPipeline.bindDescriptorSet(cmd, currentFrame.billboardDescriptorSet, 1);
 
       // TODO accomplish all billboard draws within one draw/bind
       vkCmdDraw(cmd, 6, 1, 0, 0);
@@ -176,7 +150,5 @@ namespace fc
     mPipeline.destroy();
 
     mUboBuffer.destroy();
-
-    vkDestroyDescriptorSetLayout(FcLocator::Device(), mUboDescriptorSetLayout, nullptr);
   }
 }// --- namespace fc --- (END)

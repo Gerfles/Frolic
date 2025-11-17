@@ -103,17 +103,17 @@ namespace fc
       //
       descClerk->initDescriptorPools(1024, poolRatios);
 
-      // TODO DELETE since we will create bindless descriptor sets and store in frameAssets
-      descClerk->createBindlessDescriptorSetLayout();
 
-      for (FrameAssets& frame : mFrames)
-      {
-        frame.sceneBindlessTextureSet = descClerk->createBindlessDescriptorSet();
-      }
+      // FIXME remover or ??
+      // FcDescriptorBindInfo bindInfo;
+      // bindInfo.enableBindlessTextures();
+      // VkDescriptorSetLayout bindlessLayout = descClerk->createDescriptorSetLayout(bindInfo);
 
-      descClerk->mBindlessDescriptorSet = descClerk->createBindlessDescriptorSet();
-      descClerk->mBindlessBillboardDesc = descClerk->createBindlessDescriptorSet();
 
+      // for (FrameAssets& frame : mFrames)
+      // {
+      //   frame.sceneBindlessTextureSet = descClerk->createDescriptorSet(bindlessLayout, bindInfo);
+      // }
 
       // register the descriptor with the locator
       FcLocator::provide(descClerk);
@@ -249,7 +249,8 @@ namespace fc
 
     mSceneData.projection = pActiveCamera->Projection();
 
-    mSceneRenderer.init(mSceneDataDescriptorLayout, mSceneData.viewProj);
+    // TODO get rid of scenedescriptorLayout (I believe)
+    mSceneRenderer.init(mSceneDataDescriptorLayout, mSceneData.viewProj, mFrames);
     // TODO get rid of build pipeline calls and just do that within init
     // TODO see if we can decouple the scene descriptor layout
     mBoundingBoxRenderer.buildPipelines(mSceneDataDescriptorLayout);
@@ -717,49 +718,49 @@ namespace fc
   //
   //
   // TODO - Remove from current engine since we no longer render our own UI
-  void FcRenderer::drawUI(std::vector<FcText>& UIelements, uint32_t swapchainImageIndex)
-  {
-    // mUIrenderer.draw(UIelements, getCurrentFrame().commandBuffer, swapchainImageIndex);
+  // void FcRenderer::drawUI(std::vector<FcText>& UIelements, uint32_t swapchainImageIndex)
+  // {
+  //   // mUIrenderer.draw(UIelements, getCurrentFrame().commandBuffer, swapchainImageIndex);
 
-    VkCommandBuffer currCommandBuffer = getCurrentFrame().commandBuffer;
-    // bind pipeline to be used in render pass
-    mUiPipeline.bind(currCommandBuffer);
-    // DRAW ALL UI COMPONENTS (LAST)
-    // draw text box
-    for (size_t i = 0; i < UIelements.size(); i++)
-    {
-      vkCmdPushConstants(currCommandBuffer, mUiPipeline.Layout(),
-                         VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(BillboardPushes),
-                         // TODO require that UI elements has top members equal to billboardpushes
-                         &UIelements[i]);
+  //   VkCommandBuffer currCommandBuffer = getCurrentFrame().commandBuffer;
+  //   // bind pipeline to be used in render pass
+  //   mUiPipeline.bind(currCommandBuffer);
+  //   // DRAW ALL UI COMPONENTS (LAST)
+  //   // draw text box
+  //   for (size_t i = 0; i < UIelements.size(); i++)
+  //   {
+  //     vkCmdPushConstants(currCommandBuffer, mUiPipeline.Layout(),
+  //                        VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(BillboardPushes),
+  //                        // TODO require that UI elements has top members equal to billboardpushes
+  //                        &UIelements[i]);
 
-      VkDeviceSize offsets[] = { 0 };
-      // vkCmdBindVertexBuffers(mCommandBuffers[swapChainImageIndex], 0, 1, &font.VertexBuffer(), offsets);
-      // vkCmdBindIndexBuffer(mCommandBuffers[swapChainImageIndex], font.IndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
+  //     VkDeviceSize offsets[] = { 0 };
+  //     // vkCmdBindVertexBuffers(mCommandBuffers[swapChainImageIndex], 0, 1, &font.VertexBuffer(), offsets);
+  //     // vkCmdBindIndexBuffer(mCommandBuffers[swapChainImageIndex], font.IndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
-      // TODO don't update UBO unless changed
-      FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
+  //     // TODO don't update UBO unless changed
+  //     FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
 
-      //descriptors.update(swapchainImageIndex, &mBillboardUbo);
+  //     //descriptors.update(swapchainImageIndex, &mBillboardUbo);
 
-      std::array<VkDescriptorSet, 2> descriptorSets;
-      descriptorSets[0] = mFrames[swapchainImageIndex].sceneDataDescriptorSet;
-      descriptorSets[1] = UIelements[i].getDescriptor();
+  //     std::array<VkDescriptorSet, 2> descriptorSets;
+  //     descriptorSets[0] = mFrames[swapchainImageIndex].sceneDataDescriptorSet;
+  //     descriptorSets[1] = UIelements[i].getDescriptor();
 
 
-      vkCmdBindDescriptorSets(currCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS
-                              , mUiPipeline.Layout(), 0, static_cast<uint32_t>(descriptorSets.size())
-                              , descriptorSets.data() , 0, nullptr);
+  //     vkCmdBindDescriptorSets(currCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS
+  //                             , mUiPipeline.Layout(), 0, static_cast<uint32_t>(descriptorSets.size())
+  //                             , descriptorSets.data() , 0, nullptr);
 
-      //vkCmdDrawIndexed(mCommandBuffers[swapChainImageIndex], font.IndexCount(), 1, 0, 0, 0);
-      vkCmdDraw(currCommandBuffer, 6, 1, 0, 0);
-    }
-  }
+  //     //vkCmdDrawIndexed(mCommandBuffers[swapChainImageIndex], font.IndexCount(), 1, 0, 0, 0);
+  //     vkCmdDraw(currCommandBuffer, 6, 1, 0, 0);
+  //   }
+  // }
 
 
 
   //
-  void FcRenderer::drawBackground(ComputePushConstants& pushConstants)
+  void FcRenderer::drawBackground()
   {
     // VkCommandBuffer cmd = getCurrentFrame().commandBuffer;
 
@@ -890,6 +891,8 @@ namespace fc
 
     vkCmdEndRendering(cmd);
 
+
+    // TODO call to resource manager Update(). Do any texture uploads along with deletions...
     // ?? For now update bindless textures here, after the rendering with textures has ended
     // TRY to relocate to a more descriptive/intuitive location if possible
     if (mDrawCollection.bindlessTextureUpdates.size())
@@ -1323,6 +1326,8 @@ namespace fc
     // wait until no actions being run on device before destroying
     vkDeviceWaitIdle(pDevice);
 
+    mDrawCollection.destroy();
+
     // Destroy data buffer with scene data
     mSceneDataBuffer.destroy();
 
@@ -1363,9 +1368,6 @@ namespace fc
 
     // TODO conditionalize all elements that might not need destroying if outside
     // game is using engine and does NOT create all expected elements
-    mModelPipeline.destroy();
-
-    mUiPipeline.destroy();
 
     mSwapchain.destroy();
 

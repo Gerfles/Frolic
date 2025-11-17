@@ -65,4 +65,18 @@ namespace fc
   //   }
   //   return tab;
   // }
+
+  //
+  //
+  void FcDrawCollection::destroy()
+  {
+    // TODO check that this works appropriately for FcImage type
+    mTextures.freeAll();
+    mTextures.shutdown();
+
+    mBillboards.freeAll();
+    mBillboards.shutdown();
+  }
+
+
 }// --- namespace fc --- (END)

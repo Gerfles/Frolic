@@ -1,5 +1,4 @@
 #include "fc_descriptors.hpp"
-
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC CORE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "core/fc_buffer.hpp"
 #include "core/fc_image.hpp"
@@ -22,6 +21,8 @@
 //
 namespace fc
 {
+  //
+  //
   void FcDescriptorBindInfo::addBinding(uint32_t bindSlot, VkDescriptorType type, VkShaderStageFlags shaderStages)
   {
     VkDescriptorSetLayoutBinding layoutBinding{};
@@ -31,16 +32,40 @@ namespace fc
     layoutBinding.descriptorType = type;
     layoutBinding.descriptorCount = 1;
     layoutBinding.stageFlags = shaderStages;
-    // TODO not necessary to set but look into: for textures, can make sampler immutable (unchangeable)
-    layoutBinding.pImmutableSamplers = nullptr;
 
     layoutBindings.emplace_back(std::move(layoutBinding));
   }
 
+  //
+  //
+  void FcDescriptorBindInfo::enableBindlessTextures()
+  {
+    // Signal that this descriptor will be using bindless texture indexing
+    mIsBindlessIndexingUsed = true;
+
+    VkDescriptorSetLayoutBinding layoutBinding {};
+
+    // Create the layout binding for the textures
+    layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    layoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    // TODO use index stop thingy
+    layoutBinding.descriptorCount = MAX_BINDLESS_RESOURCES;
+    layoutBinding.binding = BINDLESS_TEXTURE_BIND_SLOT;
+
+    layoutBindings.push_back(layoutBinding);
+
+    // Create the layout binding for the storage image
+    layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    layoutBinding.binding = layoutBinding.binding + 1;
+
+    layoutBindings.push_back(layoutBinding);
+  }
+
+  //
+  //
   void FcDescriptorBindInfo::attachBuffer(uint32_t bindSlot, VkDescriptorType type
                                           ,const FcBuffer& buffer, VkDeviceSize size, VkDeviceSize offset)
   {
-
 
     VkDescriptorBufferInfo& bufferInfo =
         bufferInfos.emplace_back(VkDescriptorBufferInfo{
@@ -49,12 +74,6 @@ namespace fc
         // TODO could have size determined from FcBuffer
              .range = size
           });
-
-    // VkDescriptorBufferInfo bufferInfo;
-    //   bufferInfo.buffer = buffer.getVkBuffer();
-    //   bufferInfo.offset = offset;
-    //   bufferInfo.range = size;
-    //   bufferInfos.emplace_back(std::move(bufferInfo));
 
     VkWriteDescriptorSet descriptorWrite{};
     descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -70,59 +89,8 @@ namespace fc
     descriptorWrites.emplace_back(std::move(descriptorWrite));
   }
 
-
-  // void FcDescriptorBindInfo::attachInput(uint32_t bindSlot, VkDescriptorType type
-  //                     ,const FcImage& image, VkImageLayout layout, VkSampler imageSampler)
-  // {
-  //   VkDescriptorImageInfo& imageInfo =
-  //       imageInfos.emplace_back(VkDescriptorImageInfo{
-  //           .sampler = imageSampler,
-  //           .imageView = image.ImageView(),
-  //           .imageLayout = layout } );
-
-
-  //   VkWriteDescriptorSet descriptorWrite{};
-  //   descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-  //   descriptorWrite.descriptorType = type;
-  //   descriptorWrite.dstBinding = bindSlot;
-  //   descriptorWrite.descriptorCount = 1;
-
-
-  //   // leave blank for now until it's time to write descriptor set
-  //   descriptorWrite.dstSet = VK_NULL_HANDLE;
-  //   descriptorWrite.pBufferInfo = VK_NULL_HANDLE;
-  //   descriptorWrite.pImageInfo = &imageInfo;
-  //   //
-  //   descriptorWrites.push_back(descriptorWrite);
-  // }
-
-  // TODO use or check that is being used!
-  void FcDescriptorBindInfo::attachImageBindless(uint32_t bindSlot, VkDescriptorType type
-                      ,const FcImage& image, VkImageLayout layout, VkSampler imageSampler)
-  {
-    VkDescriptorImageInfo& imageInfo = imageInfos.emplace_back(
-      VkDescriptorImageInfo {
-        .sampler = imageSampler,
-	.imageView = image.ImageView(),
-	.imageLayout = layout
-      } );
-
-    VkWriteDescriptorSet descriptorWrite{};
-    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrite.descriptorType = type;
-    descriptorWrite.dstBinding = bindSlot;
-    descriptorWrite.descriptorCount = 1;
-
-    // leave blank for now until it's time to write descriptor set
-    descriptorWrite.dstSet = VK_NULL_HANDLE;
-    descriptorWrite.pBufferInfo = VK_NULL_HANDLE;
-    descriptorWrite.pImageInfo = &imageInfo;
-    //
-    descriptorWrites.push_back(descriptorWrite);
-  }
-
-
-
+  //
+  //
   void FcDescriptorBindInfo::attachImage(uint32_t bindSlot, VkDescriptorType type
                       ,const FcImage& image, VkImageLayout layout, VkSampler imageSampler)
   {
@@ -172,8 +140,8 @@ namespace fc
     if (isBindlessSupported)
     {
       std::array<VkDescriptorPoolSize, 2> bindlessPoolSizes { {
-          {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, MAX_BINDLESS_TEXTURES},
-          {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, MAX_BINDLESS_TEXTURES} }
+          {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, MAX_BINDLESS_RESOURCES},
+          {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, MAX_BINDLESS_RESOURCES} }
       };
 
       // Need to update after bind here, for each binding and in the descriptor set layout
@@ -181,7 +149,7 @@ namespace fc
       poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
       // required for descriptor sets that can be updated after they are already bound
       poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
-      poolInfo.maxSets = MAX_BINDLESS_TEXTURES * bindlessPoolSizes.size();
+      poolInfo.maxSets = MAX_BINDLESS_RESOURCES * bindlessPoolSizes.size();
       poolInfo.poolSizeCount = static_cast<uint32_t>(bindlessPoolSizes.size());
       poolInfo.pPoolSizes = bindlessPoolSizes.data();
 
@@ -192,199 +160,124 @@ namespace fc
     }
   }
 
-
-  void FcDescriptorClerk::createBindlessDescriptorSetLayout()
-  {
-    // First create the pool that will only be used for bindless resources
-    if (isBindlessSupported)
-    {
-      fcPrint("Creating Bindless Descriptor Set Layout\n");
-      std::array<VkDescriptorPoolSize, 2> bindlessPoolSizes { {
-          {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, MAX_BINDLESS_TEXTURES},
-          {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, MAX_BINDLESS_TEXTURES} }
-      };
-
-      std::array<VkDescriptorSetLayoutBinding, 2> layoutBindings;
-
-      // Create the layout binding for the textures
-      layoutBindings[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-      // TODO may want to use a more fine grained approach
-      /* layoutBindings[0].stageFlags = VK_SHADER_STAGE_ALL; */
-      layoutBindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-      // TODO use index stop thingy
-      layoutBindings[0].descriptorCount = MAX_BINDLESS_TEXTURES;
-      layoutBindings[0].binding = BINDLESS_TEXTURE_BIND_SLOT;
-      layoutBindings[0].pImmutableSamplers = nullptr;
-
-      // Create the layout binding for the storage image
-      layoutBindings[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-      layoutBindings[1].stageFlags = layoutBindings[0].stageFlags;
-      layoutBindings[1].descriptorCount = MAX_BINDLESS_TEXTURES;
-      layoutBindings[1].binding = layoutBindings[0].binding + 1;
-      layoutBindings[1].pImmutableSamplers = nullptr;
-
-      // bindless resources required flags
-      VkDescriptorBindingFlags bindlessFlags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT
-                                               // | VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT
-                                               | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT;
-
-      std::array<VkDescriptorBindingFlags, 2> bindingFlags = {{ bindlessFlags, bindlessFlags }};
-
-      //
-      VkDescriptorSetLayoutBindingFlagsCreateInfoEXT extendedInfo;
-      extendedInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;
-      // ?? NOTE: this pNext must be set to nullptr, thought they were always initialized to
-      // that value but somehow that's not quite right. Maybe it only important when chaining
-      extendedInfo.pNext = nullptr;
-      extendedInfo.bindingCount = bindlessPoolSizes.size();
-      extendedInfo.pBindingFlags = bindingFlags.data();
-
-      // create descriptor set layout with given bindings
-      VkDescriptorSetLayoutCreateInfo layoutInfo{};
-      layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-      layoutInfo.bindingCount = bindlessPoolSizes.size();
-      layoutInfo.pBindings = layoutBindings.data();
-      layoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
-      layoutInfo.pNext = &extendedInfo;
-
-      if (vkCreateDescriptorSetLayout(pDevice, &layoutInfo, nullptr, &mBindlessDescriptorLayout)
-          != VK_SUCCESS)
-      {
-        throw std::runtime_error("Failed to create a Vulkan descriptor set layout!");
-      }
-    }
-  }
-
-
-
-  VkDescriptorSet FcDescriptorClerk::createBindlessDescriptorSet()
-  {
-    if (isBindlessSupported)
-    {
-      // -*-*-   CREATE DESCRIPTOR SET THAT WILL BE USED FOR REST OF APPLICATION   -*-*- //
-      VkDescriptorSetVariableDescriptorCountAllocateInfo descCountInfo;
-      descCountInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
-      descCountInfo.pNext = nullptr;
-      descCountInfo.descriptorSetCount = 1;
-      uint32_t maxBindingSlot = MAX_BINDLESS_TEXTURES - 1;
-      descCountInfo.pDescriptorCounts = &maxBindingSlot;
-
-      VkDescriptorSetAllocateInfo descAllocInfo;
-      descAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-      descAllocInfo.descriptorSetCount = 1;
-      descAllocInfo.descriptorPool = mBindlessDescriptorPool;
-      descAllocInfo.pSetLayouts = &mBindlessDescriptorLayout;
-      // BUG SEEMS this is needed but not in the original
-      descAllocInfo.pNext = &descCountInfo;
-
-      VkDescriptorSet bindlessDescSet;
-      if (vkAllocateDescriptorSets(pDevice, &descAllocInfo, &bindlessDescSet) != VK_SUCCESS)
-      {
-        throw std::runtime_error("Failed to create Vulkan descriptor set!");
-      }
-
-      return bindlessDescSet;
-    }
-
-    return VK_NULL_HANDLE;
-  }
-
-
-
-
-// TODO must handle empty buffer or image list case
-   // TODO use a wrapper of some sort then delete the above method
-   // TODO determine if we should return layout or hold or return ptr to pre-build descriptors
-  VkDescriptorSetLayout
-  FcDescriptorClerk::createDescriptorSetLayout(FcDescriptorBindInfo& bindingInfo
-                                               , VkDescriptorSetLayoutCreateFlags flags)
+  //
+  //
+  VkDescriptorSetLayout FcDescriptorClerk::createDescriptorSetLayout(FcDescriptorBindInfo& bindInfo)
   {
     // create descriptor set layout with given bindings
-    VkDescriptorSetLayoutCreateInfo layoutCreateInfo{};
-    layoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutCreateInfo.bindingCount = static_cast<uint32_t>(bindingInfo.layoutBindings.size());
-    layoutCreateInfo.pBindings = bindingInfo.layoutBindings.data();
-    layoutCreateInfo.flags = flags;
-    // | VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+    VkDescriptorSetLayoutCreateInfo layoutInfo{};
+    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layoutInfo.bindingCount = static_cast<u32>(bindInfo.layoutBindings.size());
+    layoutInfo.pBindings = bindInfo.layoutBindings.data();
 
-    // bindless resources required flags
-    // VkDescriptorBindingFlags bindlessFlags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
-    //                                          VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
-    // // ?? why 4 and not 2
-    // VkDescriptorBindingFlags bindingFlags[2];
-    // bindingFlags[0] = bindlessFlags;
-    // bindingFlags[1] = bindlessFlags;
+    // Only neede if using Bindless Descriptors
+    std::vector<VkDescriptorBindingFlags> bindingFlags;
+    VkDescriptorSetLayoutBindingFlagsCreateInfoEXT extendedInfo {};
 
-    // VkDescriptorSetLayoutBindingFlagsCreateInfo extendedInfo;
-    // extendedInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
-    // extendedInfo.bindingCount = layoutCreateInfo.bindingCount;
-    // extendedInfo.pBindingFlags = bindingFlags;
+    if (bindInfo.mIsBindlessIndexingUsed && isBindlessSupported)
+    {
+      for (VkDescriptorSetLayoutBinding& binding : bindInfo.layoutBindings)
+      {
+        if (binding.descriptorCount == MAX_BINDLESS_RESOURCES)
+        { // bindless resources required flags
+          bindingFlags.push_back(VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT
+                                 | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT);
+        }
+        else
+        { // This is a normal descriptor so don't send any special flags
+        bindingFlags.push_back(0);
+        }
+      }
 
-    // layoutCreateInfo.pNext = &extendedInfo;
+      extendedInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;
+      extendedInfo.bindingCount = static_cast<u32>(bindInfo.layoutBindings.size());
+      extendedInfo.pBindingFlags = bindingFlags.data();
+
+      layoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+      layoutInfo.pNext = &extendedInfo;
+    }
 
     VkDescriptorSetLayout descriptorLayout;
 
-    if (vkCreateDescriptorSetLayout(pDevice, &layoutCreateInfo, nullptr, &descriptorLayout)
-        != VK_SUCCESS)
+    if (vkCreateDescriptorSetLayout(pDevice, &layoutInfo, nullptr, &descriptorLayout) != VK_SUCCESS)
     {
-      throw std::runtime_error("Failed to create a Vulkan Descriptor Set Layout!");
+      throw std::runtime_error("Failed to create a Vulkan descriptor set layout!");
     }
+
     return descriptorLayout;
   }
 
-
-  VkDescriptorSet FcDescriptorClerk::createDescriptorSet(VkDescriptorSetLayout layout
-                                                         , FcDescriptorBindInfo& bindingInfo)
+  //
+  //
+  VkDescriptorSet FcDescriptorClerk::createDescriptorSet(VkDescriptorSetLayout layout,
+                                                         FcDescriptorBindInfo& bindingInfo)
   {
-    VkDescriptorSet descriptorSet = allocateDescriptorSet(layout, nullptr);
-
-    for (VkWriteDescriptorSet& write : bindingInfo.descriptorWrites)
-    {
-      write.dstSet = descriptorSet;
-    }
-
-    vkUpdateDescriptorSets(pDevice, bindingInfo.descriptorWrites.size()
-                           , bindingInfo.descriptorWrites.data(), 0, nullptr);
-
-    return descriptorSet;
-  }
-
-
-VkDescriptorSet FcDescriptorClerk::allocateDescriptorSet(VkDescriptorSetLayout layout, void* pNext)
-  {
-     // Get or create a pool to allocat from
-    VkDescriptorPool nextPool = getPool();
+    VkDescriptorSet descriptorSet;
 
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.pNext = pNext;
-    allocInfo.descriptorPool = nextPool;
     allocInfo.descriptorSetCount = 1;
     allocInfo.pSetLayouts = &layout;
 
-    VkDescriptorSet descriptorSet;
-    VkResult result = vkAllocateDescriptorSets(pDevice, &allocInfo, &descriptorSet);
-
-     // Check if allocation failed and if so, try again
-    if (result == VK_ERROR_OUT_OF_POOL_MEMORY || result == VK_ERROR_FRAGMENTED_POOL)
+    if (bindingInfo.mIsBindlessIndexingUsed == true && isBindlessSupported)
     {
-      mFullPools.push_back(nextPool);
+      VkDescriptorSetVariableDescriptorCountAllocateInfo descCountInfo {};
+      descCountInfo.sType =
+        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
+      descCountInfo.descriptorSetCount = 1;
+      uint32_t maxBindingSlot = MAX_BINDLESS_RESOURCES - 1;
+      descCountInfo.pDescriptorCounts = &maxBindingSlot;
 
-      nextPool = getPool();
+      allocInfo.descriptorPool = mBindlessDescriptorPool;
+      allocInfo.pNext = &descCountInfo;
 
       if (vkAllocateDescriptorSets(pDevice, &allocInfo, &descriptorSet) != VK_SUCCESS)
       {
-        throw std::runtime_error("failed to allocate Vulkan Descriptor Set");
+        throw std::runtime_error("Failed to create Vulkan descriptor set!");
       }
     }
+    else
+    {
+      // Get or create a pool to allocat from
+      VkDescriptorPool nextPool = getPool();
+      allocInfo.descriptorPool = nextPool;
 
-    mReadyPools.push_back(nextPool);
+      VkResult result = vkAllocateDescriptorSets(pDevice, &allocInfo, &descriptorSet);
 
+      // Check if allocation failed and if so, try again
+      if (result == VK_ERROR_OUT_OF_POOL_MEMORY || result == VK_ERROR_FRAGMENTED_POOL)
+      {
+        mFullPools.push_back(nextPool);
+
+        nextPool = getPool();
+
+        if (vkAllocateDescriptorSets(pDevice, &allocInfo, &descriptorSet) != VK_SUCCESS)
+        {
+          throw std::runtime_error("failed to allocate Vulkan Descriptor Set");
+        }
+      }
+
+      mReadyPools.push_back(nextPool);
+    }
+
+    if (bindingInfo.descriptorWrites.size())
+    {
+      for (VkWriteDescriptorSet& write : bindingInfo.descriptorWrites)
+      {
+        write.dstSet = descriptorSet;
+      }
+
+      vkUpdateDescriptorSets(pDevice, bindingInfo.descriptorWrites.size()
+                             , bindingInfo.descriptorWrites.data(), 0, nullptr);
+    }
+
+    // TODO return better indicator or throw error if failed
     return descriptorSet;
   }
 
-
-    VkDescriptorPool FcDescriptorClerk::getPool()
+  //
+  //
+  VkDescriptorPool FcDescriptorClerk::getPool()
   {
     VkDescriptorPool newPool;
 
@@ -408,10 +301,11 @@ VkDescriptorSet FcDescriptorClerk::allocateDescriptorSet(VkDescriptorSetLayout l
     return newPool;
   }
 
-
-   // TODO think about getting rid of the std::span and just have simple declare of which descriptors
-   // you want and how many... this method may have advantages I'm not aware of yet however.
-  VkDescriptorPool FcDescriptorClerk::createPools(uint32_t maxSets, std::span<PoolSizeRatio> poolRatios)
+   // TODO think about getting rid of the std::span and just have simple declare of which
+   // descriptors you want and how many... this method may have advantages I'm not aware
+   // of yet however.
+  VkDescriptorPool FcDescriptorClerk::createPools(uint32_t maxSets,
+                                                  std::span<PoolSizeRatio> poolRatios)
   {
      // "One very important thing to do with pools is that when you reset a pool, it destroys all of
      // the descriptor sets allocated from it. This is very useful for things like per-frame
@@ -459,15 +353,14 @@ VkDescriptorSet FcDescriptorClerk::allocateDescriptorSet(VkDescriptorSetLayout l
     return newPool;
   }
 
-
-
-   // TODO do this automatically after create
+  // TODO do this automatically after create
   // void FcDescriptorClerk::cleanupLayoutBindings()
   // {
   //   mLayoutBindings.clear();
   // }
 
-
+  //
+  //
   void FcDescriptorClerk::clearPools()
   {
     for (VkDescriptorPool pool : mReadyPools)
@@ -485,7 +378,8 @@ VkDescriptorSet FcDescriptorClerk::allocateDescriptorSet(VkDescriptorSetLayout l
     mFullPools.clear();
   }
 
-
+  //
+  //
   void FcDescriptorClerk::destroyPools()
   {
     for (VkDescriptorPool pool : mReadyPools)
@@ -496,46 +390,30 @@ VkDescriptorSet FcDescriptorClerk::allocateDescriptorSet(VkDescriptorSetLayout l
     for (VkDescriptorPool pool : mFullPools)
     {
       vkDestroyDescriptorPool(pDevice, pool, nullptr);
-       // make sure we place the now empty pool into ready pools list
+      // make sure we place the now empty pool into ready pools list
     }
 
     mReadyPools.clear();
     mFullPools.clear();
   }
 
-
+  //
   // BUG destroy bindless resources too!!
   void FcDescriptorClerk::destroy()
   {
     std::cout << "calling: FcDescriptorClerk::destroy" << std::endl;
-    // REFERENCE FOR DYNAMIC UBOs
-     // release the memory block we have allocated for our model matrix Uniform Buffer Objects
-     // free(pModelTransferSpace);
 
-         //vkDestroyDescriptorPool(device, mSamplerDescriptorPool, nullptr);
-     //vkDestroyDescriptorSetLayout(device, mSamplerDescriptorSetLayout, nullptr);
-     // TODO  should also check all this stuff to see if it's VK_NULL_HANDLE
-
-     //vkDestroySampler(pGpu->VkDevice(), mTextureSampler, nullptr);
-
-     //vkDestroyDescriptorPool(pDevice, mDescriptorPool, nullptr);
-
-     // delete all the buffers (1 per swap chain image)
-
-    // for (auto& buffer : mGlobalUniformBuffers)
+    // TODO  should also check all this stuff to see if it's VK_NULL_HANDLE
+    // FIXME destroying bindless stuff causes segfault
+    // if (mBindlessDescriptorLayout != VK_NULL_HANDLE)
     // {
-    //    buffer.destroy();
+    //   vkDestroyDescriptorSetLayout(pDevice, mBindlessDescriptorLayout, nullptr);
     // }
 
-     // for (auto& buffer : mModelDynUniformBuffers)
-     // {
-     //   buffer.destroy();
-     // }
+    // vkDestroyDescriptorPool(pDevice, mBindlessDescriptorPool, nullptr);
 
-     //vkDestroyDescriptorSetLayout(pDevice, mUboDescriptorSetLayout, nullptr);
 
     destroyPools();
-     //vkDestroyDescriptorSetLayout(device, mLayout, nullptr);
   }
 
 }// --- namespace fc --- (END)

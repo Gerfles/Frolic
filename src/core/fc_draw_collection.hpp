@@ -53,6 +53,8 @@ namespace fc
 
      void init(FcAllocator* allocator);
      const FcSurface& getSurfaceAtIndex(uint32_t surfaceIndex);
+
+     void destroy();
   };
 
   // TODO create a class that is a collection of objects to draw with a particular pipeline

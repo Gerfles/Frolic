@@ -34,11 +34,9 @@ namespace fc
   {
    private:
      FcPipeline mPipeline;
-     std::vector<std::shared_ptr<FcBillboard>> mBillboards;
      BillboardUbo mUbo;
      FcBuffer mUboBuffer;
-     VkDescriptorSetLayout mUboDescriptorSetLayout;
-     VkDescriptorSet mUboDescriptorSet;
+     std::vector<std::shared_ptr<FcBillboard>> mBillboards;
 
    public:
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CTORS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //

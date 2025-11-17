@@ -133,10 +133,11 @@ namespace fc
                              const FcMeshNode& surface,
                              FrameAssets& currentFrame);
        void drawSurface(VkCommandBuffer cmd, const FcSurface& surface) noexcept;
-       void buildPipelines(VkDescriptorSetLayout sceneDescriptorLayout);
+       /* void buildPipelines(VkDescriptorSetLayout sceneDescriptorLayout); */
+       void buildPipelines(VkDescriptorSetLayout sceneDescriptorLayout, std::vector<FrameAssets>& frames);
      public:
        // TODO think about including a local descriptorClerk
-       void init(VkDescriptorSetLayout sceneDescriptorLayout, glm::mat4& viewProj);
+       void init(VkDescriptorSetLayout sceneDescriptorLayout, glm::mat4& viewProj, std::vector<FrameAssets>& frames);
        FcPipeline* TransparentPipeline() { return &mTransparentPipeline; }
        FcPipeline* OpaquePipeline() { return &mOpaquePipeline; }
        //

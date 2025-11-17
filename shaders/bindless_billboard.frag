@@ -18,8 +18,8 @@ layout(location = 0) in vec2 texCoords;
   } push;
 
 //
-layout(set = 1, binding = 10) uniform sampler2D globalTextures[];
-layout(set = 1, binding = 10) uniform sampler3D globalTextures3D[];
+layout(set = 0, binding = 10) uniform sampler2D globalTextures[];
+layout(set = 0, binding = 10) uniform sampler3D globalTextures3D[];
 
 layout(location = 0) out vec4 outColor; // final output color (out and in are different locations)
 

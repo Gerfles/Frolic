@@ -9,8 +9,6 @@
 #include "shadow_map.hpp"
 #include "fc_skybox.hpp"
 #include "fc_billboard_renderer.hpp"
-#include "fc_model_render_system.hpp"
-#include "fc_ui_render_system.hpp"
 #include "fc_frame_assets.hpp"
 #include "fc_bounding_box.hpp"
 #include "fc_normal_renderer.hpp"
@@ -31,7 +29,6 @@
 
 namespace fc
 {
-
   static constexpr unsigned int MAX_FRAME_DRAWS = 3;
   static constexpr unsigned int BINDLESS_DESCRIPTOR_SLOT = 10;
 
@@ -48,6 +45,12 @@ namespace fc
 #else
        const bool enableValidationLayers = true;
 #endif
+       // *-*-*-*-*-*-*-*-*-*-*-*-*-   RENDERING SUBSYSTEMS   *-*-*-*-*-*-*-*-*-*-*-*-*- //
+       FcBillboardRenderer mBillboardRenderer;
+       FcBoundingBoxRenderer mBoundingBoxRenderer;
+       FcNormalRenderer mNormalRenderer;
+
+       //
        VkDebugUtilsMessengerEXT debugMessenger;
        FcWindow mWindow;
        VkInstance mInstance = nullptr;
@@ -69,7 +72,7 @@ namespace fc
        // Only needed if we are using a compute shader to draw to the draw image
        VkDescriptorSet mDrawImageDescriptor;
        //Fc[...]renderSystem m[...]Renderer;
-       bool mShouldWindowResize{false};
+       bool mShouldWindowResize {false};
        u32 mFrameNumber {0};
        // TODO extrapolate into separate class
        VkFence mImmediateFence;
@@ -100,20 +103,11 @@ namespace fc
        // TODO may want to add to sceneRenderer but need for shadow map
        // although shadow map may also be preferred to be added to scene renderer
        FcDrawCollection mDrawCollection;
-       // - Model Rendering
-       FcModelRenderSystem mModelRenderer;
-       FcPipeline mModelPipeline;
-       // - UI Rendering
-       FcUIrenderSystem mUiRenderer;
-       FcPipeline mUiPipeline;
-       // - Billboard Rendering
-       FcBillboardRenderer mBillboardRenderer;
+
        FcBuffer materialConstants;
        FcTerrain mTerrain;
-       glm::mat4 rotationMatrix{1.0f};
-       // debugging effects
-       FcBoundingBoxRenderer mBoundingBoxRenderer;
-       FcNormalRenderer mNormalRenderer;
+       // // debugging effects
+
        FcCamera* pActiveCamera;
        SceneDataUbo mSceneData;
        FcBuffer mSceneDataBuffer;
@@ -130,22 +124,13 @@ namespace fc
        int mBoundingBoxId {-1};
 
 
-       void drawBackground(ComputePushConstants& pushConstans);
+       void drawBackground();
        FcShadowMap mShadowMap;
        /* void drawShadowMap(bool drawDebug); */
        // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   PROFILING   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
        FcTimer mTimer;
        /* FcStats stats; */
        FcSkybox mSkybox;
-       // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DEFAULTS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-       // relocate to atlas
-       // FcImage mWhiteTexture;
-       // FcImage mBlackTexture;
-       // FcImage mGreyTexture;
-       // FcImage mCheckerboardTexture;
-       // VkSampler mDefaultSamplerLinear;
-       // VkSampler mDefaultSamplerNearest;
-       //MaterialInstance defaultMaterialData;
        // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
        FcSceneRenderer mSceneRenderer;
@@ -189,18 +174,14 @@ namespace fc
        void handleWindowResize();
        uint32_t beginFrame();
        void endFrame(uint32_t swapchainImgIndex);
-       void drawUI(std::vector<FcText>& UIelements, uint32_t swapchainImgIndex);
        void drawFrame(bool drawDebugShadowMap);
        inline void setActiveCamera(FcCamera* camera) { pActiveCamera = camera; }
        // TODO add bilboards to draw collection
        inline void addBillboard(FcBillboard& billboard) { mBillboardRenderer.addBillboard(billboard); }
 
        // - GETTERS -
-       /* FcSceneRenderer* getMetalRoughMaterial() { return &mSceneRenderer; } */
-       // TODO delete this probably and place background pipeline in renderer
        inline FrameAssets& getCurrentFrame() { return mFrames[mFrameNumber % MAX_FRAME_DRAWS]; }
        inline FcDrawCollection& DrawCollection() { return mDrawCollection; }
-       // ?? is this used often enough to merit a member variable?
        inline float ScreenWidth() { return mWindow.ScreenSize().width; }
        inline float ScreenHeight() { return mWindow.ScreenSize().height; }
        inline SDL_Window* Window() { return mWindow.SDLwindow(); }

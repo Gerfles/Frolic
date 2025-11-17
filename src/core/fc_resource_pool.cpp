@@ -95,6 +95,7 @@ namespace fc
   void ResourcePool::release(u32 handle)
   {
     // TODO add bits for checking if resource is alive and use bitmasks
+
     mFreeIndices[--mFreeIndicesHead] = handle;
     --mUsedIndices;
   }

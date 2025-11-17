@@ -44,7 +44,7 @@ namespace fc
     // the following does affect the program unlike the above
     appInfo.apiVersion         = VK_API_VERSION_1_3;       // the version of Vulkan ()
 
-    VkExtent2D screenDims {1400, 1000};
+    VkExtent2D screenDims {2100, 1600};
     FcLocator::provide(screenDims);
     // Version info
     //TODO should do this in a builder class that goes out of scope when no longer needed

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/log.hpp"
 #include "fc_memory.hpp"
 #include <cstdint>
 #include <iostream>
@@ -117,7 +118,7 @@ namespace fc
       for ( uint32_t i = 0; i < firstFreeIndex; ++i)
       {
         uint32_t occupiedIndex = peekIndexAtPosition(i);
-        fcPrint("\tResource %u, %s\n", occupiedIndex, get(occupiedIndex)->name());
+        fcPrint("\tResource %u\n", occupiedIndex);
         // print all freeIndices[i];
       }
     }

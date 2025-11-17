@@ -43,10 +43,10 @@ namespace fc
   // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
 
-  void FcSceneRenderer::init(VkDescriptorSetLayout sceneDescriptorLayout, glm::mat4& viewProj)
+  void FcSceneRenderer::init(VkDescriptorSetLayout sceneDescriptorLayout, glm::mat4& viewProj, std::vector<FrameAssets>& frames)
   {
     pViewProjection = &viewProj;
-    buildPipelines(sceneDescriptorLayout);
+    buildPipelines(sceneDescriptorLayout, frames);
 
     // FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
     // // *-*-*-*-*-*-*-*-*-*-*-*-   FRAME DATA INITIALIZATION   *-*-*-*-*-*-*-*-*-*-*-*- //
@@ -80,7 +80,7 @@ namespace fc
 
   //
   // TODO remove dependency on FcRenderer pointer
-  void FcSceneRenderer::buildPipelines(VkDescriptorSetLayout sceneDescriptorLayout)
+  void FcSceneRenderer::buildPipelines(VkDescriptorSetLayout sceneDescriptorLayout, std::vector<FrameAssets>& frames)
   {
     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   OPAQUE PIPELINE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     // TODO addshader() func
@@ -148,7 +148,18 @@ namespace fc
     // Finally add the descriptor set layout for materials
     pipelineConfig.addDescriptorSetLayout(mMaterialDescriptorLayout);
 
-    pipelineConfig.addDescriptorSetLayout(descClerk.mBindlessDescriptorLayout);
+
+    FcDescriptorBindInfo bindlessBindInfo;
+    bindlessBindInfo.enableBindlessTextures();
+    VkDescriptorSetLayout bindlessLayout = descClerk.createDescriptorSetLayout(bindlessBindInfo);
+
+    for (FrameAssets& frame : frames)
+    {
+      frame.sceneBindlessTextureSet = descClerk.createDescriptorSet(bindlessLayout, bindlessBindInfo);
+    }
+
+    /* VkDescriptorSetLayout bindlessLayout = descClerk.createBindlessDescriptorSetLayout(); */
+    pipelineConfig.addDescriptorSetLayout(bindlessLayout);
 
     // TODO find a way to do this systematically with the format of the draw/depth image
     // ... probably by adding a pipeline builder to renderer and calling from frolic
@@ -344,14 +355,7 @@ namespace fc
     //   }
     // }
 
-    VkDescriptorSet bindlessTextures = FcLocator::DescriptorClerk().mBindlessDescriptorSet;
-    /* mOpaquePipeline.bindDescriptorSet(cmd, bindlessTextures, 4); */
-
     mOpaquePipeline.bindDescriptorSet(cmd, currentFrame.sceneBindlessTextureSet, 4);
-
-
-
-
 
     for (size_t i = 0; i < drawCollection.opaqueSurfaces.size(); ++i)
     {
