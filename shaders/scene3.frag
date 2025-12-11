@@ -222,7 +222,6 @@ void main()
   // Ambient lighting (note that the next IBL tutorial will replace with environment lighting)
   vec3 ambient = vec3(0.03) * albedo.rgb * occlusionFactor;
 
-
   vec3 color = ambient + emissive + (shadow * material * NdotL);
 
   // -*-*-*-*-*-*-*-*-*-*-*-*-   OUTPUT COLOR CONVERSION   -*-*-*-*-*-*-*-*-*-*-*-*- //

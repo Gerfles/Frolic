@@ -37,6 +37,8 @@ namespace fc
 
   // TODO think about expanding this to a class and to include just a single material and
   // a separate vector or FcSurfaces...
+  // TODO could potentially keep pointers to surfaces instead and use those to draw that
+  // way the draw collection doesn't need updating each time a surface is transformed
   struct FcDrawCollection
   {
      using RenderObject = std::pair<FcMaterial*, std::vector<FcSurface>>;
@@ -53,7 +55,7 @@ namespace fc
 
      void init(FcAllocator* allocator);
      const FcSurface& getSurfaceAtIndex(uint32_t surfaceIndex);
-
+     void updateMeshNode();
      void destroy();
   };
 

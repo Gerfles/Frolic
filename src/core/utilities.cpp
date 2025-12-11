@@ -179,13 +179,13 @@ namespace fc
   }
 
 
-  void printMat(glm::mat4& mat)
-  {
-    std::cout << "matrix elements: \n";
+void printMat(const glm::mat4& mat, std::string_view name)
+{
+    std::cout << name << " matrix: \n";
 
     for (int i = 0; i < 4; i++)
     {
-      std::cout << "\n| ";
+      std::cout << "| ";
       for (int j = 0; j < 4; j++)
       {
         std::cout << mat[j][i] << " ";

@@ -64,7 +64,7 @@ namespace fc
   }
 
   //
-  // TODO combine with below method (comments and such) then delete below
+  //
   // TODO brush up on the modern use of fastgltf -- seems vkguide is not the most up to date
   void FcScene::loadGltf(FcRenderer& renderer, std::string_view filepath)
   {
@@ -121,8 +121,9 @@ namespace fc
       std::cout << "Extensions Used in glTF file: ";
       for (size_t i = 0; i < gltf.extensionsUsed.size(); i++)
       {
-        std:: cout << gltf.extensionsUsed[i] << std::endl;
+        std:: cout << gltf.extensionsUsed[i];
       }
+      std::cout << std::endl;
 
       gltf = std::move(load.get());
     }
@@ -134,12 +135,6 @@ namespace fc
     //                                           {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3} };
     //
     // mDescriptorClerk.initDescriptorPools(gltf.materials.size(), poolRatios);
-
-
-    // Temporary arrays for all the objects to use while creating the GLTF data
-    // using this to first collect data then store in unordered maps later
-    std::vector<std::shared_ptr<FcSurface>> meshes;
-    std::vector<std::shared_ptr<FcNode>> nodes;
 
     // -*-*-*-*-*-*-*-*-*-*-   LOAD ALL TEXTURES AND MATERIALS   -*-*-*-*-*-*-*-*-*-*- //
     mNumMaterials = gltf.materials.size();
@@ -157,6 +152,10 @@ namespace fc
 
     MaterialConstants* sceneMaterialConstants =
       static_cast<MaterialConstants*>(mMaterialDataBuffer.getAddress());
+
+    // Temporary arrays for all the objects to use while creating the GLTF data
+    // using this to first collect data then store in unordered maps later
+    std::vector<std::shared_ptr<FcSurface>> meshes;
 
     for (fastgltf::Mesh& mesh : gltf.meshes)
     {
@@ -176,8 +175,8 @@ namespace fc
       {
         FcSubMesh newSurface;
         newSurface.startIndex = static_cast<uint32_t>(indices.size());
-        newSurface.indexCount = static_cast
-                                <uint32_t>(gltf.accessors[primitive.indicesAccessor.value()].count);
+        newSurface.indexCount =
+          static_cast<uint32_t>(gltf.accessors[primitive.indicesAccessor.value()].count);
 
         size_t initialVertex = vertices.size();
 
@@ -318,6 +317,9 @@ namespace fc
     }
 
     // -*-*-*-*-*-*-*-*-*-*-   LOAD ALL NODES AND THEIR MESHES   -*-*-*-*-*-*-*-*-*-*- //
+    // Temporary arrays for all the objects to use while creating the GLTF data
+    // using this to first collect data then store in unordered maps later
+    std::vector<std::shared_ptr<FcNode>> nodes;
     uint32_t meshNodeCount{0};
 
     for (fastgltf::Node& gltfNode : gltf.nodes)
@@ -336,8 +338,8 @@ namespace fc
         newNode = std::make_shared<FcNode>();
       }
 
+      // TODO preallocate, etc.
       nodes.push_back(newNode);
-      mNodes[gltfNode.name.c_str()];
 
       // BUG ?? not sure if this is correct check with:
       // https://fastgltf.readthedocs.io/latest/guides.html#id8
@@ -353,11 +355,11 @@ namespace fc
                              , transform.rotation[1], transform.rotation[2]);
                glm::vec3 sc(transform.scale[0], transform.scale[1], transform.scale[2]);
                //
-               glm::mat4 tm = glm::translate(glm::mat4(1.f), tl);
-               glm::mat4 rm = glm::toMat4(rot);
-               glm::mat4 sm = glm::scale(glm::mat4(1.f), sc);
+               glm::mat4 T = glm::translate(glm::mat4(1.f), tl);
+               glm::mat4 R = glm::toMat4(rot);
+               glm::mat4 S = glm::scale(glm::mat4(1.f), sc);
                //
-               newNode->localTransform = tm * rm * sm;
+               newNode->localTransform = T * R * S;
              } },
         gltfNode.transform);
     }
@@ -366,6 +368,7 @@ namespace fc
     for (int i = 0; i < gltf.nodes.size(); i++)
     {
       fastgltf::Node& gltfNode = gltf.nodes[i];
+
       std::shared_ptr<FcNode>& sceneNode = nodes[i];
 
       for (auto& child : gltfNode.children)
@@ -373,20 +376,26 @@ namespace fc
         sceneNode->mChildren.push_back(nodes[child]);
         nodes[child]->parent = sceneNode;
       }
-    }
 
-    // Find the top nodes, with no parents
-    for (auto& gltfNode : nodes)
-    {
-      if (gltfNode->parent.lock() == nullptr)
+      // Find the top nodes, with no parents
+      if (sceneNode->parent.lock() == nullptr)
       {
-        mTopNodes.push_back(gltfNode);
-        gltfNode->refreshTransform(glm::mat4{1.0f});
+        mTopNodes.push_back(sceneNode);
+        // DELETE
+        // auto m = fastgltf::getTransformMatrix(gltfNode);
+        // glm::mat4 glmTestMat = glm::mat4(m[0][0], m[0][1], m[0][2], m[0][3],
+        //                                  m[1][0], m[1][1], m[1][2], m[1][3],
+        //                                  m[2][0], m[2][1], m[2][2], m[2][3],
+        //                                  m[3][0], m[3][1], m[3][2], m[3][3]);
+        // sceneNode->refreshTransform(glmTestMat);
+        sceneNode->refreshTransforms(glm::mat4{1.0f});
       }
     }
 
     // Finally add the loaded scene into the draw collection structure
     addToDrawCollection(drawCollection);
+
+    std::cout << "Loaded GLTF file: " << filepath << std::endl;
   }
 
 
@@ -397,6 +406,7 @@ namespace fc
                                          std::vector<std::shared_ptr<FcMaterial>>& materials,
                                          std::filesystem::path& parentPath)
   {
+    fcPrintEndl("Bindlessly Loading all  materials...");
     u32 textureOffset = drawCollection.mTextures.getFirstFreeIndex();
 
     for (fastgltf::Texture& gltfTexture : gltf.textures)
@@ -495,12 +505,12 @@ namespace fc
       // TODO look into specular colors... These checks fail w/ seg fault on material.specular
       // if (material.specular->specularTexture.has_value())
       // {
-      //   fcLog("Has unused specular texture!");
+      //   fcPrintEndl("Has unused specular texture!");
       // }
 
       // if (material.specular->specularColorTexture.has_value())
       // {
-      //   fcLog("Has unused specular color texture!");
+      //   fcPrintEndl("Has unused specular color texture!");
       // }
 
       // *-*-*-*-*-*-*-*-*-*-*-*-*-   MATERIAL DATA BUFFER   *-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -510,10 +520,11 @@ namespace fc
                             , sizeof(MaterialConstants), dataBufferOffset);
 
       // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   BINDLESS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-      size_t index = material.pbrData.baseColorTexture.value().textureIndex + textureOffset;
+      size_t index;
 
       if (material.pbrData.baseColorTexture.has_value())
       {
+        index = material.pbrData.baseColorTexture.value().textureIndex + textureOffset;
         constants.colorIndex = drawCollection.mTextures.get(index)->Handle();
       }
 
@@ -559,10 +570,10 @@ namespace fc
       }
       if (material.sheen != nullptr)
       {
-        fcLog("Unimplemented Sheen Data");
+        fcPrintEndl("Unimplemented Sheen Data");
         if (material.sheen->sheenColorTexture.has_value())
         {
-          fcLog("Unimplemented Sheen Color Texture");
+          fcPrintEndl("Unimplemented Sheen Color Texture");
         }
       }
 
@@ -570,23 +581,23 @@ namespace fc
       {
         if (material.transmission->transmissionTexture.has_value())
         {
-          fcLog("Unimplemented Transmission Data");
+          fcPrintEndl("Unimplemented Transmission Data");
         }
-
         float transmission = material.transmission->transmissionFactor;
         std::cout << "Unimplemented transmission factor: " << transmission << std::endl;
+
       }
       if (material.clearcoat != nullptr)
       {
-        fcLog("Unimplemented Clearcoat Data");
+        fcPrintEndl("Unimplemented Clearcoat Data");
       }
       if (material.anisotropy != nullptr)
       {
-        fcLog("Unimplemented Anisotropy Data");
+        fcPrintEndl("Unimplemented Anisotropy Data");
       }
       if (material.iridescence != nullptr)
       {
-        fcLog("Unimplemented Iridescence Data");
+        fcPrintEndl("Unimplemented Iridescence Data");
       }
 
       // Write material parameters to buffer.
@@ -602,6 +613,8 @@ namespace fc
       materials[i]->materialSet
         = FcLocator::DescriptorClerk().createDescriptorSet(mMaterialDescriptorLayout, bindInfo);
     }
+
+    fcPrintEndl("All materials bindlessly loaded...");
   }
 
 
@@ -1059,10 +1072,6 @@ namespace fc
   //
   void FcScene::addToDrawCollection(FcDrawCollection& collection)
   {
-    // probably best to just add a new pair as needed
-    // size_t currentSize = collection.opaqueSurfaces.size();
-    // collection.opaqueSurfaces.resize(currentSize + mNumMaterials);
-
     // Only loop the topnodes which will in turn call draw on their child nodes
     for (auto& node : mTopNodes)
     {
@@ -1070,12 +1079,11 @@ namespace fc
     }
   }
 
-
-
-
-  // TODO rename most of these function to what they actually do - ie generateTextureList();
+  //
+  //
   std::vector<std::string> FcScene::LoadMaterials(const aiScene* scene)
   {
+    fcPrintEndl("Loading materials...");
     // create 1:1 sized list of textures
     std::vector<std::string> textureList(scene->mNumMaterials);
 
@@ -1250,17 +1258,16 @@ namespace fc
   //
   void FcScene::rotateInPlace(float angleDegrees, glm::vec3 axis)
   {
-    // First create rotation matrix
+    // // First create rotation matrix
     mRotationMat = glm::toMat4(glm::angleAxis(angleDegrees, axis));
 
-    // Next, translate the rotation matrix by the inverse of the original translation
+    // Next, translate the rotation matrix (back to origin) by the inverse of the original translation
     mRotationMat[3] = mRotationMat[0] * -mTranslationMat[3][0]
                       + mRotationMat[1] * -mTranslationMat[3][1]
                       + mRotationMat[2] * -mTranslationMat[3][2]
                       + mRotationMat[3];
 
-    // Finally, apply transforms so we first translate scene back to origin, then rotate,
-    // then translate back to the original position
+    // Finally, rotate then translate back to the original position
     mTransformMat = mTranslationMat * mRotationMat * mTransformMat;
   }
 
@@ -1268,6 +1275,7 @@ namespace fc
   //
   void FcScene::translate(glm::vec3 offset)
   {
+    // TODO manually update mTranslationMat
     mTranslationMat = glm::translate(glm::mat4(1.0f), offset);
     mTransformMat = mTranslationMat * mTransformMat;
   }
@@ -1283,6 +1291,7 @@ namespace fc
   //
   void FcScene::update(glm::mat4& mat, FcDrawCollection& collection)
   {
+    // TODO
     /* mTransformMat = mRotationMat * mTransformMat; */
   }
 
@@ -1291,11 +1300,14 @@ namespace fc
   void FcScene::update()
   {
     /* mTransformMat = mTranslationMat * mRotationMat * mTransformMat; */
-
     for (std::shared_ptr<FcNode>& node : mTopNodes)
     {
       node->update(mTransformMat, pRenderer->DrawCollection());
     }
+
+    // TODO write math function that alters a given matrix to the identity matrix;
+    // Reset the transformation matrix back to zero-transforms
+    mTransformMat = glm::mat4{1.0f};
   }
 
   //

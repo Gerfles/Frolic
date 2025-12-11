@@ -37,6 +37,7 @@ namespace fc
     //pipelineConfig.disableMultiSampling();
 
     pipelineConfig.enableDepthtest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
+    pipelineConfig.enableBlendingAlpha();
 
     mNormalDrawPipeline.create(pipelineConfig);
   }

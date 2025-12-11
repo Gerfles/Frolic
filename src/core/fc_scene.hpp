@@ -28,7 +28,7 @@ namespace fc
      VkDescriptorSetLayout mMaterialDescriptorLayout;
      // TODO May be better to have simple vectors instead and convert names to IDs
      // Collection of all the nodes in scene, including FcMeshNodes
-     std::unordered_map<std::string, std::shared_ptr<FcNode>> mNodes;
+     /* std::unordered_map<std::string, std::shared_ptr<FcNode>> mNodes; */
      // just the nodes that don't have a parent, for iterating through the file in tree order
      std::vector<std::shared_ptr<FcNode>> mTopNodes;
      //
@@ -83,7 +83,6 @@ namespace fc
      void update(glm::mat4& mat, FcDrawCollection& collection);
      //
      std::vector<std::string> LoadMaterials(const aiScene* scene);
-     void loadGltfMeshes(std::filesystem::path filePath);
      void loadAssimpNodes(aiNode* node, const aiScene* scene, std::vector<int>& matToTex);
      void loadAssimpMesh(aiMesh* mesh, const aiScene* scene, uint32_t textureID);
      uint32_t loadTexture(std::string filename, VkDescriptorSetLayout layout);

@@ -93,7 +93,11 @@ namespace fc
 
       // -*-*-*-*-*-*-*-*-*-*-*-*-   INITIALIZE DESCRIPTORS   -*-*-*-*-*-*-*-*-*-*-*-*- //
       FcDescriptorClerk* descClerk = new FcDescriptorClerk;
-      // TODO understand the pool ratios better
+
+      // register the descriptor with the locator
+      FcLocator::provide(descClerk);
+
+      // TODO document the pool ratios better
       std::vector<PoolSizeRatio> poolRatios = { {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 6},
                                                 {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 6},
                                                 {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 6},
@@ -102,22 +106,6 @@ namespace fc
 
       //
       descClerk->initDescriptorPools(1024, poolRatios);
-
-
-      // FIXME remover or ??
-      // FcDescriptorBindInfo bindInfo;
-      // bindInfo.enableBindlessTextures();
-      // VkDescriptorSetLayout bindlessLayout = descClerk->createDescriptorSetLayout(bindInfo);
-
-
-      // for (FrameAssets& frame : mFrames)
-      // {
-      //   frame.sceneBindlessTextureSet = descClerk->createDescriptorSet(bindlessLayout, bindInfo);
-      // }
-
-      // register the descriptor with the locator
-      FcLocator::provide(descClerk);
-
 
       initDrawImage();
 
@@ -874,13 +862,12 @@ namespace fc
 
       // TODO extrapolate functionality to frolic.cpp or cartridge
       // only draw terrain when outside of building
-      const FcSurface& building = mDrawCollection.getSurfaceAtIndex(32);
-
-      if (building.isInBounds(mSceneData.eye))
-      {
-        mTerrain.draw(cmd, mSceneData, shouldDrawWireframe);
-      }
-
+      /* const FcSurface& building = mDrawCollection.getSurfaceAtIndex(32); */
+      /* if (camera.isInside(building))... */
+      // if (building.isInBounds(mSceneData.eye))
+      // {
+      mTerrain.draw(cmd, mSceneData, shouldDrawWireframe);
+    /* } */
 
       // Draw the skybox last so that we can skip pixels with ANY object in front of it
       mSkybox.draw(cmd, currentFrame);
@@ -890,6 +877,7 @@ namespace fc
     }
 
     vkCmdEndRendering(cmd);
+
 
 
     // TODO call to resource manager Update(). Do any texture uploads along with deletions...

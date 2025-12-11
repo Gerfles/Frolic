@@ -1,5 +1,4 @@
 // normal_display.vert
-
 #version 450
 
 #extension GL_EXT_buffer_reference : require
@@ -15,8 +14,12 @@ layout(std140, set = 0, binding = 0) uniform SceneData
   //
 } sceneData;
 
-layout (location = 0) out vec3 outNormal;
-layout (location = 1) out vec4 outTangent;
+// TODO prefer this style guideline -> change other shaders to this
+layout (location = 0) out VS_OUT
+{
+  vec3 normal;
+  vec4 tangent;
+} Out;
 
 struct Vertex
 {
@@ -35,19 +38,21 @@ layout (buffer_reference, std430) readonly buffer VertexBuffer
 // push constants block
 layout(push_constant) uniform constants
 {
-  mat4 renderMatrix;
+  mat4 model;
   mat4 normalTransform;
   VertexBuffer vertexBuffer;
-} PushConstants;
+} surface;
 
 void main()
 {
-  Vertex v = PushConstants.vertexBuffer.vertices[gl_VertexIndex];
+  Vertex v = surface.vertexBuffer.vertices[gl_VertexIndex];
   // Must do the projection transform in the geometry shader since we also need to transform
   // the line end-point that we calculate inside the shader
-  gl_Position = sceneData.view * PushConstants.renderMatrix * vec4(v.position, 1.0f);
 
-  outNormal = normalize(mat3(sceneData.view * PushConstants.normalTransform) * v.normal);
-  //outNormal = normalize(mat3(PushConstants.normalTransform) * v.normal);
-  outTangent = v.tangent;
+  // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROM MESH.VERT   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+  gl_Position = surface.model * vec4(v.position, 1.0);
+
+  // Out.normal = normalize(mat3(transpose(inverse(surface.model))) * v.normal);
+  Out.normal = normalize(mat3(surface.normalTransform) * v.normal);
+  Out.tangent = v.tangent;
 }

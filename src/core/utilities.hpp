@@ -86,7 +86,8 @@ namespace fc
   static int logCount = 1;
   void fcLog(std::string header = "", int resetLogCount = -1);
   void calcFPS(uint64_t latestTick);
-  void printMat(glm::mat4& mat);
+  // TODO only the following printMat was updated, need to update the rest
+  void printMat(const glm::mat4& mat, std::string_view name);
   void printMat(glm::mat3& mat);
   void printVec(glm::vec3 vector, const char* title);
   void printVec(glm::vec4 vector, const char* title);

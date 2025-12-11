@@ -15,29 +15,43 @@ namespace fc
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FC SURFACE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 namespace fc
 {
+// TODO Can incrementally update push constants according to:
+  // https://docs.vulkan.org/guide/latest/push_constants.html
+  // May provide some benefits if done correctly
+  // TODO this is too much data for some GPU push constant limits
+  // ScenePCs are not created directly but instead are the values that the shader will recieve from
+  // pushing a FcSurface object with vkCmdPushConstants and using this struct as the size of the
+  // data sent. Then FcSurface must have the first members exactly match this structure. This will
+  // save us from having to create a ScenePushConstant to
+  struct ScenePushConstants
+  {
+     glm::mat4 worldMatrix;
+     glm::mat4 normalTransform;
+     VkDeviceAddress vertexBuffer;
+     // This structure should not be used directly but instead serves as a size indicator
+     ScenePushConstants() = delete;
+  };
 
-  // TODO probably should make a class
+  //
+  //
   class FcSurface
   {
    private:
      // ?? ?? for some reason we cant call the following class with fastgltf::mesh.name
      // since it uses an std::pmr::string that only seems to be able to bind to a public
      // class member?? TODO researce PMR
-     // std::string mName;
+     /* std::pmr::string mName; */
+     // *-*-*-*-*-*-*-*-*-   KEEP ALIGNED WITH SCENEPUSHCONSTANTS   *-*-*-*-*-*-*-*-*- //
      glm::mat4 mTransform;
      glm::mat4 mInvModelMatrix;
      VkDeviceAddress mVertexBufferAddress;
-
+     // -*-*-*-*-*-*-*-*-*-*-*-   END ALIGNMENT REQUIREMENTS   -*-*-*-*-*-*-*-*-*-*-*- //
      uint32_t mIndexCount;
      uint32_t mFirstIndex;
      FcBuffer mIndexBuffer;
      FcBuffer mVertexBuffer;
 
-
-
    public:
-
-
      Bounds mBounds;
      BoundaryBox mBoundaryBox;
 
@@ -55,6 +69,15 @@ namespace fc
      // be destroyed
      /* ~FcSurface() { destroy(); } */
 
+     inline bool operator==(const FcSurface& other) const
+      {
+        return (mVertexBufferAddress == other.mVertexBufferAddress);
+          // && (mFirstIndex == other.mFirstIndex)
+          //   && (mIndexCount == other.mIndexCount);
+      };
+
+
+
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   MUTATORS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      inline const void bindIndexBuffer(VkCommandBuffer cmd) const
       { vkCmdBindIndexBuffer(cmd, mIndexBuffer.getVkBuffer(), 0, VK_INDEX_TYPE_UINT32); }
@@ -66,7 +89,10 @@ namespace fc
      template <typename T> void uploadMesh(std::span<T> vertices, std::span<uint32_t> indices);
      //
      inline void setTransform(glm::mat4& mat)
-      { mTransform = mat; }
+      { mTransform = mat;
+        // TODO remove here if inversing/transposing in shaders (w/o using PCs)
+        mInvModelMatrix = glm::inverse(glm::transpose(mat));
+      }
      //
 
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   GETTERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //

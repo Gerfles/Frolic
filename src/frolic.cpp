@@ -103,29 +103,42 @@ namespace fc
     // we may want multiple drawcollections to add to but may want to implement
     // system in which we can swap out draw collections...
     mSunBillboard.loadTexture(mRenderer, 1., 1., "..//textures//sun.png");
+
+    // TODO set sun position as absolute -> not direction;
     mSunBillboard.setPosition(pSceneData->sunlightDirection);
+
     mRenderer.addBillboard(mSunBillboard);
 
     // TODO implement with std::optional
-    // TODO should not load and add to draw collection simultaneously
+    // TODO should not load and add to draw collection simultaneously. WHY??
     helmet.loadGltf(mRenderer, "..//models//helmet//DamagedHelmet.gltf");
+    /* helmet.loadGltf(mRenderer, "..//models//Box.gltf"); */
+    /* helmet.loadGltf(mRenderer, "..//models//MaterialsVariantsShoe.glb"); */
+    /* helmet.loadGltf(mRenderer, "..//models//rustediron//MetalRoughSpheres.gltf"); */
+    /* helmet.loadGltf(mRenderer, "..//models//BoomBoxWithAxes.gltf"); */
+    /* helmet.loadGltf(mRenderer, "..//models//MetalRoughSpheresNoTextures.gltf"); */
+    /* helmet.loadGltf(mRenderer, "..//models//ToyCar.glb"); */
+    /* helmet.loadGltf(mRenderer, "..//models//MosquitoInAmber.glb"); */
+    /* helmet.loadGltf(mRenderer, "..//models//sponza//Sponza.gltf"); */
+
     sponza.loadGltf(mRenderer, "..//models//sponza//Sponza.gltf");
-    // structure.loadGltf(mSceneRenderer, "..//models//MosquitoInAmber.glb");
-      /* helmet.loadGltf(mRenderer, "..//models//MaterialsVariantsShoe.glb"); */
-    // structure2.loadGltf(this, "..//models//Box.gltf");
-    // structure2.loadGltf(this, "..//models//GlassHurricaneCandleHolder.glb");
-    // structure2.loadGltf(mSceneRenderer, "..//models//ToyCar.glb");
-    // structure2.loadGltf(mSceneRenderer, "..//models//structure.glb");
+    /* sponza.loadGltf(mRenderer, "..//models//Box.gltf"); */
+    // sponza.loadGltf(this, "..//models//GlassHurricaneCandleHolder.glb");
+    /* sponza.loadGltf(mRenderer, "..//models//ToyCar.glb"); */
+    // sponza.loadGltf(mSceneRenderer, "..//models//structure.glb");
 
     // Posistion the loaded scenes
-    glm::vec3 translationVec = {45.0f, 9.0f, 20.0f};
+    glm::vec3 translationVec = {45.0f, 15.0f, 20.0f};
     helmet.translate(translationVec);
-    translationVec.y -= 2.0f;
+    translationVec.y = 7.0f;
     sponza.translate(translationVec);
 
     // update the moved objects
     helmet.update();
     sponza.update();
+    // translationVec.y += 2.0f;
+    // /* sponza.translate(translationVec); */
+
 
   } // --- Frolic::loadGameObjects (_) --- (END)
 
@@ -218,7 +231,6 @@ namespace fc
 
       update(deltaTime);
 
-
       // pSceneData->viewProj = pSceneData->projection * pSceneData->view;
       // pSceneData->lighSpaceTransform = mRenderer.mShadowMap.LightSpaceMatrix();
 // mSceneDataBuffer.overwriteData(&mSceneData, sizeof(SceneData));
@@ -250,16 +262,16 @@ namespace fc
 
   void Frolic::update(float deltaTime)
   {
-    angle = rotationSpeed * 0.001f;
-    glm::vec3 rotationAxis = {0.f, -1.f, 0.f};
+    if (rotationSpeed != 0)
+    {
+      angle = rotationSpeed * 0.001f;
+      glm::vec3 rotationAxis = {0.f, -1.f, 0.f};
 
-    helmet.rotateInPlace(angle, rotationAxis);
-    /* structure2.rotateInPlace(angle, rotationAxis); */
-
-    // TODO could flag draw collection items with nodes that "know" they need to be updated
-    // then draw collection could do all the updating in one go.
-    helmet.update();
-    /* structure2.update(mDrawCollection); */
+      helmet.rotateInPlace(angle, rotationAxis);
+      // // TODO could flag draw collection items with nodes that "know" they need to be updated
+      // // then draw collection could do all the updating in one go.
+      helmet.update();
+    }
   }
 
 
@@ -308,8 +320,6 @@ namespace fc
     mInput.kill();
 
     FcLight::destroyDefaultTexture();
-
-     // free all bilboards
 
     mRenderer.shutDown();
 

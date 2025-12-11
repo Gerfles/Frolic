@@ -16,7 +16,7 @@ namespace fc
   {
     FcPipelineConfig pipelineConfig{2};
     pipelineConfig.name = "skybox";
-    pipelineConfig.shaders[0].filename = "bindless_skybox.vert.spv";
+    pipelineConfig.shaders[0].filename = "skybox.vert.spv";
     pipelineConfig.shaders[0].stageFlag = VK_SHADER_STAGE_VERTEX_BIT;
     pipelineConfig.shaders[1].filename = "skybox.frag.spv";
     pipelineConfig.shaders[1].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;

@@ -393,7 +393,8 @@ namespace fc
     }
   }
 
-
+  //
+  //
   void FcSceneRenderer::drawSurface(VkCommandBuffer cmd, const FcSurface& surface) noexcept
   {
     // Only rebind pipeline and material descriptors if the material changed
@@ -410,10 +411,6 @@ namespace fc
     // TODO make all push constants address to matrix buffer and texture indices
     vkCmdPushConstants(cmd, pCurrentPipeline->Layout()
                        , VK_SHADER_STAGE_VERTEX_BIT
-                       // TODO should check to see if we can just send the address of a data
-                       // structure given the sizeof(first 3 elements) and defining the first
-                       // three elements of the data structure as those we want to pass, that
-                       // way we don't have to copy data every upload.
                        , 0, sizeof(ScenePushConstants), &surface);
     //
     // Note here that we have to offset from the initially pushed data since we

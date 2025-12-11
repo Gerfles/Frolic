@@ -38,21 +38,20 @@ layout (buffer_reference, std430) readonly buffer VertexBuffer
   Vertex vertices[];
 };
 
-// TODO too much to pass via PCs since normal limit is ~128 bytes
+// TODO too much to pass via PCs since normal PC limit is often ~128 bytes
 // push constants block
 layout(push_constant) uniform PushConstants
 {
   mat4 renderMatrix;
   mat4 normalTransform;
   VertexBuffer vertexBuffer;
-} model;
+} surface;
 
 const mat4 biasMat = mat4(
 	0.5, 0.0, 0.0, 0.0,
 	0.0, 0.5, 0.0, 0.0,
 	0.0, 0.0, 1.0, 0.0,
 	0.5, 0.5, 0.0, 1.0 );
-
 
 void main()
 {
@@ -61,9 +60,9 @@ void main()
   // alignas(16) MaterialData
   // MaterialData MaterialConstant.model
 
-  Vertex v = model.vertexBuffer.vertices[gl_VertexIndex];
+  Vertex v = surface.vertexBuffer.vertices[gl_VertexIndex];
 
-  vec4 positionWorld = model.renderMatrix * vec4(v.position, 1.0);
+  vec4 positionWorld = surface.renderMatrix * vec4(v.position, 1.0);
 
   // TODO find out which version is correct
   outPosWorld = positionWorld.xyz;
@@ -72,20 +71,12 @@ void main()
   gl_Position = sceneData.viewProj * positionWorld;
   // gl_Position = sceneData.viewProj * model.renderMatrix * vec4(v.position, 1.0f);
 
-  //gl_Position = vec4(v.position, 1.0);
-
-  //gl_Position = sceneData.proj * sceneData.view * positionWorld;
-
   // TODO verify equivalence
-//  outPosLightSpace = sceneData.lightSpaceTransform * positionWorld;
-  // outPosLightSpace = (biasMat * sceneData.lightSpaceTransform * model.renderMatrix) * vec4(v.position, 1.0);
-  outPosLightSpace = (sceneData.lightSpaceTransform * model.renderMatrix) * vec4(v.position, 1.0);
-  // outNormal = mat3(sceneData.proj * sceneData.view * model.normalTransform) * v.normal;
-  outNormal = mat3(model.normalTransform) * v.normal;
-  // outNormal = mat3(inverse(transpose(model.renderMatrix))) * v.normal;
+ outPosLightSpace = sceneData.lightSpaceTransform * positionWorld;
+ outNormal = mat3(surface.normalTransform) * v.normal;
 
-  outUV.x = v.uv_x;
-  outUV.y = v.uv_y;
+ outUV.x = v.uv_x;
+ outUV.y = v.uv_y;
 
-  outTangent = v.tangent;
+ outTangent = v.tangent;
 }
