@@ -42,6 +42,7 @@ namespace fc
      // class member?? TODO researce PMR
      /* std::pmr::string mName; */
      // *-*-*-*-*-*-*-*-*-   KEEP ALIGNED WITH SCENEPUSHCONSTANTS   *-*-*-*-*-*-*-*-*- //
+     // TODO keep mTransform etc as ptr if possible??
      glm::mat4 mTransform;
      glm::mat4 mInvModelMatrix;
      VkDeviceAddress mVertexBufferAddress;
@@ -88,11 +89,14 @@ namespace fc
      //
      template <typename T> void uploadMesh(std::span<T> vertices, std::span<uint32_t> indices);
      //
-     inline void setTransform(glm::mat4& mat)
-      { mTransform = mat;
-        // TODO remove here if inversing/transposing in shaders (w/o using PCs)
-        mInvModelMatrix = glm::inverse(glm::transpose(mat));
+     // TODO set transform via ptr
+     inline void setTransform(glm::mat4& mat) { mTransform = mat;
+
+       mInvModelMatrix = glm::inverse(glm::transpose(mat));
       }
+     //
+     // TODO remove here if inversing/transposing in shaders (w/o using PCs)
+     inline void setInverseModelMatrix(glm::mat4& mat) { mInvModelMatrix = mat; }
      //
 
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   GETTERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //

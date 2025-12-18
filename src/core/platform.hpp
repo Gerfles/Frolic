@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <glm/ext/matrix_float4x4.hpp>
 #include <limits>
 #include <stdint.h>
 #include <sys/types.h>
@@ -80,4 +81,6 @@ namespace fc
   static const u32 MAX_BINDLESS_RESOURCES = 1024;
   //?? not sure why we use 10 here
   static const uint32_t BINDLESS_TEXTURE_BIND_SLOT = 10;
+
+  static const glm::mat4 ID_MATRIX{1.0f};
 }

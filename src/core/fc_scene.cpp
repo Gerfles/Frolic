@@ -72,7 +72,10 @@ namespace fc
     VkDevice pDevice = FcLocator::Device();
     pRenderer = &renderer;
 
-    std::cout << "Loading GLTF file: " << filepath << std::endl;
+    size_t filenamePos = filepath.find_last_of('/');
+    mName = filepath.substr(filenamePos + 1);
+
+    std::cout << "Loading GLTF file: " << mName << std::endl;
 
     constexpr fastgltf::Extensions extensions =
       fastgltf::Extensions::KHR_materials_clearcoat
@@ -322,8 +325,11 @@ namespace fc
     std::vector<std::shared_ptr<FcNode>> nodes;
     uint32_t meshNodeCount{0};
 
+    int nodeNumber = 0;
     for (fastgltf::Node& gltfNode : gltf.nodes)
     {
+      nodeNumber++;
+      fcPrintEndl("Node#%i", nodeNumber);
       std::shared_ptr<FcNode> newNode;
 
       // find if the gltfNode has a mesh, if so, hook it it to the mesh pointer and allocate it with MeshNode class
@@ -341,13 +347,16 @@ namespace fc
       // TODO preallocate, etc.
       nodes.push_back(newNode);
 
-      // BUG ?? not sure if this is correct check with:
+      // Refe
       // https://fastgltf.readthedocs.io/latest/guides.html#id8
+      // Extract the node transform matrix from the glTF file
       std::visit(fastgltf::visitor {
+          // Call this lambda if the glTF includes a transform matrix already
           [&] (fastgltf::math::fmat4x4 matrix)
            {
              memcpy(&newNode->localTransform, matrix.data(), sizeof(matrix));
            },
+            // Call this lamda if we need to build the transform matrix from rotation, scale, translate
             [&](fastgltf::TRS transform)
              {
                glm::vec3 tl(transform.translation[0], transform.translation[1], transform.translation[2]);
@@ -381,13 +390,7 @@ namespace fc
       if (sceneNode->parent.lock() == nullptr)
       {
         mTopNodes.push_back(sceneNode);
-        // DELETE
-        // auto m = fastgltf::getTransformMatrix(gltfNode);
-        // glm::mat4 glmTestMat = glm::mat4(m[0][0], m[0][1], m[0][2], m[0][3],
-        //                                  m[1][0], m[1][1], m[1][2], m[1][3],
-        //                                  m[2][0], m[2][1], m[2][2], m[2][3],
-        //                                  m[3][0], m[3][1], m[3][2], m[3][3]);
-        // sceneNode->refreshTransform(glmTestMat);
+        // TEST dependency
         sceneNode->refreshTransforms(glm::mat4{1.0f});
       }
     }
@@ -423,8 +426,21 @@ namespace fc
         throw std::runtime_error("invalid texture index");
       }
 
+      // Load the Texture image
       newTexture->loadFromGltf(parentPath, gltf, gltf.images[gltfTexture.imageIndex.value()]);
-      newTexture->setSampler(gltf.samplers[gltfTexture.samplerIndex.value()]);
+
+      // Check that the glTF has a filter and if not, set a default
+      if (gltfTexture.samplerIndex.has_value())
+      {
+        newTexture->setSampler(gltf.samplers[gltfTexture.samplerIndex.value()]);
+      }
+      else
+      {
+        fastgltf::Sampler dummySampler;
+        dummySampler.minFilter = fastgltf::Filter::Nearest;
+        dummySampler.magFilter = fastgltf::Filter::Nearest;
+        newTexture->setSampler(dummySampler);
+      }
 
       // If image failed to load, assign default image so we can continue loading scene
       if (!newTexture->isValid())
@@ -1072,7 +1088,7 @@ namespace fc
   //
   void FcScene::addToDrawCollection(FcDrawCollection& collection)
   {
-    // Only loop the topnodes which will in turn call draw on their child nodes
+    // Only loop the topnodes which will recurse through their child nodes
     for (auto& node : mTopNodes)
     {
       node->addToDrawCollection(collection);
@@ -1246,7 +1262,7 @@ namespace fc
 
   //
   //
-  void FcScene::rotate(float angleDegrees, glm::vec3 axis)
+  void FcScene::rotate(float angleDegrees, glm::vec3& axis)
   {
     // TODO optimize rotational proceedure via matrix/quaternion manipulation
     mRotationMat = glm::toMat4(glm::angleAxis(angleDegrees, axis));
@@ -1256,7 +1272,7 @@ namespace fc
 
   //
   //
-  void FcScene::rotateInPlace(float angleDegrees, glm::vec3 axis)
+  void FcScene::rotateInPlace(float angleDegrees, glm::vec3& axis)
   {
     // // First create rotation matrix
     mRotationMat = glm::toMat4(glm::angleAxis(angleDegrees, axis));
@@ -1268,23 +1284,26 @@ namespace fc
                       + mRotationMat[3];
 
     // Finally, rotate then translate back to the original position
-    mTransformMat = mTranslationMat * mRotationMat * mTransformMat;
+    /* mTransformMat = mTranslationMat * mRotationMat * mTransformMat; */
   }
 
   //
   //
-  void FcScene::translate(glm::vec3 offset)
+  void FcScene::translate(glm::vec3& offset)
   {
-    // TODO manually update mTranslationMat
-    mTranslationMat = glm::translate(glm::mat4(1.0f), offset);
-    mTransformMat = mTranslationMat * mTransformMat;
+    // TODO manually update mTranslationMat with inline function
+    /* mTranslationMat = glm::translate(ID_MATRIX, offset); */
+    mTranslationMat = glm::translate(mTranslationMat, offset);
   }
 
   //
-  // TODO implement
-  void FcScene::scale(const glm::vec3 axisFactors)
+  //
+  // Since scaling is less common in practice, we will update the transform matrix after
+  // a scale in order to save an additional... TODO
+  void FcScene::scale(const glm::vec3& axisFactors)
   {
-
+    glm::mat4 scale = glm::scale(ID_MATRIX, axisFactors);
+    mTransformMat = scale * mTransformMat;
   }
 
   //
@@ -1299,7 +1318,8 @@ namespace fc
   //
   void FcScene::update()
   {
-    /* mTransformMat = mTranslationMat * mRotationMat * mTransformMat; */
+    mTransformMat = mTranslationMat * mRotationMat * mTransformMat;
+
     for (std::shared_ptr<FcNode>& node : mTopNodes)
     {
       node->update(mTransformMat, pRenderer->DrawCollection());
@@ -1307,7 +1327,7 @@ namespace fc
 
     // TODO write math function that alters a given matrix to the identity matrix;
     // Reset the transformation matrix back to zero-transforms
-    mTransformMat = glm::mat4{1.0f};
+    /* mTransformMat = ID_MATRIX; */
   }
 
   //
@@ -1388,6 +1408,49 @@ namespace fc
       currentMaterial++;
     }
   }
+
+  //
+  //
+  void FcScene::drawSceneGraph()
+  {
+    fcPrintEndl("\nScene: %s  -- (%i top nodes)", mName.c_str(), mTopNodes.size());
+
+    for (size_t i = 0; i < mTopNodes.size(); ++i)
+    {
+      std::string nodeID = "";
+      nodeID = nodeID + std::to_string(i+1);
+      fcPrint("Top Node #%i (%i children)\n", i+1, mTopNodes[i]->mChildren.size());
+      printNode(mTopNodes[i], nodeID);
+    }
+    std::cout << std::endl;
+  }
+
+  //
+  // Visualizing scene nodes to be used for debugging purposes only
+  void FcScene::printNode(std::shared_ptr<FcNode>& node, std::string& nodeID)
+  {
+    int childNum = 1;
+    for (std::shared_ptr<FcNode>& node : node->mChildren)
+    {
+      // Print the properly formated/nested ID number
+      std::string subNodeID = nodeID;
+      subNodeID = subNodeID + "." + std::to_string(childNum);
+      size_t count = std::ranges::count(subNodeID, '.');
+      for (size_t i = 0; i < count; ++i)
+      {
+        std::cout << "   ";
+      }
+      fcPrint("|-->Child Node #%s (%i children)\n", subNodeID.c_str(), node->mChildren.size());
+
+      // print any child nodes of this current node
+      printNode(node, subNodeID);
+
+      childNum++;
+    }
+  }
+
+
+
 
   //
   //

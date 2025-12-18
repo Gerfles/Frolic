@@ -505,10 +505,9 @@ namespace fc
   void FcPipeline::create(FcPipelineConfig& pipelineConfig)
   {
     // TODO CREATE SOME ASSERTS!!!
+    /* std::cout << "Creating Pipeline: " << pipelineConfig.name << std::endl; */
 
-    std::cout << "Creating Pipeline: " << pipelineConfig.name << std::endl;
     // -*-*-*-*-*-*-*-*-*-*-*-*-   CREATE PIPELINE LAYOUT   -*-*-*-*-*-*-*-*-*-*-*-*- //
-
     // save a pointer to the device instance
     VkDevice pDevice = FcLocator::Device();
 

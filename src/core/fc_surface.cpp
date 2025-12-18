@@ -81,11 +81,11 @@ namespace fc
 
     /* mIndexBuffer = meshNode->mMesh->IndexBuffer(); */
     mIndexBuffer.setVkBuffer(meshNode->mMesh->mIndexBuffer.getVkBuffer());
-    mTransform = meshNode->worldTransform;
+    mTransform = meshNode->localTransform;
 
     // BUG this won't get properly updated when model is transformed,
     // need to use reference or otherwise update
-    mInvModelMatrix = glm::inverse(glm::transpose(meshNode->worldTransform));
+    mInvModelMatrix = glm::inverse(glm::transpose(meshNode->localTransform));
     mVertexBufferAddress = meshNode->mMesh->mVertexBufferAddress;
   }
 

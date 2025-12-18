@@ -866,7 +866,7 @@ namespace fc
       /* if (camera.isInside(building))... */
       // if (building.isInBounds(mSceneData.eye))
       // {
-      mTerrain.draw(cmd, mSceneData, shouldDrawWireframe);
+      /* mTerrain.draw(cmd, mSceneData, shouldDrawWireframe); */
     /* } */
 
       // Draw the skybox last so that we can skip pixels with ANY object in front of it
@@ -877,8 +877,6 @@ namespace fc
     }
 
     vkCmdEndRendering(cmd);
-
-
 
     // TODO call to resource manager Update(). Do any texture uploads along with deletions...
     // ?? For now update bindless textures here, after the rendering with textures has ended

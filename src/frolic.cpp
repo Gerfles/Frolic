@@ -65,6 +65,10 @@ namespace fc
     // TODO Make sure this deallocates properly
     mStackAllocator.init( megabytes(8) );
 
+    // TODO should explicitly enable or disable non-uniform scaling utilizing functors for
+    // actual function call to
+
+
     // TODO pull some stuff out of render initialize and have init VK systems?
     // TODO define our own exception classes and failure codes for debugging later
     if (mRenderer.init(appInfo, screenDims, &pSceneData) != EXIT_SUCCESS)
@@ -83,7 +87,7 @@ namespace fc
     mPlayer.init(&mInput);
 
     // Initialize simple first person camera
-    mPlayer.Camera().setPerspectiveProjection(66.0f, FcLocator::ScreenDims().width
+    mPlayer.Camera().setPerspectiveProjection(64.0f, FcLocator::ScreenDims().width
                                              , FcLocator::ScreenDims().height, 512.f, 0.1f);
     // TODO make sure all reference returns are const to avoid something like:
     // mPlayer.Camera().Projection()[1][1] *= -1;
@@ -111,35 +115,36 @@ namespace fc
 
     // TODO implement with std::optional
     // TODO should not load and add to draw collection simultaneously. WHY??
-    helmet.loadGltf(mRenderer, "..//models//helmet//DamagedHelmet.gltf");
+    /* helmet.loadGltf(mRenderer, "..//models//helmet//DamagedHelmet.gltf"); */
     /* helmet.loadGltf(mRenderer, "..//models//Box.gltf"); */
     /* helmet.loadGltf(mRenderer, "..//models//MaterialsVariantsShoe.glb"); */
-    /* helmet.loadGltf(mRenderer, "..//models//rustediron//MetalRoughSpheres.gltf"); */
-    /* helmet.loadGltf(mRenderer, "..//models//BoomBoxWithAxes.gltf"); */
-    /* helmet.loadGltf(mRenderer, "..//models//MetalRoughSpheresNoTextures.gltf"); */
+    helmet.loadGltf(mRenderer, "..//models//rustediron//MetalRoughSpheres.gltf");
+
     /* helmet.loadGltf(mRenderer, "..//models//ToyCar.glb"); */
     /* helmet.loadGltf(mRenderer, "..//models//MosquitoInAmber.glb"); */
+    /* helmet.loadGltf(mRenderer, "..//models//BoomBoxWithAxes//glTF//BoomBoxWithAxes.gltf"); */
     /* helmet.loadGltf(mRenderer, "..//models//sponza//Sponza.gltf"); */
 
     sponza.loadGltf(mRenderer, "..//models//sponza//Sponza.gltf");
+
     /* sponza.loadGltf(mRenderer, "..//models//Box.gltf"); */
     // sponza.loadGltf(this, "..//models//GlassHurricaneCandleHolder.glb");
     /* sponza.loadGltf(mRenderer, "..//models//ToyCar.glb"); */
     // sponza.loadGltf(mSceneRenderer, "..//models//structure.glb");
 
     // Posistion the loaded scenes
-    glm::vec3 translationVec = {45.0f, 15.0f, 20.0f};
+    glm::vec3 translationVec = {45.0f, 10.0f, 20.0f};
+    /* helmet.scale(glm::vec3{10.0f, 10.0f, 10.0f}); */
+
     helmet.translate(translationVec);
+    helmet.update();
+
     translationVec.y = 7.0f;
     sponza.translate(translationVec);
 
-    // update the moved objects
-    helmet.update();
+    // // update the moved objects
+
     sponza.update();
-    // translationVec.y += 2.0f;
-    // /* sponza.translate(translationVec); */
-
-
   } // --- Frolic::loadGameObjects (_) --- (END)
 
 

@@ -12,7 +12,6 @@ namespace fc
 
   void FcNode::refreshTransforms(const glm::mat4& parentMatrix)
   {
-    /* worldTransform = parentMatrix * localTransform; */
     localTransform = parentMatrix * localTransform;
     for (std::shared_ptr<FcNode>& child : mChildren)
     {
@@ -51,10 +50,14 @@ namespace fc
 
     /* printMat(worldTransform, "update(node) worldTransform"); */
     // fcPrintEndl("world transform");
-    // printMat(worldTransform);
-    localTransform = topMatrix * localTransform;
+    /* printMat(localTransform, "local Transform before:"); */
+    /* localTransform = topMatrix * localTransform; */
+    /* printMat(localTransform, "local Transform after:"); */
     /* localTransform = topMatrix * localTransform * worldTransform * topMatrix; */
     /* glm::mat4 transform = topMatrix * worldTransform; */
+    /* localTransform = topMatrix * localTransform; */
+    /* glm::mat4 nodeMatrix = topMatrix * localTransform; */
+
     for (std::shared_ptr<FcNode>& child : mChildren)
     {
       child->update(topMatrix, collection);
@@ -65,16 +68,13 @@ namespace fc
   //
   void FcMeshNode::update(const glm::mat4& topMatrix, FcDrawCollection& collection)
   {
-    // fcPrintEndl("In FcMeshNode::update()");
-    // printMat(worldTransform, "worldTransform");
-    // printMat(localTransform, "localTransform");
+    glm::mat4 nodeMatrix = topMatrix * localTransform;
 
-    /* worldTransform = topMatrix * localTransform; */
-    /* localTransform = topMatrix * localTransform; */
-    /* localTransform = topMatrix * localTransform; */
+    // TODO think about making update() a member function of FcDrawCollection
+
+
     FcNode::update(topMatrix, collection);
-    updateDrawCollection(collection);
-    // mMesh.get()->setTransform(localTransform);
+    updateDrawCollection(collection, nodeMatrix);
     /* FcNode::addToDrawCollection(collection); */
   }
 
@@ -131,22 +131,33 @@ namespace fc
   }
 
   // TODO might be able to avoid updating draw collection if we only add references when we call addToDrawCollection()
-  void FcMeshNode::updateDrawCollection(FcDrawCollection& collection)
+  void FcMeshNode::updateDrawCollection(FcDrawCollection& collection, glm::mat4& updateMatrix)
   {
     using RenderObject = std::pair<FcMaterial*, std::vector<FcSurface>>;
 
     // TODO this may be a slow section due to cycling through all renderObjects. Would be better probably
     // just to re-add the updated mesh node to the draw collection!
+    int i = 0;
+    int j = 0;
+
+    fcPrintEndl("Updating: Mesh Node");
     for (auto& renderObject : collection.opaqueSurfaces)
     {
       for (FcSurface& surface : renderObject.second)
       {
         if (*mMesh.get() == surface)
         {
-          surface.setTransform(localTransform);
+          surface.setTransform(updateMatrix);
+          // TODO remove normal transform setting from setTransform and do conditionally
+          // based on whether or not we have non-uniform scaling enabled.
+          fcPrintEndl("found surface at renderObject#%i, surface#%i", i, j);
+          /* break; */
         }
+        i++;
       }
+      j++;
     }
+
 
     // // iterate through all the submeshes within the surface of FcMeshNode
     // for (const FcSubMesh& subMesh : mMesh->mMeshes)
@@ -238,6 +249,7 @@ namespace fc
     }
 
     // allocate enough lists in visible surfaces vector to store indices for each material
+    // TODO should probably resize in chunks
     collection.visibleSurfaceIndices.resize(collection.opaqueSurfaces.size()+1);
 
     // recurse down children nodes

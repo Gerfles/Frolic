@@ -14,7 +14,7 @@ namespace fc
   using FcHandle = u32;
 
   //
-  // TODO eliminate or expand
+  // TODO either eliminate or expand usefulness
   struct ResourceUpdate
   {
      ResourceDeletionType type;
@@ -42,6 +42,7 @@ namespace fc
   struct FcDrawCollection
   {
      using RenderObject = std::pair<FcMaterial*, std::vector<FcSurface>>;
+     // TODO should use a hashmap since we are not accessing via index and need fast access!
      std::vector<RenderObject> opaqueSurfaces;
      std::vector<RenderObject> transparentSurfaces;
      std::vector<std::vector<size_t>> visibleSurfaceIndices;

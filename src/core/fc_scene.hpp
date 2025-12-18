@@ -34,9 +34,12 @@ namespace fc
      //
      glm::mat4 mTransformMat{1.f};
      glm::mat4 mRotationMat{1.f};
-     glm::mat4 mTranslationMat{1.0f};
+     glm::mat4 mTranslationMat{1.f};
      FcBuffer mMaterialDataBuffer;
      //
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   HELPERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     void printNode(std::shared_ptr<FcNode>& node, std::string& nodeID);
+
    public:
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CTORS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      //
@@ -73,10 +76,10 @@ namespace fc
      //
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   TRANSFORMS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      //
-     void rotate(float angleDegrees, glm::vec3 axis);
-     void rotateInPlace(float angleDegrees, glm::vec3 axis);
-     void translate(glm::vec3 offset);
-     void scale(const glm::vec3 axisFactors);
+     void rotate(float angleDegrees, glm::vec3& axis);
+     void rotateInPlace(float angleDegrees, glm::vec3& axis);
+     void translate(glm::vec3& offset);
+     void scale(const glm::vec3& axisFactors);
      // NOTE: must call update after any transform in order to change the scene in DrawCollection
      void update();
      // update only using the supplied matrix (not the member matrix)
@@ -89,6 +92,8 @@ namespace fc
      const uint32_t NumMaterials() { return mNumMaterials; }
      /* void setModelMatrix(glm::mat4 modelMatrix) { mModelMatrix = modelMatrix; } */
      //
+     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   TOOLS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     void drawSceneGraph();
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   GETTERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      //
      /* const glm::mat4& ModelMatrix() const { return mTransformMat; } */

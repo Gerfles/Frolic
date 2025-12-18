@@ -36,6 +36,13 @@ namespace fc
   }
 
 
+  void FcDrawCollection::updateMeshNode()
+  {
+
+  }
+
+
+
   // void FcDrawCollection::addTexture(const FcImage& texture)
   // {
   //   if (mIsBindlessSupported)
