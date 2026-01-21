@@ -174,7 +174,7 @@ namespace fc
       vertices.clear();
 
       // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   LOAD INDICES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-      for (auto&& primitive : mesh.primitives)
+      for (auto& primitive : mesh.primitives)
       {
         FcSubMesh newSurface;
         newSurface.startIndex = static_cast<uint32_t>(indices.size());
@@ -336,7 +336,7 @@ namespace fc
       if (gltfNode.meshIndex.has_value())
       {
         newNode = std::make_shared<FcMeshNode>();
-        static_cast<FcMeshNode*>(newNode.get())->mMesh = meshes[*gltfNode.meshIndex];
+        static_cast<FcMeshNode*>(newNode.get())->mSurface = meshes[*gltfNode.meshIndex];
         meshNodeCount++;
       }
       else

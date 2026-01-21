@@ -1,6 +1,7 @@
 //>_ fc_billboard_renderer.cpp _<//
 #include "fc_billboard_renderer.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "fc_frame_assets.hpp"
 #include "fc_locator.hpp"
 #include "fc_gpu.hpp"
 #include "fc_scene.hpp"

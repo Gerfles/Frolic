@@ -84,7 +84,7 @@ namespace fc
     debugPipelineConfig.shaders[1].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
     debugPipelineConfig.shaders[1].filename = "shadow_map_display.frag.spv";
 
-    // add push constants
+    // add push constantsb
     VkPushConstantRange pushRange;
     pushRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     pushRange.offset = 0;
@@ -244,7 +244,6 @@ namespace fc
     dependencyInfo.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
     dependencyInfo.memoryBarrierCount = 1;
     dependencyInfo.pMemoryBarriers = &memoryBarrier;
-
 
     vkCmdPipelineBarrier2(cmd, &dependencyInfo);
 

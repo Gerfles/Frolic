@@ -45,6 +45,7 @@ namespace fc
 
   // TODO merge with FcMaterial or aleviate confusion between FcMesh, FcSubMesh, FcSurface, etc.
   // Maybe DOCUMENT!!! could rename renderMesh if using as a more lightweight class
+  //
   struct FcSubMesh
   {
      uint32_t startIndex{0};

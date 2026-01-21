@@ -42,7 +42,7 @@ namespace fc
      inline const glm::vec4& operator[](size_t index) const { return mCorners[index]; }
   };
 
-
+  // TODO extrapolate renderSubsystem into base class...
   class FcBoundingBoxRenderer
   {
    private:

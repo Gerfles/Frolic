@@ -53,16 +53,19 @@ namespace fc
      FcBuffer mVertexBuffer;
 
    public:
+     // TODO determine or elaborate why we need both bounds and boundary box
      Bounds mBounds;
      BoundaryBox mBoundaryBox;
 
      // TODO think about storing separate surface subMeshes based on material type / pipeline
      // pair data structure so we can just iterate through the whole thing
      std::vector<FcSubMesh> mMeshes;
-     // Constructor used when adding to draw collection
+
      // -*-*-*-*-*-*-*-*-*-*-*-*-   CONSTRUCTORS / CLEANUP   -*-*-*-*-*-*-*-*-*-*-*-*- //
-     FcSurface(const FcSubMesh& surface, FcMeshNode* meshNode);
+     // Constructor used when adding to draw collection
+     FcSurface(const FcSubMesh& subMesh, FcMeshNode* meshNode);
      //
+     // DELETE??
      FcSurface() = default;
      // TODO should think about adding destructors on objects that call destroy() if needed.
      void destroy();
@@ -73,8 +76,8 @@ namespace fc
      inline bool operator==(const FcSurface& other) const
       {
         return (mVertexBufferAddress == other.mVertexBufferAddress);
-          // && (mFirstIndex == other.mFirstIndex)
-          //   && (mIndexCount == other.mIndexCount);
+        // && (mFirstIndex == other.mFirstIndex)
+        //   && (mIndexCount == other.mIndexCount);
       };
 
 

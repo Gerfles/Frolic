@@ -87,10 +87,10 @@ namespace fc
     mPlayer.init(&mInput);
 
     // Initialize simple first person camera
-    mPlayer.Camera().setPerspectiveProjection(64.0f, FcLocator::ScreenDims().width
+    mPlayer.Camera().setPerspectiveProjection(62.0f, FcLocator::ScreenDims().width
                                              , FcLocator::ScreenDims().height, 512.f, 0.1f);
     // TODO make sure all reference returns are const to avoid something like:
-    // mPlayer.Camera().Projection()[1][1] *= -1;
+    /* mPlayer.Camera().Projection()[1][1] *= -1; */
 
     mRenderer.setActiveCamera(&mPlayer.Camera());
     mRenderer.initDefaults();//mSceneDataBuffer, &mSceneData);
@@ -143,7 +143,6 @@ namespace fc
     sponza.translate(translationVec);
 
     // // update the moved objects
-
     sponza.update();
   } // --- Frolic::loadGameObjects (_) --- (END)
 

@@ -862,12 +862,12 @@ namespace fc
 
       // TODO extrapolate functionality to frolic.cpp or cartridge
       // only draw terrain when outside of building
-      /* const FcSurface& building = mDrawCollection.getSurfaceAtIndex(32); */
-      /* if (camera.isInside(building))... */
-      // if (building.isInBounds(mSceneData.eye))
-      // {
-      /* mTerrain.draw(cmd, mSceneData, shouldDrawWireframe); */
-    /* } */
+      const FcSurface& building = mDrawCollection.getSurfaceAtIndex(32);
+      // if (camera.isInside(building))...
+      if (building.isInBounds(mSceneData.eye))
+      {
+      mTerrain.draw(cmd, mSceneData, shouldDrawWireframe);
+    }
 
       // Draw the skybox last so that we can skip pixels with ANY object in front of it
       mSkybox.draw(cmd, currentFrame);

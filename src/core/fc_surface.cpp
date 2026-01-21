@@ -67,26 +67,26 @@ namespace fc
 
 
 
-// TODO should probably hash the FcSurface for quicker lookup so we can update the surface within the draw collection by using a simple hash lookup
-  FcSurface::FcSurface(const FcSubMesh& surface, FcMeshNode* meshNode)
+// TODO should probably hash the FcSurface for quicker lookup so we can update the surface within the draw collection by using a simple hash lookup or simply use refrences
+  FcSurface::FcSurface(const FcSubMesh& subMesh, FcMeshNode* meshNode)
   {
-    mFirstIndex = surface.startIndex;
-    mIndexCount = surface.indexCount;
+    mFirstIndex = subMesh.startIndex;
+    mIndexCount = subMesh.indexCount;
 
     // FIXME
     // TODO this seems like a bad idea to Copy this data when it really should only be used in one class
     // This should be done when the gltf file is initially loaded.
-    mBounds = surface.bounds;
+    mBounds = subMesh.bounds;
     mBoundaryBox.init(mBounds);
 
     /* mIndexBuffer = meshNode->mMesh->IndexBuffer(); */
-    mIndexBuffer.setVkBuffer(meshNode->mMesh->mIndexBuffer.getVkBuffer());
+    mIndexBuffer.setVkBuffer(meshNode->mSurface->mIndexBuffer.getVkBuffer());
     mTransform = meshNode->localTransform;
 
     // BUG this won't get properly updated when model is transformed,
     // need to use reference or otherwise update
     mInvModelMatrix = glm::inverse(glm::transpose(meshNode->localTransform));
-    mVertexBufferAddress = meshNode->mMesh->mVertexBufferAddress;
+    mVertexBufferAddress = meshNode->mSurface->mVertexBufferAddress;
   }
 
 
