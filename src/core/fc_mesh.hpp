@@ -1,3 +1,6 @@
+// TODO rename file or elimiate and distribute objects
+
+
 #pragma once
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_bounding_box.hpp"
@@ -42,18 +45,6 @@ namespace fc
      VkDescriptorSet materialSet;
      Type materialType;
   };
-
-  // TODO merge with FcMaterial or aleviate confusion between FcMesh, FcSubMesh, FcSurface, etc.
-  // Maybe DOCUMENT!!! could rename renderMesh if using as a more lightweight class
-  //
-  struct FcSubMesh
-  {
-     uint32_t startIndex{0};
-     uint32_t indexCount{0};
-     Bounds bounds;
-     std::shared_ptr<FcMaterial> material;
-  };
-
 
   struct VertexBufferPushes
   {

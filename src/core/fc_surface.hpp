@@ -56,14 +56,16 @@ namespace fc
      // TODO determine or elaborate why we need both bounds and boundary box
      Bounds mBounds;
      BoundaryBox mBoundaryBox;
+     std::shared_ptr<FcMaterial> material;
 
      // TODO think about storing separate surface subMeshes based on material type / pipeline
      // pair data structure so we can just iterate through the whole thing
-     std::vector<FcSubMesh> mMeshes;
+     std::vector<std::shared_ptr<FcSurface> > mMeshes2;
 
      // -*-*-*-*-*-*-*-*-*-*-*-*-   CONSTRUCTORS / CLEANUP   -*-*-*-*-*-*-*-*-*-*-*-*- //
-     // Constructor used when adding to draw collection
-     FcSurface(const FcSubMesh& subMesh, FcMeshNode* meshNode);
+
+     // TODO swap out init for a constructor that takes this stuff into account
+     void init(FcMeshNode* meshNode);
      //
      // DELETE??
      FcSurface() = default;
@@ -101,6 +103,9 @@ namespace fc
      // TODO remove here if inversing/transposing in shaders (w/o using PCs)
      inline void setInverseModelMatrix(glm::mat4& mat) { mInvModelMatrix = mat; }
      //
+     // DELETE this should be set within constructor or other method
+     inline void setIndices(uint32_t firstIndex, uint32_t indexCount)
+      {mFirstIndex = firstIndex; mIndexCount = indexCount; }
 
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   GETTERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      /* inline const VkBuffer VertexBuffer() const { return mVertexBuffer.getVkBuffer(); } */

@@ -65,7 +65,6 @@ namespace fc
 
   //
   //
-  // TODO brush up on the modern use of fastgltf -- seems vkguide is not the most up to date
   void FcScene::loadGltf(FcRenderer& renderer, std::string_view filepath)
   {
     // TODO delete renderer and pDevice dependencies
@@ -162,10 +161,10 @@ namespace fc
 
     for (fastgltf::Mesh& mesh : gltf.meshes)
     {
-      std::shared_ptr<FcSurface> newMesh = std::make_shared<FcSurface>();
-      meshes.push_back(newMesh);
+      std::shared_ptr<FcSurface> parentMesh = std::make_shared<FcSurface>();
+      meshes.push_back(parentMesh);
 
-
+      // KEEP for ref...
       //gltf.materials[primitive.materialIndex.value()].pbrData.;
 
       // clear the mesh arrays each mesh, we don't want to merge them by error
@@ -176,10 +175,18 @@ namespace fc
       // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   LOAD INDICES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
       for (auto& primitive : mesh.primitives)
       {
-        FcSubMesh newSurface;
-        newSurface.startIndex = static_cast<uint32_t>(indices.size());
-        newSurface.indexCount =
-          static_cast<uint32_t>(gltf.accessors[primitive.indicesAccessor.value()].count);
+        // TODO replace with constructor
+        std::shared_ptr<FcSurface> newMesh = std::make_shared<FcSurface>();
+        parentMesh->mMeshes2.push_back(newMesh);
+        /* meshes.push_back(newMesh); */
+        /* FcSubMesh newSubMesh; */
+
+        u32 firstIndex = static_cast<uint32_t>(indices.size());
+        u32 indexCount = static_cast<uint32_t>(gltf.accessors[primitive.indicesAccessor.value()].count);
+        newMesh->setIndices(firstIndex, indexCount);
+	// newSurface.mFirstIndex = static_cast<uint32_t>(indices.size());
+        // newSubMesh.indexCount =
+        //   static_cast<uint32_t>(gltf.accessors[primitive.indicesAccessor.value()].count);
 
         size_t initialVertex = vertices.size();
 
@@ -193,19 +200,19 @@ namespace fc
                                                   });
 
         // *-*-*-*-*-*-*-*-*-*-*-*-*-   LOAD VERTEX POSITIONS   *-*-*-*-*-*-*-*-*-*-*-*-*- //
-        {
-          // This will always be present in glTF so no need to check
-          fastgltf::Accessor& positionAccessor =
-            gltf.accessors[primitive.findAttribute("POSITION")->accessorIndex];
-          vertices.resize(vertices.size() + positionAccessor.count);
-          fastgltf::iterateAccessorWithIndex<glm::vec3>(gltf, positionAccessor,
-                                                        [&](glm::vec3 v, size_t index)
-                                                         {
-                                                           Vertex newVtx;
-                                                           newVtx.position = v;
-                                                           vertices[initialVertex + index] = newVtx;
-                                                         });
-        }
+
+        // This will always be present in glTF so no need to check
+        fastgltf::Accessor& positionAccessor =
+          gltf.accessors[primitive.findAttribute("POSITION")->accessorIndex];
+        vertices.resize(vertices.size() + positionAccessor.count);
+        fastgltf::iterateAccessorWithIndex<glm::vec3>(gltf, positionAccessor,
+                                                      [&](glm::vec3 v, size_t index)
+                                                       {
+                                                         Vertex newVtx;
+                                                         newVtx.position = v;
+                                                         vertices[initialVertex + index] = newVtx;
+                                                       });
+
         // -*-*-*-*-*-*-*-*-*-*-*-*-*-   LOAD VERTEX NORMALS   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
         // The rest of the attributes will need to be checked for first since the glTF file may not include
         auto normals = primitive.findAttribute("NORMAL");
@@ -279,11 +286,13 @@ namespace fc
 
         if (primitive.materialIndex.has_value())
         {
-          newSurface.material = materials[primitive.materialIndex.value()];
+          /* newSubMesh.material = materials[primitive.materialIndex.value()]; */
+          newMesh->material = materials[primitive.materialIndex.value()];
         }
         else
         {
-          newSurface.material = materials[0];
+          /* newSubMesh.material = materials[0]; */
+          newMesh->material = materials[0];
         }
         // Signal flags as to which attributes this material can expect from the vertices
         // ?? not sure if we could have a material that associated with two different
@@ -303,23 +312,31 @@ namespace fc
         }
 
         // calculate origin and extents from the min/max use extent length for radius
-        newSurface.bounds.origin = (maxPos + minPos) * 0.5f;
-        newSurface.bounds.extents = (maxPos - minPos) * 0.5f;
-        newSurface.bounds.sphereRadius = glm::length(newSurface.bounds.extents);
+        // newSubMesh.bounds.origin = (maxPos + minPos) * 0.5f;
+        // newSubMesh.bounds.extents = (maxPos - minPos) * 0.5f;
+        // newSubMesh.bounds.sphereRadius = glm::length(newSubMesh.bounds.extents);
+        newMesh->mBounds.origin = (maxPos + minPos) * 0.5f;
+        newMesh->mBounds.extents = (maxPos - minPos) * 0.5f;
+        newMesh->mBounds.sphereRadius = glm::length(newMesh->mBounds.extents);
 
-        newMesh->mMeshes.push_back(newSurface);
+        /* newMesh->mMeshes.push_back(newSubMesh); */
+        /* newMesh->uploadMesh(std::span(vertices), std::span(indices)); */
       }
 
       // TODO check that we're not causing superfluous calls to copy constructor / destructors
       // TODO start here with optimizations, including a new constructor with name
-      // TODO consider goin back to vector refererence from span since we can mandate that...
-      // however, this limit future implementations that prefer arrays, etc.
-      newMesh->uploadMesh(std::span(vertices), std::span(indices));
+      // TODO consider going back to vector refererence from span since we can mandate that...
+      // however, this limits future implementations that prefer arrays, etc.
+
+      parentMesh->uploadMesh(std::span(vertices), std::span(indices));
 
       // TODO create constructor for mesh so we can emplace it in place
     }
 
     // -*-*-*-*-*-*-*-*-*-*-   LOAD ALL NODES AND THEIR MESHES   -*-*-*-*-*-*-*-*-*-*- //
+    // TODO FIXME should load nodes first, then load the associated meshes into them iff there is
+    // an associated mesh
+
     // Temporary arrays for all the objects to use while creating the GLTF data
     // using this to first collect data then store in unordered maps later
     std::vector<std::shared_ptr<FcNode>> nodes;
@@ -337,6 +354,7 @@ namespace fc
       {
         newNode = std::make_shared<FcMeshNode>();
         static_cast<FcMeshNode*>(newNode.get())->mSurface = meshes[*gltfNode.meshIndex];
+        // DEBUG?? DELETE??
         meshNodeCount++;
       }
       else
@@ -347,7 +365,7 @@ namespace fc
       // TODO preallocate, etc.
       nodes.push_back(newNode);
 
-      // Refe
+      // References
       // https://fastgltf.readthedocs.io/latest/guides.html#id8
       // Extract the node transform matrix from the glTF file
       std::visit(fastgltf::visitor {
@@ -401,7 +419,8 @@ namespace fc
     std::cout << "Loaded GLTF file: " << filepath << std::endl;
   }
 
-
+  //
+  //
   // TODO further extrapolate functions to reduce redundancies
   // Load all the textures and materials for a scene using descriptor indexing (bindless resources)
   void FcScene::bindlessLoadAllMaterials(FcDrawCollection& drawCollection,

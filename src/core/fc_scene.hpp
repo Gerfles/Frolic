@@ -53,7 +53,6 @@ namespace fc
      //
      void addToDrawCollection(FcDrawCollection& ctx);
      //
-     /* void loadGltf(FcDrawCollection& drawCollection, std::string_view filepath); */
      void loadGltf(FcRenderer& renderer, std::string_view filepath);
      //
      VkFilter extractFilter(fastgltf::Filter filter) noexcept;

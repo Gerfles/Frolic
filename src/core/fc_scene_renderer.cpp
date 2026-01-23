@@ -412,7 +412,7 @@ namespace fc
     vkCmdPushConstants(cmd, pCurrentPipeline->Layout()
                        , VK_SHADER_STAGE_VERTEX_BIT
                        , 0, sizeof(ScenePushConstants), &surface);
-    //
+
     // Note here that we have to offset from the initially pushed data since we
     // are really just filling a range alloted to us in total...
     vkCmdPushConstants(cmd, pCurrentPipeline->Layout()

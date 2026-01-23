@@ -68,25 +68,60 @@ namespace fc
 
 
 // TODO should probably hash the FcSurface for quicker lookup so we can update the surface within the draw collection by using a simple hash lookup or simply use refrences
-  FcSurface::FcSurface(const FcSubMesh& subMesh, FcMeshNode* meshNode)
-  {
-    mFirstIndex = subMesh.startIndex;
-    mIndexCount = subMesh.indexCount;
+  // FcSurface::FcSurface(const FcSubMesh& subMesh, FcMeshNode* meshNode)
+  // {
+  //   mFirstIndex = subMesh.startIndex;
+  //   mIndexCount = subMesh.indexCount;
 
+  //   // FIXME
+  //   // TODO this seems like a bad idea to Copy this data when it really should only be used in one class
+  //   // This should be done when the gltf file is initially loaded.
+  //   mBounds = subMesh.bounds;
+  //   mBoundaryBox.init(mBounds);
+
+  //   /* mIndexBuffer = meshNode->mMesh->IndexBuffer(); */
+  //   mIndexBuffer.setVkBuffer(meshNode->mSurface->mIndexBuffer.getVkBuffer());
+  //   mTransform = meshNode->localTransform;
+
+  //   // BUG this won't get properly updated when model is transformed,
+  //   // need to use reference or otherwise update
+  //   mInvModelMatrix = glm::inverse(glm::transpose(meshNode->localTransform));
+  //   mVertexBufferAddress = meshNode->mSurface->mVertexBufferAddress;
+  // }
+
+
+  void FcSurface::init(FcMeshNode* meshNode)
+  {
     // FIXME
     // TODO this seems like a bad idea to Copy this data when it really should only be used in one class
     // This should be done when the gltf file is initially loaded.
-    mBounds = subMesh.bounds;
-    mBoundaryBox.init(mBounds);
 
-    /* mIndexBuffer = meshNode->mMesh->IndexBuffer(); */
-    mIndexBuffer.setVkBuffer(meshNode->mSurface->mIndexBuffer.getVkBuffer());
-    mTransform = meshNode->localTransform;
+      mBoundaryBox.init(mBounds);
 
-    // BUG this won't get properly updated when model is transformed,
-    // need to use reference or otherwise update
-    mInvModelMatrix = glm::inverse(glm::transpose(meshNode->localTransform));
-    mVertexBufferAddress = meshNode->mSurface->mVertexBufferAddress;
+      /* mIndexBuffer = meshNode->mMesh->IndexBuffer(); */
+      mIndexBuffer.setVkBuffer(meshNode->mSurface->mIndexBuffer.getVkBuffer());
+      mTransform = meshNode->localTransform;
+
+      // BUG this won't get properly updated when model is transformed,
+      // need to use reference or otherwise update
+      mInvModelMatrix = glm::inverse(glm::transpose(meshNode->localTransform));
+      mVertexBufferAddress = meshNode->mSurface->mVertexBufferAddress;
+
+       for (std::shared_ptr<FcSurface>& surface : mMeshes2)
+      {
+        surface->mBoundaryBox.init(mBounds);
+
+        /* mIndexBuffer = meshNode->mMesh->IndexBuffer(); */
+        surface->mIndexBuffer.setVkBuffer(meshNode->mSurface->mIndexBuffer.getVkBuffer());
+        surface->mTransform = meshNode->localTransform;
+
+        // BUG this won't get properly updated when model is transformed,
+        // need to use reference or otherwise update
+        surface->mInvModelMatrix = glm::inverse(glm::transpose(meshNode->localTransform));
+        surface->mVertexBufferAddress = meshNode->mSurface->mVertexBufferAddress;
+      }
+
+
   }
 
 

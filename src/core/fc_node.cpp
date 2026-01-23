@@ -46,8 +46,7 @@ namespace fc
   {
     glm::mat4 nodeMatrix = topMatrix * localTransform;
 
-    // TODO think about making update() a member function of FcDrawCollection
-
+    // TODO think about making updateDrawCollection() a member function of FcDrawCollection
     FcNode::update(topMatrix, collection);
     updateDrawCollection(collection, nodeMatrix);
   }
@@ -57,55 +56,69 @@ namespace fc
   //  frustum culling
   void FcMeshNode::sortVisibleSurfaces(const glm::mat4& viewProj)
   {
+
+    std::cout << "Sorting!!" << std::endl;
     //?? make sure this does not deallocate
     visibleSurfaces.clear();
 
-    for (const FcSubMesh& surface : mSurface->mMeshes)
+    // BUG DELETE when ready to implement the rest of sort properly
     {
-      std::array<glm::vec3, 8> corners { glm::vec3{1.0f, 1.0f, 1.0f}
-                                       , glm::vec3{1.0f, 1.0f, -1.0f}
-                                       , glm::vec3{1.0f, -1.0f, 1.0f}
-                                       , glm::vec3{1.0f, -1.0f, -1.0f}
-                                       , glm::vec3{-1.0f, 1.0f, 1.0f}
-                                       , glm::vec3{-1.0f, 1.0f, -1.0f}
-                                       , glm::vec3{-1.0f, -1.0f, 1.0f}
-                                       , glm::vec3{-1.0f, -1.0f, -1.0f} };
-
-      glm::mat4 matrix = viewProj * localTransform;
-
-      glm::vec3 min = {1.5f, 1.5f, 1.5f};
-      glm::vec3 max = {-1.5f, -1.5f, -1.5f};
-
-      for (int corner = 0; corner < 8; corner++)
+      for (const std::shared_ptr<FcSurface>& surface : mSurface->mMeshes2)
       {
-        // project each corner into clip space
-        glm::vec4 vector = matrix * glm::vec4(surface.bounds.origin
-                                              + corners[corner] * surface.bounds.extents, 1.f);
-
-        // perspective correction
-        vector.x = vector.x / vector.w;
-        vector.y = vector.y / vector.w;
-        vector.z = vector.z / vector.w;
-
-        min = glm::min(glm::vec3 {vector.x, vector.y, vector.z}, min);
-        max = glm::max(glm::vec3 {vector.x, vector.y, vector.z}, max);
+        mVisibleSurfaces.push_back(surface);
       }
-
-      // check the clip space box is within the view
-      if (max.x < -1.0f || min.x > 1.0f || max.y < -1.f || min.y > 1.f || max.z < 0.f || min.z > 1.f)
-      {
-        // ?? This method does not work well when camera is within bounding box
-        // TODO check that
-      }
-      else {
-        visibleSurfaces.push_back(&surface);
-      }
+      return;
     }
+
+    // BUG implement for FcSurface instead of submesh
+    // for (const FcSubMesh& surface : mSurface->mMeshes)
+    // {
+    //   std::array<glm::vec3, 8> corners { glm::vec3{1.0f, 1.0f, 1.0f}
+    //                                    , glm::vec3{1.0f, 1.0f, -1.0f}
+    //                                    , glm::vec3{1.0f, -1.0f, 1.0f}
+    //                                    , glm::vec3{1.0f, -1.0f, -1.0f}
+    //                                    , glm::vec3{-1.0f, 1.0f, 1.0f}
+    //                                    , glm::vec3{-1.0f, 1.0f, -1.0f}
+    //                                    , glm::vec3{-1.0f, -1.0f, 1.0f}
+    //                                    , glm::vec3{-1.0f, -1.0f, -1.0f} };
+
+    //   glm::mat4 matrix = viewProj * localTransform;
+
+    //   glm::vec3 min = {1.5f, 1.5f, 1.5f};
+    //   glm::vec3 max = {-1.5f, -1.5f, -1.5f};
+
+    //   for (int corner = 0; corner < 8; corner++)
+    //   {
+    //     // project each corner into clip space
+    //     glm::vec4 vector = matrix * glm::vec4(surface.bounds.origin
+    //                                           + corners[corner] * surface.bounds.extents, 1.f);
+
+    //     // perspective correction
+    //     vector.x = vector.x / vector.w;
+    //     vector.y = vector.y / vector.w;
+    //     vector.z = vector.z / vector.w;
+
+    //     min = glm::min(glm::vec3 {vector.x, vector.y, vector.z}, min);
+    //     max = glm::max(glm::vec3 {vector.x, vector.y, vector.z}, max);
+    //   }
+
+    //   // check the clip space box is within the view
+    //   if (max.x < -1.0f || min.x > 1.0f || max.y < -1.f || min.y > 1.f || max.z < 0.f || min.z > 1.f)
+    //   {
+    //     // ?? This method does not work well when camera is within bounding box
+    //     // TODO check that
+    //   }
+    //   else {
+    //     visibleSurfaces.push_back(&surface);
+    //   }
+    // }
+    // std::cout << "Sorted!!" << std::endl;
   }
 
   // TODO might be able to avoid updating draw collection if we only add references when we call addToDrawCollection()
   void FcMeshNode::updateDrawCollection(FcDrawCollection& collection, glm::mat4& updateMatrix)
   {
+
     using RenderObject = std::pair<FcMaterial*, std::vector<FcSurface>>;
 
     // TODO this may be a slow section due to cycling through all renderObjects. Would be better probably
@@ -128,6 +141,7 @@ namespace fc
       }
       j++;
     }
+
   }
 
   // TODO document the following in other places as well.  This structure is structured in

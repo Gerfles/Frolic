@@ -28,11 +28,13 @@ namespace fc
   // also keep a transform to propagate to them May in the future derive from parent
   // Renderable class if we decided to add an extra type of node that is renderable but
   // does not have/need scene graph behaviors
+  // TODO make class
   struct FcNode // : FcRenderable
   {
      // Weak pointer to parent node to avoid circular references
      std::weak_ptr<FcNode> parent;
      std::vector<std::shared_ptr<FcNode>> mChildren;
+     // TODO determine if this is needed along with the one in FcSurface
      glm::mat4 localTransform {1.0f};
      void refreshTransforms(const glm::mat4& parentMatrix);
      virtual void addToDrawCollection(FcDrawCollection& collection);
@@ -40,8 +42,12 @@ namespace fc
   };
 
 
+  // TODO make class
   struct FcMeshNode : public FcNode
   {
+     // TODO determine if we should have the vector of surfaces within meshnode or within surfaces itself
+     /* std::vector<std::shared_ptr<FcSurface>> mSurfaces; */
+     std::vector<std::shared_ptr<const FcSurface>> mVisibleSurfaces;
      std::shared_ptr<FcSurface> mSurface;
      // TODO reserve space for visible surfaces in constructor (enough for all surfaces in mMesh)
      std::vector<const FcSubMesh*> visibleSurfaces;
