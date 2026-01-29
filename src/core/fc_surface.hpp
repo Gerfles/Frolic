@@ -43,29 +43,32 @@ namespace fc
      /* std::pmr::string mName; */
      // *-*-*-*-*-*-*-*-*-   KEEP ALIGNED WITH SCENEPUSHCONSTANTS   *-*-*-*-*-*-*-*-*- //
      // TODO keep mTransform etc as ptr if possible??
+
      glm::mat4 mTransform;
+     //
      glm::mat4 mInvModelMatrix;
+     //
      VkDeviceAddress mVertexBufferAddress;
      // -*-*-*-*-*-*-*-*-*-*-*-   END ALIGNMENT REQUIREMENTS   -*-*-*-*-*-*-*-*-*-*-*- //
      uint32_t mFirstIndex;
      uint32_t mIndexCount;
+     //
      FcBuffer mIndexBuffer;
      FcBuffer mVertexBuffer;
-
-   public:
+     //
      // TODO determine or elaborate why we need both bounds and boundary box
-     Bounds mBounds;
-     BoundaryBox mBoundaryBox;
-     std::shared_ptr<FcMaterial> material;
-
+     FcBounds mBounds;
+     FcBoundaryBox mBoundaryBox;
+     //
+     std::shared_ptr<FcMaterial> mMaterial;
+     //
      // TODO think about storing separate surface subMeshes based on material type / pipeline
      // pair data structure so we can just iterate through the whole thing
      std::vector<std::shared_ptr<FcSurface> > mSubMeshes;
+   public:
 
      // -*-*-*-*-*-*-*-*-*-*-*-*-   CONSTRUCTORS / CLEANUP   -*-*-*-*-*-*-*-*-*-*-*-*- //
 
-     // TODO swap out init for a constructor that takes this stuff into account
-     void init(FcMeshNode* meshNode);
      //
      // DELETE??
      FcSurface() = default;
@@ -82,9 +85,10 @@ namespace fc
         //   && (mIndexCount == other.mIndexCount);
       };
 
-
-
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   MUTATORS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     //
+     void initSubMeshes(std::shared_ptr<FcSurface> parentSurface);
+     //
      inline const void bindIndexBuffer(VkCommandBuffer cmd) const
       { vkCmdBindIndexBuffer(cmd, mIndexBuffer.getVkBuffer(), 0, VK_INDEX_TYPE_UINT32); }
      //
@@ -95,9 +99,9 @@ namespace fc
      template <typename T> void uploadMesh(std::span<T> vertices, std::span<uint32_t> indices);
      //
      // TODO set transform via ptr
-     inline void setTransform(glm::mat4& mat) {
-       mTransform = mat;
-       mInvModelMatrix = glm::inverse(glm::transpose(mat));
+     inline void setTransform(const glm::mat4* mat) {
+       mTransform = *mat;
+       mInvModelMatrix = glm::inverse(glm::transpose(*mat));
      }
      //
      // TODO remove here if inversing/transposing in shaders (w/o using PCs)
@@ -106,6 +110,12 @@ namespace fc
      // DELETE this should be set within constructor or other method
      inline void setIndices(uint32_t firstIndex, uint32_t indexCount)
       {mFirstIndex = firstIndex; mIndexCount = indexCount; }
+     //
+     void setBounds(const FcBounds& newBounds);
+     //
+     void setMaterial(const std::shared_ptr<FcMaterial> material);
+     //
+     inline void addSubMesh(std::shared_ptr<FcSurface> subMesh) { mSubMeshes.push_back(subMesh); }
 
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   GETTERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      /* inline const VkBuffer VertexBuffer() const { return mVertexBuffer.getVkBuffer(); } */
@@ -123,6 +133,13 @@ namespace fc
      inline glm::mat4 InvModelMatrix() const { return mInvModelMatrix; }
      // TODO improve usefulness or eliminate
      inline const glm::mat4* Transform() const { return &mTransform;}
+     //
+     inline const FcBounds& Bounds() const { return mBounds; }
+     //
+     inline const std::shared_ptr<FcMaterial> Material() const { return mMaterial; };
+     //
+     inline const std::vector<std::shared_ptr<FcSurface>> SubMeshes() const { return mSubMeshes; }
+     //
   };
 
 }// --- namespace fc --- (END)

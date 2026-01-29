@@ -17,6 +17,7 @@ namespace fc
     }
   }
 
+
   //
   //
   void FcNode::addToDrawCollection(FcDrawCollection& collection)
@@ -29,6 +30,7 @@ namespace fc
     }
   }
 
+
   //
   //
   // TODO solidify the transform updates and document and VERIFY
@@ -39,6 +41,18 @@ namespace fc
       child->update(topMatrix, collection);
     }
   }
+
+
+  //
+  //
+  FcMeshNode::FcMeshNode(std::shared_ptr<FcSurface> mesh)
+  {
+    mMesh = mesh;
+    mMesh->initSubMeshes(mesh);
+    // // ?? not sure why i don't seem to have to init the parent mesh
+    /* mesh->init(this); */
+  }
+
 
   //
   //
@@ -52,57 +66,8 @@ namespace fc
   }
 
 
-  [[deprecated("Not used but could be swaped for FcSurface.isVisible")]]
-  //  TODO swap this function for a faster visibility check algorithm so we can do faster
-  //  frustum culling
-  void FcMeshNode::sortVisibleSurfaces(const glm::mat4& viewProj)
-  {
-    // //?? make sure this does not deallocate
-    // mVisibleSurfaces.clear();
-
-    // for (const std::shared_ptr<FcSurface>& surface : mSurface->mMeshes2)
-    // {
-    //   std::array<glm::vec3, 8> corners { glm::vec3{1.0f, 1.0f, 1.0f}
-    //                                    , glm::vec3{1.0f, 1.0f, -1.0f}
-    //                                    , glm::vec3{1.0f, -1.0f, 1.0f}
-    //                                    , glm::vec3{1.0f, -1.0f, -1.0f}
-    //                                    , glm::vec3{-1.0f, 1.0f, 1.0f}
-    //                                    , glm::vec3{-1.0f, 1.0f, -1.0f}
-    //                                    , glm::vec3{-1.0f, -1.0f, 1.0f}
-    //                                    , glm::vec3{-1.0f, -1.0f, -1.0f} };
-
-    //   glm::mat4 matrix = viewProj * localTransform;
-
-    //   glm::vec3 min = {1.5f, 1.5f, 1.5f};
-    //   glm::vec3 max = {-1.5f, -1.5f, -1.5f};
-
-    //   for (int corner = 0; corner < 8; corner++)
-    //   {
-    //     // project each corner into clip space
-    //     glm::vec4 vector = matrix * glm::vec4(surface->mBounds.origin
-    //                                           + corners[corner] * surface->mBounds.extents, 1.f);
-
-    //     // perspective correction
-    //     vector.x = vector.x / vector.w;
-    //     vector.y = vector.y / vector.w;
-    //     vector.z = vector.z / vector.w;
-
-    //     min = glm::min(glm::vec3 {vector.x, vector.y, vector.z}, min);
-    //     max = glm::max(glm::vec3 {vector.x, vector.y, vector.z}, max);
-    //   }
-
-    //   // check the clip space box is within the view
-    //   if (max.x < -1.0f || min.x > 1.0f || max.y < -1.f || min.y > 1.f || max.z < 0.f || min.z > 1.f)
-    //   {
-    //     // ?? This method does not work well when camera is within bounding box
-    //     // TODO check that
-    //   }
-    //   else {
-    //     mVisibleSurfaces.push_back(surface);
-    //   }
-    // }
-  }
-
+  // FIXME update for FcSubmesh removal so we can utilize references
+  //
   // TODO might be able to avoid updating draw collection if we only add references when we call addToDrawCollection()
   void FcMeshNode::updateDrawCollection(FcDrawCollection& collection, glm::mat4& updateMatrix)
   {
@@ -119,7 +84,7 @@ namespace fc
       {
         if (*mMesh.get() == surface)
         {
-          surface.setTransform(updateMatrix);
+          surface.setTransform(&updateMatrix);
           // TODO remove normal transform setting from setTransform and do conditionally
           // based on whether or not we have non-uniform scaling enabled.
           /* break; */
@@ -137,60 +102,7 @@ namespace fc
   // associated with that material before moving the the next material...
   void FcMeshNode::addToDrawCollection(FcDrawCollection& collection)
   {
-    collection.DELETEadd(this);
-    /* add(this); */
-    // for (std::shared_ptr<FcNode>& child : mChildren)
-    // {
-    //   child->addToDrawCollection(collection);
-    // }
-
-
-
-    // using RenderObject = std::pair<FcMaterial*, std::vector<FcSurface>>;
-
-    // for (const FcSubMesh& surface : mSurface->mMeshes)
-    // {
-    //   // First figure out if this material surface will belong in transparent or opaque pipeline
-    //   std::vector<RenderObject>* selectedCollection;
-    //   if (surface.material->materialType == FcMaterial::Type::Transparent)
-    //   {
-    //     selectedCollection = &collection.transparentSurfaces;
-    //   } else {
-    //     selectedCollection = &collection.opaqueSurfaces;
-    //   }
-
-    //   // Find the material if it's already in the collection
-    //   bool materialFound = false;
-    //   for (RenderObject& renderObj : *selectedCollection)
-    //   {
-    //     if (surface.material.get() == renderObj.first)
-    //     {
-    //       // create the flattened render surface and store in the draw collection
-    //       renderObj.second.emplace_back(FcSurface(surface, this));
-    //       materialFound = true;
-    //       break;
-    //     }
-    //   }
-
-    //   // Add a new material/surface pair if we didn't find it in the draw collection
-    //   if (!materialFound)
-    //   {
-    //     RenderObject newRenderObj;
-    //     newRenderObj.first = surface.material.get();
-    //     newRenderObj.second.emplace_back(FcSurface(surface, this));
-    //     selectedCollection->push_back(newRenderObj);
-    //   }
-
-    //   collection.numSurfaces++;
-    // }
-
-    // // allocate enough lists in visible surfaces vector to store indices for each material
-    // // TODO should probably resize in chunks
-    // collection.visibleSurfaceIndices.resize(collection.opaqueSurfaces.size()+1);
-
-    // recurse down children nodes
-    // TODO check the stack frame count to see if this is better handles linearly
-
+    collection.add(this);
   }
 
 }// --- namespace fc --- (END)

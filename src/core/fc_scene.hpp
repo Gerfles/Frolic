@@ -67,7 +67,7 @@ namespace fc
      //
      VkSamplerMipmapMode extractMipmapMode(fastgltf::Filter filter) noexcept;
      //
-     void loadMesh(fastgltf::Asset& gltf, std::vector<std::shared_ptr<FcMaterial>>& materials);
+     void loadMeshes(fastgltf::Asset& gltf, std::vector<std::shared_ptr<FcMaterial>>& materials);
      //
      void bindlessLoadAllMaterials(FcDrawCollection& drawCollection,
                                    fastgltf::Asset& gltf,

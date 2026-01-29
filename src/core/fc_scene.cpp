@@ -146,16 +146,13 @@ namespace fc
     FcDrawCollection& drawCollection = renderer.DrawCollection();
     bindlessLoadAllMaterials(drawCollection, gltf, materials, parentPath);
 
-    // // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   LOAD ALL MESHES   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    // Temporary arrays for all the objects to use while creating the GLTF data
-    // using this to first collect data then store in unordered maps later
-    loadMesh(gltf, materials);
+    // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   LOAD ALL MESHES   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    loadMeshes(gltf, materials);
 
     // -*-*-*-*-*-*-*-*-*-*-   LOAD ALL NODES AND CONNECT TO MESHES   -*-*-*-*-*-*-*-*-*-*- //
     // TODO FIXME should load nodes first, then load the associated meshes into them iff there is
     // an associated mesh
 
-    // Temporary arrays for all the objects to use while creating the GLTF data
     // using this to first collect data then store in unordered maps later
     std::vector<std::shared_ptr<FcNode>> nodes;
 
@@ -170,11 +167,20 @@ namespace fc
       if (gltfNode.meshIndex.has_value())
       {
         totalMeshNodes++;
-        newNode = std::make_shared<FcMeshNode>();
-        static_cast<FcMeshNode*>(newNode.get())->mMesh = mMeshes[*gltfNode.meshIndex];
+        /* newNode = std::make_shared<FcMeshNode>(mMeshes[*gltfNode.meshIndex]); */
+        /* newNode = std::make_shared<FcMeshNode>(); */
+        newNode = std::make_shared<FcMeshNode>(mMeshes[*gltfNode.meshIndex]);
+        /* static_cast<FcMeshNode*>(newNode.get())->mMesh = mMeshes[*gltfNode.meshIndex]; */
 
-        // DELETE
-        static_cast<FcMeshNode*>(newNode.get())->mMesh->init(static_cast<FcMeshNode*>(newNode.get()));
+
+        /* static_cast<FcMeshNode*>(newNode.get())->mMesh->init(static_cast<FcMeshNode*>(newNode.get())); */
+
+        // DELETE if possible
+        // for (auto& subMesh : static_cast<FcMeshNode*>(newNode.get())->mMesh->mSubMeshes)
+        // {
+        //   subMesh->init(static_cast<FcMeshNode*>(newNode.get()));
+        // }
+
         /* mIndexBuffer = meshNode->mMesh->IndexBuffer(); */
         // static_cast<FcMeshNode*>(newNode.get())->mSurface->mIndexBuffer.
         // surface->mIndexBuffer.setVkBuffer(meshNode->mSurface->mIndexBuffer.getVkBuffer());
@@ -188,7 +194,7 @@ namespace fc
       else
       {
         std::shared_ptr<FcNode> newNode = std::make_shared<FcNode>();
-        /* newNode = std::make_shared<FcNode>(); */
+        // TODO TEST that we are don't need to initialize FcNode with transforms etc.
       }
 
       // TODO preallocate, etc.
@@ -254,7 +260,7 @@ namespace fc
   }
 
 
-  void FcScene::loadMesh(fastgltf::Asset& gltf, std::vector<std::shared_ptr<FcMaterial>>& materials)
+  void FcScene::loadMeshes(fastgltf::Asset& gltf, std::vector<std::shared_ptr<FcMaterial>>& materials)
   {
     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   LOAD ALL MESHES   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     // use the same vectors for all meshes so that memory doesnt reallocate as often
@@ -284,7 +290,8 @@ namespace fc
       {
         // TODO replace with constructor
         std::shared_ptr<FcSurface> newMesh = std::make_shared<FcSurface>();
-        parentMesh->mSubMeshes.push_back(newMesh);
+        /* parentMesh->mSubMeshes.push_back(newMesh); */
+        parentMesh->addSubMesh(newMesh);
         /* mMeshes.push_back(newMesh); */
         /* meshes.push_back(newMesh); */
         /* FcSubMesh newSubMesh; */
@@ -394,15 +401,14 @@ namespace fc
 
         if (primitive.materialIndex.has_value())
         {
-          fcPrintEndl("Material has index");
-          /* newSubMesh.material = materials[primitive.materialIndex.value()]; */
-          newMesh->material = materials[primitive.materialIndex.value()];
+          /* newMesh->Material() = materials[primitive.materialIndex.value()]; */
+          newMesh->setMaterial(materials[primitive.materialIndex.value()]);
         }
         else
         {
-          fcPrintEndl("No Material index");
           /* newSubMesh.material = materials[0]; */
-          newMesh->material = materials[0];
+          // TODO make sure there is always a default material
+          newMesh->setMaterial(materials[0]);
         }
         // Signal flags as to which attributes this material can expect from the vertices
         // ?? not sure if we could have a material that associated with two different
@@ -422,15 +428,11 @@ namespace fc
         }
 
         // calculate origin and extents from the min/max use extent length for radius
-        // newSubMesh.bounds.origin = (maxPos + minPos) * 0.5f;
-        // newSubMesh.bounds.extents = (maxPos - minPos) * 0.5f;
-        // newSubMesh.bounds.sphereRadius = glm::length(newSubMesh.bounds.extents);
-        newMesh->mBounds.origin = (maxPos + minPos) * 0.5f;
-        newMesh->mBounds.extents = (maxPos - minPos) * 0.5f;
-        newMesh->mBounds.sphereRadius = glm::length(newMesh->mBounds.extents);
-
-        // FIXME should not have to initialize with it's own bounds!!
-        newMesh->mBoundaryBox.init(newMesh->mBounds);
+        FcBounds meshBounds;
+        meshBounds.origin = (maxPos + minPos) * 0.5f;
+        meshBounds.extents = (maxPos - minPos) * 0.5f;
+        meshBounds.sphereRadius = glm::length(newMesh->Bounds().extents);
+        newMesh->setBounds(meshBounds);
 
         /* newMesh->mMeshes.push_back(newSubMesh); */
         /* newMesh->uploadMesh(std::span(vertices), std::span(indices)); */

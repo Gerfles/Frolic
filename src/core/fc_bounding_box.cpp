@@ -7,7 +7,7 @@
 //
 namespace fc
 {
-  void BoundaryBox::init(Bounds &bounds)
+  void FcBoundaryBox::init(FcBounds &bounds)
   {
     mCorners[0] = glm::vec4{bounds.origin + glm::vec3{1.f, 1.f, 1.f} * bounds.extents, 1.f};
     mCorners[1] = glm::vec4{bounds.origin + glm::vec3{1.f, 1.f, -1.f} * bounds.extents, 1.f};
@@ -82,8 +82,8 @@ namespace fc
             // Send the bounding box to the shaders
             BoundingBoxPushes pushConstants;
             pushConstants.modelMatrix = surface.ModelMatrix();
-            pushConstants.origin = glm::vec4(surface.mBounds.origin, 1.f);
-            pushConstants.extents = glm::vec4(surface.mBounds.extents, 0.f);
+            pushConstants.origin = glm::vec4(surface.Bounds().origin, 1.f);
+            pushConstants.extents = glm::vec4(surface.Bounds().extents, 0.f);
 
             // ?? not sure that we should be using pushConstants for each draw command like this
             vkCmdPushConstants(cmd, mBoundingBoxPipeline.Layout(), VK_SHADER_STAGE_VERTEX_BIT
@@ -102,8 +102,8 @@ namespace fc
         // Send the bounding box to the shaders
         BoundingBoxPushes pushConstants;
         pushConstants.modelMatrix = surface.ModelMatrix();
-        pushConstants.origin = glm::vec4(surface.mBounds.origin, 1.f);
-        pushConstants.extents = glm::vec4(surface.mBounds.extents, 0.f);
+        pushConstants.origin = glm::vec4(surface.Bounds().origin, 1.f);
+        pushConstants.extents = glm::vec4(surface.Bounds().extents, 0.f);
 
         vkCmdPushConstants(cmd, mBoundingBoxPipeline.Layout(), VK_SHADER_STAGE_VERTEX_BIT
                            , 0, sizeof(BoundingBoxPushes), &pushConstants);

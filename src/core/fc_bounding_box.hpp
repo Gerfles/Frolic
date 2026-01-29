@@ -23,7 +23,7 @@ namespace fc
      glm::vec4 extents;
   };
 
-  struct Bounds
+  struct FcBounds
   {
      glm::vec3 origin;
      float sphereRadius;
@@ -32,13 +32,13 @@ namespace fc
 
   //
   //
-  class BoundaryBox
+  class FcBoundaryBox
   {
    private:
      std::array<glm::vec4, 8> mCorners;
 
    public:
-     void init(Bounds& bounds);
+     void init(FcBounds& bounds);
      inline const glm::vec4& operator[](size_t index) const { return mCorners[index]; }
   };
 

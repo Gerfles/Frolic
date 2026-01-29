@@ -1,5 +1,6 @@
 // fc_surface.cpp
 #include "fc_surface.hpp"
+#include "core/log.hpp"
 #include "core/platform.hpp"
 #include "fc_locator.hpp"
 #include "fc_node.hpp"
@@ -7,7 +8,6 @@
 
 namespace fc
 {
-
   // TODO probably should refrain from using vector here or at least perf. test
   // TODO could create a transferToGpu() function in FcBuffer
   //Note that this pattern is not very efficient, as we are waiting for the GPU command to fully
@@ -66,67 +66,28 @@ namespace fc
   }
 
 
-
 // TODO should probably hash the FcSurface for quicker lookup so we can update the surface within the draw collection by using a simple hash lookup or simply use refrences
-  // FcSurface::FcSurface(const FcSubMesh& subMesh, FcMeshNode* meshNode)
-  // {
-  //   mFirstIndex = subMesh.startIndex;
-  //   mIndexCount = subMesh.indexCount;
-
-  //   // FIXME
-  //   // TODO this seems like a bad idea to Copy this data when it really should only be used in one class
-  //   // This should be done when the gltf file is initially loaded.
-  //   mBounds = subMesh.bounds;
-  //   mBoundaryBox.init(mBounds);
-
-  //   /* mIndexBuffer = meshNode->mMesh->IndexBuffer(); */
-  //   mIndexBuffer.setVkBuffer(meshNode->mSurface->mIndexBuffer.getVkBuffer());
-  //   mTransform = meshNode->localTransform;
-
-  //   // BUG this won't get properly updated when model is transformed,
-  //   // need to use reference or otherwise update
-  //   mInvModelMatrix = glm::inverse(glm::transpose(meshNode->localTransform));
-  //   mVertexBufferAddress = meshNode->mSurface->mVertexBufferAddress;
-  // }
-
-
-  void FcSurface::init(FcMeshNode* meshNode)
+  void FcSurface::initSubMeshes(std::shared_ptr<FcSurface> parentSurface)
   {
-    // FIXME
-    // TODO this seems like a bad idea to Copy this data when it really should only be used in one class
-    // This should be done when the gltf file is initially loaded.
+    for (std::shared_ptr<FcSurface> subMesh : mSubMeshes)
+    {
+      subMesh->mIndexBuffer.setVkBuffer(parentSurface->mIndexBuffer.getVkBuffer());
 
-    /* mBoundaryBox.init(mBounds); */
+      subMesh->mVertexBufferAddress = parentSurface->mVertexBufferAddress;
 
-    /* mIndexBuffer = meshNode->mMesh->IndexBuffer(); */
-    mIndexBuffer.setVkBuffer(meshNode->mMesh->mIndexBuffer.getVkBuffer());
-    mTransform = meshNode->localTransform;
+      subMesh->mTransform = parentSurface->mTransform;
 
-    // BUG this won't get properly updated when model is transformed,
-    // need to use reference or otherwise update
-    mInvModelMatrix = glm::inverse(glm::transpose(meshNode->localTransform));
-    mVertexBufferAddress = meshNode->mMesh->mVertexBufferAddress;
-
-    // DELETE after remove recursive surfaces
-    //
-    // for (std::shared_ptr<FcSurface>& surface : mMeshes2)
-    // {
-    //   /* surface->mBoundaryBox.init(mBounds); */
-
-    //   /* mIndexBuffer = meshNode->mMesh->IndexBuffer(); */
-    //   surface->mIndexBuffer.setVkBuffer(meshNode->mSurface->mIndexBuffer.getVkBuffer());
-    //   surface->mTransform = meshNode->localTransform;
-
-    //   // BUG this won't get properly updated when model is transformed,
-    //   // need to use reference or otherwise update
-    //   surface->mInvModelMatrix = glm::inverse(glm::transpose(meshNode->localTransform));
-    //   surface->mVertexBufferAddress = meshNode->mSurface->mVertexBufferAddress;
-    // }
-
-
+      // BUG this won't get properly updated when model is transformed,
+      // need to use reference or otherwise update
+      subMesh->mInvModelMatrix = glm::inverse(glm::transpose(parentSurface->mTransform));
+    }
   }
 
 
+  //
+  //
+  //  TODO swap this function for a faster visibility check algorithm so we can do faster
+  //  frustum culling
   bool FcSurface::isVisible(const glm::mat4& viewProjection)
   {
     /* return true; */
@@ -152,6 +113,7 @@ namespace fc
 
     // check the clip space box is within the view
     // BUG this falsly rejects some surfaces that are actually visible
+    //     // ?? This method does not work well when camera is within bounding box
     if (max.x > -1.0f && min.x < 1.0f && max.y > -1.f && min.y < 1.f && max.z > 0.f && min.z < 1.f)
     {
       return true;
@@ -167,9 +129,9 @@ namespace fc
     // {
     //   return false;
     // }
-
     return false;
   }
+
 
   //
   //
@@ -198,6 +160,26 @@ namespace fc
   }
 
 
+  //
+  //
+  void FcSurface::setBounds(const FcBounds& newBounds)
+  {
+    mBounds = newBounds;
+
+    mBoundaryBox.init(mBounds);
+  }
+
+
+  //
+  //
+  void FcSurface::setMaterial(const std::shared_ptr<FcMaterial> material)
+  {
+    mMaterial = material;
+  }
+
+
+  //
+  //
   void FcSurface::destroy()
   {
     mVertexBuffer.destroy();
