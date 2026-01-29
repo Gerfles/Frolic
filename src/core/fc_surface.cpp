@@ -96,30 +96,32 @@ namespace fc
     // TODO this seems like a bad idea to Copy this data when it really should only be used in one class
     // This should be done when the gltf file is initially loaded.
 
-      mBoundaryBox.init(mBounds);
+    /* mBoundaryBox.init(mBounds); */
 
-      /* mIndexBuffer = meshNode->mMesh->IndexBuffer(); */
-      mIndexBuffer.setVkBuffer(meshNode->mSurface->mIndexBuffer.getVkBuffer());
-      mTransform = meshNode->localTransform;
+    /* mIndexBuffer = meshNode->mMesh->IndexBuffer(); */
+    mIndexBuffer.setVkBuffer(meshNode->mMesh->mIndexBuffer.getVkBuffer());
+    mTransform = meshNode->localTransform;
 
-      // BUG this won't get properly updated when model is transformed,
-      // need to use reference or otherwise update
-      mInvModelMatrix = glm::inverse(glm::transpose(meshNode->localTransform));
-      mVertexBufferAddress = meshNode->mSurface->mVertexBufferAddress;
+    // BUG this won't get properly updated when model is transformed,
+    // need to use reference or otherwise update
+    mInvModelMatrix = glm::inverse(glm::transpose(meshNode->localTransform));
+    mVertexBufferAddress = meshNode->mMesh->mVertexBufferAddress;
 
-       for (std::shared_ptr<FcSurface>& surface : mMeshes2)
-      {
-        surface->mBoundaryBox.init(mBounds);
+    // DELETE after remove recursive surfaces
+    //
+    // for (std::shared_ptr<FcSurface>& surface : mMeshes2)
+    // {
+    //   /* surface->mBoundaryBox.init(mBounds); */
 
-        /* mIndexBuffer = meshNode->mMesh->IndexBuffer(); */
-        surface->mIndexBuffer.setVkBuffer(meshNode->mSurface->mIndexBuffer.getVkBuffer());
-        surface->mTransform = meshNode->localTransform;
+    //   /* mIndexBuffer = meshNode->mMesh->IndexBuffer(); */
+    //   surface->mIndexBuffer.setVkBuffer(meshNode->mSurface->mIndexBuffer.getVkBuffer());
+    //   surface->mTransform = meshNode->localTransform;
 
-        // BUG this won't get properly updated when model is transformed,
-        // need to use reference or otherwise update
-        surface->mInvModelMatrix = glm::inverse(glm::transpose(meshNode->localTransform));
-        surface->mVertexBufferAddress = meshNode->mSurface->mVertexBufferAddress;
-      }
+    //   // BUG this won't get properly updated when model is transformed,
+    //   // need to use reference or otherwise update
+    //   surface->mInvModelMatrix = glm::inverse(glm::transpose(meshNode->localTransform));
+    //   surface->mVertexBufferAddress = meshNode->mSurface->mVertexBufferAddress;
+    // }
 
 
   }
@@ -128,6 +130,7 @@ namespace fc
   bool FcSurface::isVisible(const glm::mat4& viewProjection)
   {
     /* return true; */
+    /* return false; */
     glm::mat4 matrix = viewProjection * mTransform;
 
     glm::vec3 min = {1.5f, 1.5f, 1.5f};

@@ -32,11 +32,17 @@ namespace fc
      // just the nodes that don't have a parent, for iterating through the file in tree order
      std::vector<std::shared_ptr<FcNode>> mTopNodes;
      //
+     // DELETE??
      glm::mat4 mTransformMat{1.f};
      glm::mat4 mRotationMat{1.f};
      glm::mat4 mTranslationMat{1.f};
-     FcBuffer mMaterialDataBuffer;
+
      //
+     FcBuffer mMaterialDataBuffer;
+
+     // Keep the collection of all surfaces/meshes within the scene
+     std::vector<std::shared_ptr<FcSurface> > mMeshes;
+
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   HELPERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      void printNode(std::shared_ptr<FcNode>& node, std::string& nodeID);
 
@@ -60,6 +66,8 @@ namespace fc
      VkSampler extractSampler(fastgltf::Sampler& sampler);
      //
      VkSamplerMipmapMode extractMipmapMode(fastgltf::Filter filter) noexcept;
+     //
+     void loadMesh(fastgltf::Asset& gltf, std::vector<std::shared_ptr<FcMaterial>>& materials);
      //
      void bindlessLoadAllMaterials(FcDrawCollection& drawCollection,
                                    fastgltf::Asset& gltf,

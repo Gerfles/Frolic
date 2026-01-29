@@ -47,8 +47,8 @@ namespace fc
      glm::mat4 mInvModelMatrix;
      VkDeviceAddress mVertexBufferAddress;
      // -*-*-*-*-*-*-*-*-*-*-*-   END ALIGNMENT REQUIREMENTS   -*-*-*-*-*-*-*-*-*-*-*- //
-     uint32_t mIndexCount;
      uint32_t mFirstIndex;
+     uint32_t mIndexCount;
      FcBuffer mIndexBuffer;
      FcBuffer mVertexBuffer;
 
@@ -60,7 +60,7 @@ namespace fc
 
      // TODO think about storing separate surface subMeshes based on material type / pipeline
      // pair data structure so we can just iterate through the whole thing
-     std::vector<std::shared_ptr<FcSurface> > mMeshes2;
+     std::vector<std::shared_ptr<FcSurface> > mSubMeshes;
 
      // -*-*-*-*-*-*-*-*-*-*-*-*-   CONSTRUCTORS / CLEANUP   -*-*-*-*-*-*-*-*-*-*-*-*- //
 
@@ -95,10 +95,10 @@ namespace fc
      template <typename T> void uploadMesh(std::span<T> vertices, std::span<uint32_t> indices);
      //
      // TODO set transform via ptr
-     inline void setTransform(glm::mat4& mat) { mTransform = mat;
-
+     inline void setTransform(glm::mat4& mat) {
+       mTransform = mat;
        mInvModelMatrix = glm::inverse(glm::transpose(mat));
-      }
+     }
      //
      // TODO remove here if inversing/transposing in shaders (w/o using PCs)
      inline void setInverseModelMatrix(glm::mat4& mat) { mInvModelMatrix = mat; }

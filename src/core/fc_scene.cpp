@@ -146,6 +146,116 @@ namespace fc
     FcDrawCollection& drawCollection = renderer.DrawCollection();
     bindlessLoadAllMaterials(drawCollection, gltf, materials, parentPath);
 
+    // // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   LOAD ALL MESHES   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    // Temporary arrays for all the objects to use while creating the GLTF data
+    // using this to first collect data then store in unordered maps later
+    loadMesh(gltf, materials);
+
+    // -*-*-*-*-*-*-*-*-*-*-   LOAD ALL NODES AND CONNECT TO MESHES   -*-*-*-*-*-*-*-*-*-*- //
+    // TODO FIXME should load nodes first, then load the associated meshes into them iff there is
+    // an associated mesh
+
+    // Temporary arrays for all the objects to use while creating the GLTF data
+    // using this to first collect data then store in unordered maps later
+    std::vector<std::shared_ptr<FcNode>> nodes;
+
+    u32 totalMeshNodes = 0;
+    std::string nodeName = "newNode";
+
+    for (fastgltf::Node& gltfNode : gltf.nodes)
+    {
+      std::shared_ptr<FcNode> newNode = std::make_shared<FcNode>();
+
+      // find if the gltfNode has a mesh, if so, hook it it to the mesh pointer and allocate it with MeshNode class
+      if (gltfNode.meshIndex.has_value())
+      {
+        totalMeshNodes++;
+        newNode = std::make_shared<FcMeshNode>();
+        static_cast<FcMeshNode*>(newNode.get())->mMesh = mMeshes[*gltfNode.meshIndex];
+
+        // DELETE
+        static_cast<FcMeshNode*>(newNode.get())->mMesh->init(static_cast<FcMeshNode*>(newNode.get()));
+        /* mIndexBuffer = meshNode->mMesh->IndexBuffer(); */
+        // static_cast<FcMeshNode*>(newNode.get())->mSurface->mIndexBuffer.
+        // surface->mIndexBuffer.setVkBuffer(meshNode->mSurface->mIndexBuffer.getVkBuffer());
+        // surface->mTransform = meshNode->localTransform;
+
+        // // BUG this won't get properly updated when model is transformed,
+        // // need to use reference or otherwise update
+        // surface->mInvModelMatrix = glm::inverse(glm::transpose(meshNode->localTransform));
+        // surface->mVertexBufferAddress = meshNode->mSurface->mVertexBufferAddress;
+      }
+      else
+      {
+        std::shared_ptr<FcNode> newNode = std::make_shared<FcNode>();
+        /* newNode = std::make_shared<FcNode>(); */
+      }
+
+      // TODO preallocate, etc.
+      nodes.push_back(newNode);
+
+      // References
+      // https://fastgltf.readthedocs.io/latest/guides.html#id8
+      // Extract the node transform matrix from the glTF file
+      std::visit(fastgltf::visitor {
+          // Call this lambda if the glTF includes a transform matrix already
+          [&] (fastgltf::math::fmat4x4 matrix)
+           {
+             memcpy(&newNode->localTransform, matrix.data(), sizeof(matrix));
+           },
+            // Call this lamda if we need to build the transform matrix from rotation, scale, translate
+            [&](fastgltf::TRS transform)
+             {
+               glm::vec3 tl(transform.translation[0], transform.translation[1], transform.translation[2]);
+               glm::quat rot(transform.rotation[3], transform.rotation[0]
+                             , transform.rotation[1], transform.rotation[2]);
+               glm::vec3 sc(transform.scale[0], transform.scale[1], transform.scale[2]);
+               //
+               glm::mat4 T = glm::translate(glm::mat4(1.f), tl);
+               glm::mat4 R = glm::toMat4(rot);
+               glm::mat4 S = glm::scale(glm::mat4(1.f), sc);
+               //
+               // TODO TEST with only having the transform as part of the node, don't need it within surface?
+               newNode->localTransform = T * R * S;
+             } },
+        gltfNode.transform);
+    }
+
+    std::cout << "Total Mesh Nodes: " << totalMeshNodes;
+    std::cout << "\nTotal Loaded Meshes: " << mMeshes.size() << std::endl;
+
+    // Run another loop over the nodes to setup transform hierarchy
+    for (int i = 0; i < gltf.nodes.size(); i++)
+    {
+      fastgltf::Node& gltfNode = gltf.nodes[i];
+
+      std::shared_ptr<FcNode>& sceneNode = nodes[i];
+
+      for (auto& child : gltfNode.children)
+      {
+        sceneNode->mChildren.push_back(nodes[child]);
+        nodes[child]->parent = sceneNode;
+      }
+
+      // Find the top nodes, with no parents
+      if (sceneNode->parent.lock() == nullptr)
+      {
+        mTopNodes.push_back(sceneNode);
+        // TEST dependency
+        sceneNode->refreshTransforms(glm::mat4{1.0f});
+      }
+    }
+
+    // Finally add the loaded scene into the draw collection structure
+    addToDrawCollection(drawCollection);
+
+    std::cout << "Loaded GLTF file: " << filepath << "\n" << std::endl;
+    drawSceneGraph();
+  }
+
+
+  void FcScene::loadMesh(fastgltf::Asset& gltf, std::vector<std::shared_ptr<FcMaterial>>& materials)
+  {
     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   LOAD ALL MESHES   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     // use the same vectors for all meshes so that memory doesnt reallocate as often
     // TODO std::move
@@ -155,14 +265,11 @@ namespace fc
     MaterialConstants* sceneMaterialConstants =
       static_cast<MaterialConstants*>(mMaterialDataBuffer.getAddress());
 
-    // Temporary arrays for all the objects to use while creating the GLTF data
-    // using this to first collect data then store in unordered maps later
-    std::vector<std::shared_ptr<FcSurface>> meshes;
-
+    // TODO check that gltf.meshes.size() is equal to meshnodes and not less
     for (fastgltf::Mesh& mesh : gltf.meshes)
     {
       std::shared_ptr<FcSurface> parentMesh = std::make_shared<FcSurface>();
-      meshes.push_back(parentMesh);
+      mMeshes.push_back(parentMesh);
 
       // KEEP for ref...
       //gltf.materials[primitive.materialIndex.value()].pbrData.;
@@ -177,7 +284,8 @@ namespace fc
       {
         // TODO replace with constructor
         std::shared_ptr<FcSurface> newMesh = std::make_shared<FcSurface>();
-        parentMesh->mMeshes2.push_back(newMesh);
+        parentMesh->mSubMeshes.push_back(newMesh);
+        /* mMeshes.push_back(newMesh); */
         /* meshes.push_back(newMesh); */
         /* FcSubMesh newSubMesh; */
 
@@ -286,11 +394,13 @@ namespace fc
 
         if (primitive.materialIndex.has_value())
         {
+          fcPrintEndl("Material has index");
           /* newSubMesh.material = materials[primitive.materialIndex.value()]; */
           newMesh->material = materials[primitive.materialIndex.value()];
         }
         else
         {
+          fcPrintEndl("No Material index");
           /* newSubMesh.material = materials[0]; */
           newMesh->material = materials[0];
         }
@@ -319,6 +429,9 @@ namespace fc
         newMesh->mBounds.extents = (maxPos - minPos) * 0.5f;
         newMesh->mBounds.sphereRadius = glm::length(newMesh->mBounds.extents);
 
+        // FIXME should not have to initialize with it's own bounds!!
+        newMesh->mBoundaryBox.init(newMesh->mBounds);
+
         /* newMesh->mMeshes.push_back(newSubMesh); */
         /* newMesh->uploadMesh(std::span(vertices), std::span(indices)); */
       }
@@ -332,94 +445,9 @@ namespace fc
 
       // TODO create constructor for mesh so we can emplace it in place
     }
-
-    // -*-*-*-*-*-*-*-*-*-*-   LOAD ALL NODES AND THEIR MESHES   -*-*-*-*-*-*-*-*-*-*- //
-    // TODO FIXME should load nodes first, then load the associated meshes into them iff there is
-    // an associated mesh
-
-    // Temporary arrays for all the objects to use while creating the GLTF data
-    // using this to first collect data then store in unordered maps later
-    std::vector<std::shared_ptr<FcNode>> nodes;
-    uint32_t meshNodeCount{0};
-
-    int nodeNumber = 0;
-    for (fastgltf::Node& gltfNode : gltf.nodes)
-    {
-      nodeNumber++;
-      fcPrintEndl("Node#%i", nodeNumber);
-      std::shared_ptr<FcNode> newNode;
-
-      // find if the gltfNode has a mesh, if so, hook it it to the mesh pointer and allocate it with MeshNode class
-      if (gltfNode.meshIndex.has_value())
-      {
-        newNode = std::make_shared<FcMeshNode>();
-        static_cast<FcMeshNode*>(newNode.get())->mSurface = meshes[*gltfNode.meshIndex];
-        // DEBUG?? DELETE??
-        meshNodeCount++;
-      }
-      else
-      {
-        newNode = std::make_shared<FcNode>();
-      }
-
-      // TODO preallocate, etc.
-      nodes.push_back(newNode);
-
-      // References
-      // https://fastgltf.readthedocs.io/latest/guides.html#id8
-      // Extract the node transform matrix from the glTF file
-      std::visit(fastgltf::visitor {
-          // Call this lambda if the glTF includes a transform matrix already
-          [&] (fastgltf::math::fmat4x4 matrix)
-           {
-             memcpy(&newNode->localTransform, matrix.data(), sizeof(matrix));
-           },
-            // Call this lamda if we need to build the transform matrix from rotation, scale, translate
-            [&](fastgltf::TRS transform)
-             {
-               glm::vec3 tl(transform.translation[0], transform.translation[1], transform.translation[2]);
-               glm::quat rot(transform.rotation[3], transform.rotation[0]
-                             , transform.rotation[1], transform.rotation[2]);
-               glm::vec3 sc(transform.scale[0], transform.scale[1], transform.scale[2]);
-               //
-               glm::mat4 T = glm::translate(glm::mat4(1.f), tl);
-               glm::mat4 R = glm::toMat4(rot);
-               glm::mat4 S = glm::scale(glm::mat4(1.f), sc);
-               //
-               newNode->localTransform = T * R * S;
-             } },
-        gltfNode.transform);
-    }
-
-    // Run another loop over the nodes to setup transform hierarchy
-    for (int i = 0; i < gltf.nodes.size(); i++)
-    {
-      fastgltf::Node& gltfNode = gltf.nodes[i];
-
-      std::shared_ptr<FcNode>& sceneNode = nodes[i];
-
-      for (auto& child : gltfNode.children)
-      {
-        sceneNode->mChildren.push_back(nodes[child]);
-        nodes[child]->parent = sceneNode;
-      }
-
-      // Find the top nodes, with no parents
-      if (sceneNode->parent.lock() == nullptr)
-      {
-        mTopNodes.push_back(sceneNode);
-        // TEST dependency
-        sceneNode->refreshTransforms(glm::mat4{1.0f});
-      }
-    }
-
-    // Finally add the loaded scene into the draw collection structure
-    addToDrawCollection(drawCollection);
-
-    std::cout << "Loaded GLTF file: " << filepath << std::endl;
   }
 
-  //
+//
   //
   // TODO further extrapolate functions to reduce redundancies
   // Load all the textures and materials for a scene using descriptor indexing (bindless resources)
@@ -1108,6 +1136,7 @@ namespace fc
   void FcScene::addToDrawCollection(FcDrawCollection& collection)
   {
     // Only loop the topnodes which will recurse through their child nodes
+    fcPrintEndl("number of topnodes: %i", mTopNodes.size());
     for (auto& node : mTopNodes)
     {
       node->addToDrawCollection(collection);

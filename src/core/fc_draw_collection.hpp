@@ -57,6 +57,7 @@ namespace fc
      void init(FcAllocator* allocator);
      const FcSurface& getSurfaceAtIndex(uint32_t surfaceIndex);
      void add(FcMeshNode* surface);
+     void DELETEadd(FcMeshNode* surface);
      void destroy();
   };
 

@@ -2,7 +2,7 @@
 #pragma once
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <glm/mat4x4.hpp>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <vector>
@@ -14,16 +14,10 @@ namespace fc
   // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FORWARD DECL'S   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
   class FcMesh;
   class FcSurface;
-  class FcSubMesh;
   class FcDrawCollection;
 
-  // // base class for a renderable dynamic object
-  // class FcRenderable
-  // {
-  //    virtual void draw(DrawContext& ctx) = 0;
-  //    virtual void update(const glm::mat4& topMatrix) = 0;
-  // };
-
+  //
+  //
   // Implementation of a drawable scene node. The scene node can hold Children and will
   // also keep a transform to propagate to them May in the future derive from parent
   // Renderable class if we decided to add an extra type of node that is renderable but
@@ -41,16 +35,17 @@ namespace fc
      virtual void update(const glm::mat4& topMatrix, FcDrawCollection& collection);
   };
 
-
+  //
+  //
   // TODO make class
   struct FcMeshNode : public FcNode
   {
      // TODO determine if we should have the vector of surfaces within meshnode or within surfaces itself
      /* std::vector<std::shared_ptr<FcSurface>> mSurfaces; */
      std::vector<std::shared_ptr<const FcSurface>> mVisibleSurfaces;
-     std::shared_ptr<FcSurface> mSurface;
+     std::shared_ptr<FcSurface> mMesh;
      // TODO reserve space for visible surfaces in constructor (enough for all surfaces in mMesh)
-     std::vector<const FcSubMesh*> visibleSurfaces;
+     /* std::vector<const FcSubMesh*> visibleSurfaces; */
      // // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      void sortVisibleSurfaces(const glm::mat4& viewProj);
      // ?? should perhaps be removed or added to draw collection methods instead
@@ -58,6 +53,5 @@ namespace fc
      virtual void addToDrawCollection(FcDrawCollection& collection) override;
      virtual void update(const glm::mat4& topMatrix, FcDrawCollection& collection) override;
   };
-
 
 }// --- namespace fc --- (END)

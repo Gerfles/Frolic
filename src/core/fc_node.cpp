@@ -21,8 +21,8 @@ namespace fc
   //
   void FcNode::addToDrawCollection(FcDrawCollection& collection)
   {
-    // FcNodes will not be added to added to draw collection but recurse through children
-    // to make sure any FcMeshNode objects get added
+    // FcNodes will not be added to draw collection but recurse through children
+    // to make sure any FcMeshNodes get added
     for (std::shared_ptr<FcNode>& child : mChildren)
     {
       child->addToDrawCollection(collection);
@@ -52,26 +52,15 @@ namespace fc
   }
 
 
+  [[deprecated("Not used but could be swaped for FcSurface.isVisible")]]
   //  TODO swap this function for a faster visibility check algorithm so we can do faster
   //  frustum culling
   void FcMeshNode::sortVisibleSurfaces(const glm::mat4& viewProj)
   {
+    // //?? make sure this does not deallocate
+    // mVisibleSurfaces.clear();
 
-    std::cout << "Sorting!!" << std::endl;
-    //?? make sure this does not deallocate
-    visibleSurfaces.clear();
-
-    // BUG DELETE when ready to implement the rest of sort properly
-    {
-      for (const std::shared_ptr<FcSurface>& surface : mSurface->mMeshes2)
-      {
-        mVisibleSurfaces.push_back(surface);
-      }
-      return;
-    }
-
-    // BUG implement for FcSurface instead of submesh
-    // for (const FcSubMesh& surface : mSurface->mMeshes)
+    // for (const std::shared_ptr<FcSurface>& surface : mSurface->mMeshes2)
     // {
     //   std::array<glm::vec3, 8> corners { glm::vec3{1.0f, 1.0f, 1.0f}
     //                                    , glm::vec3{1.0f, 1.0f, -1.0f}
@@ -90,8 +79,8 @@ namespace fc
     //   for (int corner = 0; corner < 8; corner++)
     //   {
     //     // project each corner into clip space
-    //     glm::vec4 vector = matrix * glm::vec4(surface.bounds.origin
-    //                                           + corners[corner] * surface.bounds.extents, 1.f);
+    //     glm::vec4 vector = matrix * glm::vec4(surface->mBounds.origin
+    //                                           + corners[corner] * surface->mBounds.extents, 1.f);
 
     //     // perspective correction
     //     vector.x = vector.x / vector.w;
@@ -109,16 +98,14 @@ namespace fc
     //     // TODO check that
     //   }
     //   else {
-    //     visibleSurfaces.push_back(&surface);
+    //     mVisibleSurfaces.push_back(surface);
     //   }
     // }
-    // std::cout << "Sorted!!" << std::endl;
   }
 
   // TODO might be able to avoid updating draw collection if we only add references when we call addToDrawCollection()
   void FcMeshNode::updateDrawCollection(FcDrawCollection& collection, glm::mat4& updateMatrix)
   {
-
     using RenderObject = std::pair<FcMaterial*, std::vector<FcSurface>>;
 
     // TODO this may be a slow section due to cycling through all renderObjects. Would be better probably
@@ -130,7 +117,7 @@ namespace fc
     {
       for (FcSurface& surface : renderObject.second)
       {
-        if (*mSurface.get() == surface)
+        if (*mMesh.get() == surface)
         {
           surface.setTransform(updateMatrix);
           // TODO remove normal transform setting from setTransform and do conditionally
@@ -150,7 +137,14 @@ namespace fc
   // associated with that material before moving the the next material...
   void FcMeshNode::addToDrawCollection(FcDrawCollection& collection)
   {
-    collection.add(this);
+    collection.DELETEadd(this);
+    /* add(this); */
+    // for (std::shared_ptr<FcNode>& child : mChildren)
+    // {
+    //   child->addToDrawCollection(collection);
+    // }
+
+
 
     // using RenderObject = std::pair<FcMaterial*, std::vector<FcSurface>>;
 
@@ -196,7 +190,7 @@ namespace fc
 
     // recurse down children nodes
     // TODO check the stack frame count to see if this is better handles linearly
-    /* FcNode::addToDrawCollection(collection); */
+
   }
 
 }// --- namespace fc --- (END)

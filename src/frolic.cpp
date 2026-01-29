@@ -87,8 +87,8 @@ namespace fc
     mPlayer.init(&mInput);
 
     // Initialize simple first person camera
-    mPlayer.Camera().setPerspectiveProjection(62.0f, FcLocator::ScreenDims().width
-                                             , FcLocator::ScreenDims().height, 512.f, 0.1f);
+    mPlayer.Camera().setPerspectiveProjection(60.0f, FcLocator::ScreenDims().width
+                                             , FcLocator::ScreenDims().height, 512.f, 0.01f);
     // TODO make sure all reference returns are const to avoid something like:
     /* mPlayer.Camera().Projection()[1][1] *= -1; */
 
@@ -119,18 +119,19 @@ namespace fc
     /* helmet.loadGltf(mRenderer, "..//models//Box.gltf"); */
     /* helmet.loadGltf(mRenderer, "..//models//MaterialsVariantsShoe.glb"); */
     helmet.loadGltf(mRenderer, "..//models//rustediron//MetalRoughSpheres.gltf");
+    /* helmet.loadGltf(mRenderer, "..//models//structure.glb"); */
 
     /* helmet.loadGltf(mRenderer, "..//models//ToyCar.glb"); */
     /* helmet.loadGltf(mRenderer, "..//models//MosquitoInAmber.glb"); */
     /* helmet.loadGltf(mRenderer, "..//models//BoomBoxWithAxes//glTF//BoomBoxWithAxes.gltf"); */
     /* helmet.loadGltf(mRenderer, "..//models//sponza//Sponza.gltf"); */
 
-    sponza.loadGltf(mRenderer, "..//models//sponza//Sponza.gltf");
+      sponza.loadGltf(mRenderer, "..//models//sponza//Sponza.gltf");
 
     /* sponza.loadGltf(mRenderer, "..//models//Box.gltf"); */
     // sponza.loadGltf(this, "..//models//GlassHurricaneCandleHolder.glb");
     /* sponza.loadGltf(mRenderer, "..//models//ToyCar.glb"); */
-    // sponza.loadGltf(mSceneRenderer, "..//models//structure.glb");
+    /* sponza.loadGltf(mRenderer, "..//models//structure.glb"); */
 
     // Posistion the loaded scenes
     glm::vec3 translationVec = {45.0f, 10.0f, 20.0f};
