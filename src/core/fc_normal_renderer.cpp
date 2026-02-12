@@ -54,16 +54,15 @@ namespace fc
     // TODO could also draw the vectors for transparent objects but bypassed here
     for (auto& materialCollection : drawCollection.opaqueSurfaces)
     {
-      for (const FcSurface& surface : materialCollection.second)
+      for (const FcSubmesh& subMesh : materialCollection.second)
       {
-        surface.bindIndexBuffer(cmd);
+        subMesh.parent->bindIndexBuffer(cmd);
 
-        // // BUG normal arrows are not drawn correctly!!
         // // TODO update invModelMatrix when updating worldMatrix!!!!
         vkCmdPushConstants(cmd, mNormalDrawPipeline.Layout(), VK_SHADER_STAGE_VERTEX_BIT
-                           , 0, sizeof(ScenePushConstants), &surface);
+                           , 0, sizeof(ScenePushConstants), subMesh.parent.get());
 
-        vkCmdDrawIndexed(cmd, surface.IndexCount(), 1, surface.FirstIndex(), 0, 0);
+        vkCmdDrawIndexed(cmd, subMesh.indexCount, 1, subMesh.startIndex, 0, 0);
       }
     }
   }

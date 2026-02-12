@@ -18,7 +18,7 @@ namespace fc
   }
 
   // TODO update to work on all surfaces (opaque or transparent)
-  const FcSurface& FcDrawCollection::getSurfaceAtIndex(uint32_t surfaceIndex)
+  const FcSubmesh& FcDrawCollection::getSurfaceAtIndex(uint32_t surfaceIndex)
   {
     // Figure out where to find desired surface since it should be per surface not per meshNode
     size_t materialIndex = 0;
@@ -38,19 +38,20 @@ namespace fc
     return opaqueSurfaces[materialIndex].second[surfaceIndex];
   }
 
+
   //
   //
   void FcDrawCollection::add(FcMeshNode* node)
   {
-    using RenderObject = std::pair<FcMaterial*, std::vector<FcSurface>>;
+    using RenderObject = std::pair<FcMaterial*, std::vector<FcSubmesh>>;
 
-    for (const std::shared_ptr<FcSurface>& subMesh : node->mMesh->SubMeshes())
+    for (const FcSubmesh& subMesh : node->mMesh->SubMeshes2())
     {
       /* const std::shared_ptr<FcSurface> subMesh = node->mMesh; */
       // First figure out if this material subMesh will belong in transparent or opaque pipeline
       std::vector<RenderObject>* selectedCollection;
 
-      if (subMesh->Material()->materialType == FcMaterial::Type::Transparent)
+      if (subMesh.material->materialType == FcMaterial::Type::Transparent)
       {
         selectedCollection = &transparentSurfaces;
       } else {
@@ -64,12 +65,12 @@ namespace fc
 
       for (RenderObject& renderObj : *selectedCollection)
       {
-        if (subMesh->Material().get() == renderObj.first)
+        if (subMesh.material.get() == renderObj.first)
         {
           // store the submesh into the draw collection
           // TODO get rid of init method and do within scene loadp
           /* subMesh->init(node); */
-          renderObj.second.emplace_back(*subMesh);
+          renderObj.second.emplace_back(subMesh);
           materialFound = true;
           break;
         }
@@ -79,10 +80,10 @@ namespace fc
       if (!materialFound)
       {
         RenderObject newRenderObj;
-        newRenderObj.first = subMesh->Material().get();
+        newRenderObj.first = subMesh.material.get();
         // TODO get rid of init method and do within scene load
         /* subMesh->init(node); */
-        newRenderObj.second.emplace_back(*subMesh);
+        newRenderObj.second.emplace_back(subMesh);
         selectedCollection->push_back(newRenderObj);
       }
 
@@ -100,18 +101,19 @@ namespace fc
     /* FcNode::addToDrawCollection(collection); */
   }
 
-
-
+//
+  //
   void FcDrawCollection::DELETEadd(FcMeshNode* node)
   {
-    fcPrintEndl("ERROR DELETE FUNCTION");
-    // using RenderObject = std::pair<FcMaterial*, std::vector<FcSurface>>;
+    // using RenderObject = std::pair<FcMaterial*, std::vector<FcSubmesh>>;
 
-    // for (const std::shared_ptr<FcSurface>& subMesh : node->mMesh->mSubMeshes)
+    // for (const std::shared_ptr<FcSurface>& subMesh : node->mMesh->SubMeshes())
     // {
+    //   /* const std::shared_ptr<FcSurface> subMesh = node->mMesh; */
     //   // First figure out if this material subMesh will belong in transparent or opaque pipeline
     //   std::vector<RenderObject>* selectedCollection;
-    //   if (subMesh->material->materialType == FcMaterial::Type::Transparent)
+
+    //   if (subMesh->Material()->materialType == FcMaterial::Type::Transparent)
     //   {
     //     selectedCollection = &transparentSurfaces;
     //   } else {
@@ -122,12 +124,13 @@ namespace fc
     //   // or smart pointers
     //   // Find the material if it's already in the collection
     //   bool materialFound = false;
+
     //   for (RenderObject& renderObj : *selectedCollection)
     //   {
-    //     if (subMesh->material.get() == renderObj.first)
+    //     if (subMesh->Material().get() == renderObj.first)
     //     {
     //       // store the submesh into the draw collection
-    //       // TODO get rid of init method and do within scene load
+    //       // TODO get rid of init method and do within scene loadp
     //       /* subMesh->init(node); */
     //       renderObj.second.emplace_back(*subMesh);
     //       materialFound = true;
@@ -139,7 +142,8 @@ namespace fc
     //   if (!materialFound)
     //   {
     //     RenderObject newRenderObj;
-    //     newRenderObj.first = subMesh->material.get();
+    //     newRenderObj.first = subMesh->Material().get();
+    //     // TODO get rid of init method and do within scene load
     //     /* subMesh->init(node); */
     //     newRenderObj.second.emplace_back(*subMesh);
     //     selectedCollection->push_back(newRenderObj);
@@ -147,6 +151,7 @@ namespace fc
 
     //   numSurfaces++;
     // }
+
 
     // // allocate enough lists in visible surfaces vector to store indices for each material
     // // TODO should probably resize in chunks
@@ -156,10 +161,7 @@ namespace fc
     // // recurse down children nodes
     // // TODO check the stack frame count to see if this is better handles linearly
     // /* FcNode::addToDrawCollection(collection); */
-    // fcPrintEndl("added To Draw Collection");
   }
-
-
 
 
   //

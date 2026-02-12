@@ -3,6 +3,8 @@
 
 #pragma once
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+/* #include "core/fc_surface.hpp" */
+#include "core/platform.hpp"
 #include "fc_bounding_box.hpp"
 #include "fc_buffer.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -16,6 +18,8 @@
 
 namespace fc
 {
+  class FcSurface;
+
   // TEST see if initialization is necessary since usually we know they must be set
   // I've seen recommendations to have a binding for anything needed for calculating
   // gl_Position, and a second binding for everything else. So hardware that does a pre-pass
@@ -32,6 +36,8 @@ namespace fc
   };
 
 
+  //
+  //
   // TODO this could be more intuitively named
   struct FcMaterial
   {
@@ -42,10 +48,17 @@ namespace fc
 	Transparent,
 	Other,
      };
+     // FIXME the vkDescriptorSet may be better placed within FcSurface instead of FcSubmesh??
      VkDescriptorSet materialSet;
      Type materialType;
   };
 
+
+
+
+
+  //
+  //
   struct VertexBufferPushes
   {
      VkDeviceAddress address;

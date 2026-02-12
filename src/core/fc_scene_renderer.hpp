@@ -20,6 +20,7 @@ namespace fc
   class FcMeshNode;
   class FcSurface;
   class FcDrawCollection;
+  class FcSubmesh;
 
   // TODO define only if using bindless
   // Used for signalling to the fragment shader which features are available
@@ -91,6 +92,8 @@ namespace fc
      uint32_t count;
   };
 
+
+
   // TODO relocate or rename fc_materials.hpp
     class FcSceneRenderer
     {
@@ -115,7 +118,7 @@ namespace fc
        uint32_t drawMeshNode(VkCommandBuffer cmd,
                              const FcMeshNode& surface,
                              FrameAssets& currentFrame);
-       void drawSurface(VkCommandBuffer cmd, const FcSurface& surface) noexcept;
+       void drawSurface(VkCommandBuffer cmd, const FcSubmesh& surface) noexcept;
        /* void buildPipelines(VkDescriptorSetLayout sceneDescriptorLayout); */
        void buildPipelines(VkDescriptorSetLayout sceneDescriptorLayout, std::vector<FrameAssets>& frames);
      public:

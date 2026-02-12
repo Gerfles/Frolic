@@ -38,9 +38,12 @@ namespace fc
      std::array<glm::vec4, 8> mCorners;
 
    public:
-     void init(FcBounds& bounds);
+     void init(const FcBounds& bounds);
      inline const glm::vec4& operator[](size_t index) const { return mCorners[index]; }
   };
+
+
+
 
   // TODO extrapolate renderSubsystem into base class...
   class FcBoundingBoxRenderer
@@ -49,6 +52,7 @@ namespace fc
      FcPipeline mBoundingBoxPipeline;
    public:
      void buildPipelines(VkDescriptorSetLayout sceneDescriptorLayout);
+     // TODO make draw call draw only the isolated mesh whose bounding box we want
      void draw(VkCommandBuffer cmd, FcDrawCollection& drawCollection
                ,FrameAssets& currentFrame, int boundingBoxID = -1);
      void destroy();

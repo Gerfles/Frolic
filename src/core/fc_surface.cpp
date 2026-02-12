@@ -28,7 +28,7 @@ namespace fc
 
     // *-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE VERTEX BUFFER   *-*-*-*-*-*-*-*-*-*-*-*-*- //
     // get buffer size needed to store vertices
-    mIndexCount = indices.size();
+    /* mIndexCount = indices.size(); */
     VkDeviceSize bufferSize = sizeof(T) * vertices.size();
 
     // map memory to vertex buffer (copy vertex data into buffer)
@@ -66,20 +66,21 @@ namespace fc
   }
 
 
+  // DELETE ??
 // TODO should probably hash the FcSurface for quicker lookup so we can update the surface within the draw collection by using a simple hash lookup or simply use refrences
   void FcSurface::initSubMeshes(std::shared_ptr<FcSurface> parentSurface)
   {
-    for (std::shared_ptr<FcSurface> subMesh : mSubMeshes)
+    for (FcSubmesh& subMesh : mSubMeshes2)
     {
-      subMesh->mIndexBuffer.setVkBuffer(parentSurface->mIndexBuffer.getVkBuffer());
+      subMesh.parent->mIndexBuffer.setVkBuffer(parentSurface->mIndexBuffer.getVkBuffer());
 
-      subMesh->mVertexBufferAddress = parentSurface->mVertexBufferAddress;
+      subMesh.parent->mVertexBufferAddress = parentSurface->mVertexBufferAddress;
 
-      subMesh->mTransform = parentSurface->mTransform;
+      subMesh.parent->mTransform = parentSurface->mTransform;
 
       // BUG this won't get properly updated when model is transformed,
       // need to use reference or otherwise update
-      subMesh->mInvModelMatrix = glm::inverse(glm::transpose(parentSurface->mTransform));
+      subMesh.parent->mInvModelMatrix = glm::inverse(glm::transpose(parentSurface->mTransform));
     }
   }
 
@@ -90,8 +91,11 @@ namespace fc
   //  frustum culling
   bool FcSurface::isVisible(const glm::mat4& viewProjection)
   {
-    /* return true; */
+
+    return true;
     /* return false; */
+
+
     glm::mat4 matrix = viewProjection * mTransform;
 
     glm::vec3 min = {1.5f, 1.5f, 1.5f};
@@ -162,21 +166,26 @@ namespace fc
 
   //
   //
-  void FcSurface::setBounds(const FcBounds& newBounds)
-  {
-    mBounds = newBounds;
+  // void FcSurface::setBounds(const FcBounds& newBounds)
+  // {
+  //   /* mBounds = newBounds; */
 
-    mBoundaryBox.init(mBounds);
-  }
+  //   mBoundaryBox.init(newBounds);
+  // }
 
 
   //
-  //
+  // DELETE
   void FcSurface::setMaterial(const std::shared_ptr<FcMaterial> material)
   {
-    mMaterial = material;
+    /* mMaterial = material; */
   }
 
+
+  void FcSurface::addSubMesh(FcSubmesh subMesh)
+  {
+    mSubMeshes2.emplace_back(subMesh);
+  }
 
   //
   //

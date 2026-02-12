@@ -226,13 +226,14 @@ namespace fc
     for (size_t i = 0; i < drawCollection.opaqueSurfaces.size(); ++i)
     {
       drawCollection.visibleSurfaceIndices[i].clear();
+
       // BUG the bounding boxes are excluding visible objects for some reason
       // May only be on the sponza gltf...
       for (size_t index = 0; index < drawCollection.opaqueSurfaces[i].second.size(); ++index)
       {
-        FcSurface& surface = drawCollection.opaqueSurfaces[i].second[index];
+        FcSubmesh& subMesh = drawCollection.opaqueSurfaces[i].second[index];
 
-        if (surface.isVisible(*pViewProjection))
+        if (subMesh.parent->isVisible(*pViewProjection))
         {
           drawCollection.visibleSurfaceIndices[i].push_back(index);
         }
@@ -316,7 +317,6 @@ namespace fc
     // Reset the draw statistics
     drawCollection.stats.triangleCount = 0;
 
-    // TODO just sort once and store the sorted indices unless something is added or removed
     sortByVisibility(drawCollection);
 
     // Reset the previously used draw instruments for the new draw call
@@ -342,20 +342,21 @@ namespace fc
     mExternalDescriptors[0] = currentFrame.sceneDataDescriptorSet;
     mExternalDescriptors[1] = currentFrame.skyBoxDescriptorSet;
     mExternalDescriptors[2] = currentFrame.shadowMapDescriptorSet;
+
     mOpaquePipeline.bindDescriptorSets(cmd, mExternalDescriptors, 0);
+
+    mOpaquePipeline.bindDescriptorSet(cmd, currentFrame.sceneBindlessTextureSet, 4);
 
     // TO be used when no culling is desired
     // for (auto& materialCollection : drawCollection.opaqueSurfaces)
     // {
     //   mOpaquePipeline.bindDescriptorSet(cmd, materialCollection.first->materialSet, 3);
 
-    //   for (FcSurface& surface : materialCollection.second)
+    //   for (FcSubmesh& subMesh : materialCollection.second)
     //   {
-    //     drawSurface(cmd, surface);
+    //     drawSurface(cmd, subMesh);
     //   }
     // }
-
-    mOpaquePipeline.bindDescriptorSet(cmd, currentFrame.sceneBindlessTextureSet, 4);
 
     for (size_t i = 0; i < drawCollection.opaqueSurfaces.size(); ++i)
     {
@@ -365,12 +366,11 @@ namespace fc
 
       for (size_t index : drawCollection.visibleSurfaceIndices[i])
       {
-        const FcSurface& surface = drawCollection.opaqueSurfaces[i].second[index];
-
-        drawSurface(cmd, surface);
+        const FcSubmesh& subMesh = drawCollection.opaqueSurfaces[i].second[index];
+        drawSurface(cmd, subMesh);
 
         // Update the engine statistics
-        drawCollection.stats.triangleCount += surface.IndexCount() / 3;
+        drawCollection.stats.triangleCount += subMesh.indexCount / 3;
         drawCollection.stats.objectsRendered += 1;
       }
     }
@@ -384,34 +384,35 @@ namespace fc
     {
       mTransparentPipeline.bindDescriptorSet(cmd, materialCollection.first->materialSet, 3);
 
-      for (FcSurface& surface : materialCollection.second)
+      for (FcSubmesh& subMesh : materialCollection.second)
       {
-        drawSurface(cmd, surface);
+        drawSurface(cmd, subMesh);
       }
-      // drawCollection.stats.triangleCount += surface.indexCount / 3;
+      // drawCollection.stats.triangleCount += subMesh.indexCount / 3;
       // drawCollection.stats.objectsRendered += 1;
     }
   }
 
   //
   //
-  void FcSceneRenderer::drawSurface(VkCommandBuffer cmd, const FcSurface& surface) noexcept
+  void FcSceneRenderer::drawSurface(VkCommandBuffer cmd, const FcSubmesh& surface) noexcept
   {
     // Only rebind pipeline and material descriptors if the material changed
     // TODO have each object track state of its own descriptorSets
     // There are only two pipelines so far so should just draw all opaque, then all transparent
 
     // Only bind index buffer if it has changed
-    if (surface.IndexBuffer() != mPreviousIndexBuffer)
+    // TODO could make this branchless if all submeshes rendered in groups/sequentially
+    if (surface.parent->IndexBuffer() != mPreviousIndexBuffer)
     {
-      mPreviousIndexBuffer = surface.IndexBuffer();
-      surface.bindIndexBuffer(cmd);
+      mPreviousIndexBuffer = surface.parent->IndexBuffer();
+      surface.parent->bindIndexBuffer(cmd);
     }
 
     // TODO make all push constants address to matrix buffer and texture indices
     vkCmdPushConstants(cmd, pCurrentPipeline->Layout()
                        , VK_SHADER_STAGE_VERTEX_BIT
-                       , 0, sizeof(ScenePushConstants), &surface);
+                       , 0, sizeof(ScenePushConstants), surface.parent.get());
 
     // Note here that we have to offset from the initially pushed data since we
     // are really just filling a range alloted to us in total...
@@ -419,12 +420,7 @@ namespace fc
                        , VK_SHADER_STAGE_GEOMETRY_BIT
                        , sizeof(ScenePushConstants), sizeof(float), &expansionFactor);
 
-    vkCmdDrawIndexed(cmd, surface.IndexCount(), 1, surface.FirstIndex(), 0, 0);
-
-    // TODO
-    // add counters for triangles and draws calls
-    // currstats.objectsRendered++;
-    // stats.triangleCount += surface.indexCount / 3;
+    vkCmdDrawIndexed(cmd, surface.indexCount, 1, surface.startIndex, 0, 0);
   }
 
 

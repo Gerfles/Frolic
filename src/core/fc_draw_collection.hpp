@@ -41,7 +41,7 @@ namespace fc
   // way the draw collection doesn't need updating each time a surface is transformed
   struct FcDrawCollection
   {
-     using RenderObject = std::pair<FcMaterial*, std::vector<FcSurface>>;
+     using RenderObject = std::pair<FcMaterial*, std::vector<FcSubmesh>>;
      // TODO should use a hashmap since we are not accessing via index and need fast access!
      std::vector<RenderObject> opaqueSurfaces;
      std::vector<RenderObject> transparentSurfaces;
@@ -55,7 +55,7 @@ namespace fc
      std::vector<ResourceUpdate> bindlessTextureUpdates;
 
      void init(FcAllocator* allocator);
-     const FcSurface& getSurfaceAtIndex(uint32_t surfaceIndex);
+     const FcSubmesh& getSurfaceAtIndex(uint32_t surfaceIndex);
      void add(FcMeshNode* surface);
      void DELETEadd(FcMeshNode* surface);
      void destroy();

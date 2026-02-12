@@ -15,6 +15,7 @@ namespace fc
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FC SURFACE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 namespace fc
 {
+  struct FcSubmesh;
 // TODO Can incrementally update push constants according to:
   // https://docs.vulkan.org/guide/latest/push_constants.html
   // May provide some benefits if done correctly
@@ -31,6 +32,7 @@ namespace fc
      // This structure should not be used directly but instead serves as a size indicator
      ScenePushConstants() = delete;
   };
+
 
   //
   //
@@ -50,23 +52,27 @@ namespace fc
      //
      VkDeviceAddress mVertexBufferAddress;
      // -*-*-*-*-*-*-*-*-*-*-*-   END ALIGNMENT REQUIREMENTS   -*-*-*-*-*-*-*-*-*-*-*- //
-     uint32_t mFirstIndex;
-     uint32_t mIndexCount;
+     // TODO eliminate duplicated members of FcSubmesh
+     // uint32_t mFirstIndex;
+     // uint32_t mIndexCount;
      //
      FcBuffer mIndexBuffer;
      FcBuffer mVertexBuffer;
      //
      // TODO determine or elaborate why we need both bounds and boundary box
-     FcBounds mBounds;
+     //DELETE
+     /* FcBounds mBounds; */
+     // DELETE ??
      FcBoundaryBox mBoundaryBox;
      //
-     std::shared_ptr<FcMaterial> mMaterial;
+     /* std::shared_ptr<FcMaterial> mMaterial; */
      //
      // TODO think about storing separate surface subMeshes based on material type / pipeline
      // pair data structure so we can just iterate through the whole thing
-     std::vector<std::shared_ptr<FcSurface> > mSubMeshes;
-   public:
+     /* std::vector<std::shared_ptr<FcSurface> > mSubMeshes; */
 
+   public:
+     std::vector<FcSubmesh> mSubMeshes2;
      // -*-*-*-*-*-*-*-*-*-*-*-*-   CONSTRUCTORS / CLEANUP   -*-*-*-*-*-*-*-*-*-*-*-*- //
 
      //
@@ -92,6 +98,7 @@ namespace fc
      inline const void bindIndexBuffer(VkCommandBuffer cmd) const
       { vkCmdBindIndexBuffer(cmd, mIndexBuffer.getVkBuffer(), 0, VK_INDEX_TYPE_UINT32); }
      //
+     // TODO should this also be a member of FcSubmesh and perhaps deleted from FcSurface
      bool isVisible(const glm::mat4& viewProjection);
      //
      const bool isInBounds(const glm::vec4& position) const;
@@ -108,25 +115,28 @@ namespace fc
      inline void setInverseModelMatrix(glm::mat4& mat) { mInvModelMatrix = mat; }
      //
      // DELETE this should be set within constructor or other method
-     inline void setIndices(uint32_t firstIndex, uint32_t indexCount)
-      {mFirstIndex = firstIndex; mIndexCount = indexCount; }
+     // inline void setIndices(uint32_t firstIndex, uint32_t indexCount)
+     //  {mFirstIndex = firstIndex; mIndexCount = indexCount; }
      //
-     void setBounds(const FcBounds& newBounds);
+     /* void setBounds(const FcBounds& newBounds); */
      //
+     // DELETE
      void setMaterial(const std::shared_ptr<FcMaterial> material);
      //
-     inline void addSubMesh(std::shared_ptr<FcSurface> subMesh) { mSubMeshes.push_back(subMesh); }
+     // DELETE
+     /* inline void addSubMesh(std::shared_ptr<FcSurface> subMesh) { mSubMeshes.push_back(subMesh); } */
+     void addSubMesh(FcSubmesh subMesh);
 
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   GETTERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      /* inline const VkBuffer VertexBuffer() const { return mVertexBuffer.getVkBuffer(); } */
      //
      inline const VkBuffer IndexBuffer() const { return mIndexBuffer.getVkBuffer(); }
      //
-     inline const uint32_t IndexCount() const { return mIndexCount; }
+     /* inline const uint32_t IndexCount() const { return mIndexCount; } */
      //
      inline const VkDeviceAddress VertexBufferAddress() const { return mVertexBufferAddress; }
      //
-     inline const uint32_t FirstIndex() const { return mFirstIndex; }
+     /* inline const uint32_t FirstIndex() const { return mFirstIndex; } */
      //
      inline glm::mat4 ModelMatrix() const { return mTransform; }
      //
@@ -134,12 +144,34 @@ namespace fc
      // TODO improve usefulness or eliminate
      inline const glm::mat4* Transform() const { return &mTransform;}
      //
-     inline const FcBounds& Bounds() const { return mBounds; }
+     /* inline const FcBounds& Bounds() const { return mBounds; } */
      //
-     inline const std::shared_ptr<FcMaterial> Material() const { return mMaterial; };
+     /* inline const std::shared_ptr<FcMaterial> Material() const { return mMaterial; }; */
      //
-     inline const std::vector<std::shared_ptr<FcSurface>> SubMeshes() const { return mSubMeshes; }
+     // DELETE
+     /* inline const std::vector<std::shared_ptr<FcSurface>> SubMeshes() const { return mSubMeshes; } */
+     inline const std::vector<FcSubmesh>& SubMeshes2() const { return mSubMeshes2; }
      //
   };
+
+
+  //
+  //
+  struct FcSubmesh
+  {
+     u32 startIndex{0};
+     u32 indexCount{0};
+     FcBounds bounds;
+     // TEST should this be shared??
+     std::shared_ptr<FcMaterial> material;
+     // TODO use weak_ptr probably
+     std::shared_ptr<FcSurface> parent;
+     // TODO implement all the getter function that get members from parent then eliminate x.parent->trait()
+     // within code and replace with x.trait();
+     inline glm::mat4 ModelMatrix() const { return parent->ModelMatrix(); }
+
+  };
+
+
 
 }// --- namespace fc --- (END)

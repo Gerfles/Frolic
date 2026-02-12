@@ -7,7 +7,7 @@
 //
 namespace fc
 {
-  void FcBoundaryBox::init(FcBounds &bounds)
+  void FcBoundaryBox::init(const FcBounds &bounds)
   {
     mCorners[0] = glm::vec4{bounds.origin + glm::vec3{1.f, 1.f, 1.f} * bounds.extents, 1.f};
     mCorners[1] = glm::vec4{bounds.origin + glm::vec3{1.f, 1.f, -1.f} * bounds.extents, 1.f};
@@ -77,13 +77,13 @@ namespace fc
         // TODO need to incorporate transparent surfaces!!
         for (auto& materialCollection : drawCollection.opaqueSurfaces)
         {
-          for (const FcSurface& surface : materialCollection.second)
+          for (const FcSubmesh& subMesh : materialCollection.second)
           {
             // Send the bounding box to the shaders
             BoundingBoxPushes pushConstants;
-            pushConstants.modelMatrix = surface.ModelMatrix();
-            pushConstants.origin = glm::vec4(surface.Bounds().origin, 1.f);
-            pushConstants.extents = glm::vec4(surface.Bounds().extents, 0.f);
+            pushConstants.modelMatrix = subMesh.parent->ModelMatrix();
+            pushConstants.origin = glm::vec4(subMesh.bounds.origin, 1.f);
+            pushConstants.extents = glm::vec4(subMesh.bounds.extents, 0.f);
 
             // ?? not sure that we should be using pushConstants for each draw command like this
             vkCmdPushConstants(cmd, mBoundingBoxPipeline.Layout(), VK_SHADER_STAGE_VERTEX_BIT
@@ -97,13 +97,14 @@ namespace fc
       // TODO incorporate this code into the above to avoid duplication
       else // otherwise, just draw the object that we are told to
       {
-        const FcSurface& surface = drawCollection.getSurfaceAtIndex(boundingBoxID);
+        const FcSubmesh& subMesh = drawCollection.getSurfaceAtIndex(boundingBoxID);
 
         // Send the bounding box to the shaders
         BoundingBoxPushes pushConstants;
-        pushConstants.modelMatrix = surface.ModelMatrix();
-        pushConstants.origin = glm::vec4(surface.Bounds().origin, 1.f);
-        pushConstants.extents = glm::vec4(surface.Bounds().extents, 0.f);
+        // TODO figure out a way to
+        pushConstants.modelMatrix = subMesh.parent->ModelMatrix();
+        pushConstants.origin = glm::vec4(subMesh.bounds.origin, 1.f);
+        pushConstants.extents = glm::vec4(subMesh.bounds.extents, 0.f);
 
         vkCmdPushConstants(cmd, mBoundingBoxPipeline.Layout(), VK_SHADER_STAGE_VERTEX_BIT
                            , 0, sizeof(BoundingBoxPushes), &pushConstants);

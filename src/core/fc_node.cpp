@@ -80,11 +80,12 @@ namespace fc
 
     for (auto& renderObject : collection.opaqueSurfaces)
     {
-      for (FcSurface& surface : renderObject.second)
+      for (FcSubmesh& subMesh : renderObject.second)
       {
-        if (*mMesh.get() == surface)
+        // TODO REMOVE function entirely or address this code of...
+        if (*mMesh.get() == *subMesh.parent)
         {
-          surface.setTransform(&updateMatrix);
+          subMesh.parent->setTransform(&updateMatrix);
           // TODO remove normal transform setting from setTransform and do conditionally
           // based on whether or not we have non-uniform scaling enabled.
           /* break; */

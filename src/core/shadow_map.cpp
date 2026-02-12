@@ -203,19 +203,19 @@ namespace fc
 
     for (auto& materialCollection : drawContext.opaqueSurfaces)
     {
-      for (const FcSurface& surface : materialCollection.second)
+      for (const FcSubmesh& submesh : materialCollection.second)
       {
         ShadowPushConsts shadowPCs;
-        shadowPCs.vertexBuffer = surface.VertexBufferAddress();
-        shadowPCs.MVP = mLightSpaceTransform * surface.ModelMatrix();
-        /* shadowPCs.modelMatrix = surface.transform; */
+        shadowPCs.vertexBuffer = submesh.parent->VertexBufferAddress();
+        shadowPCs.MVP = mLightSpaceTransform * submesh.ModelMatrix();
+        /* shadowPCs.modelMatrix = submesh.transform; */
 
         vkCmdPushConstants(cmd, mShadowPipeline.Layout()
                            , VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(ShadowPushConsts), &shadowPCs);
 
-        surface.bindIndexBuffer(cmd);
+        submesh.parent->bindIndexBuffer(cmd);
 
-        vkCmdDrawIndexed(cmd, surface.IndexCount(), 1, surface.FirstIndex(), 0, 0);
+        vkCmdDrawIndexed(cmd, submesh.indexCount, 1, submesh.startIndex, 0, 0);
       }
     }
 
