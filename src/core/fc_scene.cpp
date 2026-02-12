@@ -444,7 +444,8 @@ namespace fc
         meshBounds.sphereRadius = glm::length(newSubmesh.bounds.extents);
         newSubmesh.bounds = meshBounds;
 
-        parentMesh->mSubMeshes2.push_back(newSubmesh);
+        /* parentMesh->mSubMeshes2.push_back(newSubmesh); */
+        parentMesh->addSubMesh(newSubmesh);
         /* newMesh->mMeshes.push_back(newSubMesh); */
         /* newMesh->uploadMesh(std::span(vertices), std::span(indices)); */
       }

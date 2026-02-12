@@ -1,7 +1,7 @@
 // fc_node.hpp
 #pragma once
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
+#include "fc_draw_collection.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <glm/mat4x4.hpp>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -11,11 +11,7 @@
 
 namespace fc
 {
-  // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FORWARD DECL'S   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-  class FcMesh;
   class FcSurface;
-  class FcDrawCollection;
-
   //
   //
   // Implementation of a drawable scene node. The scene node can hold Children and will
@@ -46,16 +42,14 @@ namespace fc
   struct FcMeshNode : public FcNode
   {
      FcMeshNode() = default;
-     FcMeshNode(std::shared_ptr<FcSurface> surface);
+     inline FcMeshNode(std::shared_ptr<FcSurface> mesh) { mMesh = mesh; };
      // TODO reserve space for visible surfaces in constructor (enough for all surfaces in mMesh)
      std::vector<std::shared_ptr<const FcSurface>> mVisibleSurfaces;
      std::shared_ptr<FcSurface> mMesh;
 
-     // // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      void sortVisibleSurfaces(const glm::mat4& viewProj);
-     // ?? should perhaps be removed or added to draw collection methods instead
-     void updateDrawCollection(FcDrawCollection& collection, glm::mat4& updateMatrix);
-     virtual void addToDrawCollection(FcDrawCollection& collection) override;
+     virtual inline void addToDrawCollection(FcDrawCollection& collection) override { collection.add(this); }
      virtual void update(const glm::mat4& topMatrix, FcDrawCollection& collection) override;
   };
 

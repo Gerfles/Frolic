@@ -1,7 +1,8 @@
 // fc_normal_renderer.cpp
 #include "fc_normal_renderer.hpp"
-#include "fc_scene_renderer.hpp"
+/* #include "fc_scene_renderer.hpp" */
 #include "fc_draw_collection.hpp"
+#include "fc_surface.hpp"
 
 namespace fc
 {

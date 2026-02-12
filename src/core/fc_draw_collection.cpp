@@ -2,6 +2,7 @@
 
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC CORE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_draw_collection.hpp"
+#include "fc_surface.hpp"
 #include "core/log.hpp"
 #include "fc_image.hpp"
 #include "fc_node.hpp"
@@ -45,9 +46,8 @@ namespace fc
   {
     using RenderObject = std::pair<FcMaterial*, std::vector<FcSubmesh>>;
 
-    for (const FcSubmesh& subMesh : node->mMesh->SubMeshes2())
+    for (const FcSubmesh& subMesh : node->mMesh->SubMeshes())
     {
-      /* const std::shared_ptr<FcSurface> subMesh = node->mMesh; */
       // First figure out if this material subMesh will belong in transparent or opaque pipeline
       std::vector<RenderObject>* selectedCollection;
 
@@ -58,8 +58,6 @@ namespace fc
         selectedCollection = &opaqueSurfaces;
       }
 
-      // BUG this will not work properly as is -> need to store the surfaces into a vector of refrences
-      // or smart pointers
       // Find the material if it's already in the collection
       bool materialFound = false;
 
@@ -68,9 +66,7 @@ namespace fc
         if (subMesh.material.get() == renderObj.first)
         {
           // store the submesh into the draw collection
-          // TODO get rid of init method and do within scene loadp
-          /* subMesh->init(node); */
-          renderObj.second.emplace_back(subMesh);
+          renderObj.second.push_back(subMesh);
           materialFound = true;
           break;
         }
@@ -99,68 +95,6 @@ namespace fc
     // recurse down children nodes
     // TODO check the stack frame count to see if this is better handles linearly
     /* FcNode::addToDrawCollection(collection); */
-  }
-
-//
-  //
-  void FcDrawCollection::DELETEadd(FcMeshNode* node)
-  {
-    // using RenderObject = std::pair<FcMaterial*, std::vector<FcSubmesh>>;
-
-    // for (const std::shared_ptr<FcSurface>& subMesh : node->mMesh->SubMeshes())
-    // {
-    //   /* const std::shared_ptr<FcSurface> subMesh = node->mMesh; */
-    //   // First figure out if this material subMesh will belong in transparent or opaque pipeline
-    //   std::vector<RenderObject>* selectedCollection;
-
-    //   if (subMesh->Material()->materialType == FcMaterial::Type::Transparent)
-    //   {
-    //     selectedCollection = &transparentSurfaces;
-    //   } else {
-    //     selectedCollection = &opaqueSurfaces;
-    //   }
-
-    //   // BUG this will not work properly as is -> need to store the surfaces into a vector of refrences
-    //   // or smart pointers
-    //   // Find the material if it's already in the collection
-    //   bool materialFound = false;
-
-    //   for (RenderObject& renderObj : *selectedCollection)
-    //   {
-    //     if (subMesh->Material().get() == renderObj.first)
-    //     {
-    //       // store the submesh into the draw collection
-    //       // TODO get rid of init method and do within scene loadp
-    //       /* subMesh->init(node); */
-    //       renderObj.second.emplace_back(*subMesh);
-    //       materialFound = true;
-    //       break;
-    //     }
-    //   }
-
-    //   // Add a new material/subMesh pair if we didn't find it in the draw collection
-    //   if (!materialFound)
-    //   {
-    //     RenderObject newRenderObj;
-    //     newRenderObj.first = subMesh->Material().get();
-    //     // TODO get rid of init method and do within scene load
-    //     /* subMesh->init(node); */
-    //     newRenderObj.second.emplace_back(*subMesh);
-    //     selectedCollection->push_back(newRenderObj);
-    //   }
-
-    //   numSurfaces++;
-    // }
-
-
-    // // allocate enough lists in visible surfaces vector to store indices for each material
-    // // TODO should probably resize in chunks
-    // // BUG this seems wrong -> should not need to resize this... at least document why
-    // visibleSurfaceIndices.resize(opaqueSurfaces.size()+1);
-
-    // // recurse down children nodes
-    // // TODO check the stack frame count to see if this is better handles linearly
-    // /* FcNode::addToDrawCollection(collection); */
   }
 
 

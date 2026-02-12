@@ -66,25 +66,6 @@ namespace fc
   }
 
 
-  // DELETE ??
-// TODO should probably hash the FcSurface for quicker lookup so we can update the surface within the draw collection by using a simple hash lookup or simply use refrences
-  void FcSurface::initSubMeshes(std::shared_ptr<FcSurface> parentSurface)
-  {
-    for (FcSubmesh& subMesh : mSubMeshes2)
-    {
-      subMesh.parent->mIndexBuffer.setVkBuffer(parentSurface->mIndexBuffer.getVkBuffer());
-
-      subMesh.parent->mVertexBufferAddress = parentSurface->mVertexBufferAddress;
-
-      subMesh.parent->mTransform = parentSurface->mTransform;
-
-      // BUG this won't get properly updated when model is transformed,
-      // need to use reference or otherwise update
-      subMesh.parent->mInvModelMatrix = glm::inverse(glm::transpose(parentSurface->mTransform));
-    }
-  }
-
-
   //
   //
   //  TODO swap this function for a faster visibility check algorithm so we can do faster
@@ -166,26 +147,11 @@ namespace fc
 
   //
   //
-  // void FcSurface::setBounds(const FcBounds& newBounds)
-  // {
-  //   /* mBounds = newBounds; */
-
-  //   mBoundaryBox.init(newBounds);
-  // }
-
-
-  //
-  // DELETE
-  void FcSurface::setMaterial(const std::shared_ptr<FcMaterial> material)
-  {
-    /* mMaterial = material; */
-  }
-
-
   void FcSurface::addSubMesh(FcSubmesh subMesh)
   {
-    mSubMeshes2.emplace_back(subMesh);
+    mSubMeshes.emplace_back(subMesh);
   }
+
 
   //
   //

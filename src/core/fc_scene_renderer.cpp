@@ -1,6 +1,7 @@
 //>  fc_scene_renderer.cpp <//
 #include "fc_scene_renderer.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "fc_surface.hpp"
 #include "core/fc_descriptors.hpp"
 #include "core/fc_draw_collection.hpp"
 #include "core/fc_gpu.hpp"

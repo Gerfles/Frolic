@@ -2,15 +2,17 @@
 #pragma once
 
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC CORE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-/* #include "core/fc_renderer.hpp" */
 #include "core/fc_resource_pool.hpp"
 #include "core/fc_resources.hpp"
-#include "fc_surface.hpp"
 #include "fc_image.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 namespace fc
 {
-  /* typedef u32 FcHandle; */
+  // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FORWARD DECL'   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+  class FcMaterial;
+  class FcSubmesh;
+  class FcMeshNode;
+
   using FcHandle = u32;
 
   //
@@ -41,6 +43,10 @@ namespace fc
   // way the draw collection doesn't need updating each time a surface is transformed
   struct FcDrawCollection
   {
+     // This structure is structured in a way that allows a given material to keep track
+     // of all of the surfaces that require it to draw. That way we can simply bind a
+     // material and then draw all of the surfaces associated with that material before
+     // moving the the next material...
      using RenderObject = std::pair<FcMaterial*, std::vector<FcSubmesh>>;
      // TODO should use a hashmap since we are not accessing via index and need fast access!
      std::vector<RenderObject> opaqueSurfaces;
@@ -51,13 +57,11 @@ namespace fc
      FcStats stats;
      uint32_t numSurfaces{0};
 
-     /* void addTexture(const FcImage& texture); */
      std::vector<ResourceUpdate> bindlessTextureUpdates;
 
      void init(FcAllocator* allocator);
      const FcSubmesh& getSurfaceAtIndex(uint32_t surfaceIndex);
-     void add(FcMeshNode* surface);
-     void DELETEadd(FcMeshNode* surface);
+     void add(FcMeshNode* node);
      void destroy();
   };
 
