@@ -115,10 +115,11 @@ namespace fc
 
     // TODO implement with std::optional
     // TODO should not load and add to draw collection simultaneously. WHY??
-    /* helmet.loadGltf(mRenderer, "..//models//helmet//DamagedHelmet.gltf"); */
+    helmet.loadGltf(mRenderer, "..//models//helmet//DamagedHelmet.gltf");
     /* helmet.loadGltf(mRenderer, "..//models//Box.gltf"); */
+    /* helmet.loadGltf(mRenderer, "..//models//SimpleMeshes.gltf"); */
     /* helmet.loadGltf(mRenderer, "..//models//MaterialsVariantsShoe.glb"); */
-    helmet.loadGltf(mRenderer, "..//models//rustediron//MetalRoughSpheres.gltf");
+    /* helmet.loadGltf(mRenderer, "..//models//rustediron//MetalRoughSpheres.gltf"); */
     /* helmet.loadGltf(mRenderer, "..//models//structure.glb"); */
 
     /* helmet.loadGltf(mRenderer, "..//models//ToyCar.glb"); */
@@ -126,12 +127,13 @@ namespace fc
     /* helmet.loadGltf(mRenderer, "..//models//BoomBoxWithAxes//glTF//BoomBoxWithAxes.gltf"); */
     /* helmet.loadGltf(mRenderer, "..//models//sponza//Sponza.gltf"); */
 
-      sponza.loadGltf(mRenderer, "..//models//sponza//Sponza.gltf");
-
+    sponza.loadGltf(mRenderer, "..//models//sponza//Sponza.gltf");
+    /* sponza.loadGltf(mRenderer, "..//models//MultipleScenes.gltf"); */
     /* sponza.loadGltf(mRenderer, "..//models//Box.gltf"); */
     // sponza.loadGltf(this, "..//models//GlassHurricaneCandleHolder.glb");
     /* sponza.loadGltf(mRenderer, "..//models//ToyCar.glb"); */
-    /* sponza.loadGltf(mRenderer, "..//models//structure.glb"); */
+    /* sponza.loadGltf(mRenderer, "..//models//structure_mat.glb"); */
+    /* sponza.loadGltf(mRenderer, "..//models//house2.glb"); */
 
     // Posistion the loaded scenes
     glm::vec3 translationVec = {45.0f, 10.0f, 20.0f};
@@ -238,7 +240,7 @@ namespace fc
 
       // pSceneData->viewProj = pSceneData->projection * pSceneData->view;
       // pSceneData->lighSpaceTransform = mRenderer.mShadowMap.LightSpaceMatrix();
-// mSceneDataBuffer.overwriteData(&mSceneData, sizeof(SceneData));
+      // mSceneDataBuffer.overwriteData(&mSceneData, sizeof(SceneData));
 
       // -*-*-*-*-*-*-*-*-*-*-*-*-*-   START THE NEW FRAME   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
       // mRenderer.generateShadowMap();
@@ -280,7 +282,8 @@ namespace fc
   }
 
 
-   // Keep a running total of 100 frame time samples in order to smooth the FPS calculation
+  // TODO relocate to stats if possible
+  // Keep a running total of 100 frame time samples in order to smooth the FPS calculation
   int Frolic::calcFPS(float lastFrameTime)
   {
     // first remove the frame time at the current index from our running total

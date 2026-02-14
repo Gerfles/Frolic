@@ -57,11 +57,11 @@ namespace fc
     {
       for (const FcSubmesh& subMesh : materialCollection.second)
       {
-        subMesh.parent->bindIndexBuffer(cmd);
+        subMesh.parent.lock()->bindIndexBuffer(cmd);
 
         // // TODO update invModelMatrix when updating worldMatrix!!!!
         vkCmdPushConstants(cmd, mNormalDrawPipeline.Layout(), VK_SHADER_STAGE_VERTEX_BIT
-                           , 0, sizeof(ScenePushConstants), subMesh.parent.get());
+                           , 0, sizeof(ScenePushConstants), subMesh.parent.lock().get());
 
         vkCmdDrawIndexed(cmd, subMesh.indexCount, 1, subMesh.startIndex, 0, 0);
       }

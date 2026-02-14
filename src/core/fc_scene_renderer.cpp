@@ -234,7 +234,7 @@ namespace fc
       {
         FcSubmesh& subMesh = drawCollection.opaqueSurfaces[i].second[index];
 
-        if (subMesh.parent->isVisible(*pViewProjection))
+        if (subMesh.isVisible(*pViewProjection))
         {
           drawCollection.visibleSurfaceIndices[i].push_back(index);
         }
@@ -404,16 +404,16 @@ namespace fc
 
     // Only bind index buffer if it has changed
     // TODO could make this branchless if all submeshes rendered in groups/sequentially
-    if (surface.parent->IndexBuffer() != mPreviousIndexBuffer)
+    if (surface.parent.lock()->IndexBuffer() != mPreviousIndexBuffer)
     {
-      mPreviousIndexBuffer = surface.parent->IndexBuffer();
-      surface.parent->bindIndexBuffer(cmd);
+      mPreviousIndexBuffer = surface.parent.lock()->IndexBuffer();
+      surface.parent.lock()->bindIndexBuffer(cmd);
     }
 
     // TODO make all push constants address to matrix buffer and texture indices
     vkCmdPushConstants(cmd, pCurrentPipeline->Layout()
                        , VK_SHADER_STAGE_VERTEX_BIT
-                       , 0, sizeof(ScenePushConstants), surface.parent.get());
+                       , 0, sizeof(ScenePushConstants), surface.parent.lock().get());
 
     // Note here that we have to offset from the initially pushed data since we
     // are really just filling a range alloted to us in total...

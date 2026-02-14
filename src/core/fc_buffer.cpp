@@ -127,6 +127,19 @@ namespace  fc
   }
 
 
+  //
+  //
+  VkDeviceAddress FcBuffer::getVkDeviceAddress() const
+  {
+    // find the address fo the vertex buffer
+    VkBufferDeviceAddressInfo deviceAddressInfo{};
+    deviceAddressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+    deviceAddressInfo.buffer = mBuffer;
+
+    return vkGetBufferDeviceAddress(FcLocator::Device(), &deviceAddressInfo);
+  }
+
+
 
   void FcBuffer::write(void* sourceData, size_t dataSize, VkDeviceSize offset)
   {

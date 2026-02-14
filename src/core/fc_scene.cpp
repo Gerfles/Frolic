@@ -38,28 +38,15 @@ namespace fc
     mDescriptorClerk.destroy();
     mMaterialDataBuffer.destroy();
 
-    // for (auto& [key, val] : mMeshes)
+    // TODO make sure all the bookkeeping is handled via smart ptrs
+    // for (std::shared_ptr<FcNode>& node : mTopNodes)
     // {
-    //   val->destroy();
+    //   // destroy all nodes
     // }
 
-    // for (auto& image : mTextures)
+    // for (std::shared_ptr<FcSurface>& mesh : mMeshes)
     // {
-    //   image.destroy();
-    // }
-    // for (auto& [key, val] : mImages)
-    // {
-    //   // TODO get rid of dependency on FcRenderer
-    //   // Make sure we don't destroy the default image
-    //   if (val.Image() != pCreator->mCheckerboardTexture.Image())
-    //   {
-    //     val.destroy();
-    //   }
-    // }
-
-    // for (auto& sampler : mSamplers)
-    // {
-    //   vkDestroySampler(device, sampler, nullptr);
+    //   // destroy all meshes
     // }
   }
 
@@ -167,34 +154,11 @@ namespace fc
       if (gltfNode.meshIndex.has_value())
       {
         totalMeshNodes++;
-        /* newNode = std::make_shared<FcMeshNode>(mMeshes[*gltfNode.meshIndex]); */
-        /* newNode = std::make_shared<FcMeshNode>(); */
         newNode = std::make_shared<FcMeshNode>(mMeshes[*gltfNode.meshIndex]);
-        /* static_cast<FcMeshNode*>(newNode.get())->mMesh = mMeshes[*gltfNode.meshIndex]; */
-
-
-        /* static_cast<FcMeshNode*>(newNode.get())->mMesh->init(static_cast<FcMeshNode*>(newNode.get())); */
-
-        // DELETE if possible
-        // for (auto& subMesh : static_cast<FcMeshNode*>(newNode.get())->mMesh->mSubMeshes)
-        // {
-        //   subMesh->init(static_cast<FcMeshNode*>(newNode.get()));
-        // }
-
-        /* mIndexBuffer = meshNode->mMesh->IndexBuffer(); */
-        // static_cast<FcMeshNode*>(newNode.get())->mSurface->mIndexBuffer.
-        // surface->mIndexBuffer.setVkBuffer(meshNode->mSurface->mIndexBuffer.getVkBuffer());
-        // surface->mTransform = meshNode->localTransform;
-
-        // // BUG this won't get properly updated when model is transformed,
-        // // need to use reference or otherwise update
-        // surface->mInvModelMatrix = glm::inverse(glm::transpose(meshNode->localTransform));
-        // surface->mVertexBufferAddress = meshNode->mSurface->mVertexBufferAddress;
       }
       else
       {
         std::shared_ptr<FcNode> newNode = std::make_shared<FcNode>();
-        // TODO TEST that we are don't need to initialize FcNode with transforms etc.
       }
 
       // TODO preallocate, etc.
@@ -253,12 +217,10 @@ namespace fc
     }
 
     // Finally add the loaded scene into the draw collection structure
-    fcPrintEndl("Adding to draw collection");
     addToDrawCollection(drawCollection);
-    fcPrintEndl("Added to draw collection");
 
-    std::cout << "Loaded GLTF file: " << filepath << "\n" << std::endl;
     drawSceneGraph();
+    std::cout << "Loaded glTF file: " << filepath << "\n" << std::endl;
   }
 
 
@@ -438,16 +400,15 @@ namespace fc
         }
 
         // calculate origin and extents from the min/max use extent length for radius
-        FcBounds meshBounds;
-        meshBounds.origin = (maxPos + minPos) * 0.5f;
-        meshBounds.extents = (maxPos - minPos) * 0.5f;
-        meshBounds.sphereRadius = glm::length(newSubmesh.bounds.extents);
-        newSubmesh.bounds = meshBounds;
+        newSubmesh.bounds.origin = (maxPos + minPos) * 0.5f;
+        newSubmesh.bounds.extents = (maxPos - minPos) * 0.5f;
+        newSubmesh.bounds.sphereRadius = glm::length(newSubmesh.bounds.extents);
 
-        /* parentMesh->mSubMeshes2.push_back(newSubmesh); */
+        // Now that bounds have been set, we can initialize the boundary box
+        // The boundary box makes calculations a little faster by keeping around an objects 8 corners
+        newSubmesh.initBoundaryBox();
+
         parentMesh->addSubMesh(newSubmesh);
-        /* newMesh->mMeshes.push_back(newSubMesh); */
-        /* newMesh->uploadMesh(std::span(vertices), std::span(indices)); */
       }
 
       // TODO check that we're not causing superfluous calls to copy constructor / destructors
@@ -462,196 +423,7 @@ namespace fc
   }
 
 
-  void FcScene::DELETEloadMeshes(fastgltf::Asset& gltf, std::vector<std::shared_ptr<FcMaterial>>& materials)
-  {
-    // // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   LOAD ALL MESHES   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    // // use the same vectors for all meshes so that memory doesnt reallocate as often
-    // // TODO std::move
-    // std::vector<uint32_t> indices;
-    // std::vector<Vertex> vertices;
-
-    // MaterialConstants* sceneMaterialConstants =
-    //   static_cast<MaterialConstants*>(mMaterialDataBuffer.getAddress());
-
-    // // TODO check that gltf.meshes.size() is equal to meshnodes and not less
-    // for (fastgltf::Mesh& mesh : gltf.meshes)
-    // {
-    //   std::shared_ptr<FcSurface> parentMesh = std::make_shared<FcSurface>();
-    //   mMeshes.push_back(parentMesh);
-
-    //   // KEEP for ref...
-    //   //gltf.materials[primitive.materialIndex.value()].pbrData.;
-
-    //   // clear the mesh arrays each mesh, we don't want to merge them by error
-    //   // TODO change if can since these operations are O(N) (has to call destructor for each element)
-    //   indices.clear();
-    //   vertices.clear();
-
-    //   // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   LOAD SUB-MESHES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    //   for (auto& primitive : mesh.primitives)
-    //   {
-    //     // TODO replace with constructor
-    //     std::shared_ptr<FcSurface> newMesh = std::make_shared<FcSurface>();
-    //     /* parentMesh->mSubMeshes.push_back(newMesh); */
-    //     parentMesh->addSubMesh(newMesh);
-    //     /* mMeshes.push_back(newMesh); */
-    //     /* meshes.push_back(newMesh); */
-    //     /* FcSubMesh newSubMesh; */
-
-    //     u32 firstIndex = static_cast<uint32_t>(indices.size());
-    //     u32 indexCount = static_cast<uint32_t>(gltf.accessors[primitive.indicesAccessor.value()].count);
-    //     newMesh->setIndices(firstIndex, indexCount);
-    //     // newSurface.mFirstIndex = static_cast<uint32_t>(indices.size());
-    //     // newSubMesh.indexCount =
-    //     //   static_cast<uint32_t>(gltf.accessors[primitive.indicesAccessor.value()].count);
-
-    //     size_t initialVertex = vertices.size();
-
-    //     fastgltf::Accessor& indexAcccessor = gltf.accessors[primitive.indicesAccessor.value()];
-    //     indices.reserve(indices.size() + indexAcccessor.count);
-
-    //     fastgltf::iterateAccessor<std::uint32_t>(gltf, indexAcccessor
-    //                                              , [&](std::uint32_t index)
-    //                                               {
-    //                                                 indices.push_back(initialVertex + index);
-    //                                               });
-
-    //     // *-*-*-*-*-*-*-*-*-*-*-*-*-   LOAD VERTEX POSITIONS   *-*-*-*-*-*-*-*-*-*-*-*-*- //
-
-    //     // This will always be present in glTF so no need to check
-    //     fastgltf::Accessor& positionAccessor =
-    //       gltf.accessors[primitive.findAttribute("POSITION")->accessorIndex];
-    //     vertices.resize(vertices.size() + positionAccessor.count);
-    //     fastgltf::iterateAccessorWithIndex<glm::vec3>(gltf, positionAccessor,
-    //                                                   [&](glm::vec3 v, size_t index)
-    //                                                    {
-    //                                                      Vertex newVtx;
-    //                                                      newVtx.position = v;
-    //                                                      vertices[initialVertex + index] = newVtx;
-    //                                                    });
-
-    //     // -*-*-*-*-*-*-*-*-*-*-*-*-*-   LOAD VERTEX NORMALS   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    //     // The rest of the attributes will need to be checked for first since the glTF file may not include
-    //     auto normals = primitive.findAttribute("NORMAL");
-    //     if (normals != primitive.attributes.end())
-    //     {
-    //       //
-    //       fastgltf::iterateAccessorWithIndex<glm::vec3>(gltf, gltf.accessors[(*normals).accessorIndex],
-    //                                                     [&](glm::vec3 vec, size_t index)
-    //                                                      {
-    //                                                        vertices[initialVertex + index].normal = vec;
-    //                                                      });
-    //     }
-
-    //     // *-*-*-*-*-*-*-*-*-*-*-*-*-   LOAD VERTEX TANGENTS   *-*-*-*-*-*-*-*-*-*-*-*-*- //
-    //     fastgltf::Attribute* tangents = primitive.findAttribute("TANGENT");
-    //     if (tangents != primitive.attributes.end())
-    //     {
-    //       // Could indicate an error in the asset artist "pipeline" if the attributes have texture
-    //       // coordinates but no material index... But best to check regardless.
-    //       if (primitive.materialIndex.has_value())
-    //       {
-    //         // Let our shaders know we have vertex tangets available
-    //         sceneMaterialConstants[primitive.materialIndex.value()].flags
-    //           |= MaterialFeatures::HasVertexTangentAttribute;
-    //       }
-
-    //       fastgltf::iterateAccessorWithIndex<glm::vec4>(gltf, gltf.accessors[(*tangents).accessorIndex],
-    //                                                     [&](glm::vec4 vec, size_t index)
-    //                                                      {
-    //                                                        vertices[initialVertex + index].tangent =
-    //                                                          vec;
-    //                                                      });
-    //     }
-
-    //     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   LOAD VERTEX UVS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    //     auto uv = primitive.findAttribute("TEXCOORD_0");
-    //     if (uv != primitive.attributes.end())
-    //     {
-    //       // Could indicate an error in the asset artist "pipeline" if the attributes have texture
-    //       // coordinates but no material index... But best to check regardless.
-    //       if (primitive.materialIndex.has_value())
-    //       {
-    //         sceneMaterialConstants[primitive.materialIndex.value()].flags
-    //           |= MaterialFeatures::HasVertexTextureCoordinates;
-    //       }
-
-    //       fastgltf::iterateAccessorWithIndex<glm::vec2>(gltf, gltf.accessors[(*uv).accessorIndex]
-    //                                                     , [&](glm::vec2 vec, size_t index)
-    //                                                      {
-    //                                                        vertices[initialVertex + index].uv_x = vec.x;
-    //                                                        vertices[initialVertex + index].uv_y = vec.y;
-    //                                                      });
-    //     }
-
-    //     // -*-*-*-*-*-*-*-*-*-*-*-*-*-   LOAD VERTEX COLORS   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    //     // Note: most assets do not color their vertices since the color is generally provided by textures
-    //     // We leave this attribute off but could be easily implemented
-    //     auto colors = primitive.findAttribute("COLOR_0");
-    //     if (colors != primitive.attributes.end())
-    //     {
-    //       // fcPrintEndl("Model has un-utilized colors per vertex");
-    //       // NOTE: Left for reference
-    //       // fastgltf::iterateAccessorWithIndex<glm::vec4>(gltf,
-    //       //                                               gltf.accessors[(*colors).accessorIndex]
-    //       //                                               , [&](glm::vec4 vec, size_t index)
-    //       //                                                {
-    //       //                                                  vertices[initialVertex + index].color = vec;
-    //       //                                                });
-    //     }
-
-
-    //     if (primitive.materialIndex.has_value())
-    //     {
-    //       /* newMesh->Material() = materials[primitive.materialIndex.value()]; */
-    //       newMesh->setMaterial(materials[primitive.materialIndex.value()]);
-    //     }
-    //     else
-    //     {
-    //       /* newSubMesh.material = materials[0]; */
-    //       // TODO make sure there is always a default material
-    //       newMesh->setMaterial(materials[0]);
-    //     }
-    //     // Signal flags as to which attributes this material can expect from the vertices
-    //     // ?? not sure if we could have a material that associated with two different
-    //     // meshes, where one has an attribute that the other does not...
-    //     //gltf.materials[primitive.materialIndex.value()].
-
-
-    //     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- MESH BOUNDING BOX   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    //     // loop the vertices of this surface, find min/max bounds
-    //     glm::vec3 minPos = vertices[initialVertex].position;
-    //     glm::vec3 maxPos = vertices[initialVertex].position;
-
-    //     for (int i = initialVertex + 1; i < vertices.size(); i++)
-    //     {
-    //       minPos = glm::min(minPos, vertices[i].position);
-    //       maxPos = glm::max(maxPos, vertices[i].position);
-    //     }
-
-    //     // calculate origin and extents from the min/max use extent length for radius
-    //     FcBounds meshBounds;
-    //     meshBounds.origin = (maxPos + minPos) * 0.5f;
-    //     meshBounds.extents = (maxPos - minPos) * 0.5f;
-    //     meshBounds.sphereRadius = glm::length(newMesh->Bounds().extents);
-    //     newMesh->setBounds(meshBounds);
-
-    //     /* newMesh->mMeshes.push_back(newSubMesh); */
-    //     /* newMesh->uploadMesh(std::span(vertices), std::span(indices)); */
-    //   }
-
-    //   // TODO check that we're not causing superfluous calls to copy constructor / destructors
-    //   // TODO start here with optimizations, including a new constructor with name
-    //   // TODO consider going back to vector refererence from span since we can mandate that...
-    //   // however, this limits future implementations that prefer arrays, etc.
-
-    //   parentMesh->uploadMesh(std::span(vertices), std::span(indices));
-
-    //   // TODO create constructor for mesh so we can emplace it in place
-    // }
-  }
-
-//
+  //
   //
   // TODO further extrapolate functions to reduce redundancies
   // Load all the textures and materials for a scene using descriptor indexing (bindless resources)
@@ -1563,7 +1335,6 @@ namespace fc
   void FcScene::update(glm::mat4& mat, FcDrawCollection& collection)
   {
     // TODO
-    /* mTransformMat = mRotationMat * mTransformMat; */
   }
 
   //
@@ -1702,14 +1473,12 @@ namespace fc
   }
 
 
-
-
   //
   //
   void FcScene::destroy()
   {
     clearAll();
-    // TODO additional housekeeping
+    // TODO additional housekeeping destroy all nodes and meshes etc.
   }
 
 }// --- namespace fc --- (END)

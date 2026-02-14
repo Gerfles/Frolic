@@ -70,6 +70,7 @@ enum class FcBufferTypes : uint8_t {
 
        VkDeviceSize size() { return mSize; }
        void* getAddress();
+       VkDeviceAddress getVkDeviceAddress() const;
        void destroy();
     };
 

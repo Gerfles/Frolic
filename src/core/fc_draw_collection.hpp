@@ -6,12 +6,16 @@
 #include "core/fc_resources.hpp"
 #include "fc_image.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
+//
+//
 namespace fc
 {
   // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FORWARD DECL'   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
   class FcMaterial;
   class FcSubmesh;
   class FcMeshNode;
+  // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
   using FcHandle = u32;
 
@@ -30,10 +34,10 @@ namespace fc
      float frametime;
      float sceneUpdateTime;
      float meshDrawTime;
-     uint32_t fpsAvg;
-     uint32_t triangleCount;
-     uint32_t objectsRendered;
-     uint32_t frame;
+     u32 fpsAvg;
+     u32 triangleCount;
+     u32 objectsRendered;
+     u32 frame;
   };
 
 
@@ -55,12 +59,12 @@ namespace fc
      ResourcePoolTyped<FcImage> mTextures;
      ResourcePoolTyped<FcImage> mBillboards;
      FcStats stats;
-     uint32_t numSurfaces{0};
+     u32 numSurfaces{0};
 
      std::vector<ResourceUpdate> bindlessTextureUpdates;
 
      void init(FcAllocator* allocator);
-     const FcSubmesh& getSurfaceAtIndex(uint32_t surfaceIndex);
+     const FcSubmesh& getSurfaceAtIndex(u32 surfaceIndex);
      void add(FcMeshNode* node);
      void destroy();
   };
@@ -74,7 +78,7 @@ namespace fc
     //    std::vector<std::reference_wrapper<FcMeshNode>> transparentSurfaces;
     //    FcStats stats;
     //    //
-    //    uint32_t totalOpaqueSurfaces();
-    //    uint32_t totalTransparentSurfaces();
+    //    u32 totalOpaqueSurfaces();
+    //    u32 totalTransparentSurfaces();
     // };
 }// --- namespace fc --- (END)

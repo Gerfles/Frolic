@@ -82,7 +82,7 @@ namespace fc
           {
             // Send the bounding box to the shaders
             BoundingBoxPushes pushConstants;
-            pushConstants.modelMatrix = subMesh.parent->ModelMatrix();
+            pushConstants.modelMatrix = subMesh.parent.lock()->ModelMatrix();
             pushConstants.origin = glm::vec4(subMesh.bounds.origin, 1.f);
             pushConstants.extents = glm::vec4(subMesh.bounds.extents, 0.f);
 
@@ -103,7 +103,7 @@ namespace fc
         // Send the bounding box to the shaders
         BoundingBoxPushes pushConstants;
         // TODO figure out a way to
-        pushConstants.modelMatrix = subMesh.parent->ModelMatrix();
+        pushConstants.modelMatrix = subMesh.parent.lock()->ModelMatrix();
         pushConstants.origin = glm::vec4(subMesh.bounds.origin, 1.f);
         pushConstants.extents = glm::vec4(subMesh.bounds.extents, 0.f);
 

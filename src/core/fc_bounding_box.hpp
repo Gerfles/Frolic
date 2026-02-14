@@ -39,12 +39,12 @@ namespace fc
 
    public:
      void init(const FcBounds& bounds);
-     inline const glm::vec4& operator[](size_t index) const { return mCorners[index]; }
+     inline const glm::vec4& operator[](size_t index) const noexcept { return mCorners[index]; }
   };
 
 
-
-
+  //
+  //
   // TODO extrapolate renderSubsystem into base class...
   class FcBoundingBoxRenderer
   {

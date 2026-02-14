@@ -206,14 +206,14 @@ namespace fc
       for (const FcSubmesh& submesh : materialCollection.second)
       {
         ShadowPushConsts shadowPCs;
-        shadowPCs.vertexBuffer = submesh.parent->VertexBufferAddress();
+        shadowPCs.vertexBuffer = submesh.parent.lock()->VertexBufferAddress();
         shadowPCs.MVP = mLightSpaceTransform * submesh.ModelMatrix();
         /* shadowPCs.modelMatrix = submesh.transform; */
 
         vkCmdPushConstants(cmd, mShadowPipeline.Layout()
                            , VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(ShadowPushConsts), &shadowPCs);
 
-        submesh.parent->bindIndexBuffer(cmd);
+        submesh.parent.lock()->bindIndexBuffer(cmd);
 
         vkCmdDrawIndexed(cmd, submesh.indexCount, 1, submesh.startIndex, 0, 0);
       }
