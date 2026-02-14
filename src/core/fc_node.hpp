@@ -12,7 +12,7 @@
 
 namespace fc
 {
-  class FcSurface;
+  class FcMesh;
   //
   //
   // Implementation of a drawable scene node. The scene node can hold Children and will
@@ -43,10 +43,10 @@ namespace fc
   struct FcMeshNode : public FcNode
   {
      FcMeshNode() = default;
-     inline FcMeshNode(std::shared_ptr<FcSurface> mesh) { mMesh = mesh; };
+     inline FcMeshNode(std::shared_ptr<FcMesh> mesh) { mMesh = mesh; };
      // TODO reserve space for visible surfaces in constructor (enough for all surfaces in mMesh)
-     std::vector<std::shared_ptr<const FcSurface>> mVisibleSurfaces;
-     std::shared_ptr<FcSurface> mMesh;
+     std::vector<std::shared_ptr<const FcMesh>> mVisibleSurfaces;
+     std::shared_ptr<FcMesh> mMesh;
 
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      void sortVisibleSurfaces(const glm::mat4& viewProj);

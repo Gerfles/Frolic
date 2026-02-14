@@ -2,7 +2,7 @@
 
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC CORE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_draw_collection.hpp"
-#include "fc_surface.hpp"
+#include "fc_mesh.hpp"
 #include "core/log.hpp"
 #include "fc_image.hpp"
 #include "fc_node.hpp"

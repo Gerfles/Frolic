@@ -18,7 +18,7 @@ namespace fc
   class FcMaterial;
   class FrameAssets;
   class FcMeshNode;
-  class FcSurface;
+  class FcMesh;
   class FcDrawCollection;
   class FcSubmesh;
 
@@ -114,7 +114,7 @@ namespace fc
        // FcBuffer mSceneDataBuffer;
        std::vector<VkDescriptorSet> mExternalDescriptors {3};
        void sortByVisibility(FcDrawCollection& drawCollection);
-       std::vector<IndirectBatch> compactDraws(FcSurface* objects, int count);
+       std::vector<IndirectBatch> compactDraws(FcMesh* objects, int count);
        uint32_t drawMeshNode(VkCommandBuffer cmd,
                              const FcMeshNode& surface,
                              FrameAssets& currentFrame);

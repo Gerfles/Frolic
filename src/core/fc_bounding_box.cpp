@@ -1,7 +1,7 @@
 // fc_bounding_box.cpp
 #include "fc_bounding_box.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "fc_surface.hpp"
+#include "fc_mesh.hpp"
 #include "fc_draw_collection.hpp"
 
 

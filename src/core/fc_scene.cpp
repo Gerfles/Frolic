@@ -238,7 +238,7 @@ namespace fc
     // TODO check that gltf.meshes.size() is equal to meshnodes and not less
     for (fastgltf::Mesh& mesh : gltf.meshes)
     {
-      std::shared_ptr<FcSurface> parentMesh = std::make_shared<FcSurface>();
+      std::shared_ptr<FcMesh> parentMesh = std::make_shared<FcMesh>();
       mMeshes.push_back(parentMesh);
 
       // KEEP for ref...

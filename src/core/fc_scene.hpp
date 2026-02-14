@@ -36,7 +36,7 @@ namespace fc
      FcBuffer mMaterialDataBuffer;
      //
      // Keep the collection of all surfaces/meshes within the scene
-     std::vector<std::shared_ptr<FcSurface> > mMeshes;
+     std::vector<std::shared_ptr<FcMesh> > mMeshes;
 
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   HELPERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      void printNode(std::shared_ptr<FcNode>& node, std::string& nodeID);
