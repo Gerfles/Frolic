@@ -11,10 +11,11 @@ namespace fc
   //
   void FcNode::refreshTransforms(const glm::mat4& parentMatrix)
   {
-    localTransform = parentMatrix * localTransform;
+    worldTransform = parentMatrix * localTransform;
+
     for (std::shared_ptr<FcNode>& child : mChildren)
     {
-      child->refreshTransforms(localTransform);
+      child->refreshTransforms(worldTransform);
     }
   }
 
@@ -24,7 +25,7 @@ namespace fc
   void FcNode::addToDrawCollection(FcDrawCollection& collection)
   {
     // FcNodes will not be added to draw collection but recurse through children
-    // to make sure any FcMeshNodes get added
+    // to make sure any FcMeshNodes gets added
     for (std::shared_ptr<FcNode>& child : mChildren)
     {
       child->addToDrawCollection(collection);
@@ -34,24 +35,20 @@ namespace fc
 
   //
   //
-  // TODO solidify the transform updates and document and VERIFY
-  void FcNode::update(const glm::mat4& topMatrix, FcDrawCollection& collection)
+  FcMeshNode::FcMeshNode(std::shared_ptr<FcMesh> mesh)
   {
-    for (std::shared_ptr<FcNode>& child : mChildren)
-    {
-      child->update(topMatrix, collection);
-    }
-  }
+    mMesh = mesh;
+    mVertexBufferAddress = mMesh->VertexBufferAddress();
+  };
+
 
 
   //
   //
-  void FcMeshNode::update(const glm::mat4& topMatrix, FcDrawCollection& collection)
+  void FcMeshNode::refreshTransforms(const glm::mat4& topMatrix)
   {
-    glm::mat4 nodeMatrix = topMatrix * localTransform;
-    mMesh->setTransform(nodeMatrix);
-
-    FcNode::update(topMatrix, collection);
+    FcNode::refreshTransforms(topMatrix);
+    invWorldTransform = glm::inverse(glm::transpose(worldTransform));
   }
 
 }// --- namespace fc --- (END)

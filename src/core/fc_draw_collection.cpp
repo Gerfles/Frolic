@@ -7,7 +7,7 @@
 #include "fc_image.hpp"
 #include "fc_node.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
+#include <glm/mat4x4.hpp>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 namespace fc
 {
@@ -19,6 +19,7 @@ namespace fc
   }
 
   // TODO update to work on all surfaces (opaque or transparent)
+  // TODO utilize a numbering system to simplify load/indices use
   const FcSubmesh& FcDrawCollection::getSurfaceAtIndex(uint32_t surfaceIndex)
   {
     // Figure out where to find desired surface since it should be per surface not per meshNode
@@ -46,7 +47,7 @@ namespace fc
   {
     using RenderObject = std::pair<FcMaterial*, std::vector<FcSubmesh>>;
 
-    for (const FcSubmesh& subMesh : node->mMesh->SubMeshes())
+    for (FcSubmesh& subMesh : node->mMesh->SubMeshes())
     {
       // First figure out if this material subMesh will belong in transparent or opaque pipeline
       std::vector<RenderObject>* selectedCollection;
@@ -57,6 +58,8 @@ namespace fc
       } else {
         selectedCollection = &opaqueSurfaces;
       }
+
+      subMesh.node = node;
 
       // Find the material if it's already in the collection
       bool materialFound = false;
@@ -77,24 +80,20 @@ namespace fc
       {
         RenderObject newRenderObj;
         newRenderObj.first = subMesh.material.get();
-        // TODO get rid of init method and do within scene load
-        /* subMesh->init(node); */
+
         newRenderObj.second.emplace_back(subMesh);
+
         selectedCollection->push_back(newRenderObj);
+
+        // Grow the vector of vectors that keeps track of which meshes to draw (visible)
+        visibleSurfaceIndices.resize(opaqueSurfaces.size());
       }
 
       numSurfaces++;
     }
 
-
     // allocate enough lists in visible surfaces vector to store indices for each material
     // TODO should probably resize in chunks
-    // BUG this seems wrong -> should not need to resize this... at least document why
-    visibleSurfaceIndices.resize(opaqueSurfaces.size()+1);
-
-    // recurse down children nodes
-    // TODO check the stack frame count to see if this is better handles linearly
-    /* FcNode::addToDrawCollection(collection); */
   }
 
 

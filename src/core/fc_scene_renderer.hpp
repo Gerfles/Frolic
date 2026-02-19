@@ -114,12 +114,10 @@ namespace fc
        // FcBuffer mSceneDataBuffer;
        std::vector<VkDescriptorSet> mExternalDescriptors {3};
        void sortByVisibility(FcDrawCollection& drawCollection);
-       std::vector<IndirectBatch> compactDraws(FcMesh* objects, int count);
        uint32_t drawMeshNode(VkCommandBuffer cmd,
                              const FcMeshNode& surface,
                              FrameAssets& currentFrame);
        void drawSurface(VkCommandBuffer cmd, const FcSubmesh& surface) noexcept;
-       /* void buildPipelines(VkDescriptorSetLayout sceneDescriptorLayout); */
        void buildPipelines(VkDescriptorSetLayout sceneDescriptorLayout, std::vector<FrameAssets>& frames);
      public:
        // TODO think about including a local descriptorClerk
@@ -131,10 +129,6 @@ namespace fc
                  FrameAssets& currentFrame, bool shouldDrawWireFrame);
        //
        void destroy();
-       // TODO DELETE or refactor the following
-       /* VkDescriptorSetLayout getSceneDescriptorLayout() { return mSceneDataDescriptorLayout; } */
-       /* SceneDataUbo* getSceneDataUbo() { return &mSceneData; } */
-       /* void updateSceneDataBuffer() { mSceneDataBuffer.write(&mSceneData, sizeof(SceneDataUbo)); } */
        float& ExpansionFactor() { return expansionFactor; }
     };
 

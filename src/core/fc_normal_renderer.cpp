@@ -1,8 +1,11 @@
-// fc_normal_renderer.cpp
+//> fc_normal_renderer.cpp <//
 #include "fc_normal_renderer.hpp"
-/* #include "fc_scene_renderer.hpp" */
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "fc_node.hpp"
 #include "fc_draw_collection.hpp"
 #include "fc_mesh.hpp"
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
 
 namespace fc
 {
@@ -59,9 +62,8 @@ namespace fc
       {
         subMesh.parent.lock()->bindIndexBuffer(cmd);
 
-        // // TODO update invModelMatrix when updating worldMatrix!!!!
         vkCmdPushConstants(cmd, mNormalDrawPipeline.Layout(), VK_SHADER_STAGE_VERTEX_BIT
-                           , 0, sizeof(ScenePushConstants), subMesh.parent.lock().get());
+                           , 0, sizeof(ScenePushConstants), subMesh.getSceneConstantsPtr());
 
         vkCmdDrawIndexed(cmd, subMesh.indexCount, 1, subMesh.startIndex, 0, 0);
       }

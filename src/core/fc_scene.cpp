@@ -211,7 +211,8 @@ namespace fc
       if (sceneNode->parent.lock() == nullptr)
       {
         mTopNodes.push_back(sceneNode);
-        // TEST dependency
+
+        // Propagate matrix heirarchy recursively
         sceneNode->refreshTransforms(glm::mat4{1.0f});
       }
     }
@@ -224,6 +225,8 @@ namespace fc
   }
 
 
+  //
+  //
   void FcScene::loadMeshes(fastgltf::Asset& gltf, std::vector<std::shared_ptr<FcMaterial>>& materials)
   {
     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   LOAD ALL MESHES   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -235,14 +238,10 @@ namespace fc
     MaterialConstants* sceneMaterialConstants =
       static_cast<MaterialConstants*>(mMaterialDataBuffer.getAddress());
 
-    // TODO check that gltf.meshes.size() is equal to meshnodes and not less
     for (fastgltf::Mesh& mesh : gltf.meshes)
     {
       std::shared_ptr<FcMesh> parentMesh = std::make_shared<FcMesh>();
       mMeshes.push_back(parentMesh);
-
-      // KEEP for ref...
-      //gltf.materials[primitive.materialIndex.value()].pbrData.;
 
       // clear the mesh arrays each mesh, we don't want to merge them by error
       // TODO change if can since these operations are O(N) (has to call destructor for each element)
@@ -252,28 +251,12 @@ namespace fc
       // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   LOAD SUB-MESHES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
       for (auto& primitive : mesh.primitives)
       {
-        // TODO replace with constructor
-        /* std::shared_ptr<FcSurface> newMesh = std::make_shared<FcSurface>(); */
-
         // TODO use smart point to heap allocated instead...??
         FcSubmesh newSubmesh;
         newSubmesh.parent = parentMesh;
         newSubmesh.startIndex = static_cast<uint32_t>(indices.size());
         newSubmesh.indexCount =
           static_cast<uint32_t>(gltf.accessors[primitive.indicesAccessor.value()].count);
-
-
-        /* parentMesh->mSubMeshes.push_back(newMesh); */
-
-        /* parentMesh->addSubMesh(newSubmesh); */
-        /* mMeshes.push_back(newMesh); */
-        /* meshes.push_back(newMesh); */
-        /* FcSubMesh newSubMesh; */
-
-
-	// newSurface.mFirstIndex = static_cast<uint32_t>(indices.size());
-        // newSubMesh.indexCount =
-        //   static_cast<uint32_t>(gltf.accessors[primitive.indicesAccessor.value()].count);
 
         size_t initialVertex = vertices.size();
 
@@ -373,12 +356,10 @@ namespace fc
 
         if (primitive.materialIndex.has_value())
         {
-          /* newMesh->Material() = materials[primitive.materialIndex.value()]; */
           newSubmesh.material = materials[primitive.materialIndex.value()];
         }
         else
         {
-          /* newSubMesh.material = materials[0]; */
           // TODO make sure there is always a default material
           newSubmesh.material = materials[0];
         }
@@ -1296,6 +1277,7 @@ namespace fc
 
   //
   //
+  // TODO use quaternions to rotate about arbitrary axis
   void FcScene::rotateInPlace(float angleDegrees, glm::vec3& axis)
   {
     // // First create rotation matrix
@@ -1307,8 +1289,7 @@ namespace fc
                       + mRotationMat[2] * -mTranslationMat[3][2]
                       + mRotationMat[3];
 
-    // Finally, rotate then translate back to the original position
-    /* mTransformMat = mTranslationMat * mRotationMat * mTransformMat; */
+    // Finally, rotate then translate back to the original position by calling update()
   }
 
   //
@@ -1345,7 +1326,7 @@ namespace fc
 
     for (std::shared_ptr<FcNode>& node : mTopNodes)
     {
-      node->update(mTransformMat, pRenderer->DrawCollection());
+      node->refreshTransforms(mTransformMat);
     }
 
     // TODO write math function that alters a given matrix to the identity matrix;
@@ -1450,6 +1431,7 @@ namespace fc
 
   //
   // Visualizing scene nodes to be used for debugging purposes only
+  // TODO use sceneNode and FcMesh node to delineate between them
   void FcScene::printNode(std::shared_ptr<FcNode>& node, std::string& nodeID)
   {
     int childNum = 1;

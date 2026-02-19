@@ -20,6 +20,12 @@ namespace  fc
   {
     mSize = bufferSize;
     mBufferType = bufferType;
+
+    // TODO better handle the case where we try to create an empty buffer
+    // if (mSize == 0)
+    // {
+    //   return;
+    // }
     // -*-*-*-*-*-*-*-*-*-*-   DEFAULT BUFFER CREATION DETAILS   -*-*-*-*-*-*-*-*-*-*- //
     VkBufferCreateInfo bufferInfo{};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -45,7 +51,7 @@ namespace  fc
           allocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT |
                             VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
           // ?? This may allow easier mapping for pixel read if needed
-                            /* |VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT; */
+          /* |VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT; */
           break;
         }
         case FcBufferTypes::Vertex:
@@ -70,8 +76,8 @@ namespace  fc
           // and if not it will use GPU dedicated memory but then we must check for that and
           // explicitly transfer from a local CPU copy to GPU if that's the case
           allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-                            // | VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT
-                            // | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+          // | VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT
+          // | VMA_ALLOCATION_CREATE_MAPPED_BIT;
           bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
                              // This flag is needed if BAR mem is not available->requires transfer
                              VK_BUFFER_USAGE_TRANSFER_DST_BIT;
@@ -96,6 +102,7 @@ namespace  fc
         default:
           break;
     }
+
     // TODO VMA creates a new VkBuffer each call. Sub-allocation of parts of one
     // large buffer is recommended for commercial implementation
 
@@ -104,6 +111,7 @@ namespace  fc
     if (vmaCreateBuffer(FcLocator::Gpu().getAllocator(), &bufferInfo
                         , &allocInfo, &mBuffer, &mAllocation, nullptr) != VK_SUCCESS)
     {
+      printBufferStats();
       throw std::runtime_error("Failed to create Vulkan Buffer!");
     }
   }
@@ -275,6 +283,42 @@ namespace  fc
     vkCmdCopyBuffer(cmd, srcBuffer.mBuffer, mBuffer, 1, &bufferCopyRegion);
 
     FcLocator::Renderer().submitCommandBuffer();
+  }
+
+
+
+  void FcBuffer::printBufferStats() const
+  {
+    std::stringstream msg;
+    msg << "--FcBuffer Type: ";
+
+    switch (mBufferType)
+    {
+        case FcBufferTypes::Staging:
+          msg << "STAGING";
+          break;
+        case FcBufferTypes::Gpu:
+          msg << "GPU";
+          break;
+        case FcBufferTypes::Index:
+          msg << "INDEX";
+          break;
+        case FcBufferTypes::Vertex:
+          msg << "VERTEX";
+          break;
+        case FcBufferTypes::Uniform:
+          msg << "UNIFORM";
+          break;
+        case FcBufferTypes::Custom:
+          msg << "CUSTOM";
+          break;
+        default:
+          break;
+    }
+
+    msg << "\n--Buffer size: " << mSize;
+
+    std::cout << msg.str() << std::endl;
   }
 
 

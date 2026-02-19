@@ -207,8 +207,7 @@ namespace fc
       {
         ShadowPushConsts shadowPCs;
         shadowPCs.vertexBuffer = submesh.parent.lock()->VertexBufferAddress();
-        shadowPCs.MVP = mLightSpaceTransform * submesh.ModelMatrix();
-        /* shadowPCs.modelMatrix = submesh.transform; */
+        shadowPCs.MVP = mLightSpaceTransform * submesh.node->worldTransform;
 
         vkCmdPushConstants(cmd, mShadowPipeline.Layout()
                            , VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(ShadowPushConsts), &shadowPCs);

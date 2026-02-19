@@ -14,8 +14,6 @@ namespace fc
   void FcBillboard::loadTexture(FcRenderer& renderer, float width,
                                 float height, std::string_view filename)
   {
-    // mPush.width = width;
-    // mPush.height = height;
     mWidth = width;
     mHeight = height;
 

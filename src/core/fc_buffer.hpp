@@ -51,7 +51,7 @@ enum class FcBufferTypes : uint8_t {
        ~FcBuffer() = default;
        FcBuffer(VkDeviceSize bufferSize, FcBufferTypes bufferType)
 	        { allocate(bufferSize, bufferType); }
-       //FcBuffer& operator=(const FcBuffer&) = delete;
+       FcBuffer& operator=(const FcBuffer&) = delete;
        // ?? This must be included to allow vector.pushBack(Fcbuffer) ?? not sure if there's a better way... maybe unique_ptr
        // FcBuffer(const FcBuffer&) = delete;
        void allocate(VkDeviceSize bufferSize, FcBufferTypes bufferType);
@@ -64,7 +64,7 @@ enum class FcBufferTypes : uint8_t {
        void copyBuffer(const FcBuffer& srcBuffer, VkDeviceSize bufferSize);
        void fetchData(uint32_t location, size_t dataSize);
        const VkBuffer& getVkBuffer() const { return mBuffer; }
-
+       void printBufferStats() const;
        // TODO remove
        inline void setVkBuffer(VkBuffer buffer) { mBuffer = buffer; }
 

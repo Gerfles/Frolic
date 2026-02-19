@@ -2,6 +2,7 @@
 #include "fc_scene_renderer.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_mesh.hpp"
+#include "fc_node.hpp"
 #include "core/fc_descriptors.hpp"
 #include "core/fc_draw_collection.hpp"
 #include "core/fc_gpu.hpp"
@@ -90,9 +91,6 @@ namespace fc
     pipelineConfig.name = "Opaque Pipeline";
     pipelineConfig.shaders[0].filename = "mesh.vert.spv";
     pipelineConfig.shaders[0].stageFlag = VK_SHADER_STAGE_VERTEX_BIT;
-    /* pipelineConfig.shaders[1].filename = "brdf.frag.spv"; */
-    /* pipelineConfig.shaders[1].filename = "scene.frag.spv"; */
-    /* pipelineConfig.shaders[1].filename = "scene2.frag.spv"; */
     pipelineConfig.shaders[1].filename = "scene3.frag.spv";
     pipelineConfig.shaders[1].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
     pipelineConfig.shaders[2].filename = "explode.geom.spv";
@@ -267,44 +265,6 @@ namespace fc
   }
 
 
-  // TODO maybe pass vector instead
-  std::vector<IndirectBatch> FcSceneRenderer::compactDraws(FcMesh* objects, int count)
-  {
-    std::vector<IndirectBatch> draws;
-
-    // IndirectBatch firstDraw;
-    // firstDraw.mesh = objects[0].mesh;
-    // firstDraw.material = objects[0].material;
-    // firstDraw.first = 0;
-    // firstDraw.count = 1;
-
-    // draws.push_back(firstDraw);
-
-    // for (int i = 0; i < count; i++)
-    // {
-    //   // compare the mesh and material with the end of the vector of draws
-    //   bool sameMesh = objects[i].mesh == draws.back().mesh;
-    //   bool sameMaterial = objects[i].material == draws.back().material;
-
-    //   if (sameMesh && sameMaterial)
-    //   {
-    //     draws.back().count++;
-    //   }
-    //   else
-    //   {
-    //     // add a new draw
-    //     IndirectBatch newDraw;
-    //     newDraw.mesh = objects[i].mesh;
-    //     newDraw.material = objects[i].material;
-    //     newDraw.first = i;
-    //     newDraw.count = 1;
-
-    //     draws.push_back(newDraw);
-    //   }
-    // }
-
-    return draws;
-  }
 
   //
   //
@@ -348,20 +308,9 @@ namespace fc
 
     mOpaquePipeline.bindDescriptorSet(cmd, currentFrame.sceneBindlessTextureSet, 4);
 
-    // TO be used when no culling is desired
-    // for (auto& materialCollection : drawCollection.opaqueSurfaces)
-    // {
-    //   mOpaquePipeline.bindDescriptorSet(cmd, materialCollection.first->materialSet, 3);
-
-    //   for (FcSubmesh& subMesh : materialCollection.second)
-    //   {
-    //     drawSurface(cmd, subMesh);
-    //   }
-    // }
-
+    // First draw all the opaque meshNode objects in draw collection
     for (size_t i = 0; i < drawCollection.opaqueSurfaces.size(); ++i)
     {
-      // TODO find a way to only bind once
       mOpaquePipeline.bindDescriptorSet(cmd,
                                         drawCollection.opaqueSurfaces[i].first->materialSet, 3);
 
@@ -376,27 +325,31 @@ namespace fc
       }
     }
 
+
     // Next, we draw all the transparent MeshNodes in draw collection
     mTransparentPipeline.bind(cmd);
     pCurrentPipeline = &mTransparentPipeline;
 
-    // TODO update like above
-    for (auto& materialCollection : drawCollection.transparentSurfaces)
+    for (size_t i = 0; i < drawCollection.transparentSurfaces.size(); ++i)
     {
-      mTransparentPipeline.bindDescriptorSet(cmd, materialCollection.first->materialSet, 3);
+      mOpaquePipeline.bindDescriptorSet(cmd,
+                                        drawCollection.transparentSurfaces[i].first->materialSet, 3);
 
-      for (FcSubmesh& subMesh : materialCollection.second)
+      for (size_t index : drawCollection.visibleSurfaceIndices[i])
       {
+        const FcSubmesh& subMesh = drawCollection.transparentSurfaces[i].second[index];
         drawSurface(cmd, subMesh);
+
+        // Update the engine statistics
+        drawCollection.stats.triangleCount += subMesh.indexCount / 3;
+        drawCollection.stats.objectsRendered += 1;
       }
-      // drawCollection.stats.triangleCount += subMesh.indexCount / 3;
-      // drawCollection.stats.objectsRendered += 1;
     }
   }
 
   //
   //
-  void FcSceneRenderer::drawSurface(VkCommandBuffer cmd, const FcSubmesh& surface) noexcept
+  void FcSceneRenderer::drawSurface(VkCommandBuffer cmd, const FcSubmesh& subMesh) noexcept
   {
     // Only rebind pipeline and material descriptors if the material changed
     // TODO have each object track state of its own descriptorSets
@@ -404,24 +357,23 @@ namespace fc
 
     // Only bind index buffer if it has changed
     // TODO could make this branchless if all submeshes rendered in groups/sequentially
-    if (surface.parent.lock()->IndexBuffer() != mPreviousIndexBuffer)
+    if (subMesh.parent.lock()->IndexBuffer() != mPreviousIndexBuffer)
     {
-      mPreviousIndexBuffer = surface.parent.lock()->IndexBuffer();
-      surface.parent.lock()->bindIndexBuffer(cmd);
+      mPreviousIndexBuffer = subMesh.parent.lock()->IndexBuffer();
+      subMesh.parent.lock()->bindIndexBuffer(cmd);
     }
 
-    // TODO make all push constants address to matrix buffer and texture indices
     vkCmdPushConstants(cmd, pCurrentPipeline->Layout()
                        , VK_SHADER_STAGE_VERTEX_BIT
-                       , 0, sizeof(ScenePushConstants), surface.parent.lock().get());
+                       , 0, sizeof(ScenePushConstants), subMesh.getSceneConstantsPtr());
 
     // Note here that we have to offset from the initially pushed data since we
-    // are really just filling a range alloted to us in total...
+    // are really just filling a range alloted to us in total.
     vkCmdPushConstants(cmd, pCurrentPipeline->Layout()
                        , VK_SHADER_STAGE_GEOMETRY_BIT
                        , sizeof(ScenePushConstants), sizeof(float), &expansionFactor);
 
-    vkCmdDrawIndexed(cmd, surface.indexCount, 1, surface.startIndex, 0, 0);
+    vkCmdDrawIndexed(cmd, subMesh.indexCount, 1, subMesh.startIndex, 0, 0);
   }
 
 

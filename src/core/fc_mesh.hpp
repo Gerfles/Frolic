@@ -1,10 +1,11 @@
-// fc_surface.hpp
+// fc_mesh.hpp
 #pragma once
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_bounding_box.hpp"
 #include "fc_buffer.hpp"
 #include "fc_types.hpp"
 #include "platform.hpp"
+#include "fc_node.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <vulkan/vulkan_core.h>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -22,25 +23,7 @@ namespace fc
   struct FcSubmesh;
   // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
-  //
-  //
-  // TODO Can incrementally update push constants according to:
-  // https://docs.vulkan.org/guide/latest/push_constants.html
-  // May provide some benefits if done correctly
-  // TODO this is too much data for some GPU push constant limits
-  // ScenePCs are not created directly but instead are the values that the shader will recieve from
-  // pushing a FcSurface object with vkCmdPushConstants and using this struct as the size of the
-  // data sent. Then FcSurface must have the first members exactly match this structure. This will
-  // save us from having to create a ScenePushConstant to
-  // This structure should not be used directly but instead serves as a size indicator
-  struct ScenePushConstants
-  {
-     glm::mat4 worldMatrix;
-     glm::mat4 normalTransform;
-     VkDeviceAddress vertexBuffer;
 
-     ScenePushConstants() = delete;
-  };
 
 
   //
@@ -48,14 +31,8 @@ namespace fc
   class FcMesh
   {
    private:
-     // *-*-*-*-*-*-*-*-*-   KEEP ALIGNED WITH SCENEPUSHCONSTANTS   *-*-*-*-*-*-*-*-*- //
-     glm::mat4 mTransform;
-     //
-     glm::mat4 mInvModelMatrix;
-     //
      VkDeviceAddress mVertexBufferAddress;
-     // -*-*-*-*-*-*-*-*-*-*-*-   END ALIGNMENT REQUIREMENTS   -*-*-*-*-*-*-*-*-*-*-*- //
-
+     //
      // ?? ?? for some reason we cant call the following class with fastgltf::mesh.name
      // since it uses an std::pmr::string that only seems to be able to bind to a public
      // class member?? TODO researce PMR
@@ -69,7 +46,6 @@ namespace fc
 
      // -*-*-*-*-*-*-*-*-*-*-*-*-   CONSTRUCTORS / CLEANUP   -*-*-*-*-*-*-*-*-*-*-*-*- //
      FcMesh() = default;
-     /* ~FcSurface() { destroy(); } */
      void destroy();
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      //
@@ -87,25 +63,14 @@ namespace fc
      //
      template <typename T> void uploadMesh(std::span<T> vertices, std::span<uint32_t> indices);
      //
-     inline void setTransform(const glm::mat4& mat) {
-       mTransform = mat;
-       mInvModelMatrix = glm::inverse(glm::transpose(mat));
-     }
-     //
      void addSubMesh(FcSubmesh& subMesh);
-
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   GETTERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      //
      inline const VkBuffer IndexBuffer() const { return mIndexBuffer.getVkBuffer(); }
      //
      inline const VkDeviceAddress VertexBufferAddress() const { return mVertexBufferAddress; }
      //
-     inline const glm::mat4& ModelMatrix() const { return mTransform; }
-     //
-     inline glm::mat4 InvModelMatrix() const { return mInvModelMatrix; }
-     //
-     inline const std::vector<FcSubmesh>& SubMeshes() const { return mSubMeshes; }
-     //
+     inline std::vector<FcSubmesh>& SubMeshes() { return mSubMeshes; }
   };
 
 
@@ -114,7 +79,10 @@ namespace fc
   struct FcSubmesh
   {
      u32 startIndex{0};
+     //
      u32 indexCount{0};
+     //
+     FcMeshNode* node;
      // TODO determine or elaborate why we need both bounds and boundary box
      FcBounds bounds;
      // TODO make boundary box member conditional based on debug build
@@ -123,13 +91,20 @@ namespace fc
      std::shared_ptr<FcMaterial> material;
      // ?? could perhaps be made more efficient as standard pointer or reference wrapper??
      std::weak_ptr<FcMesh> parent;
-     // TODO implement all the getter function that get members from parent then eliminate x.parent->trait()
-     // within code and replace with x.trait();
-     inline const glm::mat4& ModelMatrix() const { return parent.lock()->ModelMatrix(); }
+     //
      const bool isVisible(const glm::mat4& viewProjection) const;
+     //
      const bool isInBounds(const glm::vec4& position) const;
+     //
      // Note that bounds must first be set before calling initBoundaryBox()
      inline void initBoundaryBox() { boundaryBox.init(bounds); }
+     // Instead of creating a ScenePushConstants variable and then setting its matrices etc. equal to
+     // those within a meshNode, FcNode and its derived class FcMeshNode have been formated so that
+     // we can use a pointer to the world transform and with an FcMeshNode, the worldTransform,
+     // inverse world transform and vertex buffer address are all contiguous and can be passed to
+     // the vkCmdPushConstants function after casting the pointer (which isn't strictly necessary)
+     inline const ScenePushConstants* getSceneConstantsPtr() const
+      { return reinterpret_cast<ScenePushConstants*>(&node->worldTransform);}
   };
 
 

@@ -145,7 +145,7 @@ namespace fc
     translationVec.y = 7.0f;
     sponza.translate(translationVec);
 
-    // // update the moved objects
+    // // // update the moved objects
     sponza.update();
   } // --- Frolic::loadGameObjects (_) --- (END)
 
