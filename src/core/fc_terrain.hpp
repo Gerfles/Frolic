@@ -29,7 +29,7 @@ namespace fc
         glm::vec4 frustumPlanes[6];
         float displacementFactor;
         float tessellationFactor;
-        glm::vec2 viewportDim;
+        /* glm::vec2 viewportDim; */
         float tessellatedEdgeSize;
      } ubo;
      //

@@ -1,15 +1,19 @@
 //>_ fc_billboard_renderer.cpp _<//
 #include "fc_billboard_renderer.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "fc_descriptors.hpp"
 #include "fc_frame_assets.hpp"
 #include "fc_locator.hpp"
 #include "fc_gpu.hpp"
 #include "fc_scene.hpp"
 #include "fc_math.hpp"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan.h"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <map>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
+//
 namespace fc
 {
   //
@@ -23,30 +27,23 @@ namespace fc
   //
   void FcBillboardRenderer::buildPipelines(std::vector<FrameAssets>& frames)
   {
-    VkPushConstantRange pushConstantRange{};
-    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-    pushConstantRange.offset = 0;
-    pushConstantRange.size = sizeof(BillboardPushes);
-
-    FcPipelineConfig billboardConfig{2};
+    FcPipelineConfig billboardConfig;
     billboardConfig.name = "Billboard";
-    // TODO provide non-bindless path
-    billboardConfig.shaders[0].filename = "bindless_billboard.vert.spv";
-    billboardConfig.shaders[0].stageFlag = VK_SHADER_STAGE_VERTEX_BIT;
-    billboardConfig.shaders[1].filename = "bindless_billboard.frag.spv";
-    billboardConfig.shaders[1].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
-    billboardConfig.addPushConstants(pushConstantRange);
+    billboardConfig.addStage(VK_SHADER_STAGE_VERTEX_BIT, "bindless_billboard.vert.spv");
+    billboardConfig.addStage(VK_SHADER_STAGE_FRAGMENT_BIT, "bindless_billboard.frag.spv");
+
     // Setup pipeline parameters
-    billboardConfig.setColorAttachment(VK_FORMAT_R16G16B16A16_SFLOAT);
-    billboardConfig.setDepthFormat(VK_FORMAT_D32_SFLOAT);
-    billboardConfig.setMultiSampling(FcLocator::Gpu().Properties().maxMsaaSamples);
-    billboardConfig.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
-    billboardConfig.setPolygonMode(VK_POLYGON_MODE_FILL);
-    // TEST
     billboardConfig.enableDepthtest(VK_TRUE, VK_COMPARE_OP_GREATER_OR_EQUAL);
     billboardConfig.enableBlendingAlpha();
     // MUST signal vulkan that we won't be reading any vertex data
     billboardConfig.disableVertexReading();
+
+    VkPushConstantRange pushConstantRange{};
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    pushConstantRange.offset = 0;
+    pushConstantRange.size = sizeof(BillboardPushConstants);
+    //
+    billboardConfig.addPushConstants(pushConstantRange);
 
     // Create the uniform buffer object
     mUboBuffer.allocate(sizeof(BillboardUbo), FcBufferTypes::Uniform);
@@ -136,10 +133,9 @@ namespace fc
     {
       vkCmdPushConstants(cmd, mPipeline.Layout(),
                          VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                         0, sizeof(BillboardPushes),
+                         0, sizeof(BillboardPushConstants),
                          billboard.get());
 
-      // TODO accomplish all billboard draws within one draw/bind
       vkCmdDraw(cmd, 6, 1, 0, 0);
     }
   }

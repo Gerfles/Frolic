@@ -45,10 +45,14 @@ namespace fc
 
   //
   //
-  struct VertexBufferPushes
+  struct TerrainPushConstants
   {
      VkDeviceAddress address;
      float time;
   };
+
+
+  //
+  //
 
 } // namespace fc _END_

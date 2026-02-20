@@ -11,23 +11,20 @@
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 namespace fc
 {
-
-
-  // struct ComputePushConstants
-  // {
-  //    glm::vec4 data1;
-  //    glm::vec4 data2;
-  //    glm::vec4 data3;
-  //    glm::vec4 data4;
-  // };
-
+  //
+  //
   struct ShaderInfo
   {
      std::string filename;
      VkShaderStageFlagBits stageFlag;
+     ShaderInfo(VkShaderStageFlagBits stageFlag, std::string filename) :
+       filename(std::move(filename)), stageFlag(std::move(stageFlag)) {}
   };
 
-   // Allow constructor with variable argument list (vk stage names)
+
+  //
+  //
+  // Allow constructor with variable argument list (vk stage names)
   struct  FcPipelineConfig
   {
      std::vector<VkPushConstantRange> pushConstantsInfo;
@@ -50,45 +47,39 @@ namespace fc
      VkPipelineViewportStateCreateInfo viewportInfo{};
      VkPipelineColorBlendStateCreateInfo colorBlendInfo{};
      VkPipelineTessellationStateCreateInfo tessellationInfo{};
-      //VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
      VkFormat colorAttachmentFormat{};
-      // std::vector<VkDynamicState> dynamicStateEnables{};
-     // VkPipelineDynamicStateCreateInfo dynamicStateInfo{};
-     // VkSampleCountFlagBits rasterizationSamples{};
 
-     // Initialize the number of stages with a list initializer
-      // TODO CB = comment better
-     FcPipelineConfig(int numStages);
+     FcPipelineConfig() { initDefaultPipelineParameters(); }
      FcPipelineConfig(std::vector<ShaderInfo> shaderInfos);
      FcPipelineConfig(const FcPipelineConfig&) = delete;
      FcPipelineConfig& operator=(const FcPipelineConfig&) = delete;
-     void init();
-     //void addBinding(uint32_t bindSlot, VkDescriptorType type, VkShaderStageFlags stages);
-     void addPushConstants(VkPushConstantRange pushConstant);
+     void initDefaultPipelineParameters();
+     void addStage(VkShaderStageFlagBits stageFlag, std::string filename);
+     void addPushConstants(VkPushConstantRange& pushConstant);
      void addDescriptorSetLayout(VkDescriptorSetLayout layout) { descriptorlayouts.push_back(layout);}
      VkDescriptorSetLayout addSingleImageDescriptorSetLayout();
      void setInputTopology(VkPrimitiveTopology topology);
      void setPolygonMode(VkPolygonMode mode);
      void setCullMode(VkCullModeFlags cullMode, VkFrontFace frontFace);
-     void setMultiSampling(VkSampleCountFlagBits sampleCount);
+     void enableMultiSampling(VkSampleCountFlagBits sampleCount);
+     void disableMultiSampling();
      void setColorAttachment(VkFormat format);
+     void disableColorAttachment();
      void setDepthFormat(VkFormat format);
+
      void disableVertexReading();
      // TODO combine
      void setNonBufferVertexInputAttributes();
      void setVertexInputPositionOnly();
-
      void disableDepthtest();
      void enableDepthtest(bool depthWriteEnable, VkCompareOp op);
-      //void disableVertexRendering();
       // TODO combine
      void disableBlending();
      void enableBlendingAdditive();
      void enableBlendingAlpha();
-
-     void enableTessellationShader(uint32_t patchControlPoints);
-
-     void clear();
+     void setTessellationControlPoints(uint32_t patchControlPoints);
+     //
+     void reset();
   }; // ---   struct FcPipelineConfigInfo2 --- (END)
 
 

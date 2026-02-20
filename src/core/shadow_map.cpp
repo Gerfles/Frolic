@@ -18,7 +18,7 @@ namespace fc
 
   void FcShadowMap::init(std::vector<FrameAssets>& frames)
   {
-    depthFormat = VK_FORMAT_D32_SFLOAT;
+
     // -*-*-*-*-*-*-*-*-*-*-*-*-   CREATE SHADOW MAP IMAGE   -*-*-*-*-*-*-*-*-*-*-*-*- //
     // TODO this image should be device local only since no need to map for CPU... check that's the case
     // on this and all other images created with vma allocation
@@ -43,15 +43,11 @@ namespace fc
 
   void FcShadowMap::initPipelines(std::vector<FrameAssets>& frames)
   {
-    // TODO have addStage instead of size initialization or keep as optional but add
-    // checks for segfaults and also create better default values for pipeline
-    // configurations
-    FcPipelineConfig shadowPipeline{2};
-    shadowPipeline.name = "Shadow pipeline";
-    shadowPipeline.shaders[0].filename = "shadow_map.vert.spv";
-    shadowPipeline.shaders[0].stageFlag = VK_SHADER_STAGE_VERTEX_BIT;
-    shadowPipeline.shaders[1].filename = "shadow_map.frag.spv";
-    shadowPipeline.shaders[1].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
+    FcPipelineConfig pipelineConfig;
+    pipelineConfig.name = "Shadow pipeline";
+    // TODO don't require the spv extension or shader extension (try instead)
+    pipelineConfig.addStage(VK_SHADER_STAGE_VERTEX_BIT, "shadow_map.vert.spv");
+    pipelineConfig.addStage(VK_SHADER_STAGE_FRAGMENT_BIT, "shadow_map.frag.spv");
 
     // add push constants
     VkPushConstantRange matrixRange;
@@ -59,48 +55,30 @@ namespace fc
     matrixRange.offset = 0;
     matrixRange.size = sizeof(ShadowPushConsts);
 
-    shadowPipeline.addPushConstants(matrixRange);
-    //
-    shadowPipeline.setDepthFormat(depthFormat);
-    shadowPipeline.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
-    shadowPipeline.setPolygonMode(VK_POLYGON_MODE_FILL);
-    shadowPipeline.setCullMode(VK_CULL_MODE_FRONT_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
-    shadowPipeline.setMultiSampling(VK_SAMPLE_COUNT_1_BIT);
+    pipelineConfig.addPushConstants(matrixRange);
 
-    // shadowPipeline.disableDepthtest();
-    shadowPipeline.enableDepthtest(VK_TRUE, VK_COMPARE_OP_GREATER_OR_EQUAL);
-    shadowPipeline.disableBlending();
+    // configure shadow pipeline
+    pipelineConfig.disableColorAttachment();
+    pipelineConfig.setCullMode(VK_CULL_MODE_FRONT_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+    pipelineConfig.disableMultiSampling();
+    pipelineConfig.enableDepthtest(VK_TRUE, VK_COMPARE_OP_GREATER_OR_EQUAL);
+    pipelineConfig.disableBlending();
 
     // Create the pipeline used to generate the shadow map
-    mShadowPipeline.create(shadowPipeline);
+    mShadowPipeline.create(pipelineConfig);
 
-    // TODO delete parts of redundant pipeline config -> just have one config
-    // Create the debug pipeline (used to draw the shadow map to a flat quad)
-    FcPipelineConfig debugPipelineConfig{2};
-    debugPipelineConfig.name = "Shadow Draw Debug";
-    // TODO don't require the spv extension or shader extension (try instead)
-    debugPipelineConfig.shaders[0].stageFlag = VK_SHADER_STAGE_VERTEX_BIT;
-    debugPipelineConfig.shaders[0].filename = "shadow_map_display.vert.spv";
-    debugPipelineConfig.shaders[1].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
-    debugPipelineConfig.shaders[1].filename = "shadow_map_display.frag.spv";
-
-    // add push constantsb
-    VkPushConstantRange pushRange;
-    pushRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    pushRange.offset = 0;
-    pushRange.size = sizeof(ShadowPushConsts);
-    //
-    debugPipelineConfig.addPushConstants(pushRange);
+    // Now create the debug pipeline (used to draw the shadow map to a flat quad)
+    pipelineConfig.reset();
+    pipelineConfig.name = "Shadow Draw Debug";
+    pipelineConfig.addStage(VK_SHADER_STAGE_VERTEX_BIT, "shadow_map_display.vert.spv");
+    pipelineConfig.addStage(VK_SHADER_STAGE_FRAGMENT_BIT, "shadow_map_display.frag.spv");
 
     // Configure pipeline
-    debugPipelineConfig.setDepthFormat(depthFormat);
-    debugPipelineConfig.setColorAttachment(VK_FORMAT_R16G16B16A16_SFLOAT);
-    debugPipelineConfig.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
-    debugPipelineConfig.setPolygonMode(VK_POLYGON_MODE_FILL);
-    debugPipelineConfig.setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
-    debugPipelineConfig.setMultiSampling(VK_SAMPLE_COUNT_1_BIT);
-    debugPipelineConfig.disableDepthtest();
-    debugPipelineConfig.disableBlending();
+    pipelineConfig.disableColorAttachment();
+    pipelineConfig.disableMultiSampling();
+    pipelineConfig.setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+    pipelineConfig.disableDepthtest();
+    pipelineConfig.disableBlending();
 
     FcDescriptorBindInfo bindInfo{};
     bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -121,9 +99,9 @@ namespace fc
                          , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
                          , FcDefaults::Samplers.ShadowMap);
 
-    debugPipelineConfig.addDescriptorSetLayout(descriptorSetLayout);
+    pipelineConfig.addDescriptorSetLayout(descriptorSetLayout);
 
-    mShadowDebugPipeline.create(debugPipelineConfig);
+    mShadowDebugPipeline.create(pipelineConfig);
 
     // Allocate a descriptorSet to each frame buffer
     for (FrameAssets& frame : frames)
@@ -199,14 +177,14 @@ namespace fc
     vkCmdSetViewport(cmd, 0, 1, &shadowViewport);
     vkCmdSetScissor(cmd, 0, 1, &shadowScissors);
 
-    /* shadowPCs.MVP = mLightSpaceTransform * sur; */
+    /* shadowPCs.MVP = mLightSpaceTransform * sun; */
 
     for (auto& materialCollection : drawContext.opaqueSurfaces)
     {
       for (const FcSubmesh& submesh : materialCollection.second)
       {
         ShadowPushConsts shadowPCs;
-        shadowPCs.vertexBuffer = submesh.parent.lock()->VertexBufferAddress();
+        shadowPCs.vertexBuffer = submesh.node->mVertexBufferAddress;
         shadowPCs.MVP = mLightSpaceTransform * submesh.node->worldTransform;
 
         vkCmdPushConstants(cmd, mShadowPipeline.Layout()

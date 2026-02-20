@@ -48,7 +48,6 @@ namespace fc
      glm::mat4 mLightProjection;
      glm::mat4 mLightView;
      glm::mat4 mLightSpaceTransform;
-     VkFormat depthFormat;
      //VkFence shadowRenderFence;
      FcImage mShadowMapImage;
      FcPipeline mShadowPipeline;

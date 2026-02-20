@@ -19,21 +19,16 @@ namespace fc
 {
   void FcTerrain::init(std::filesystem::path filename)
   {
-
     loadHeightmap(filename, 64);
-    // TODO Must reinitialize pipelines if new heightmap is loaded
+    // TEST Must reinitialize pipelines if new heightmap is loaded??
     initPipelines();
-    // Initialize uniform buffer object
 
-    ubo.tessellationFactor = 0.75f;
+    // Initialize uniform buffer object
     // TODO allow tess factor to be set to zero to allow passthrough
+    ubo.tessellationFactor = 0.75f;
     // TODO document -> desired size of the tessellated quad patch edge
     ubo.tessellatedEdgeSize = 20.0f;
     ubo.displacementFactor = 32.0f;
-    // TODO clarify screen dim vs screen pix
-    //ubo.viewportDim = {renderer->ScreenWidth(), renderer->ScreenHeight()};
-    // TODO no longer needed in terrain ubo
-    ubo.viewportDim = {1400, 100};
     mModelTransform = glm::mat4{1.0f};
   }
 
@@ -41,35 +36,26 @@ namespace fc
 
   void FcTerrain::initPipelines()
   {
-    FcPipelineConfig terrainPipeline{4};
+    FcPipelineConfig terrainPipeline;
     terrainPipeline.name = "Terrain Pipeline";
-    terrainPipeline.shaders[0].stageFlag = VK_SHADER_STAGE_VERTEX_BIT;
-    terrainPipeline.shaders[0].filename = "terrain.vert.spv";
-    terrainPipeline.shaders[1].stageFlag = VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
-    terrainPipeline.shaders[1].filename = "terrain.tesc.spv";
-    terrainPipeline.shaders[2].stageFlag = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
-    terrainPipeline.shaders[2].filename = "terrain.tese.spv";
-    terrainPipeline.shaders[3].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
-    terrainPipeline.shaders[3].filename = "terrain.frag.spv";
+    terrainPipeline.addStage(VK_SHADER_STAGE_VERTEX_BIT, "terrain.vert.spv");
+    terrainPipeline.addStage(VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT, "terrain.tesc.spv");
+    terrainPipeline.addStage(VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT, "terrain.tese.spv");
+    terrainPipeline.addStage(VK_SHADER_STAGE_FRAGMENT_BIT, "terrain.frag.spv");
 
     // Setup pipeline parameters
-    terrainPipeline.setColorAttachment(VK_FORMAT_R16G16B16A16_SFLOAT);
-    terrainPipeline.setDepthFormat(VK_FORMAT_D32_SFLOAT);
     terrainPipeline.enableDepthtest(VK_TRUE, VK_COMPARE_OP_GREATER_OR_EQUAL);
     terrainPipeline.setInputTopology(VK_PRIMITIVE_TOPOLOGY_PATCH_LIST);
-    terrainPipeline.setPolygonMode(VK_POLYGON_MODE_FILL);
     terrainPipeline.setCullMode(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
-    terrainPipeline.setMultiSampling(FcLocator::Gpu().Properties().maxMsaaSamples);
     terrainPipeline.disableBlending();
-    terrainPipeline.enableTessellationShader(4);
-
+    terrainPipeline.setTessellationControlPoints(4);
 
     // add Vertex shader push constants
     VkPushConstantRange vertexShaderPCs;
     vertexShaderPCs.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     vertexShaderPCs.offset = 0;
     // ?? BUG this may be minimum alignment needed DELETE if VERTEXBUFFERPCs is not needed
-    vertexShaderPCs.size = sizeof(VertexBufferPushes);
+    vertexShaderPCs.size = sizeof(TerrainPushConstants);
     //
     terrainPipeline.addPushConstants(vertexShaderPCs);
 
@@ -77,7 +63,7 @@ namespace fc
     // and cut down on ubo if that matters
     VkPushConstantRange tessellationShaderPCs;
     tessellationShaderPCs.stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
-    tessellationShaderPCs.offset = sizeof(VertexBufferPushes);
+    tessellationShaderPCs.offset = sizeof(TerrainPushConstants);
     tessellationShaderPCs.size = sizeof(glm::mat4);
     //
     terrainPipeline.addPushConstants(tessellationShaderPCs);
@@ -140,8 +126,7 @@ namespace fc
     mNumPatches = numPatches;
 
     // TODO allow for deleting current height map and loading new one
-    mHeightMap.loadKtxFile(filename, FcImageTypes::HeightMap);//, VK_FORMAT_R16_UNORM);
-    //mHeightMap.loadTestImage(512, 512);
+    mHeightMap.loadKtxFile(filename, FcImageTypes::HeightMap);
 
     // TODO hardcoded for now
     std::filesystem::path file = "..//maps/terrain_texturearray_rgba.ktx";
@@ -160,8 +145,6 @@ namespace fc
     // float yShift = 16.f;
 
     // Create a grid of mNumPatches quads
-    //constexpr uint32_t mNumPatches = 64;
-
     uint32_t numVertices = mNumPatches * mNumPatches;
     const float uvScale = 1.0f;
 
@@ -225,21 +208,12 @@ namespace fc
 
             // Get the pixel value directly (sascha method left in for furture comparison)
             mHeightMap.fetchPixel(offsetX, offsetY, pixel);
+
             // alternate method with different boundary checking
             /* pixel = mHeightMap.saschaFetchPixel(offsetX, offsetY, pixelStepLength); */
 
             // Normalize pixel value to be in [0,1] range
             heights[hx + 1][hy + 1] = pixel / static_cast<double>(UINT16_MAX);
-
-            // USED FOR TESTING pixel values, DELETE eventually
-            // if (true)//pixel != 0)
-            // {
-            // log1 << "x: " << offsetX << ", y: "  << offsetY
-            //      << " | Raw: (" << pixel << ")"
-            //      << " | Normalized: (" << heights[hx + 1][hy + 1] << ")"
-            //   // << " | PixelVal x: " << (pixel >> 16) <<  " y: " << (pixel & UINT16_MAX)
-            //   << "\n";
-            // }
           }
         }
         // calculate the normal
@@ -299,21 +273,15 @@ namespace fc
     ubo.modelViewProj = ubo.projection * ubo.modelView;
     ubo.lightPos = sceneData.sunlightDirection;
     ubo.eye = sceneData.eye;
-    /* ubo.lightPos = glm::vec4(-100.f, 150.f, -100.f, 1.0);//pSceneData->sunlightDirection; */
     // TODO might prefer to update the frustum here instead
 
     //printMat(ubo.modelViewProj);
     mUboBuffer.write(&ubo, sizeof(UBO));
 
-    if (drawWireframe)
-    {
-      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS
-                        , mWireframePipeline.getVkPipeline());
-    }
-    else
-    {
-      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS
-                        , mPipeline.getVkPipeline());
+    if (drawWireframe) {
+      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mWireframePipeline.getVkPipeline());
+    } else {
+      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.getVkPipeline());
     }
 
     // TODO abstract bind descriptor sets to make less error prone!
@@ -322,24 +290,13 @@ namespace fc
 
     mSurface.bindIndexBuffer(cmd);
 
-    VertexBufferPushes pushConstants;
-    pushConstants.address = mSurface.VertexBufferAddress();
-
-    // std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
-    pushConstants.time = std::chrono::duration<float>
+    TerrainPushConstants terrainPCs;
+    terrainPCs.address = mSurface.VertexBufferAddress();
+    terrainPCs.time = std::chrono::duration<float>
                          (std::chrono::steady_clock::now().time_since_epoch()).count();
 
-    // BUG
     vkCmdPushConstants(cmd, mPipeline.Layout(), VK_SHADER_STAGE_VERTEX_BIT
-                       , 0, sizeof(VertexBufferPushes), &pushConstants);
-
-    // DELETE and relocate model to sceneData eventually
-    // glm::mat4 model = glm::mat4(1.0f);
-
-    // // BUG no longer need to pass model here
-    // vkCmdPushConstants(cmd, mPipeline.Layout()
-    //                    , VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT
-    //                    , sizeof(VertexBufferPushes), sizeof(glm::mat4), &model);
+                       , 0, sizeof(TerrainPushConstants), &terrainPCs);
 
     vkCmdDrawIndexed(cmd, mNumIndices, 1, 0, 0, 0);
 

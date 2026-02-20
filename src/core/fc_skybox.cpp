@@ -14,12 +14,14 @@ namespace fc
   void FcSkybox::init(VkDescriptorSetLayout sceneDescriptorLayout,
                       std::vector<FrameAssets>& frames)
   {
-    FcPipelineConfig pipelineConfig{2};
+    FcPipelineConfig pipelineConfig;
     pipelineConfig.name = "skybox";
-    pipelineConfig.shaders[0].filename = "skybox.vert.spv";
-    pipelineConfig.shaders[0].stageFlag = VK_SHADER_STAGE_VERTEX_BIT;
-    pipelineConfig.shaders[1].filename = "skybox.frag.spv";
-    pipelineConfig.shaders[1].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
+    pipelineConfig.addStage(VK_SHADER_STAGE_VERTEX_BIT, "skybox.vert.spv");
+    pipelineConfig.addStage(VK_SHADER_STAGE_FRAGMENT_BIT, "skybox.frag.spv");
+
+    // Configure pipeline operation parameters
+    pipelineConfig.disableMultiSampling();
+    pipelineConfig.enableDepthtest(VK_FALSE, VK_COMPARE_OP_GREATER_OR_EQUAL);
 
     // add the scene descriptor set layout (eye, view, proj, etc.)
     pipelineConfig.addDescriptorSetLayout(sceneDescriptorLayout);
@@ -45,15 +47,6 @@ namespace fc
     {
       frame.skyBoxDescriptorSet = descClerk.createDescriptorSet(descriptorLayout, bindInfo);
     }
-
-    // Configure pipeline operation parameters
-    pipelineConfig.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
-    pipelineConfig.setPolygonMode(VK_POLYGON_MODE_FILL);
-    pipelineConfig.setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE);
-    pipelineConfig.setMultiSampling(VK_SAMPLE_COUNT_1_BIT);
-    pipelineConfig.enableDepthtest(false, VK_COMPARE_OP_GREATER_OR_EQUAL);
-    pipelineConfig.setColorAttachment(VK_FORMAT_R16G16B16A16_SFLOAT);
-    pipelineConfig.setDepthFormat(VK_FORMAT_D32_SFLOAT);
 
     mPipeline.create(pipelineConfig);
   }

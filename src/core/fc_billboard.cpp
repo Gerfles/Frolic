@@ -4,7 +4,7 @@
 #include "fc_renderer.hpp"
 #include "fc_defaults.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
 
 
 namespace fc
@@ -36,7 +36,7 @@ namespace fc
       std::cout << "Failed to load texture: " << filename << std::endl;
     }
 
-    // TODO provide alternate path
+    // TODO provide non-bindless alternate path
     bool isBindlessSupported = true;
     if (isBindlessSupported)
     {

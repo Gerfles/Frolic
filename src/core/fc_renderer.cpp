@@ -867,7 +867,7 @@ namespace fc
       // // if (camera.isInside(building))...
       // if (building.isInBounds(mSceneData.eye))
       {
-        /* mTerrain.draw(cmd, mSceneData, shouldDrawWireframe); */
+        mTerrain.draw(cmd, mSceneData, shouldDrawWireframe);
       }
 
       // Draw the skybox last so that we can skip pixels with ANY object in front of it

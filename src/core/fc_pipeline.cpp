@@ -4,6 +4,7 @@
 //#include "core/fc_descriptors.hpp"
 #include "core/fc_descriptors.hpp"
 #include "core/fc_locator.hpp"
+#include "fc_gpu.hpp"
 #include "core/fc_mesh.hpp"
 #include "utilities.hpp"
 // - EXTERNAL LIBRARIES -
@@ -17,65 +18,61 @@
 
 namespace fc
 {
-  void FcPipelineConfig::clear()
+  void FcPipelineConfig::reset()
   {
-     // clear all of the structs we need back to 0 with their correct stype
-     // ?? Uses CPP20 initializers so perhaps a different solution would be preferred for compatibility
-    inputAssemblyInfo = {.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
-
-    rasterizationInfo = {.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO};
-
-    multiSamplingInfo = {.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO};
-
-    depthStencilInfo = {.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO};
-
-    renderInfo = {.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO};
-
-    colorBlendAttachment = {};
-
-     //pipelineLayout = {};
-
-     // mShaderStages.clear();
+    // clear all of the structs we need back to their default values and erase stages added
+    initDefaultPipelineParameters();
+    shaders.clear();
   }
 
-
-  FcPipelineConfig::FcPipelineConfig(int numStages) : shaders(numStages)
+  void FcPipelineConfig::addStage(VkShaderStageFlagBits stageFlag, std::string filename)
   {
-    init();
+    shaders.emplace_back(stageFlag, filename);
   }
 
   FcPipelineConfig::FcPipelineConfig(std::vector<ShaderInfo> shaderInfos)
     : shaders{shaderInfos}
   {
-    init();
+    initDefaultPipelineParameters();
   }
 
 
-  void FcPipelineConfig::init()
+  void FcPipelineConfig::initDefaultPipelineParameters()
   {
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   VIEWPORT   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-     // make viewport state from our stored viewport and scissors
-     // TODO add support for multiple viewports or scissors
+    // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   VIEWPORT   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    // make viewport state from our stored viewport and scissors
+    // TODO add support for multiple viewports or scissors
     viewportInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
     viewportInfo.viewportCount = 1;
     viewportInfo.pViewports = nullptr;//&viewport;
     viewportInfo.scissorCount = 1;
     viewportInfo.pScissors = nullptr;//&scissor;
+    // TODO create a non-dynamic viewport and scissors in the case that the window cannot be resized
+     // VkViewport viewport{};
+     // viewport.x = 0.0f;
+     // viewport.y = 0.0f;
+     // VkExtent2D surfaceExtent = swapchain.getSurfaceExtent();
+     // viewport.width = static_cast<float>(surfaceExtent.width);
+     // viewport.height = static_cast<float>(surfaceExtent.height);
+     // viewport.minDepth = 0.0f;
+     // viewport.maxDepth = 1.0f;
+     //  // create a scissor info struct
+     // VkRect2D scissor{};
+     // scissor.offset = {0,0};           // offset to use region from
+     // scissor.extent = surfaceExtent; // extent to describe region to use, starting at offset
 
+    // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   COLOR ATTACHMENT   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    colorAttachmentFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
 
-     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   COLOR BLENDING   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-     // TODO may need tweaking here with defaults
+    // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   COLOR BLENDING   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     // blending decides how to blend a new color being written to a fragment, with the old value
+    colorBlendInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
     colorBlendAttachment.blendEnable = VK_FALSE;
     colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT
                                           | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-
-    colorBlendInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-
     // alternative to calculations is to use logical operations
     colorBlendInfo.logicOpEnable = VK_FALSE;
-
-     // not used since we will be using math instead of logic
+    // not used since we will be using math instead of logic
     // configInfo.colorBlendInfo.logicOp = VK_LOGIC_OP_NAND;
     colorBlendInfo.logicOp = VK_LOGIC_OP_COPY;
     colorBlendInfo.attachmentCount = 1;
@@ -85,42 +82,71 @@ namespace fc
     colorBlendInfo.blendConstants[3] = 0.0f;
     colorBlendInfo.pAttachments = &colorBlendAttachment;
 
-
-     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   VERTEX INPUT   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   VERTEX INPUT   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertexInputInfo.vertexBindingDescriptionCount = 0;
     vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
 
-
-     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   INPUT ASSEMBLY   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   INPUT ASSEMBLY   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     inputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-     //mInputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-     // // really only useful when using "strip" topology
-     //mInputAssemblyInfo.primitiveRestartEnable = VK_FALSE;
+    inputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    // really only useful when using "strip" topology
+    inputAssemblyInfo.primitiveRestartEnable = VK_FALSE;
 
-     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   RASTERIZATION   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   RASTERIZATION   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     rasterizationInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
     // change if fragment beyond near/far planes are clipped (default) or clamp to far plane
     rasterizationInfo.depthClampEnable = VK_FALSE;
     // whether to discard data and skip rasterizer. never creates fragments--only suitable for
     // pipeline without framebuffer output
+
     // ?? BUG Ours seems to all discard even with this set to false
     rasterizationInfo.rasterizerDiscardEnable = VK_FALSE;
+    // TODO enable options with shadow map
     // whether to add depth bias to fragments (to reduce shadow acne)
     rasterizationInfo.depthBiasEnable = VK_FALSE;
     rasterizationInfo.depthBiasConstantFactor = 0.0f;
     rasterizationInfo.depthBiasClamp = 0.0f;
     rasterizationInfo.depthBiasSlopeFactor = 0.0f;
+    rasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL;
+    rasterizationInfo.lineWidth = 1.f;
 
+    // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CULL MODE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
+    rasterizationInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
-     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   MULTISAMPLING   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   MULTISAMPLING   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     multiSamplingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    multiSamplingInfo.sampleShadingEnable = VK_TRUE;
+     //
+    multiSamplingInfo.rasterizationSamples = FcLocator::Gpu().Properties().maxMsaaSamples;
+    multiSamplingInfo.minSampleShading = 0.2f;
+    multiSamplingInfo.minSampleShading = 1.0f;
+    multiSamplingInfo.pSampleMask = nullptr;
+     // no alpha to coverage either
+    multiSamplingInfo.alphaToCoverageEnable = VK_FALSE;
+    multiSamplingInfo.alphaToOneEnable = VK_FALSE;
 
-     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DEPTH STENCIL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DEPTH STENCIL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     depthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    depthStencilInfo.depthTestEnable = VK_FALSE;
+    depthStencilInfo.depthWriteEnable = VK_FALSE;
+    depthStencilInfo.depthCompareOp = VK_COMPARE_OP_NEVER;
+    depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
+    depthStencilInfo.stencilTestEnable = VK_FALSE;
+    depthStencilInfo.back.compareOp = VK_COMPARE_OP_NEVER;
+    depthStencilInfo.minDepthBounds = 0.f;
+    depthStencilInfo.maxDepthBounds = 1.f;
+    depthStencilInfo.front = {};
+    depthStencilInfo.back = {};
 
-    // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   DYNAMIC RENDERING   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   RENDERING INFO   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     renderInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+    // connect the color attachment format to the renderInfo structure
+    renderInfo.colorAttachmentCount = 1;
+    renderInfo.pColorAttachmentFormats = &colorAttachmentFormat;
+    renderInfo.depthAttachmentFormat = VK_FORMAT_D32_SFLOAT;
+    //renderInfo.stencilAttachmentFormat = VK_FORMAT_D32_SFLOAT;
 
     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   TESSELLATION   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     tessellationInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
@@ -128,16 +154,26 @@ namespace fc
   }// --- FcPipelineConfig::init (_) --- (END)
 
 
-
-   // NOTE: this will copy each push constant range
-   // TODO sub for more efficient emplace
-  void FcPipelineConfig::addPushConstants(VkPushConstantRange pushConstant)
+  //
+  //
+  void FcPipelineConfig::disableColorAttachment()
   {
-    pushConstantsInfo.push_back(pushConstant);
+    colorAttachmentFormat = VK_FORMAT_UNDEFINED;
+    renderInfo.colorAttachmentCount = 0;
+
   }
 
 
+  //
+  //
+  void FcPipelineConfig::addPushConstants(VkPushConstantRange& pushConstant)
+  {
+    pushConstantsInfo.emplace_back(pushConstant);
+  }
 
+
+  //
+  //
   VkDescriptorSetLayout FcPipelineConfig::addSingleImageDescriptorSetLayout()
   {
     FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
@@ -154,28 +190,32 @@ namespace fc
   }
 
 
-
-  void FcPipelineConfig::enableTessellationShader(uint32_t patchControlPoints)
+  //
+  //
+  void FcPipelineConfig::setTessellationControlPoints(uint32_t patchControlPoints)
   {
     tessellationInfo.patchControlPoints = patchControlPoints;
   }
 
 
+  //
+  //
   void FcPipelineConfig::setInputTopology(VkPrimitiveTopology topology)
   {
     inputAssemblyInfo.topology = topology;
-     // we wont be using primitive restart here so leave it false
-    inputAssemblyInfo.primitiveRestartEnable = VK_FALSE;
   }
 
 
+  //
+  //
   void FcPipelineConfig::setPolygonMode(VkPolygonMode mode)
   {
     rasterizationInfo.polygonMode = mode;
-    rasterizationInfo.lineWidth = 1.f;
   }
 
 
+  //
+  //
   void FcPipelineConfig::setCullMode(VkCullModeFlags cullMode, VkFrontFace frontFace)
   {
     rasterizationInfo.cullMode = cullMode;
@@ -183,31 +223,38 @@ namespace fc
   }
 
 
+  //
+  //
   // TODO verify that sample_count_1_bit is enabled by default
-  void FcPipelineConfig::setMultiSampling(VkSampleCountFlagBits sampleCount)
+  void FcPipelineConfig::enableMultiSampling(VkSampleCountFlagBits sampleCount)
   {
     multiSamplingInfo.sampleShadingEnable = VK_TRUE;
-     //
     multiSamplingInfo.rasterizationSamples = sampleCount;
-    multiSamplingInfo.minSampleShading = 0.2f;
-    multiSamplingInfo.minSampleShading = 1.0f;
-    multiSamplingInfo.pSampleMask = nullptr;
-     // no alpha to coverage either
-    multiSamplingInfo.alphaToCoverageEnable = VK_FALSE;
-    multiSamplingInfo.alphaToOneEnable = VK_FALSE;
-
   }
 
 
+  //
+  //
+  void FcPipelineConfig::disableMultiSampling()
+  {
+    multiSamplingInfo.sampleShadingEnable = VK_FALSE;
+    multiSamplingInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+  }
+
+
+  //
+  //
   void FcPipelineConfig::setColorAttachment(VkFormat format)
   {
     colorAttachmentFormat = format;
      // connect the format to the renderInfo structure
-    renderInfo.colorAttachmentCount = 1;
-    renderInfo.pColorAttachmentFormats = &colorAttachmentFormat;
+    /* renderInfo.colorAttachmentCount = 1; */
+    /* renderInfo.pColorAttachmentFormats = &colorAttachmentFormat; */
   }
 
 
+  //
+  //
   void FcPipelineConfig::setDepthFormat(VkFormat format)
   {
     renderInfo.depthAttachmentFormat = format;
@@ -215,7 +262,9 @@ namespace fc
   }
 
 
-   // TODO Should just make this the default
+  //
+  //
+  // TODO Should just make this the default
   void FcPipelineConfig::disableDepthtest()
   {
     depthStencilInfo.depthTestEnable = VK_FALSE;
@@ -225,40 +274,26 @@ namespace fc
     depthStencilInfo.stencilTestEnable = VK_FALSE;
     depthStencilInfo.front = {};
     depthStencilInfo.back = {};
-    depthStencilInfo.minDepthBounds = 0.f;
-    depthStencilInfo.maxDepthBounds = 1.f;
   }
 
+
+  //
+  //
   void FcPipelineConfig::enableDepthtest(bool depthWriteEnable, VkCompareOp op)
   {
     depthStencilInfo.depthTestEnable = VK_TRUE;
     depthStencilInfo.depthWriteEnable = depthWriteEnable;
     depthStencilInfo.depthCompareOp = op;
-    depthStencilInfo.back.compareOp = VK_COMPARE_OP_ALWAYS;
-//    depthStencilInfo.front.compareOp = VK_COMPARE_OP_ALWAYS;
-//    depthStencilInfo.depthBoundsTestEnable = VK_TRUE;
-    //  depthStencilInfo.stencilTestEnable = VK_FALSE;
-    // depthStencilInfo.front = {};
-    // depthStencilInfo.back = {};
-    depthStencilInfo.minDepthBounds = 0.f;
-    depthStencilInfo.maxDepthBounds = 1.f;
   }
 
 
   void FcPipelineConfig::disableBlending()
   {
-     // default write mask
-    colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT
-                                          | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-     // no blending
     colorBlendAttachment.blendEnable = VK_FALSE;
-    colorBlendInfo.pAttachments = &colorBlendAttachment;
   }
 
   void FcPipelineConfig::enableBlendingAdditive()
   {
-    colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT
-                                          | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
     colorBlendAttachment.blendEnable = VK_TRUE;
     colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
     colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
@@ -266,14 +301,10 @@ namespace fc
     colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
     colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
     colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
-
-    //colorBlendInfo.pAttachments = &colorBlendAttachment;
   }
 
   void FcPipelineConfig::enableBlendingAlpha()
   {
-    colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT
-                                          | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
     colorBlendAttachment.blendEnable = VK_TRUE;
     // blending uses: (srcColorBlendFactor * newColor) colorBlendOp (dstColorBlendFacto * oldColor)
     colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
@@ -281,17 +312,7 @@ namespace fc
     colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
     colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
     colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-    // colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-    // colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
     colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
-
-    // colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-    // colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
-    // colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-
-    // colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
-
-    //colorBlendInfo.pAttachments = &colorBlendAttachment;
   }
 
   // void FcPipelineConfig::setDefaultVertexInput()
@@ -399,113 +420,14 @@ namespace fc
     attributeDescriptions.clear();
   }
 
-  // OLD pipeline configuration defaults
-  // FcPipelineConfig::PipelineConfigInfo()
-  // {
-  //    // INPUT ASSEMBLY
-  //   inputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-  //   inputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-  //   inputAssemblyInfo.primitiveRestartEnable = VK_FALSE; // really only useful when using "strip" topology
-
-  //    // VIEWPORT
-  //   viewportInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-  //   viewportInfo.viewportCount = 1;
-  //   viewportInfo.pViewports = nullptr;//&viewport;
-  //   viewportInfo.scissorCount = 1;
-  //   viewportInfo.pScissors = nullptr;//&scissor;
 
 
-  //   rasterizationInfo.cullMode = VK_CULL_MODE_BACK_BIT;
-
-
-
-  //    // -- MULTISAMPLING --
-
-  //    // multisampling is not for textures - it really only works on the edges of shapes
-  //   multiSamplingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-  //   multiSamplingInfo.sampleShadingEnable = VK_FALSE;
-  //   multiSamplingInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT; // number of samples to use per fragment
-  //   multiSamplingInfo.minSampleShading = 1.0f;
-  //   multiSamplingInfo.pSampleMask = nullptr;
-  //   multiSamplingInfo.alphaToCoverageEnable = VK_FALSE;
-  //   multiSamplingInfo.alphaToOneEnable = VK_FALSE;
-
-
-
-
-  //    // -- COLOR BLENDING --
-  //    // TODO may need tweaking here with defaults
-  //    // Blend attachment state (how blending is handled)
-  //   colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT
-  //                                         | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT; // colors to apply blending to
-  //   colorBlendAttachment.blendEnable = VK_TRUE; // enable blending
-  //    // blending uses equation: (srcColorBlendFactor * newColor) colorBlendOp (dstColorBlendFacto * oldColor)
-  //   colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-  //   colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-  //   colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-  //   colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-  //   colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-  //   colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
-
-
-  //   colorBlendInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-  //    //configInfo.colorBlendInfo.logicOp = VK_LOGIC_OP_NAND; // not used since we will be using math instead of logic
-  //   colorBlendInfo.logicOpEnable = VK_FALSE; // alternative to calculations is to use logical operations
-  //   colorBlendInfo.logicOp = VK_LOGIC_OP_COPY;
-  //   colorBlendInfo.attachmentCount = 1;
-  //   colorBlendInfo.pAttachments = &colorBlendAttachment;
-  //   colorBlendInfo.blendConstants[0] = 0.0f;
-  //   colorBlendInfo.blendConstants[1] = 0.0f;
-  //   colorBlendInfo.blendConstants[2] = 0.0f;
-  //   colorBlendInfo.blendConstants[3] = 0.0f;
-
-  //    // -- DEPTH STENCIL TESTING -- //
-  //    //
-  //   depthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-  //   depthStencilInfo.depthTestEnable = VK_TRUE; // enable checking depth to determine fragment write
-  //   depthStencilInfo.depthWriteEnable = VK_TRUE; // enable writing to depth buffer to replace old values
-  //   depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS; // comparison operation that allows an overwrite (is in front)
-  //   depthStencilInfo.depthBoundsTestEnable = VK_FALSE; // Depth Bounds Test: Does the depth value exist between the two user definable bounds
-  //   depthStencilInfo.minDepthBounds = 0.0f;
-  //   depthStencilInfo.maxDepthBounds = 1.0f;
-  //   depthStencilInfo.stencilTestEnable = VK_FALSE;
-  //   depthStencilInfo.front = {};
-  //   depthStencilInfo.back = {};
-
-  // // -- DYNAMIC STATES --
-
-  //   // allow for window resizing on the fly (without recreating the pipeline)
-  //    //dynamic viewport : can resize in command buffer with vkCmdSetViewPort // dynamic scissor : can resize in command buffer with vkCmdSetScissor
-  //   dynamicStateEnables = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
-  //    //
-  //   dynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-  //   dynamicStateInfo.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnables.size());
-  //   dynamicStateInfo.pDynamicStates = dynamicStateEnables.data();
-  //   dynamicStateInfo.flags = 0;
-
-  //    // TODO create a non-dynamic viewport and scissors in the case that the window cannot be resized
-  //    //  // create  a viewport info structure
-  //    // VkViewport viewport{};
-  //    // viewport.x = 0.0f;
-  //    // viewport.y = 0.0f;
-
-  //    // VkExtent2D surfaceExtent = swapchain.getSurfaceExtent();
-
-  //    // viewport.width = static_cast<float>(surfaceExtent.width);
-  //    // viewport.height = static_cast<float>(surfaceExtent.height);
-  //    // viewport.minDepth = 0.0f;
-  //    // viewport.maxDepth = 1.0f;
-
-  //    //  // create a scissor info struct
-  //    // VkRect2D scissor{};
-  //    // scissor.offset = {0,0};           // offset to use region from
-  //    // scissor.extent = surfaceExtent; // extent to describe region to use, starting at offset
   // }
 
   void FcPipeline::create(FcPipelineConfig& pipelineConfig)
   {
     // TODO CREATE SOME ASSERTS!!!
-    /* std::cout << "Creating Pipeline: " << pipelineConfig.name << std::endl; */
+    std::cout << "Creating Pipeline: " << pipelineConfig.name << std::endl;
 
     // -*-*-*-*-*-*-*-*-*-*-*-*-   CREATE PIPELINE LAYOUT   -*-*-*-*-*-*-*-*-*-*-*-*- //
     // save a pointer to the device instance
@@ -607,8 +529,6 @@ namespace fc
       }
 
       graphicsPipelineInfo.layout = mPipelineLayout;
-
-
 
       // TODO Can create multiple pipelines that derive from one another for optimisation
       graphicsPipelineInfo.basePipelineHandle = VK_NULL_HANDLE;

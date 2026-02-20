@@ -85,16 +85,11 @@ namespace fc
   void FcSceneRenderer::buildPipelines(VkDescriptorSetLayout sceneDescriptorLayout, std::vector<FrameAssets>& frames)
   {
     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   OPAQUE PIPELINE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    // TODO addshader() func
-    // TODO add separate pipeline for effects "explode, etc."
-    FcPipelineConfig pipelineConfig{3};
+    FcPipelineConfig pipelineConfig;
     pipelineConfig.name = "Opaque Pipeline";
-    pipelineConfig.shaders[0].filename = "mesh.vert.spv";
-    pipelineConfig.shaders[0].stageFlag = VK_SHADER_STAGE_VERTEX_BIT;
-    pipelineConfig.shaders[1].filename = "scene3.frag.spv";
-    pipelineConfig.shaders[1].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
-    pipelineConfig.shaders[2].filename = "explode.geom.spv";
-    pipelineConfig.shaders[2].stageFlag = VK_SHADER_STAGE_GEOMETRY_BIT;
+    pipelineConfig.addStage(VK_SHADER_STAGE_VERTEX_BIT, "mesh.vert.spv");
+    pipelineConfig.addStage(VK_SHADER_STAGE_FRAGMENT_BIT, "scene3.frag.spv");
+    pipelineConfig.addStage(VK_SHADER_STAGE_GEOMETRY_BIT, "explode.geom.spv");
 
     // add push constants for the model & normal matrices and address of vertex buffer
     VkPushConstantRange matrixRange;
@@ -104,7 +99,7 @@ namespace fc
     //
     pipelineConfig.addPushConstants(matrixRange);
 
-    // Add push for the amount to expand the polygons
+    // Add push for the expansion effect -> amount to expand the polygons
     VkPushConstantRange expansionFactorRange;
     expansionFactorRange.stageFlags = VK_SHADER_STAGE_GEOMETRY_BIT;
     expansionFactorRange.offset = sizeof(ScenePushConstants);
@@ -112,14 +107,12 @@ namespace fc
     //
     pipelineConfig.addPushConstants(expansionFactorRange);
 
-
-    // // place the scene descriptor layout in the first set (0), then cubemap, then material
-    // // TODO find a better way to pass these descriptor sets around etc...
-    // // ?? Are they even needed in here??
+    // place the scene descriptor layout in the first set (0), then cubemap, then material
     pipelineConfig.addDescriptorSetLayout(sceneDescriptorLayout);
 
     // Add single image descriptors for sky box image
     pipelineConfig.addSingleImageDescriptorSetLayout();
+
     // Add single image descriptors for shadow map image
     pipelineConfig.addSingleImageDescriptorSetLayout();
 
@@ -128,25 +121,12 @@ namespace fc
     FcDescriptorBindInfo bindInfo{};
     bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
 
-    // bindInfo.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-    //                     , VK_SHADER_STAGE_FRAGMENT_BIT);
-    // bindInfo.addBinding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-    //                     , VK_SHADER_STAGE_FRAGMENT_BIT);
-    // bindInfo.addBinding(3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-    //                     , VK_SHADER_STAGE_FRAGMENT_BIT);
-    // bindInfo.addBinding(4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-    //                     , VK_SHADER_STAGE_FRAGMENT_BIT);
-    // bindInfo.addBinding(5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-    //                     , VK_SHADER_STAGE_FRAGMENT_BIT);
-    // // TODO check to see if we even need a member variable for the below?? could it be temporary
-    /* bindInfo.addBinding(10, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT); */
-
     FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
     mMaterialDescriptorLayout = descClerk.createDescriptorSetLayout(bindInfo);
     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
     // Finally add the descriptor set layout for materials
     pipelineConfig.addDescriptorSetLayout(mMaterialDescriptorLayout);
-
 
     FcDescriptorBindInfo bindlessBindInfo;
     bindlessBindInfo.enableBindlessTextures();
@@ -157,28 +137,11 @@ namespace fc
       frame.sceneBindlessTextureSet = descClerk.createDescriptorSet(bindlessLayout, bindlessBindInfo);
     }
 
-    /* VkDescriptorSetLayout bindlessLayout = descClerk.createBindlessDescriptorSetLayout(); */
     pipelineConfig.addDescriptorSetLayout(bindlessLayout);
 
-    // TODO find a way to do this systematically with the format of the draw/depth image
-    // ... probably by adding a pipeline builder to renderer and calling from frolic
-    pipelineConfig.setColorAttachment(VK_FORMAT_R16G16B16A16_SFLOAT);
-    pipelineConfig.setDepthFormat(VK_FORMAT_D32_SFLOAT);
-    pipelineConfig.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
-    pipelineConfig.setPolygonMode(VK_POLYGON_MODE_FILL);
-    // TODO front face
     pipelineConfig.setCullMode(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
-    pipelineConfig.setMultiSampling(FcLocator::Gpu().Properties().maxMsaaSamples);
+    pipelineConfig.enableDepthtest(VK_TRUE, VK_COMPARE_OP_GREATER_OR_EQUAL);
 
-    // TODO prefer config via:
-    //pipelineConfig.enableMultiSampling(VK_SAMPLE_COUNT_1_BIT);
-    //pipelineConfig.disableMultiSampling();
-    //pipelineConfig.disableBlending();
-    //pipelineConfig.enableBlendingAlpha();
-    //pipelineConfig.enableBlendingAdditive();
-    pipelineConfig.enableDepthtest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
-
-    // TODO make pipeline and config and descriptors friend classes
     mOpaquePipeline.create(pipelineConfig);
 
     // -*-*-*-*-*-*-*-*-*-*-*-*-*-   WIREFRAME PIPELINE   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -194,12 +157,11 @@ namespace fc
 
     // *-*-*-*-*-*-*-*-*-*-*-*-*-   TRANSPARENTE PIPELINE   *-*-*-*-*-*-*-*-*-*-*-*-*- //
     // using the same pipeline config, alter slightly for transparent models
-    // TODO make sure the transparent pipeline handles things like shadow differently
     pipelineConfig.name = "Transparent Pipeline";
     pipelineConfig.enableBlendingAdditive();
     pipelineConfig.setCullMode(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
     pipelineConfig.setPolygonMode(VK_POLYGON_MODE_FILL);
-    pipelineConfig.enableDepthtest(false, VK_COMPARE_OP_GREATER_OR_EQUAL);
+    pipelineConfig.enableDepthtest(VK_FALSE, VK_COMPARE_OP_GREATER_OR_EQUAL);
 
     mTransparentPipeline.create(pipelineConfig);
   }

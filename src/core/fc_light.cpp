@@ -68,7 +68,7 @@ namespace fc
 
   const glm::vec3& FcLight::getPosition()
   {
-    return mBillboard.position();
+    return mBillboard.Position();
   }
 
 

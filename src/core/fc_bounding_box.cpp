@@ -24,14 +24,19 @@ namespace fc
 
   void FcBoundingBoxRenderer::buildPipelines(VkDescriptorSetLayout sceneDescriptorLayout)
   {
-    FcPipelineConfig pipelineConfig{3};
+    // FcPipelineConfig pipelineConfig{3};
+    // pipelineConfig.name = "Bounding Box Draw";
+    // pipelineConfig.shaders[0].filename = "bounding_box.vert.spv";
+    // pipelineConfig.shaders[0].stageFlag = VK_SHADER_STAGE_VERTEX_BIT;
+    // pipelineConfig.shaders[1].filename = "bounding_box.geom.spv";
+    // pipelineConfig.shaders[1].stageFlag = VK_SHADER_STAGE_GEOMETRY_BIT;
+    // pipelineConfig.shaders[2].filename = "bounding_box.frag.spv";
+    // pipelineConfig.shaders[2].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
+    FcPipelineConfig pipelineConfig;
     pipelineConfig.name = "Bounding Box Draw";
-    pipelineConfig.shaders[0].filename = "bounding_box.vert.spv";
-    pipelineConfig.shaders[0].stageFlag = VK_SHADER_STAGE_VERTEX_BIT;
-    pipelineConfig.shaders[1].filename = "bounding_box.geom.spv";
-    pipelineConfig.shaders[1].stageFlag = VK_SHADER_STAGE_GEOMETRY_BIT;
-    pipelineConfig.shaders[2].filename = "bounding_box.frag.spv";
-    pipelineConfig.shaders[2].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
+    pipelineConfig.addStage(VK_SHADER_STAGE_VERTEX_BIT, "bounding_box.vert.spv");
+    pipelineConfig.addStage(VK_SHADER_STAGE_GEOMETRY_BIT, "bounding_box.geom.spv");
+    pipelineConfig.addStage(VK_SHADER_STAGE_FRAGMENT_BIT, "bounding_box.frag.spv");
 
     // add push constants
     VkPushConstantRange pushConstantRange;
@@ -46,15 +51,11 @@ namespace fc
     // add appropriate descriptor sets without including unecessary data
     pipelineConfig.addDescriptorSetLayout(sceneDescriptorLayout);
 
-    pipelineConfig.setColorAttachment(VK_FORMAT_R16G16B16A16_SFLOAT);
-    pipelineConfig.setDepthFormat(VK_FORMAT_D32_SFLOAT);
-    // ?? Would be better to implement with line primitives but not sure if all implementations
+    // TODO Would be better to implement with line primitives but not sure if all implementations
     // can use lines... triangles are pretty much guaranteed
-    pipelineConfig.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
-    pipelineConfig.setPolygonMode(VK_POLYGON_MODE_FILL);
     pipelineConfig.setCullMode(VK_CULL_MODE_FRONT_AND_BACK, VK_FRONT_FACE_CLOCKWISE);
-    pipelineConfig.setMultiSampling(VK_SAMPLE_COUNT_1_BIT);
-    pipelineConfig.enableDepthtest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
+    pipelineConfig.disableMultiSampling();
+    pipelineConfig.enableDepthtest(VK_TRUE, VK_COMPARE_OP_GREATER_OR_EQUAL);
     pipelineConfig.disableBlending();
 
     mBoundingBoxPipeline.create(pipelineConfig);
