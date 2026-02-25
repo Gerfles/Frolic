@@ -1,3 +1,6 @@
 [submodule "external/tlsf"]
 	path = external/tlsf
 	url = https://github.com/mattconte/tlsf.git
+[submodule "external/taskflow"]
+	path = external/taskflow
+	url = https://github.com/taskflow/taskflow.git

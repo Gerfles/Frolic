@@ -1,6 +1,7 @@
 //>_ fc_billboard_renderer.cpp _<//
 #include "fc_billboard_renderer.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "fc_billboard.hpp"
 #include "fc_descriptors.hpp"
 #include "fc_frame_assets.hpp"
 #include "fc_locator.hpp"
@@ -18,14 +19,15 @@ namespace fc
 {
   //
   //
-  void FcBillboardRenderer::addBillboard(FcBillboard& billboard)
+  void FcBillboardRenderer::addBillboard(FcBillboard& billboard) noexcept
   {
+    // TODO verify ownership and proper pointer selection
     mBillboards.emplace_back(std::shared_ptr<FcBillboard>(&billboard));
   }
 
   //
   //
-  void FcBillboardRenderer::buildPipelines(std::vector<FrameAssets>& frames)
+  void FcBillboardRenderer::buildPipelines(std::vector<FrameAssets>& frames) noexcept
   {
     FcPipelineConfig billboardConfig;
     billboardConfig.name = "Billboard";
@@ -81,7 +83,7 @@ namespace fc
 
   //
   //
-  void FcBillboardRenderer::sortBillboardsByDistance(glm::vec4& cameraPosition)
+  void FcBillboardRenderer::sortBillboardsByDistance(glm::vec4& cameraPosition) noexcept
   {
     std::sort(mBillboards.begin(), mBillboards.end(),
               [cameraPosition](const std::shared_ptr<FcBillboard>& lhs,
@@ -99,19 +101,21 @@ namespace fc
 
   //
   //
-  void FcBillboardRenderer::draw(VkCommandBuffer cmd, SceneDataUbo& sceneData, FrameAssets& currentFrame)
+  void FcBillboardRenderer::draw(VkCommandBuffer cmd,
+                                 SceneDataUbo& sceneData,
+                                 FrameAssets& currentFrame) noexcept
   {
-    mUbo.view = sceneData.view;
-    mUbo.projection = sceneData.projection;
-    mUboBuffer.write(&mUbo, sizeof(BillboardUbo));
+    mBillboardUbo.view = sceneData.view;
+    mBillboardUbo.projection = sceneData.projection;
+    mUboBuffer.write(&mBillboardUbo, sizeof(BillboardUbo));
 
     // TODO This is a good candidate for a compute shader
     sortBillboardsByDistance(sceneData.eye);
 
     // Alternate method
     // TODO profile to see which sorting method prevails (std::sort vs. indexed draws)
-    // sort the billboards by distance to the camera
 
+    // sort the billboards by distance to the camera
     // std::multimap<float, size_t> sortedIndices;
     // for (size_t i = 0; i < mBillboards.size(); ++i)
     // {
@@ -142,7 +146,7 @@ namespace fc
 
   //
   //
-  void FcBillboardRenderer::destroy()
+  void FcBillboardRenderer::destroy() noexcept
   {
     mPipeline.destroy();
 

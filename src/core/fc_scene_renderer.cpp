@@ -3,6 +3,7 @@
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_mesh.hpp"
 #include "fc_node.hpp"
+#include "fc_frame_assets.hpp"
 #include "core/fc_descriptors.hpp"
 #include "core/fc_draw_collection.hpp"
 #include "core/fc_gpu.hpp"

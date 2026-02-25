@@ -2,6 +2,9 @@
 
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC CORE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_defaults.hpp"
+#include "core/fc_descriptors.hpp"
+#include "core/fc_scene_renderer.hpp"
+#include "fc_buffer.hpp"
 #include "fc_locator.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "glm/packing.hpp"
@@ -26,12 +29,16 @@ namespace fc
   FcImage FcDefaults::DefaultTextures::black;
   FcImage FcDefaults::DefaultTextures::grey;
   FcImage FcDefaults::DefaultTextures::checkerboard;
+  //
+  FcMaterial FcDefaults::DefaultMaterials::blank;
+  FcBuffer FcDefaults::DefaultMaterials::materialDataBuffer;
 
 
   void FcDefaults::init(VkDevice device)
   {
     Textures.init();
     Samplers.init(device);
+    Materials.init();
   }
 
   // TODO implement
@@ -141,6 +148,7 @@ namespace fc
 
   void FcDefaults::DefaultTextures::init()
   {
+    // TODO make sure these are implemented within bindless paths
     // -*-*-*-*-   3 DEFAULT TEXTURES--WHITE, GREY, BLACK AND CHECKERBOARD   -*-*-*-*- //
     uint32_t whiteValue = glm::packUnorm4x8(glm::vec4(1.f, 1.f, 1.f, 1.f));
     white.createTexture(1, 1, static_cast<void*>(&whiteValue)
@@ -168,10 +176,84 @@ namespace fc
                                        , pixels.size() * sizeof(pixels[0]));
   }
 
+
+  //
+  //
+  void FcDefaults::DefaultMaterials::init()
+  {
+    // Create buffer to hold the material data
+      materialDataBuffer.allocate(sizeof(MaterialConstants), FcBufferTypes::Uniform);
+
+      /* materials[i] = std::make_shared<FcMaterial>(); */
+      blank.materialType = FcMaterial::Type::Opaque;
+
+      FcDescriptorBindInfo bindInfo{};
+
+      bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
+                          , VK_SHADER_STAGE_FRAGMENT_BIT);
+
+      // create the descriptor set Layout for the material
+      VkDescriptorSetLayout descriptorSetLayout =
+        FcLocator::DescriptorClerk().createDescriptorSetLayout(bindInfo);
+
+
+      MaterialConstants constants;
+      constants.colorFactors.x = 1.0f;
+      constants.colorFactors.y = 1.0f;
+      constants.colorFactors.z = 1.0f;
+      constants.colorFactors.w = 1.0f;
+      // Metal Rough
+      constants.metalRoughFactors.x = 0.5;
+      constants.metalRoughFactors.y = 0.5;
+      // Index of Refraction
+      constants.iorF0 = 0.04;
+
+      // emmisive factors
+      constants.emmisiveFactors = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+
+      //TODO verify what to set default as
+      constants.occlusionFactor = 1.0f;
+
+      // TODO Set to the checkerboard texture to spot it easier
+      /* constants.colorIndex = drawCollection.mTextures.get(index)->Handle(); */
+      constants.colorIndex = 0;
+
+      // *-*-*-*-*-*-*-*-*-*-*-*-*-   MATERIAL DATA BUFFER   *-*-*-*-*-*-*-*-*-*-*-*-*- //
+      bindInfo.attachBuffer(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, materialDataBuffer
+                            , sizeof(MaterialConstants), 0);
+
+      // Write material parameters to buffer.
+      MaterialConstants* defaultMaterialConstants = static_cast<MaterialConstants*>
+                                                    (materialDataBuffer.getAddress());
+      *defaultMaterialConstants = constants;
+
+      // TODO make the ubo descriptor set the same for all materials:
+      // perhaps store an addressable buffer within the the GPU mem:
+
+      // Build descriptor sets for each material
+      blank.materialSet
+        = FcLocator::DescriptorClerk().createDescriptorSet(descriptorSetLayout, bindInfo);
+
+      // FIXME
+      /* FcLocator::DescriptorClerk().destroyDescriptorSetLayout(descriptorSetLayout); */
+  }
+
+
+
   void FcDefaults::destroy()
   {
+    Materials.destroy();
     Samplers.destroy();
     Textures.destroy();
+  }
+
+
+  //
+  //
+  void FcDefaults::DefaultMaterials::destroy()
+  {
+    // TODO implement
+    materialDataBuffer.destroy();
   }
 
 

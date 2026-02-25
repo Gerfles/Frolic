@@ -3,12 +3,13 @@
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_mesh.hpp"
 #include "fc_draw_collection.hpp"
-
+#include "fc_frame_assets.hpp"
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
 //
 namespace fc
 {
-  void FcBoundaryBox::init(const FcBounds &bounds)
+  void FcBoundaryBox::init(const FcBounds &bounds) noexcept
   {
     mCorners[0] = glm::vec4{bounds.origin + glm::vec3{1.f, 1.f, 1.f} * bounds.extents, 1.f};
     mCorners[1] = glm::vec4{bounds.origin + glm::vec3{1.f, 1.f, -1.f} * bounds.extents, 1.f};
@@ -22,16 +23,8 @@ namespace fc
 
 
 
-  void FcBoundingBoxRenderer::buildPipelines(VkDescriptorSetLayout sceneDescriptorLayout)
+  void FcBoundingBoxRenderer::buildPipelines(VkDescriptorSetLayout sceneDescriptorLayout) noexcept
   {
-    // FcPipelineConfig pipelineConfig{3};
-    // pipelineConfig.name = "Bounding Box Draw";
-    // pipelineConfig.shaders[0].filename = "bounding_box.vert.spv";
-    // pipelineConfig.shaders[0].stageFlag = VK_SHADER_STAGE_VERTEX_BIT;
-    // pipelineConfig.shaders[1].filename = "bounding_box.geom.spv";
-    // pipelineConfig.shaders[1].stageFlag = VK_SHADER_STAGE_GEOMETRY_BIT;
-    // pipelineConfig.shaders[2].filename = "bounding_box.frag.spv";
-    // pipelineConfig.shaders[2].stageFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
     FcPipelineConfig pipelineConfig;
     pipelineConfig.name = "Bounding Box Draw";
     pipelineConfig.addStage(VK_SHADER_STAGE_VERTEX_BIT, "bounding_box.vert.spv");
@@ -46,9 +39,6 @@ namespace fc
 
     pipelineConfig.addPushConstants(pushConstantRange);
 
-    // TODO limit this to what the bounding box pipeline actually needs!!!
-    // !! figure out the stages of what all pipelines need so we can compare and
-    // add appropriate descriptor sets without including unecessary data
     pipelineConfig.addDescriptorSetLayout(sceneDescriptorLayout);
 
     // TODO Would be better to implement with line primitives but not sure if all implementations
@@ -62,9 +52,9 @@ namespace fc
   }
 
 
-  // TODO think about  embedding command buffer within current frame
+  // TODO think about embedding command buffer within current frame
   void FcBoundingBoxRenderer::draw(VkCommandBuffer cmd, FcDrawCollection& drawCollection
-                                   ,FrameAssets& currentFrame, int boundingBoxID)
+                                   ,FrameAssets& currentFrame, int boundingBoxID) noexcept
   {
     {
       mBoundingBoxPipeline.bind(cmd);
@@ -81,18 +71,7 @@ namespace fc
         {
           for (const FcSubmesh& subMesh : materialCollection.second)
           {
-            // Send the bounding box to the shaders
-            BoundingBoxPushes pushConstants;
-            pushConstants.modelMatrix = subMesh.node->worldTransform;
-            pushConstants.origin = glm::vec4(subMesh.bounds.origin, 1.f);
-            pushConstants.extents = glm::vec4(subMesh.bounds.extents, 0.f);
-
-            // ?? not sure that we should be using pushConstants for each draw command like this
-            vkCmdPushConstants(cmd, mBoundingBoxPipeline.Layout(), VK_SHADER_STAGE_VERTEX_BIT
-                               , 0, sizeof(BoundingBoxPushes), &pushConstants);
-
-            // TODO update to utilize sascha method for quads
-            vkCmdDraw(cmd, 36, 1, 0, 0);
+            drawSurface(cmd, subMesh);
           }
         }
       }
@@ -100,25 +79,29 @@ namespace fc
       else // otherwise, just draw the object that we are told to
       {
         const FcSubmesh& subMesh = drawCollection.getSurfaceAtIndex(boundingBoxID);
-
-        // Send the bounding box to the shaders
-        BoundingBoxPushes pushConstants;
-        pushConstants.modelMatrix = subMesh.node->worldTransform;
-        pushConstants.origin = glm::vec4(subMesh.bounds.origin, 1.f);
-        pushConstants.extents = glm::vec4(subMesh.bounds.extents, 0.f);
-
-        vkCmdPushConstants(cmd, mBoundingBoxPipeline.Layout(), VK_SHADER_STAGE_VERTEX_BIT
-                           , 0, sizeof(BoundingBoxPushes), &pushConstants);
-
-        // TODO update to utilize sascha method for quads
-        vkCmdDraw(cmd, 36, 1, 0, 0);
+        drawSurface(cmd, subMesh);
       }
     }
   }
 
+  void  FcBoundingBoxRenderer::drawSurface(VkCommandBuffer cmd, const FcSubmesh& subMesh) noexcept
+  {
+    // Send the bounding box to the shaders
+    BoundingBoxPushes pushConstants;
+    pushConstants.modelMatrix = subMesh.node->worldTransform;
+    pushConstants.origin = glm::vec4(subMesh.bounds.origin, 1.f);
+    pushConstants.extents = glm::vec4(subMesh.bounds.extents, 0.f);
+
+    vkCmdPushConstants(cmd, mBoundingBoxPipeline.Layout(), VK_SHADER_STAGE_VERTEX_BIT
+                       , 0, sizeof(BoundingBoxPushes), &pushConstants);
+
+    // TODO update to utilize sascha method for quads
+    vkCmdDraw(cmd, 36, 1, 0, 0);
+  }
+
   //
   //
-  void FcBoundingBoxRenderer::destroy()
+  void FcBoundingBoxRenderer::destroy() noexcept
   {
     mBoundingBoxPipeline.destroy();
   }

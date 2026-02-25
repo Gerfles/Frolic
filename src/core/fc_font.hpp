@@ -36,9 +36,6 @@ namespace fc
 
      friend class FcText;
      BillboardPushConstants mTextBoxSpecs;
-      //
-//     FcMesh mTextBoxMesh;
-
      std::map<char, Character> mCharacters;
      int mFirstGlyph;
      int mLastGlyph;

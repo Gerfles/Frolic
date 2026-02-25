@@ -11,6 +11,7 @@
 #include "fc_text.hpp"
 #include "fc_descriptors.hpp"
 #include "fc_defaults.hpp"
+#include "fc_camera.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <SDL_events.h>
 // #define GLM_FORCE_RADIANS

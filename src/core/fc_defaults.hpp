@@ -1,6 +1,7 @@
 // fc_defaults.hpp
 #pragma once
 
+#include "fc_types.hpp"
 #include "fc_image.hpp"
 #include <vulkan/vulkan.h>
 
@@ -33,12 +34,21 @@ namespace fc
         static void destroy();
      };
 
+     struct DefaultMaterials
+     {
+        static FcMaterial blank;
+        static FcBuffer materialDataBuffer;
+        static void init();
+        static void destroy();
+     };
+
    public:
      // ?? Might want to make these static members of fcImage class but it depends on
      // if we want them to exist for the life of the program or if the createInfos for
      // instance can be deleted once they go out of scope.
      static DefaultSamplers Samplers;
      static DefaultTextures Textures;
+     static DefaultMaterials Materials;
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FUNCTIONS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      static void init(VkDevice device);
      // TODO implement

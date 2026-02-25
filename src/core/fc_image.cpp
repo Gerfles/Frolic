@@ -18,6 +18,7 @@
 /* #define STBI_FAILURE_USERMSG */
 #include <stb_image.h>
 #include "vulkan/vulkan_core.h"
+#include "fastgltf/types.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <stdexcept>
 #include <cstddef>

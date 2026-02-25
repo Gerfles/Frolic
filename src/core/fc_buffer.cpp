@@ -6,8 +6,9 @@
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES -*-*-*-*-*-*-*-*-*-*-*-*-*-
 #include <SDL_log.h>
 #include "vulkan/vulkan_core.h"
-//#define VMA_IMPLEMENTATION
+/* #define VMA_IMPLEMENTATION */
 #include "vk_mem_alloc.h"
+
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <cstddef>
 #include <cstring>
@@ -112,7 +113,7 @@ namespace  fc
                         , &allocInfo, &mBuffer, &mAllocation, nullptr) != VK_SUCCESS)
     {
       printBufferStats();
-      throw std::runtime_error("Failed to create Vulkan Buffer!");
+      /* throw std::runtime_error("Failed to create Vulkan Buffer!"); */
     }
   }
 
@@ -121,6 +122,10 @@ namespace  fc
   // TODO check preferred (fastest) method via VMA website
   void* FcBuffer::getAddress()
   {
+    if (mSize == 0)
+    {
+      return nullptr;
+    }
     /* void* memAddress; */
     VmaAllocator allocator = FcLocator::Gpu().getAllocator();
 
@@ -169,7 +174,7 @@ namespace  fc
       // First create separate staging buffer and store sourceData in RAM
       FcBuffer stagingBuffer(dataSize, FcBufferTypes::Staging);
       stagingBuffer.overwriteData(sourceData, dataSize, offset);
-
+      //
       copyBuffer(stagingBuffer, dataSize);
       //
       stagingBuffer.destroy();
@@ -227,6 +232,9 @@ namespace  fc
 //  }
 
 
+  //
+  //
+  // TODO
   void FcBuffer::overwriteData(void* sourceData, size_t dataSize, VkDeviceSize offset)
   {
     void* memAddress;
@@ -242,7 +250,7 @@ namespace  fc
     //vmaCopyMemoryToAllocation(allocator, sourceData, mAllocation, offset, dataSize);
 
     // TODO also, SHould we just use this ??
-     //mAllocation->GetMappedData();
+    //mAllocation->GetMappedData();
     memAddress = (char*)memAddress + offset;
 
     memcpy(memAddress, sourceData, dataSize);

@@ -1,7 +1,8 @@
 #pragma once
 
 #include "fc_image.hpp"
-#include "fc_billboard_renderer.hpp"
+/* #include "fc_billboard_renderer.hpp" */
+#include "fc_billboard.hpp"
 #include "fc_game_object.hpp"
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>

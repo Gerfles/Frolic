@@ -1,28 +1,21 @@
+//> fc_image.hpp <//
 #pragma once
-
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "core/platform.hpp"
+#include "platform.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "vulkan/vulkan_core.h"
 #include "vk_mem_alloc.h"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <filesystem>
-#include <vector>
 // *-*-*-*-*-*-*-*-*-*-*-*-*-   FORWARD DECLARATIONS   *-*-*-*-*-*-*-*-*-*-*-*-*- //
-namespace fastgltf
-{
-  class Image;
-  class Asset;
-  class Sampler;
-}
+namespace fastgltf { class Image; class Asset; class Sampler; }
+namespace std { template<typename> class vector; }
+namespace fc { class FcBuffer; class FcDrawCollection; }
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FCIMAGE CLASS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 namespace fc
 {
-  // FORWARD DECLARATIONS
-  class FcBuffer;
-  class FcDrawCollection;
-
   enum class FcImageTypes : uint8_t {
     Texture,                 // Default texture image
     TextureWithMipmaps,      //
@@ -50,8 +43,8 @@ namespace fc
      void* localCopyAddress {nullptr};
      /* static uint32_t index; */
      uint32_t mHandle;
-
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
      VkSampler mSampler {VK_NULL_HANDLE};
      VkImage mImage {VK_NULL_HANDLE};
      VkImageView mImageView {VK_NULL_HANDLE};

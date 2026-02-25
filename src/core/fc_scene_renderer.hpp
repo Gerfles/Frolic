@@ -59,6 +59,7 @@ namespace fc
      glm::mat4 viewProj{1.f};
   };
 
+  // TODO MOVE to types
   // ?? TODO could pack these tighter but need to study the downfalls, etc.
   // https://www.khronos.org/opengl/wiki/Interface_Block_(GLSL)#Memory_layout
   // struct alignas(16) MaterialConstants

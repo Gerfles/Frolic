@@ -357,11 +357,13 @@ namespace fc
         if (primitive.materialIndex.has_value())
         {
           newSubmesh.material = materials[primitive.materialIndex.value()];
+          // TODO test to make sure checkerboard texture is default
+          /* newSubmesh.material = std::make_shared<FcMaterial>(FcDefaults::Materials.blank); */
         }
         else
         {
-          // TODO make sure there is always a default material
-          newSubmesh.material = materials[0];
+          // Make sure we assign the default (blank) material to any mesh without one
+          newSubmesh.material = std::make_shared<FcMaterial>(FcDefaults::Materials.blank);
         }
         // Signal flags as to which attributes this material can expect from the vertices
         // ?? not sure if we could have a material that associated with two different
@@ -635,6 +637,7 @@ namespace fc
     }
 
     fcPrintEndl("All materials bindlessly loaded...");
+
   }
 
 

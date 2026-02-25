@@ -259,6 +259,7 @@ namespace fc
       //mRenderer.drawBackground(mPushConstants[currentBackgroundEffect]);
 
       // TODO may want to couple shadow map tighter with sceneRenderer
+      mShouldDrawDebugShadowMap = false;
       mRenderer.drawFrame(mShouldDrawDebugShadowMap);
 
       mRenderer.endFrame(swapchainImgIndex);
@@ -316,7 +317,8 @@ namespace fc
   }
 
 
-
+  //
+  //
   void Frolic::close()
   {
     // TODO I think that since we have the one device wait idle, we can eliminate all others

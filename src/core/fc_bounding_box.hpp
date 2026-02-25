@@ -1,9 +1,6 @@
 // fc_bounding_box.hpp
 #pragma once
-
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-/* #include "fc_draw_collection.hpp" */
-#include "fc_frame_assets.hpp"
 #include "fc_pipeline.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
 #include <glm/mat4x4.hpp>
@@ -15,6 +12,8 @@
 namespace fc
 {
   class FcDrawCollection;
+  class FrameAssets;
+  class FcSubmesh;
 
   struct BoundingBoxPushes
   {
@@ -38,7 +37,7 @@ namespace fc
      std::array<glm::vec4, 8> mCorners;
 
    public:
-     void init(const FcBounds& bounds);
+     void init(const FcBounds& bounds) noexcept;
      inline const glm::vec4& operator[](size_t index) const noexcept { return mCorners[index]; }
   };
 
@@ -51,11 +50,12 @@ namespace fc
    private:
      FcPipeline mBoundingBoxPipeline;
    public:
-     void buildPipelines(VkDescriptorSetLayout sceneDescriptorLayout);
+     void buildPipelines(VkDescriptorSetLayout sceneDescriptorLayout) noexcept;
      // TODO make draw call draw only the isolated mesh whose bounding box we want
      void draw(VkCommandBuffer cmd, FcDrawCollection& drawCollection
-               ,FrameAssets& currentFrame, int boundingBoxID = -1);
-     void destroy();
+               ,FrameAssets& currentFrame, int boundingBoxID = -1) noexcept;
+     void drawSurface(VkCommandBuffer cmd, const FcSubmesh& subMesh) noexcept;
+     void destroy() noexcept;
   };
 
 }// --- namespace fc --- (END)
