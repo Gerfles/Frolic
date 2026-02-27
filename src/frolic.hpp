@@ -1,20 +1,17 @@
+//>--- frolic.hpp ---<//
 #pragma once
-
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "core/fc_billboard.hpp"
 #include "core/fc_scene.hpp"
 #include "core/fc_renderer.hpp"
 #include "core/fc_player.hpp"
 #include "fc_gui.hpp"
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <vector>
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
 
 namespace fc
 {
-
+  //
   class Frolic
   {
    private:

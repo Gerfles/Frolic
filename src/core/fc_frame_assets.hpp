@@ -1,7 +1,8 @@
-// fc_frame_assets.hpp
+//>--- fc_frame_assets.hpp ---<//
 #pragma once
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <vulkan/vulkan_core.h>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
 namespace fc

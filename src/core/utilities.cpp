@@ -245,7 +245,7 @@ void printMat(const glm::mat4& mat, std::string_view name)
     std::cout << std::endl;
   }
 
-   // TODO set all environment variables from here
+  // TODO set all environment variables from here
   void initEnv()
   {
      // transfer and use soln from

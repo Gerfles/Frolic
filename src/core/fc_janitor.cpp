@@ -1,9 +1,11 @@
+//>--- fc_janitor.cpp ---<//
 #include "fc_janitor.hpp"
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
 namespace fc
 {
-
+  //
   void fcJanitor::flush()
   {
      // reverse iterate the deletion queue to execute all the functions

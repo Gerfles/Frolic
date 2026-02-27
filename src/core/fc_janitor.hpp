@@ -1,5 +1,10 @@
+//>--- fc_janitor.hpp ---<//
+#pragma once
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <deque>
 #include <functional>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
+
 
 // TODO at the moment, this is implemented with callback functors but would
 // better scale with arrays of vulkan handles to systematically delete the
@@ -7,6 +12,7 @@
 // TODO should also think about making this a class
 namespace fc
 {
+  //
   class fcJanitor
   {
    private:

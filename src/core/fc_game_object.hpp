@@ -1,12 +1,12 @@
- #pragma once
-
-#include <glm/vec4.hpp>
+//>--- fc_game_object.hpp ---<//
+#pragma once
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <glm/mat4x4.hpp>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
+
 
 namespace fc
 {
-//   class FcModel;
-
   struct TransformComponent
   {
      glm::vec3 translation{}; // position offset

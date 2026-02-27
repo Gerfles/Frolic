@@ -1,26 +1,18 @@
-//>  fc_font.cpp  <//
+//>---  fc_font.cpp  ---<//
 #include "fc_font.hpp"
-
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC CORE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_renderer.hpp"
 #include "fc_locator.hpp"
 #include "fc_debug.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "vulkan/vulkan_core.h"
-#include "stb_image.h"
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL / UTIL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <cstdint>
-#include <cstring>
-#include <utility>
-#include <vector>
+#include "freetype/freetype.h"
+#include "freetype/ftglyph.h"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
 namespace fc
 {
-
-
-   // TODO this function may need to be broken up
+  // TODO this function may need to be broken up
   void FcFont::createRasterFont(std::string fontName
                                 , int size, int firstGlyph, int lastGlyph)
   {

@@ -1,19 +1,15 @@
 // fc_terrain.hpp
 #pragma once
-
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "fc_scene_renderer.hpp"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_mesh.hpp"
-#include "fc_mesh.hpp"
-#include "fc_pipeline.hpp"
-#include "fc_image.hpp"
-#include "fc_buffer.hpp"
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'S   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+namespace fc { class FcFrustum; class SceneDataUbo; }
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
 
 namespace fc
 {
-  class FcFrustum;
-
+  //
   class FcTerrain
   {
    private:

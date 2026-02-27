@@ -1,14 +1,11 @@
-//> fc_draw_collection.cpp <//
-
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC CORE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+//>--- fc_draw_collection.cpp ---<//
 #include "fc_draw_collection.hpp"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_mesh.hpp"
-#include "core/log.hpp"
-#include "fc_image.hpp"
-#include "fc_node.hpp"
+#include "fc_types.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <glm/mat4x4.hpp>
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
+
 namespace fc
 {
   void FcDrawCollection::init(FcAllocator* allocator)

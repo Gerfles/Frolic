@@ -1,26 +1,18 @@
+//>--- fc_gpu.cpp ---<//
 #include "fc_gpu.hpp"
-
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "core/fc_locator.hpp"
-
-#include "utilities.hpp"
-// #include "log.hpp"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "assert.hpp"
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "vulkan/vulkan_core.h"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <SDL_log.h>
 // must resort to something like this or get thousands of warnings with vk_mem_alloc
-//#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wnullability-completeness"
+/* #pragma clang diagnostic ignored "-Wnullability-completeness" */
 #define VMA_IMPLEMENTATION // must declare only once before including vk_mem_alloc.h in CPP file
 #include "vk_mem_alloc.h"
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <stdexcept>
-#include <vector>
-#include <iostream>
-//TODO see if we can just use one or the other type of set
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+//TODO see if we can just substitute  one for  the other type of set
 #include <unordered_set>
 #include <set>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
 
 namespace fc
@@ -161,11 +153,9 @@ namespace fc
       {
         if (isDeviceSuitable(potentialDevice))
         {
-          std::cout << "GPU: " << deviceProperties.deviceName
-                    << "\nPush Constant Max: "
-                    << deviceProperties.limits.maxPushConstantsSize
-                    << " (Bytes)"
-                    << std::endl;
+          fcPrintEndl("GPU: %s\nPush Constant max size:%u(Bytes)",
+                      deviceProperties.deviceName,
+                      deviceProperties.limits.maxPushConstantsSize)
 
           mPhysicalGPU = potentialDevice;
           break;
@@ -315,7 +305,7 @@ namespace fc
     // first make sure device extensions are supported
     if (!isDeviceExtensionSupported(device))
     {
-      std::cout << "GPU Extensions Unsupported: " << std::endl;
+      fcPrintEndl("GPU Extensions Unsupported: ");
       return false;
     }
 
@@ -509,9 +499,6 @@ namespace fc
 
   void FcGpu::release(VkInstance& instance)
   {
-    fcLog("Calling FcGpu::release()");
-
-
     vmaDestroyAllocator(mAllocator);
 
     if (mLogicalGPU != VK_NULL_HANDLE)

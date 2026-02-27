@@ -70,7 +70,7 @@ namespace fc
       // TODO get rid of this within renderer and instead initialize in frolic.cpp probably or GPU
       FcLocator::init();
 
-      mWindow.initWindow(screenSize.width, screenSize.height);
+      mWindow.initWindow(screenSize.width, screenSize.height, "Frolic Engine...");
 
       // now we need a vulkan instance to do anything else
       createInstance(appInfo);

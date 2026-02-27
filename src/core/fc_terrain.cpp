@@ -1,7 +1,6 @@
 #include "fc_terrain.hpp"
 
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
-/* #include "fc_renderer.hpp" */
 #include "core/fc_descriptors.hpp"
 #include "fc_gpu.hpp"
 #include "fc_frustum.hpp"

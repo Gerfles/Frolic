@@ -1,17 +1,18 @@
+//>--- fc_camera.hpp ---<//
 #pragma once
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include <glm/mat4x4.hpp>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'S   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+namespace fc { class FcPlayer; }
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
-//#include "core/fc_game_object.hpp"
-#include <glm/ext/matrix_float4x4.hpp>
+
 // TODO lots of redundancies with fc_player, may want to couple better
-
 // TODO implement an AlignWith function that aligns the view with one of the
 // cardinal axis
-
-
 namespace fc
 {
-  class FcPlayer;
-
+  //
   class FcCamera
   {
    private:
@@ -22,7 +23,7 @@ namespace fc
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      glm::vec3& mPosition; // EYE
      glm::vec3& mTarget; //
-     glm::vec3 mUp{0.f, -1.f, 0.f}; //
+     glm::vec3 mUp{0.f, -1.f, 0.f}; // TODO change if need be
 
      // glm::vec3 mVelocity{0.f};
 
@@ -62,7 +63,4 @@ namespace fc
 //     TransformComponent& Transform() { return mTransform; }
   };
 
-
-
-
-} // _END_ namespace fc
+}// --- namespace fc --- (END)

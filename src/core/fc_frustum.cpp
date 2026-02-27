@@ -1,5 +1,7 @@
-// fc_frustum.cpp
+//>--- fc_frustum.cpp ---<//
 #include "fc_frustum.hpp"
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
+
 
 namespace fc
 {

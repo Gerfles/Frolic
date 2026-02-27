@@ -1,4 +1,4 @@
-// fc_bounding_box.hpp
+//>--- fc_bounding_box.hpp ---<//
 #pragma once
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_pipeline.hpp"

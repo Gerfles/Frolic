@@ -1,24 +1,28 @@
-// fc_cvar_system.hpp
-
-#include <cstdint>
+//>--- fc_cvar_system.hpp ---<//
+#pragma once
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "string_utils.hpp"
+#include "platform.hpp"
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'S   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+namespace fc { class CVarParameter; }
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FORWARD DECL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 namespace fc
 {
-  class CVarParameter;
-
-  enum class CVarFlags : uint32_t
+  //
+  enum class CVarFlags : u32
   {
     None = 0,
-  Noedit = 1 << 1,
-  EditReadOnly = 1 << 2,
-  Advance = 1 << 3,
-  EditCheckbox = 1 << 8,
-  EditFloatDrag = 1 << 9,
-};
+    Noedit = 1 << 1,
+    EditReadOnly = 1 << 2,
+    Advance = 1 << 3,
+    EditCheckbox = 1 << 8,
+    EditFloatDrag = 1 << 9,
+  };
 
+
+  //
   class CVarSystem
   {
    public:
@@ -43,6 +47,7 @@ namespace fc
   };
 
 
+  //
   struct AutoCVarFloat : AutoCVar<float>
   {
      AutoCVarFloat(const char* name, const char* description

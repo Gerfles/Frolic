@@ -2,17 +2,20 @@
 #pragma once
 
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "core/fc_node.hpp"
-#include "core/fc_scene_renderer.hpp"
-#include "core/fc_buffer.hpp"
+#include "fc_buffer.hpp"
+#include "fc_types.hpp"
+#include "platform.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#define ASSIMP_USE_HUNTER
-#include <assimp/scene.h>
-#include <assimp/Importer.hpp>
-#include <assimp/postprocess.h>
-#include <fastgltf/types.hpp>
+#include <glm/mat4x4.hpp>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <unordered_map>
+#include <string>
+#include <vector>
+#include <filesystem>
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+namespace fc { class FcNode; class FcRenderer; class FcMesh; class FcDrawCollection; }
+/* #include <fastgltf/core.hpp> */
+namespace fastgltf { enum class Filter : std::uint16_t; class Sampler; class Asset;}
+class aiNode; class aiScene; class aiMesh;
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
 

@@ -2,6 +2,7 @@
 
 // - FROLIC ENGINE -
 //#include "core/fc_descriptors.hpp"
+#include "fc_types.hpp"
 #include "core/fc_descriptors.hpp"
 #include "core/fc_locator.hpp"
 #include "fc_gpu.hpp"

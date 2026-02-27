@@ -1,15 +1,13 @@
-#include "core/fc_light.hpp"
-#include <vulkan/vulkan_core.h>
-
-
-#include "core/fc_descriptors.hpp"
-#include "core/fc_image.hpp"
-#include "core/fc_locator.hpp"
+//>--- fc_light.cpp ---<//
+#include "fc_light.hpp"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "fc_types.hpp"
+#include "fc_locator.hpp"
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   TODO   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DELETE ALL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
 namespace fc
 {
 

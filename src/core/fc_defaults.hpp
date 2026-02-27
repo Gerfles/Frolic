@@ -1,13 +1,14 @@
-// fc_defaults.hpp
+//>--- fc_defaults.hpp ---<//
 #pragma once
-
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_types.hpp"
 #include "fc_image.hpp"
-#include <vulkan/vulkan.h>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
-//
+
 namespace fc
 {
+  //
   class FcDefaults
   {
    private:
@@ -22,7 +23,8 @@ namespace fc
         static VkSampler ShadowMap;
         static void init(VkDevice device);
         static void destroy();
-     };
+     };// ---      struct DefaultSamplers --- (END)
+
      //
      struct DefaultTextures
      {
@@ -32,15 +34,16 @@ namespace fc
         static FcImage checkerboard;
         static void init();
         static void destroy();
-     };
+     };// ---      struct DefaultTextures --- (END)
 
+     //
      struct DefaultMaterials
      {
         static FcMaterial blank;
         static FcBuffer materialDataBuffer;
         static void init();
         static void destroy();
-     };
+     };// ---      struct DefaultMaterials --- (END)
 
    public:
      // ?? Might want to make these static members of fcImage class but it depends on
@@ -55,4 +58,5 @@ namespace fc
      static void addSampler(VkSamplerCreateInfo& samplerInfo);
      static void destroy();
   }; // ---   class FcDefaults --- (END)
+
 }// --- namespace fc --- (END)

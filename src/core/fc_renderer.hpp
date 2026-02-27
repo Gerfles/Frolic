@@ -1,7 +1,8 @@
+//> fc_renderer.hpp <//
 #pragma once
-
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_frustum.hpp"
+#include "fc_scene_renderer.hpp"
 #include "fc_terrain.hpp"
 #include "shadow_map.hpp"
 #include "fc_skybox.hpp"
@@ -10,15 +11,14 @@
 #include "fc_swapChain.hpp"
 #include "fc_gpu.hpp"
 #include "fc_timer.hpp"
+#include "fc_types.hpp"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+namespace fc { class FcCamera; }//class MaterialFeatures; }
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
 
 
 namespace fc
 {
-  class FcCamera;
-
-
   static constexpr unsigned int MAX_FRAME_DRAWS = 3;
   static constexpr unsigned int BINDLESS_DESCRIPTOR_SLOT = 10;
 
@@ -39,7 +39,6 @@ namespace fc
        FcBillboardRenderer mBillboardRenderer;
        FcBoundingBoxRenderer mBoundingBoxRenderer;
        FcNormalRenderer mNormalRenderer;
-
        //
        VkDebugUtilsMessengerEXT debugMessenger;
        FcWindow mWindow;

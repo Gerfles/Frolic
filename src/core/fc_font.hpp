@@ -1,26 +1,16 @@
+//>--- fc_font.hpp ---<//
 #pragma once
-
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-//#include "core/fc_descriptors.hpp"
-#include "core/fc_text.hpp"
-#include "fc_billboard_renderer.hpp"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_image.hpp"
-//#include "core/mesh.h"
-//#include "fc_pipeline.hpp"
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <ft2build.h>
-#include <vulkan/vulkan_core.h>
-//?? what's up with the following includes
-#include FT_FREETYPE_H /* wierd font-lock issue TODO solve issue */
-#include FT_GLYPH_H
+#include "fc_types.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <string>
 #include <map>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
 namespace fc
 {
-
+  //
   class FcFont
   {
    private:
@@ -41,9 +31,6 @@ namespace fc
      int mLastGlyph;
      FcImage mRasterTexture;
 
-
-
-
    public:
 //     VkBuffer& VertexBuffer() { return mTextBoxMesh.VertexBuffer(); }
      BillboardPushConstants& Push() { return mTextBoxSpecs; }
@@ -55,4 +42,4 @@ namespace fc
       // GETTERS
   };
 
-} // namespace fc _END_
+}// --- namespace fc --- (END)

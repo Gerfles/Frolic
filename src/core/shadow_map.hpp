@@ -1,11 +1,9 @@
+//>
 #pragma once
 
 #include "fc_pipeline.hpp"
 #include "fc_image.hpp"
 #include "glm/mat4x4.hpp"
-
-// TODO move after relocating drawCollection
-/* #include "fc_model.hpp" // DrawCollection */
 
 namespace fc
 {

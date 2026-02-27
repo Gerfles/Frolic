@@ -1,27 +1,16 @@
+//>--- fc_descriptors.cpp ---<//
 #include "fc_descriptors.hpp"
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC CORE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "core/fc_buffer.hpp"
-#include "core/fc_image.hpp"
-#include "core/fc_locator.hpp"
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "core/log.hpp"
-#include "vulkan/vulkan_core.h"
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL / UTIL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <array>
-#include <cstdint>
-#include <deque>
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "fc_buffer.hpp"
+#include "fc_image.hpp"
+#include "fc_locator.hpp"
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <iostream>
-#include <stdexcept>
-#include <utility>
-#include <vector>
-#include <span>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
-//
-//
+
 namespace fc
 {
-  //
   //
   void FcDescriptorBindInfo::addBinding(uint32_t bindSlot, VkDescriptorType type, VkShaderStageFlags shaderStages)
   {

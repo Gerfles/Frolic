@@ -1,13 +1,18 @@
+//>--- fc_input.hpp ---<//
 #pragma once
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include <SDL2/SDL_scancode.h>
+#include <SDL2/SDL_mouse.h>
+#include <SDL2/SDL_events.h>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'S   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include <bits/stringfwd.h>
 
-#include "SDL2/SDL_events.h"
-#include "SDL2/SDL_scancode.h"
-//#include<SDL2/SDL.h>
-#include <string>
+class SDL_Window;
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
+
 
 namespace fc
 {
-
   // TODO
   // Might want to tackle input more directly - refer to
   // https://discourse.libsdl.org/t/handling-mouse-buttons/27861

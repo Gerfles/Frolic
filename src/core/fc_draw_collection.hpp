@@ -1,12 +1,9 @@
-//>  fc_draw_collection.hpp  <//
+//>---  fc_draw_collection.hpp  ---<//
 #pragma once
-
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC CORE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "core/fc_resource_pool.hpp"
-#include "core/fc_resources.hpp"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "fc_resource_pool.hpp"
+#include "fc_resources.hpp"
 #include "fc_image.hpp"
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <vector>
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FORWARD DECL'   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 namespace fc { class FcMaterial; class FcSubmesh; class FcMeshNode; }
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //

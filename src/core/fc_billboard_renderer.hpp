@@ -1,4 +1,4 @@
-//>_ fc_billboard_renderer.hpp _<//
+//>--- fc_billboard_renderer.hpp ---<//
 #pragma once
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_buffer.hpp"
@@ -8,31 +8,14 @@
 #include <glm/mat4x4.hpp>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <memory>
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECLS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+namespace fc { class SceneDataUbo; class FrameAssets; class FcBillboard; }
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
 
 namespace fc
 {
-  // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECLS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-  class SceneDataUbo;
-  class FrameAssets;
-  class FcBillboard;
-  // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
-  struct BillboardPushConstants
-  {
-     // BillboardPushes are not created directly but instead are the values that the shader
-     // will recieve from pushing an Billboard object with vkCmdPushConstants and using this
-     // struct as the size of the data sent. Billboard must have the first members exactly
-     // match this structure. This will save us from having to copy to a separate structure
-     // every time
-     BillboardPushConstants() = delete;
-     glm::vec3 position;
-     float width;
-     float height;
-     u32 textureIndex;
-  };
-
+  //
   class FcBillboardRenderer
   {
    private:

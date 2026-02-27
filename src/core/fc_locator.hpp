@@ -1,19 +1,16 @@
+//>--- fc_locator.hpp ---<//
 #pragma once
-
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <vector>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'S   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+namespace fc { class FcDescriptorClerk; class FcGpu; class FcBillboard; class FcRenderer; class FcLight; }
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
 namespace fc
 {
-  // forward declarations
-  class FcDescriptorClerk;
-  class FcGpu;
-  class FcBillboard;
-  /* class FcGameObject; */
-  class FcRenderer;
-  class FcLight;
-
 //    // TODO think about removing NullServices for release version
 //   class NullGpu: public FcGpu
 //   {

@@ -1,12 +1,14 @@
+//>--- fc_locator.cpp ---<//
 #include "fc_locator.hpp"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "log.hpp"
+#include "fc_gpu.hpp"
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
-#include "core/fc_billboard_renderer.hpp"
-#include "core/fc_light.hpp"
-#include "core/fc_renderer.hpp"
-#include "vulkan/vulkan_core.h"
 
 namespace fc
 {
+  //
   FcRenderer* FcLocator::pRenderer;
   FcGpu* FcLocator::pGpu;
   VkDevice FcLocator::pDevice;
@@ -39,7 +41,7 @@ namespace fc
     if (renderer == nullptr)
     {
        // revert to default null device
-      std::cout << "Failed to assign proper FcGpu pointer to locator" << std::endl;
+      fcPrintEndl("Failed to assign proper FcGpu pointer to locator");
     }
     else
     {
@@ -52,7 +54,7 @@ namespace fc
     if (pRenderer == nullptr)
     {
        // revert to default null device
-      std::cout << "Requested Renderer but none was provided!" << std::endl;
+      fcPrintEndl("Requested Renderer but none was provided!");
     }
     return *pRenderer;
   }
@@ -64,7 +66,7 @@ namespace fc
           if (gpu == nullptr)
           {
              // revert to default null device
-            std::cout << "Failed to assign proper FcGpu pointer to locator" << std::endl;
+            fcPrintEndl("Failed to assign proper FcGpu pointer to locator");
 //              pGpu = &mNullGpu;
           }
           else
@@ -82,7 +84,7 @@ namespace fc
           if (descriptorClerk == nullptr)
           {
              // revert to default null device
-            std::cout << "Failed to assign proper FcDescriptor pointer to locator" << std::endl;
+            fcPrintEndl("Failed to assign proper FcDescriptor pointer to locator");
 //            pDescriptorClerk = &mNullDescriptorClerk;
           }
           else
@@ -96,7 +98,7 @@ namespace fc
   {
     if (screenDimensions.width <= 0 || screenDimensions.height <= 0)
     {
-      std::cout << "Failed to assign proper screen dimensions to locator!" << std::endl;
+      fcPrintEndl("Failed to assign proper screen dimensions to locator!");
     }
     else
     {

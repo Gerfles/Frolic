@@ -1,24 +1,21 @@
+//>--- fc_window.cpp ---<//
+
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_window.hpp"
-#include <SDL_video.h>
-
-// - FROLIC ENGINE -
-
-// - EXTERNAL LIBRARIES -
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "SDL2/SDL.h"
-//#include "SDL2/SDL_error.h"
-// #include "SDL2/SDL_messagebox.h"
-// #include "SDL2/SDL_video.h"
 #include "SDL2/SDL_vulkan.h"
-#include "vulkan/vulkan_core.h"
-// - STD LIBRARIES -
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include <string>
 #include <iostream>
 #include <sstream>
-#include <stdexcept>
-
-namespace fc {
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
 
-  bool FcWindow::initWindow(uint32_t width, uint32_t height, bool isFullscreen, std::string name)
+namespace fc
+{
+  //
+  bool FcWindow::initWindow(uint32_t width, uint32_t height, std::string name, bool isFullscreen)
   {
     // TODO allow application parameter to choose set.
     // TODO some work must be done in order for x11 to run corectly
@@ -96,7 +93,7 @@ namespace fc {
     if (SDL_Vulkan_CreateSurface(mWindow, instance, &mSurface) != SDL_TRUE)
     {
       std::ostringstream errorMsg;
-      errorMsg << "Surface could not be created! SDL Error: " << SDL_GetError();
+      errorMsg << "Surface could not be created!\n" << SDL_GetError();
 
       SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "SDL Error"
                                , errorMsg.str().c_str(), mWindow);

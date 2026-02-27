@@ -1,32 +1,19 @@
 // fc_mesh.hpp
 #pragma once
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_bounding_box.hpp"
 #include "fc_buffer.hpp"
-#include "fc_types.hpp"
-#include "platform.hpp"
 #include "fc_node.hpp"
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <vulkan/vulkan_core.h>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <memory>
 #include <span>
-
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FORWARD DECLR   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+namespace fc { class FcMeshNode; struct FcSubmesh; }
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
 
-// *-*-*-*-*-*-*-*-*-*-*-*-*-   FC SURFACE & SUBMESH   *-*-*-*-*-*-*-*-*-*-*-*-*- //
 namespace fc
 {
-  // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FORWARD DECLR   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-  class FcMeshNode;
-  struct FcSubmesh;
-  // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
-
-
-
-  //
   //
   class FcMesh
   {

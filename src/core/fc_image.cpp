@@ -1,15 +1,10 @@
+//>--- fc_image.cpp ---<//
 #include "fc_image.hpp"
-
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "core/fc_buffer.hpp"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_defaults.hpp"
-#include "core/fc_locator.hpp"
-#include "core/fc_renderer.hpp"
-#include "core/log.hpp"
-#include "core/utilities.hpp"
-#include "fc_gpu.hpp"
-#include <ktx.h>
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "fc_locator.hpp"
+#include "fc_renderer.hpp"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 // TODO place all implementation header defines into one header file??
 #define STB_IMAGE_IMPLEMENTATION
 // avoid compiline failure strings
@@ -17,13 +12,10 @@
 // More user-friendly failure messages when above is commented out
 /* #define STBI_FAILURE_USERMSG */
 #include <stb_image.h>
-#include "vulkan/vulkan_core.h"
 #include "fastgltf/types.hpp"
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <stdexcept>
-#include <cstddef>
-#include <cstdint>
-#include <cmath>
+#include <ktx.h>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
 
 namespace fc
 {
@@ -877,7 +869,7 @@ namespace fc
     // TODO better error checking
     if (mImage == VK_NULL_HANDLE)
     {
-      fcLog("Image is NOT valid");
+      fcPrintEndl("Image is NOT valid!");
     }
   }
 

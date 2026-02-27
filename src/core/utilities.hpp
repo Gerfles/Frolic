@@ -21,46 +21,10 @@ namespace fc
 {
 
 
-// Index locations of queue families
-  struct QueueFamilyIndices
-  {
-     int graphicsFamily = -1;
-     int presentationFamily = -1;
-      // check if queue family indices are valid
-     bool isValid()
-      {
-        return graphicsFamily >= 0 && presentationFamily >= 0;
-      }
-  };
 
 
-// TODO see if we can eliminate this from the utilities header
-  // const std::vector<const char*> deviceExtensions = {
-  //   VK_KHR_SWAPCHAIN_EXTENSION_NAME, };
 
-      const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME, VK_KHR_DYNAMIC_RENDERING_LOCAL_READ_EXTENSION_NAME};
-  // More MacOS dependent stuff (I think)
-  // "VK_KHR_portability_subset"};
 
-  //  //TODO try removing static...etc.
-  //  // ?? doesn't declaring this static here cause a new local func to be used in each TU
-  //  // local callback functions
-  // static VKAPI_ATTR VkBool32 VKAPI_CALL
-  // debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-  //               VkDebugUtilsMessageTypeFlagsEXT messageType,
-  //               const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
-  //               void* pUserData);
-
-  // VkResult CreateDebugUtilsMessengerEXT(VkInstance instance,
-  //                                       const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-  //                                       const VkAllocationCallbacks* pAllocator,
-  //                                       VkDebugUtilsMessengerEXT* pDebugMessenger);
-
-  // void DestroyDebugUtilsMessengerExt(VkInstance instance,
-  //                                    VkDebugUtilsMessengerEXT debugMessenger,
-  //                                    const VkAllocationCallbacks* pAllocator);
-
-  // bool areValidationLayersSupported(std::vector<const char*>& validationLayers);
 
 
   // TODO relocate all log/print utilities to a full class

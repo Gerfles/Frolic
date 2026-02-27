@@ -1,28 +1,22 @@
+//>--- fc_descriptors.hpp ---<//
 #pragma once
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC CORE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
-#include <glm/ext/vector_float4.hpp>
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL / UTILS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <cstdint>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <deque>
 #include <span>
 #include <vector>
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'S   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+namespace fc { class FcImage; class FcBuffer; }
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
 namespace fc
 {
-  // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'S   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-  class FcImage;
-  class FcBuffer;
-
    // TODO handle this differently
   const int MAX_OBJECTS = 30;
   const int MAX_LIGHTS = 10;
   const int MAX_BILLBOARDS = 30;
-
-
 
    // struct PointLight
    // {

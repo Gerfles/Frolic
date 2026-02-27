@@ -1,15 +1,16 @@
+//>--- fc_debug.hpp ---<//
 #pragma once
-
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
 #include <SDL_log.h>
-/* #include <vulkan/vulkan.h> */
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL / UTIL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <cstdarg>
-#include <cstring>
+#include <cstdio>
 #include <vector>
-#include <signal.h>
-#include <stdio.h> //vsprintf_s
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
+
 // TODO look into assert.h for proper debug asserts
 // #include <assert.h>
 
@@ -140,7 +141,7 @@ inline void dprintf(const char* fmt, ...)
 #define DBG_ASSERT_FT(result, errMsg)                                   \
   if (!(result == 0))                                                   \
   {                                                                     \
-    SDL_Log("ERROR::FREETYPE:(%#.2X) %s", result, errMsg);                  \
+    SDL_Log("ERROR::FREETYPE:(%#.2X) %s", result, errMsg);              \
     DBG_ASSERT(false)                                                   \
   }
 

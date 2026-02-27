@@ -1,20 +1,17 @@
-//>_ fc_billboard_renderer.cpp _<//
+//>--- fc_billboard_renderer.cpp ---<//
 #include "fc_billboard_renderer.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "fc_types.hpp"
 #include "fc_billboard.hpp"
 #include "fc_descriptors.hpp"
 #include "fc_frame_assets.hpp"
 #include "fc_locator.hpp"
-#include "fc_gpu.hpp"
-#include "fc_scene.hpp"
 #include "fc_math.hpp"
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "vulkan/vulkan.h"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <map>
+#include <algorithm>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
-//
+
 namespace fc
 {
   //

@@ -5,6 +5,7 @@
 #include "platform.hpp"
 #include "fc_locator.hpp"
 #include "fc_node.hpp"
+#include "fc_types.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
 namespace fc

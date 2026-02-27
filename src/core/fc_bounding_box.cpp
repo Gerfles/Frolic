@@ -1,12 +1,11 @@
-// fc_bounding_box.cpp
+//>--- fc_bounding_box.cpp ---<//
 #include "fc_bounding_box.hpp"
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_mesh.hpp"
-#include "fc_draw_collection.hpp"
 #include "fc_frame_assets.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
-//
+
 namespace fc
 {
   void FcBoundaryBox::init(const FcBounds &bounds) noexcept

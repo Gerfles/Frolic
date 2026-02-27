@@ -1,21 +1,42 @@
+//>--- fc_gpu.hpp ---<//
 #pragma once
-
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <vulkan/vulkan_core.h>
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_window.hpp"
 #include "fc_swapChain.hpp"
-#include "utilities.hpp"
+#include "fc_types.hpp"
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
-//#include "vulkan/vulkan_core.h"
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <vulkan/vulkan.h>
-#include "vk_mem_alloc.h"
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <vector>
 
 
 namespace fc
 {
+  // TODO see if we can eliminate this from the utilities header
+  // const std::vector<const char*> deviceExtensions = {
+  //   VK_KHR_SWAPCHAIN_EXTENSION_NAME, };
+
+  const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME, VK_KHR_DYNAMIC_RENDERING_LOCAL_READ_EXTENSION_NAME};
+  // More MacOS dependent stuff (I think)
+  // "VK_KHR_portability_subset"};
+
+  //  //TODO try removing static...etc.
+  //  // ?? doesn't declaring this static here cause a new local func to be used in each TU
+  //  // local callback functions
+  // static VKAPI_ATTR VkBool32 VKAPI_CALL
+  // debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+  //               VkDebugUtilsMessageTypeFlagsEXT messageType,
+  //               const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
+  //               void* pUserData);
+
+  // VkResult CreateDebugUtilsMessengerEXT(VkInstance instance,
+  //                                       const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+  //                                       const VkAllocationCallbacks* pAllocator,
+  //                                       VkDebugUtilsMessengerEXT* pDebugMessenger);
+
+  // void DestroyDebugUtilsMessengerExt(VkInstance instance,
+  //                                    VkDebugUtilsMessengerEXT debugMessenger,
+  //                                    const VkAllocationCallbacks* pAllocator);
+
+  // bool areValidationLayersSupported(std::vector<const char*>& validationLayers);
 
   struct PerformanceProperties
   {

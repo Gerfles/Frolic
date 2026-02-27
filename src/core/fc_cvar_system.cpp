@@ -1,13 +1,14 @@
-// fc_cvar_system.cpp
+//>--- fc_cvar_system.cpp ---<//
 #include "fc_cvar_system.hpp"
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <string>
 #include <unordered_map>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
 namespace fc
 {
-
+  //
   enum class CVarType : char
   {
     INT,
@@ -15,6 +16,8 @@ namespace fc
     STRING,
   };
 
+
+  //
   class CVarParameter
   {
    public:

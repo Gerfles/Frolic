@@ -1,16 +1,15 @@
+//>--- fc_camera.cpp ---<//
 #include "fc_camera.hpp"
-
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "platform.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#define GLM_ENABLE_EXPERIMENTAL
-#include "glm/gtx/quaternion.hpp"
+#include <glm/gtc/matrix_transform.hpp>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
 namespace fc
 {
-
-
+  //
   glm::mat4 FcCamera::getViewMatrix()
   {
     // to create a correct model view, we need to move the world in the opposite direction

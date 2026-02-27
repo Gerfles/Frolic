@@ -14,6 +14,10 @@
 #include "utilities.hpp"
 /* #include "fc_mesh.hpp" */
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
+#define ASSIMP_USE_HUNTER
+#include <assimp/scene.h>
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
 // DELETE
 #include "taskflow/taskflow.hpp"
 #include "taskflow/algorithm/for_each.hpp"
