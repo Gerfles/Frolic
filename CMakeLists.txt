@@ -12,8 +12,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 
 
-
-
 # #configuration types
 #set_directory_properties(PROPERTIES COMPILE_DEFINITIONS_DEBUG "_DEBUG")
 SET(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "Configs" FORCE)
@@ -173,7 +171,6 @@ cmake_minimum_required(VERSION 3.11.0)
 
 set(NAME frolic)
 
-
 #output the compile commands
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -183,7 +180,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # always compile for debugging
 set(CMAKE_BUILD_TYPE DEBUG)
 
-# NOT WORKING BUT SHOULD MAKE
+# NOT WORKING BUT SHOULD MAKE THIS WORK
 # if (NOT CMAKE_BUILD_TYPE EQUAL DEBUG)
 #   # TODO should substitute this keyword for you own probably
 #   add_compile_definitions(NDEBUG)
@@ -253,7 +250,6 @@ find_package(assimp REQUIRED)
 #find_package(imgui CONFIG REQUIRED)
 
 find_package(Freetype REQUIRED)
-
 #______________________________________________
 
 
@@ -281,7 +277,8 @@ find_package(Freetype REQUIRED)
 
 # add external file folder
 add_subdirectory(external)
-#include_directories(external)
+
+# include_directories(external)
 
 # If TINYOBJ_PATH not specified in .env.cmake, try fetching from git repo
 if (NOT TINYOBJ_PATH)
@@ -311,6 +308,7 @@ add_executable(${PROJECT_NAME}
 #  ${EXTERNAL}
 )
 
+# add_library(taskflow INTERFACE ${PROJECT_SOURCE_DIR}/external/taskflow/)
 
 # #specify the C++ standard
  # set(CMAKE_CXX_STANDARD 20)
@@ -342,20 +340,20 @@ if (WIN32)
 
   target_include_directories(${PROJECT_NAME} PUBLIC
     ${PROJECT_SOURCE_DIR}/src
-    # ${PROJECT_SOURCE_DIR}/external
+    ${PROJECT_SOURCE_DIR}/external
     ${Vulkan_INCLUDE_DIRS}
     ${TINYOBJ_PATH}
     #${GLFW_INCLUDE_DIRS}
     ${ASSIMP_INCLUDE_DIR}
     ${GLM_PATH}
-    )
+  )
 
   target_link_directories(${PROJECT_NAME} PUBLIC
     ${Vulkan_LIBRARIES}
     ${ASSIMP_LIBRARY}
   )
 
-  target_link_libraries(${PROJECT_NAME} vulkan-1 fastgltf simdjson)
+  target_link_libraries(${PROJECT_NAME} vulkan-1 fastgltf simdjson taskflow)
 
 elseif (UNIX)
 
@@ -363,12 +361,26 @@ elseif (UNIX)
 
     target_include_directories(${PROJECT_NAME} PUBLIC
       ${PROJECT_SOURCE_DIR}/src
-      # ${PROJECT_SOURCE_DIR}/external
+      ${PROJECT_SOURCE_DIR}/external/taskflow
+      ${PROJECT_SOURCE_DIR}/external
       ${TINYOBJ_PATH}
       ${FREETYPE_INCLUDE_DIRS}
     )
 
-    target_link_libraries(${PROJECT_NAME}
+
+
+
+
+
+
+    # DELETE
+
+    # target_include_directories(${PROJECT_NAME} INTERFACE
+    #   ${PROJECT_SOURCE_DIR}/external/taskflow/taskflow
+    #   )
+    # target_link_libraries(${PROJECT_NAME} INTERFACE taskflow)
+
+    target_link_libraries(${PROJECT_NAME} PUBLIC #OR INTERFACE/PRIVATE
       ${Vulkan_LIBRARIES}
       ${SDL2_LIBRARIES}
       ${SDL2_MIXER_LIBRARIES}
@@ -380,6 +392,7 @@ elseif (UNIX)
       stb
       ktx
       tlsf
+      taskflow
     )
 
   endif()

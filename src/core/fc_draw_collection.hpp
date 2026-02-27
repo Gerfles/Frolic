@@ -5,18 +5,15 @@
 #include "core/fc_resource_pool.hpp"
 #include "core/fc_resources.hpp"
 #include "fc_image.hpp"
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include <vector>
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FORWARD DECL'   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+namespace fc { class FcMaterial; class FcSubmesh; class FcMeshNode; }
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
-//
-//
+
 namespace fc
 {
-  // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FORWARD DECL'   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-  class FcMaterial;
-  class FcSubmesh;
-  class FcMeshNode;
-  // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
   using FcHandle = u32;
 
   //

@@ -8,7 +8,8 @@
 #include <filesystem>
 // *-*-*-*-*-*-*-*-*-*-*-*-*-   FORWARD DECLARATIONS   *-*-*-*-*-*-*-*-*-*-*-*-*- //
 namespace fastgltf { class Image; class Asset; class Sampler; }
-namespace std { template<typename> class vector; }
+// NOTE: This may not be as portable as possible: in that case, just include the <vector> header
+namespace std { template< typename > struct allocator; template< typename, typename > struct vector; }
 namespace fc { class FcBuffer; class FcDrawCollection; }
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
@@ -123,7 +124,7 @@ namespace fc
      //
      void loadFromGltf(std::filesystem::path& path
                        , fastgltf::Asset& asset, fastgltf::Image& image);
-     void loadMultipleLayers(std::vector<std::string>& filenames, FcImageTypes imageType);
+     void loadMultipleLayers(std::vector<std::string, std::allocator<std::string>>& filenames, FcImageTypes imageType);
      //
      void createTexture(uint32_t width, uint32_t height, void* pixelData
                         , VkDeviceSize storageSize, bool generateMipmaps = false

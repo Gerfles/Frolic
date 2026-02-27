@@ -2,7 +2,7 @@
 #include "fc_scene.hpp"
 
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "core/fc_image.hpp"
+/* #include "core/fc_image.hpp" */
 #include "core/fc_resources.hpp"
 #include "fc_renderer.hpp"
 #include "core/log.hpp"
@@ -14,6 +14,11 @@
 #include "utilities.hpp"
 /* #include "fc_mesh.hpp" */
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
+// DELETE
+#include "taskflow/taskflow.hpp"
+#include "taskflow/algorithm/for_each.hpp"
+
+
 // GLTF loading
 #include <fastgltf/core.hpp>
 #include <fastgltf/glm_element_traits.hpp>
@@ -27,7 +32,6 @@
 
 namespace fc
 {
-
   //
   // FIXME test and finallize
   void FcScene::clearAll()
@@ -54,6 +58,31 @@ namespace fc
   //
   void FcScene::loadGltf(FcRenderer& renderer, std::string_view filepath)
   {
+    // tf::Taskflow taskflow;
+    // std::vector<int> items{1, 2, 3, 4, 5, 6, 7, 8};
+
+    // fcPrintEndl("\nSTARTING PARALLEL");
+
+    // tf::Task task = taskflow.for_each_index(
+    //   0u, u32(items.size()), 1u, [&](int i) {
+    //     fcPrint("%i", items[i]);
+    //   }).name("for_each_index");
+
+    // taskflow.emplace([]()
+    // {
+    //   fcPrint("- START -\n");
+    // }).name("S").precede(task);
+
+    // taskflow.emplace([]()
+    //  {
+    //    fcPrint("\n - FINISH -\n");
+    //  }).name("F").succeed(task);
+
+    // tf::Executor executor;
+    // executor.run(taskflow).wait();
+
+    // fcPrintEndl("TOTALLY FINISHED");
+
     // TODO delete renderer and pDevice dependencies
     VkDevice pDevice = FcLocator::Device();
     pRenderer = &renderer;
