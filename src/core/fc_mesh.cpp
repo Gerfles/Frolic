@@ -1,12 +1,9 @@
-// fc_mesh.cpp
+//>--- fc_mesh.cpp ---<//
 #include "fc_mesh.hpp"
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "log.hpp"
-#include "platform.hpp"
-#include "fc_locator.hpp"
-#include "fc_node.hpp"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_types.hpp"
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
+
 
 namespace fc
 {
@@ -16,7 +13,6 @@ namespace fc
   //execute before continuing with our CPU side logic. This is something people generally put on a
   //background thread, whose sole job is to execute uploads like this one, and deleting/reusing the
   //staging buffers.
-
 
   // Typical instantiation of upload mesh
   template void FcMesh::uploadMesh<Vertex>(std::span<Vertex> vertices, std::span<uint32_t> indices);

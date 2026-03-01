@@ -1,26 +1,21 @@
-// fc_scene.hpp
+//>--- fc_scene.hpp ---<//
 #pragma once
-
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_buffer.hpp"
 #include "fc_types.hpp"
-#include "platform.hpp"
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <glm/mat4x4.hpp>
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <string>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <vector>
 #include <filesystem>
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'S   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 namespace fc { class FcNode; class FcRenderer; class FcMesh; class FcDrawCollection; }
-/* #include <fastgltf/core.hpp> */
 namespace fastgltf { enum class Filter : std::uint16_t; class Sampler; class Asset;}
 class aiNode; class aiScene; class aiMesh;
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
 namespace fc
 {
+  //
   class FcScene
   {
    private:

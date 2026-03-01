@@ -1,7 +1,6 @@
+//>--- shadow_map.cpp ---<//
 #include "shadow_map.hpp"
-
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "fc_draw_collection.hpp"
 #include "fc_frame_assets.hpp"
 #include "fc_mesh.hpp"
 #include "fc_descriptors.hpp"
@@ -9,13 +8,13 @@
 #include "fc_defaults.hpp"
 #include "utilities.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <glm/ext/matrix_clip_space.hpp>
-#include <glm/ext/matrix_transform.hpp>
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include <glm/gtc/matrix_transform.hpp>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
+
 
 namespace fc
 {
-
+  //
   void FcShadowMap::init(std::vector<FrameAssets>& frames)
   {
 
@@ -23,7 +22,7 @@ namespace fc
     // TODO this image should be device local only since no need to map for CPU... check that's the case
     // on this and all other images created with vma allocation
 
-    mShadowMapImage.createImage(shadowMapSize, shadowMapSize, FcImageTypes::ShadowMap);
+    mShadowMapImage.createImage(SHADOW_MAP_SIZE, SHADOW_MAP_SIZE, FcImageTypes::ShadowMap);
 
     initPipelines(frames);
 

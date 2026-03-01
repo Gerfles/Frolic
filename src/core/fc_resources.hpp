@@ -1,10 +1,13 @@
-//>  fc_resources.hpp  <//
+//>--- fc_resources.hpp ---<//
 #pragma once
-
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "platform.hpp"
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
+
 
 namespace fc
 {
+  //
   enum class ResourceDeletionType : uint8_t
   {
     Buffer

@@ -1,42 +1,27 @@
-// fc_scene.cpp
+//>--- fc_scene.cpp ---<//
 #include "fc_scene.hpp"
-
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-/* #include "core/fc_image.hpp" */
-#include "core/fc_resources.hpp"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_renderer.hpp"
-#include "core/log.hpp"
 #include "fc_locator.hpp"
 #include "fc_descriptors.hpp"
 #include "fc_defaults.hpp"
-#include "fc_draw_collection.hpp"
-// TODO rename utilities to fc_utilities
-#include "utilities.hpp"
-/* #include "fc_mesh.hpp" */
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #define ASSIMP_USE_HUNTER
 #include <assimp/scene.h>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 // DELETE
-#include "taskflow/taskflow.hpp"
-#include "taskflow/algorithm/for_each.hpp"
-
-
+/* #include "taskflow/taskflow.hpp" */
+/* #include "taskflow/algorithm/for_each.hpp" */
 // GLTF loading
 #include <fastgltf/core.hpp>
 #include <fastgltf/glm_element_traits.hpp>
-#include <fastgltf/tools.hpp>
-#include <iostream>
-// Matrix manipulation
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/ext/matrix_transform.hpp>
-#include <glm/gtx/quaternion.hpp>
+#include <glm/gtc/quaternion.hpp>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
 namespace fc
 {
-  //
   // FIXME test and finallize
   void FcScene::clearAll()
   {
@@ -94,7 +79,7 @@ namespace fc
     size_t filenamePos = filepath.find_last_of('/');
     mName = filepath.substr(filenamePos + 1);
 
-    std::cout << "Loading GLTF file: " << mName << std::endl;
+    fcPrintEndl("Loading GLTF file: %s", mName.c_str());
 
     constexpr fastgltf::Extensions extensions =
       fastgltf::Extensions::KHR_materials_clearcoat
@@ -115,8 +100,9 @@ namespace fc
     // fastgltf::Options::DontRequireValidAssetMember negates having this
     if (data.error() != fastgltf::Error::None)
     {
-      std::cout << "Failed to load glTF: " << fastgltf::getErrorName(data.error())
-                << " - " << fastgltf::getErrorMessage(data.error()) << std::endl;
+      fcPrintEndl("Failed to load glTF: %s - %s",
+                  fastgltf::getErrorName(data.error()),
+                  fastgltf::getErrorMessage(data.error()));
       // TODO still need a way to return null or empty
       //return{};
     }
@@ -131,21 +117,21 @@ namespace fc
 
     if (load.error() != fastgltf::Error::None)
     {
-      std::cout << "Failed to load glTF (" << fastgltf::to_underlying(load.error())
-                << "): " << fastgltf::getErrorName(load.error())
-                << " - " << fastgltf::getErrorMessage(load.error()) << std::endl;
+      fcPrintEndl("Failed to load glTF (%s): %s - %s",
+                  fastgltf::to_underlying(load.error()),
+                  fastgltf::getErrorName(load.error()),
+                  fastgltf::getErrorMessage(load.error()));
 
       // TODO still need a way to return null or empty
       return; //{}
     }
     else
     {
-      std::cout << "Extensions Used in glTF file: ";
+      fcPrintEndl("Extensions Used in glTF file: ");
       for (size_t i = 0; i < gltf.extensionsUsed.size(); i++)
       {
-        std:: cout << gltf.extensionsUsed[i];
+        fcPrintEndl("%s", gltf.extensionsUsed[i].c_str());
       }
-      std::cout << std::endl;
 
       gltf = std::move(load.get());
     }
@@ -160,7 +146,7 @@ namespace fc
 
     // -*-*-*-*-*-*-*-*-*-*-   LOAD ALL TEXTURES AND MATERIALS   -*-*-*-*-*-*-*-*-*-*- //
     mNumMaterials = gltf.materials.size();
-    std::cout << "Number of material in Scene: " << mNumMaterials << std::endl;
+    fcPrintEndl("Number of material in Scene: %u",mNumMaterials);
     std::vector<std::shared_ptr<FcMaterial>> materials(mNumMaterials);
 
     FcDrawCollection& drawCollection = renderer.DrawCollection();
@@ -215,7 +201,7 @@ namespace fc
                glm::vec3 sc(transform.scale[0], transform.scale[1], transform.scale[2]);
                //
                glm::mat4 T = glm::translate(glm::mat4(1.f), tl);
-               glm::mat4 R = glm::toMat4(rot);
+               glm::mat4 R = glm::mat4_cast(rot);
                glm::mat4 S = glm::scale(glm::mat4(1.f), sc);
                //
                // TODO TEST with only having the transform as part of the node, don't need it within surface?
@@ -224,8 +210,8 @@ namespace fc
         gltfNode.transform);
     }
 
-    std::cout << "Total Mesh Nodes: " << totalMeshNodes;
-    std::cout << "\nTotal Loaded Meshes: " << mMeshes.size() << std::endl;
+    fcPrintEndl("Total Mesh Nodes: %u", totalMeshNodes);
+    fcPrintEndl("\nTotal Loaded Meshes: %i", mMeshes.size());
 
     // Run another loop over the nodes to setup transform hierarchy
     for (int i = 0; i < gltf.nodes.size(); i++)
@@ -254,7 +240,9 @@ namespace fc
     addToDrawCollection(drawCollection);
 
     drawSceneGraph();
-    std::cout << "Loaded glTF file: " << filepath << "\n" << std::endl;
+
+    // workaround for printing a string_view (since it's not necessarily null terminated)
+    fcPrintEndl("Loaded glTF file: %.*s", int(filepath.size()), filepath.data());
   }
 
 
@@ -524,7 +512,7 @@ namespace fc
       // Save the type of material so we can determine which pipeline to use later
       if (material.alphaMode == fastgltf::AlphaMode::Blend)
       {
-        //std::cout << "Adding transparent material" << std::endl;
+        //fcPrintEndl("Adding transparent material");
         materials[i]->materialType = FcMaterial::Type::Transparent;
       } else {
         materials[i]->materialType = FcMaterial::Type::Opaque;
@@ -639,7 +627,7 @@ namespace fc
           fcPrintEndl("Unimplemented Transmission Data");
         }
         float transmission = material.transmission->transmissionFactor;
-        std::cout << "Unimplemented transmission factor: " << transmission << std::endl;
+        fcPrintEndl("Unimplemented transmission factor: %f", transmission);
 
       }
       if (material.clearcoat != nullptr)
@@ -708,7 +696,7 @@ namespace fc
         // TODO check that this is working properly by deleting some textures from a gltf
         newTexture = &FcDefaults::Textures.checkerboard;
         /* mTextures.push_back(FcDefaults::Textures.checkerboard); */
-        std::cout << "Failed to load texture: " << gltfImage.name << std::endl;
+        fcPrintEndl("Failed to load texture: %s", gltfImage.name.c_str());
       }
 
       // // Add textures to draw collection to defer upload to GPU until we are no
@@ -774,7 +762,7 @@ namespace fc
     }
 
 
-    std::cout << "Number of Textures Loaded: " << size << std::endl;
+    fcPrintEndl("Number of Textures Loaded: %i", size);
     /* throw std::runtime_error("STOPPING"); */
 
     // Create buffer to hold the material data
@@ -798,7 +786,7 @@ namespace fc
       // Save the type of material so we can determine which pipeline to use later
       if (material.alphaMode == fastgltf::AlphaMode::Blend)
       {
-        //std::cout << "Adding transparent material" << std::endl;
+        //fcPrintEndl("Adding transparent material");
         materials[i]->materialType = FcMaterial::Type::Transparent;
       } else {
         materials[i]->materialType = FcMaterial::Type::Opaque;
@@ -937,9 +925,9 @@ namespace fc
         constants.flags |= MaterialFeatures::HasOcclusionTexture;
 
         // TODO show what materials a texture has within imGUI
-        std::cout << "Model has Occlusion Map Texture: (Scale = "
-                  << material.occlusionTexture->strength
-                  << ", Default = 1)" << std::endl;
+        fcPrintEndl("Model has Occlusion Map Texture: (Scale = %f, Default = 1)",
+                    material.occlusionTexture->strength);
+
         //
         size_t index = material.occlusionTexture.value().textureIndex;
         size_t imageIndex = gltf.textures[index].imageIndex.value();
@@ -967,7 +955,7 @@ namespace fc
       {
         constants.flags |= MaterialFeatures::HasEmissiveTexture;
 
-        std::cout << "Model has Emmision Map Texture..." << std::endl;
+        fcPrintEndl("Model has Emmision Map Texture...");
         size_t index = material.emissiveTexture.value().textureIndex;
         size_t imageIndex = gltf.textures[index].imageIndex.value();
         size_t samplerIndex = gltf.textures[index].samplerIndex.value();
@@ -985,8 +973,8 @@ namespace fc
       }
 
       // *-*-*-*-*-*-*-*-*-*-   UNIMPLEMENTED MATERIAL PROPERTIES   *-*-*-*-*-*-*-*-*-*- //
-      // std::cout << "--------------------------------------------------------------\n";
-      // std::cout << "Unimplemented properties for material - " << material.name << " :\n";
+      // fcPrintEndl("--------------------------------------------------------------\n";
+      // fcPrintEndl("Unimplemented properties for material - " << material.name << " :\n";
       if (material.alphaMode == fastgltf::AlphaMode::Mask)
       {
         // TODO implement alpha flag for material and within pipeline (see below)
@@ -998,10 +986,10 @@ namespace fc
       }
       if (material.sheen != nullptr)
       {
-        fcLog("Unimplemented Sheen Data");
+        fcPrintEndl("Unimplemented Sheen Data");
         if (material.sheen->sheenColorTexture.has_value())
         {
-          fcLog("Unimplemented Sheen Color Texture");
+          fcPrintEndl("Unimplemented Sheen Color Texture");
         }
       }
 
@@ -1009,23 +997,23 @@ namespace fc
       {
         if (material.transmission->transmissionTexture.has_value())
         {
-          fcLog("Unimplemented Transmission Data");
+          fcPrintEndl("Unimplemented Transmission Data");
         }
 
         float transmission = material.transmission->transmissionFactor;
-        std::cout << "Unimplemented transmission factor: " << transmission << std::endl;
+        fcPrintEndl("Unimplemented transmission factor: %f", transmission);
       }
       if (material.clearcoat != nullptr)
       {
-        fcLog("Unimplemented Clearcoat Data");
+        fcPrintEndl("Unimplemented Clearcoat Data");
       }
       if (material.anisotropy != nullptr)
       {
-        fcLog("Unimplemented Anisotropy Data");
+        fcPrintEndl("Unimplemented Anisotropy Data");
       }
       if (material.iridescence != nullptr)
       {
-        fcLog("Unimplemented Iridescence Data");
+        fcPrintEndl("Unimplemented Iridescence Data");
       }
 
       // Write material parameters to buffer.
@@ -1306,7 +1294,7 @@ namespace fc
   void FcScene::rotate(float angleDegrees, glm::vec3& axis)
   {
     // TODO optimize rotational proceedure via matrix/quaternion manipulation
-    mRotationMat = glm::toMat4(glm::angleAxis(angleDegrees, axis));
+    mRotationMat = glm::mat4_cast(glm::angleAxis(angleDegrees, axis));
     /* mTransformMat = glm::rotate(mTransformMat, angleDegrees, axis); */
     mTransformMat = mRotationMat * mTransformMat;
   }
@@ -1317,7 +1305,7 @@ namespace fc
   void FcScene::rotateInPlace(float angleDegrees, glm::vec3& axis)
   {
     // // First create rotation matrix
-    mRotationMat = glm::toMat4(glm::angleAxis(angleDegrees, axis));
+    mRotationMat = glm::mat4_cast(glm::angleAxis(angleDegrees, axis));
 
     // Next, translate the rotation matrix (back to origin) by the inverse of the original translation
     mRotationMat[3] = mRotationMat[0] * -mTranslationMat[3][0]
@@ -1462,7 +1450,7 @@ namespace fc
       fcPrint("Top Node #%i (%i children)\n", i+1, mTopNodes[i]->mChildren.size());
       printNode(mTopNodes[i], nodeID);
     }
-    std::cout << std::endl;
+    fcPrintEndl("");
   }
 
   //
@@ -1479,7 +1467,7 @@ namespace fc
       size_t count = std::ranges::count(subNodeID, '.');
       for (size_t i = 0; i < count; ++i)
       {
-        std::cout << "   ";
+        fcPrintEndl("   ");
       }
       fcPrint("|-->Child Node #%s (%i children)\n", subNodeID.c_str(), node->mChildren.size());
 

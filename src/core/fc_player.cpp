@@ -1,13 +1,9 @@
+//>--- fc_player.cpp ---<//
 #include "fc_player.hpp"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "fc_input.hpp"
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
-#include "core/fc_camera.hpp"
-// LIBRARIES
-#include <limits>
-#include <glm/vec3.hpp>
-#include <glm/geometric.hpp>
-#include <glm/gtc/constants.hpp>
-// #define GLM_ENABLE_EXPERIMENTAL
-// #include <glm/gtx/quaternion.hpp>
 
 namespace fc
 {

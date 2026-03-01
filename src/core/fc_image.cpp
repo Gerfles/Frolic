@@ -836,7 +836,7 @@ namespace fc
              fastgltf::Buffer& buffer = asset.buffers[bufferView.bufferIndex];
 
              // print the image name in debug so we know what facets are available
-             std::cout << "Case3: Embedded Texture Name:" << image.name << std::endl;
+             fcPrintEndl("Case3: Embedded Texture Name:", image.name.c_str());
 
              // Here we only care about VectorWithMime here, because we specify
              // LoadExternalBuffers, meaning all buffers are already loaded into a array.

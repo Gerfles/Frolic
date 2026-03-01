@@ -1,9 +1,11 @@
+//>--- fc_resource_pool.hpp ---<//
 #pragma once
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "log.hpp"
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'S   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+namespace fc { class FcAllocator; }
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
-#include "core/log.hpp"
-#include "fc_memory.hpp"
-#include <cstdint>
-#include <iostream>
 
 namespace fc
 {
@@ -113,7 +115,7 @@ namespace fc
 
     if (firstFreeIndex != 0)
     {
-      std::cout << "Resource pool has unfreed resources!\n";
+      fcPrintEndl("Resource pool has unfreed resources!");
 
       for ( uint32_t i = 0; i < firstFreeIndex; ++i)
       {

@@ -1,24 +1,17 @@
+//>--- fc_swapChain.cpp ---<//
 #include "fc_swapChain.hpp"
-
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "core/fc_renderer.hpp"
-#include "fc_locator.hpp"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "log.hpp"
 #include "fc_gpu.hpp"
-#include "utilities.hpp"
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "vulkan/vulkan_core.h"
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <array>
-#include <cstdint>
-#include <iostream>
-#include <stdexcept>
-#include <vector>
 #include <algorithm>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
 namespace fc
 {
-
+  //
   uint32_t FcSwapChain::init(FcGpu& gpu, const VkExtent2D& windowSize)
   {
     pGpu = &gpu;
@@ -37,9 +30,9 @@ namespace fc
 
   void FcSwapChain::reCreateSwapChain(VkExtent2D windowSize)
   {
-    fcLog("Recreating Swapchain");
+    fcPrintEndl("Recreating Swapchain");
 
-     // make sure nothing is getting written to or read before we re-create our swap chain
+    // make sure nothing is getting written to or read before we re-create our swap chain
     vkDeviceWaitIdle(pGpu->getVkDevice());
 
     //  // toss out old swap chain stuff
@@ -56,36 +49,35 @@ namespace fc
   {
     SwapChainDetails swapChainDetails = getSwapChainDetails();
 
-     // 1. Choose best surface format
+    // 1. Choose best surface format
     VkSurfaceFormatKHR surfaceFormat = chooseSurfaceFormat(swapChainDetails.formats);
-     // 2. Choose best presentation modes
+    // 2. Choose best presentation modes
     VkPresentModeKHR presentMode = choosePresentMode(swapChainDetails.presentModes);
-     // 3. Choose swap chain image resolution
+    // 3. Choose swap chain image resolution
     VkExtent2D extent = chooseSwapExtent(swapChainDetails.surfaceCapabilities, windowSize);
 
-     std::cout << "extent size: " << extent.width
-               << " x " << extent.height << std::endl;
+    fcPrintEndl("extent size: %u x %u", extent.width, extent.height);
 
-     // BUG this would NOT give us tripple buffering but give us double buffering if minImageCount is 1;
-     // How many images are in the swap chain? get 1 more than the minimum to allow tripple buffering
-     // But notice that VkSwapchainCreateInfoKHR uses minImageCount instead of imageCount
+    // BUG this would NOT give us tripple buffering but give us double buffering if minImageCount is 1;
+    // How many images are in the swap chain? get 1 more than the minimum to allow tripple buffering
+    // But notice that VkSwapchainCreateInfoKHR uses minImageCount instead of imageCount
     uint32_t imageCount = MAX_FRAME_DRAWS;
-     // BUG should pick one image count and stick with it.
-     //  uint32_t imageCount = swapChainDetails.surfaceCapabilities.minImageCount + 1;
+    // BUG should pick one image count and stick with it.
+    //  uint32_t imageCount = swapChainDetails.surfaceCapabilities.minImageCount + 1;
 
-     // check to make sure
+    // check to make sure
     if (swapChainDetails.surfaceCapabilities.maxImageCount > 0 &&
         swapChainDetails.surfaceCapabilities.maxImageCount < imageCount)
     {
       imageCount = swapChainDetails.surfaceCapabilities.maxImageCount;
     }
 
-    std::cout << "Swapchain image count (buffers): " << imageCount << std::endl;
+    fcPrintEndl("Swapchain image count (buffers): %u", imageCount);
 
-     // creation information for swap chain
+    // creation information for swap chain
     VkSwapchainCreateInfoKHR swapChainInfo{};
     swapChainInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-     // TODO doesnt really make intuitive sense that a gpu should have a notion of surface
+    // TODO doesnt really make intuitive sense that a gpu should have a notion of surface
     swapChainInfo.surface = pGpu->surface();
     swapChainInfo.imageFormat = surfaceFormat.format;
     swapChainInfo.imageColorSpace = surfaceFormat.colorSpace;
@@ -95,21 +87,21 @@ namespace fc
 
     // Number of layers for each image in chain
     swapChainInfo.imageArrayLayers = 1;
-     // what attachment images will be used as
+    // what attachment images will be used as
     swapChainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     swapChainInfo.preTransform = swapChainDetails.surfaceCapabilities.currentTransform;
-     // how to handle blending images with external grapics (e.g. other windows)
+    // how to handle blending images with external grapics (e.g. other windows)
     swapChainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     // whether to clip parts of image not in view (e.g. behind another window, off screen, etc)
     swapChainInfo.clipped = VK_TRUE;
 
-     // Get queue family indices
+    // Get queue family indices
     QueueFamilyIndices indices = pGpu->getQueueFamilies();
 
-     // if graphics and presentation families are different, then swapchain must let images be shared between families
+    // if graphics and presentation families are different, then swapchain must let images be shared between families
     if (indices.graphicsFamily != indices.presentationFamily)
     {
-       // TODO should probably make indices uint32_t
+      // TODO should probably make indices uint32_t
       uint32_t queueFamilyIndices[] = {static_cast<uint32_t>(indices.graphicsFamily)
                                      , static_cast<uint32_t>(indices.presentationFamily) };
 
@@ -122,48 +114,48 @@ namespace fc
       swapChainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
     }
 
-     // set oldswapchain to the previous swapchain if recreating, otherwise defaults to VK_NULL_HANDLE
-     // this MAY help reuse existing resources to allow new swapchain to create faster / smoother resize
+    // set oldswapchain to the previous swapchain if recreating, otherwise defaults to VK_NULL_HANDLE
+    // this MAY help reuse existing resources to allow new swapchain to create faster / smoother resize
     VkSwapchainKHR oldSwapchain = (shouldReUseOldSwapchain) ? mSwapchain : VK_NULL_HANDLE;
     swapChainInfo.oldSwapchain = oldSwapchain;
 
 
 
-     // Finally, create the swapchain
+    // Finally, create the swapchain
     if (vkCreateSwapchainKHR(pGpu->getVkDevice(), &swapChainInfo, nullptr, &mSwapchain) != VK_SUCCESS)
     {
       throw std::runtime_error("Failed to create a swapchain");
     }
 
-     // if we are reusing resources from old swap chain, make sure to destroy them after new swapchain creation
+    // if we are reusing resources from old swap chain, make sure to destroy them after new swapchain creation
     if (shouldReUseOldSwapchain)
     {
       vkDestroySwapchainKHR(pGpu->getVkDevice(), oldSwapchain, nullptr);
     }
-     //
+    //
 
-     // Store for later reference
+    // Store for later reference
     mSwapchainFormat = surfaceFormat.format;
     mSurfaceExtent = extent;
 
-     //
+    //
     uint32_t swapchainImageCount;
     vkGetSwapchainImagesKHR(pGpu->getVkDevice(), mSwapchain, &swapchainImageCount, nullptr);
-    std::cout << "Actual Swap chain Image count: " << swapchainImageCount << std::endl;
+    fcPrintEndl("Actual Swap chain Image count: %u", swapchainImageCount);
     std::vector<VkImage> images(swapchainImageCount);
     vkGetSwapchainImagesKHR(pGpu->getVkDevice(), mSwapchain, &swapchainImageCount, images.data());
 
     for (VkImage image : images)
     {
-       //TODO may want to also store extent, format, etc within swapchain images
+      //TODO may want to also store extent, format, etc within swapchain images
       FcImage swapChainImage{image};
 
-       // TODO BUG try this all in one fell swoop
-       //swapChainImage.image = image;
+      // TODO BUG try this all in one fell swoop
+      //swapChainImage.image = image;
 
-       // Create image view
+      // Create image view
       swapChainImage.createImageView(mSwapchainFormat, VK_IMAGE_ASPECT_COLOR_BIT);
-       //
+      //
       mSwapchainImages.emplace_back(std::move(swapChainImage));
     }
 
@@ -184,23 +176,23 @@ namespace fc
 
 
 
-   // Best format is subjective but ours will be:
-   // format : VK_FORMAT_R8G8B8A8_UNORM
-   // colorSpace : VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
-   // BUG This function would in not robust and only really works when desired format is available
-   // so better to do would be to return false or something if fails to find our format
+  // Best format is subjective but ours will be:
+  // format : VK_FORMAT_R8G8B8A8_UNORM
+  // colorSpace : VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
+  // BUG This function would in not robust and only really works when desired format is available
+  // so better to do would be to return false or something if fails to find our format
   VkSurfaceFormatKHR FcSwapChain::chooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats)
   {
-     // somewhat unintuitively, the following format means that all formats are available to use
+    // somewhat unintuitively, the following format means that all formats are available to use
     if (formats.size() == 1 && formats[0].format == VK_FORMAT_UNDEFINED)
     {
-       // since all are available, just pick what we prefer
+      // since all are available, just pick what we prefer
       return { VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR };
     }
 
     for (const auto& format : formats)
     {
-       // BUG This won't work as expected--just returns the first in the list (no prioritization for RGB)
+      // BUG This won't work as expected--just returns the first in the list (no prioritization for RGB)
       if ((format.format == VK_FORMAT_R8G8B8A8_UNORM || VK_FORMAT_B8G8R8A8_UNORM)
           && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
       {
@@ -208,12 +200,12 @@ namespace fc
       }
     }
 
-     // if the formats we want aren't available, just return the first format and hope it works
+    // if the formats we want aren't available, just return the first format and hope it works
     return formats[0];
   }
 
 
-   // TODO print the current present mode
+  // TODO print the current present mode
   VkPresentModeKHR FcSwapChain::choosePresentMode(const std::vector<VkPresentModeKHR>& presentModes)
   {
     //return VK_PRESENT_MODE_MAILBOX_KHR;
@@ -221,13 +213,13 @@ namespace fc
 
     for (const auto& presentMode : presentModes)
     {
-       // TODO  we prefer mailbox mode as that reduces tearing and helps performance
+      // TODO  we prefer mailbox mode as that reduces tearing and helps performance
       if (presentMode == VK_PRESENT_MODE_MAILBOX_KHR)
         //if (presentMode == VK_PRESENT_MODE_IMMEDIATE_KHR)
       {
         return VK_PRESENT_MODE_MAILBOX_KHR;
-         //return VK_PRESENT_MODE_IMMEDIATE_KHR;
-          //return presentMode;
+        //return VK_PRESENT_MODE_IMMEDIATE_KHR;
+        //return presentMode;
       }
       // if (presentMode == VK_PRESENT_MODE_FIFO_RELAXED_KHR)
       // {
@@ -236,21 +228,21 @@ namespace fc
     }
 
     // TODO we should try and include a flag for the modes that allow framerate comparison
-     // Present mode: Immediate is good to check for performance via FPS
-     // for (const auto &availablePresentMode : availablePresentModes) {
-     //   if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
-     //     std::cout << "Present mode: Immediate" << std::endl;
-     //     return availablePresentMode;
-     //   }
-     // }
+    // Present mode: Immediate is good to check for performance via FPS
+    // for (const auto &availablePresentMode : availablePresentModes) {
+    //   if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
+    //     fcPrintEndl("Present mode: Immediate");
+    //     return availablePresentMode;
+    //   }
+    // }
 
-     // as per vulkan spec--this mode must always be available
+    // as per vulkan spec--this mode must always be available
     return VK_PRESENT_MODE_FIFO_KHR;
   }
 
   SwapChainDetails FcSwapChain::getSwapChainDetails()
   {
-     // create a new struct to hold all the details of the available swapchain
+    // create a new struct to hold all the details of the available swapchain
     SwapChainDetails swapChainDetails;
 
     const VkPhysicalDevice& device = pGpu->physicalDevice();
@@ -258,24 +250,24 @@ namespace fc
 
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &swapChainDetails.surfaceCapabilities);
 
-    // std::cout << "surface capabilities size: " << swapChainDetails.surfaceCapabilities.maxImageExtent.width
-    //           << " x " << swapChainDetails.surfaceCapabilities.maxImageExtent.height  << std::endl;
+    // fcPrintEndl("surface capabilities size: " << swapChainDetails.surfaceCapabilities.maxImageExtent.width
+    //           << " x " << swapChainDetails.surfaceCapabilities.maxImageExtent.height );
 
     uint32_t formatCount = 0;
     vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
 
-     // if formats available, get list of them
+    // if formats available, get list of them
     if (formatCount != 0)
     {
       swapChainDetails.formats.resize(formatCount);
       vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, swapChainDetails.formats.data());
     }
 
-     // Get presentation modes
+    // Get presentation modes
     uint32_t presentationCount = 0;
     vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentationCount, nullptr);
 
-     // if presentation modes available, get list of them
+    // if presentation modes available, get list of them
     if (presentationCount != 0)
     {
       swapChainDetails.presentModes.resize(presentationCount);
@@ -289,15 +281,15 @@ namespace fc
 
   VkExtent2D FcSwapChain::chooseSwapExtent(VkSurfaceCapabilitiesKHR& surfaceCapabilities, const VkExtent2D& windowSize)
   {
-     // if current extent is at numeric limits, then extent can vary. and we will have to determine it ourselves
+    // if current extent is at numeric limits, then extent can vary. and we will have to determine it ourselves
 
-     // Figure out what the resolution of the surface is in pixel size (account for high-DPI monitors)
+    // Figure out what the resolution of the surface is in pixel size (account for high-DPI monitors)
     if (surfaceCapabilities.currentExtent.width == std::numeric_limits<uint32_t>::max())
     {
-       // if the value can vary, we need to set it manually so first set it to the actual window size
+      // if the value can vary, we need to set it manually so first set it to the actual window size
       VkExtent2D actualExtent  = windowSize;
 
-       // Surface also defines max and min, so make sure within boundaries by clamping values
+      // Surface also defines max and min, so make sure within boundaries by clamping values
       actualExtent.width = std::clamp(actualExtent.width, surfaceCapabilities.minImageExtent.width
                                       , surfaceCapabilities.maxImageExtent.width);
       actualExtent.height = std::clamp(actualExtent.height, surfaceCapabilities.minImageExtent.height
@@ -306,29 +298,30 @@ namespace fc
       return actualExtent;
     }
 
-     // Otherwise, it's just the size of window
-    std::cout << "swapchain size: " << surfaceCapabilities.currentExtent.width
-              << " x " << surfaceCapabilities.currentExtent.height << std::endl;
+    // Otherwise, it's just the size of window
+    fcPrintEndl("swapchain size: %u x %u",
+                surfaceCapabilities.currentExtent.width,
+                surfaceCapabilities.currentExtent.height);
 
     return surfaceCapabilities.currentExtent;
   }
 
 
   VkFormat  FcSwapChain::chooseSupportedFormat(const std::vector<VkFormat>& formats
-                                              , VkImageTiling tiling, VkFormatFeatureFlags featureFlags)
+                                               , VkImageTiling tiling, VkFormatFeatureFlags featureFlags)
   {
-     // loop throught the format options and find a compatible one
+    // loop throught the format options and find a compatible one
     for (const VkFormat& format : formats)
     {
-       // get properties for a given format on this device
+      // get properties for a given format on this device
       VkFormatProperties properties;
       vkGetPhysicalDeviceFormatProperties(pGpu->physicalDevice(), format, &properties);
 
-       // depending on tiling choice, need to check for different bit flag
+      // depending on tiling choice, need to check for different bit flag
       if (tiling == VK_IMAGE_TILING_LINEAR
           && (properties.linearTilingFeatures & featureFlags) == featureFlags)
       {
-        std::cout << "Warning: Using Linear Tiling" << std::endl;
+        fcPrintEndl("Warning: Using Linear Tiling");
         return format;
       }
       else if (tiling == VK_IMAGE_TILING_OPTIMAL
@@ -338,7 +331,7 @@ namespace fc
       }
     }
 
-     // failed to find an acceptable format
+    // failed to find an acceptable format
     return VK_FORMAT_UNDEFINED;
   }
 
@@ -371,7 +364,7 @@ namespace fc
 
   void FcSwapChain::createRenderPass()
   {
-     // color attachment of the render pass
+    // color attachment of the render pass
     VkAttachmentDescription colorAttachment{};
     colorAttachment.format = mSwapchainFormat;                              // Format to use for attachment
     colorAttachment.samples = pGpu->Properties().maxMsaaSamples;            // Number of samples to write for multi
@@ -379,18 +372,18 @@ namespace fc
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;                 // Describes what to do with attachment after rendering
     colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;        // Desribes what to do with stencil before rendering
     colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;      // Desribes what to do with stencil before rendering
-     // Framebuffer data will be stored as an image but images can be given different data layouts to give optimal use for certain operations
+    // Framebuffer data will be stored as an image but images can be given different data layouts to give optimal use for certain operations
     colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;              // Image data layout before render pass starts
     colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; // Image data layout after render pass (to change to)
 
-     // attachment reference uses an attachment index that refers to index in the attachment list passed to renderPassCreateInfo
+    // attachment reference uses an attachment index that refers to index in the attachment list passed to renderPassCreateInfo
     VkAttachmentReference colorAttachmentReference{};
     colorAttachmentReference.attachment = 0;
     colorAttachmentReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; // Image format to convert to for the subpass
 
-     // since we are using a multisampled image as the color attachment, and this cannot be
-     // presented directly, we must add a resolve attachment that will instruct the render pass to
-     // resolve the multisampled color image into a regular attachment
+    // since we are using a multisampled image as the color attachment, and this cannot be
+    // presented directly, we must add a resolve attachment that will instruct the render pass to
+    // resolve the multisampled color image into a regular attachment
     VkAttachmentDescription colorAttchmentResolve{};
     colorAttchmentResolve.format = mSwapchainFormat;
     colorAttchmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -406,16 +399,16 @@ namespace fc
     colorAttachmentResolveReference.attachment = 1;
     colorAttachmentResolveReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-     // create an ordered list of formats with higher prioritization at the front of list
-     //TODO since format has alread been found in the above createdepthbufferimage() we could just
-     // pass or store it so we don't have to repeat the following code...
+    // create an ordered list of formats with higher prioritization at the front of list
+    //TODO since format has alread been found in the above createdepthbufferimage() we could just
+    // pass or store it so we don't have to repeat the following code...
     std::vector<VkFormat> formats{VK_FORMAT_D32_SFLOAT
                                 , VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT};
 
     VkFormat depthFormat = chooseSupportedFormat(formats, VK_IMAGE_TILING_OPTIMAL
                                                  , VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
-     // depth attachment of render pass (not necessarily how it will be used in a subpass)
+    // depth attachment of render pass (not necessarily how it will be used in a subpass)
     VkAttachmentDescription depthAttachment{};
     depthAttachment.format = depthFormat;
     depthAttachment.samples = pGpu->Properties().maxMsaaSamples;
@@ -429,11 +422,11 @@ namespace fc
 
     VkAttachmentReference depthAttachmentsReference{};
     depthAttachmentsReference.attachment = 2;
-     // TODO if we follow vulkan tutorial, we could optimize this slightly but note that Ben Cook says this is
-     // pretty uneccessary since this layout will be transitions on the first pass
+    // TODO if we follow vulkan tutorial, we could optimize this slightly but note that Ben Cook says this is
+    // pretty uneccessary since this layout will be transitions on the first pass
     depthAttachmentsReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-     // information about a particular subpass the render pass is using
+    // information about a particular subpass the render pass is using
     VkSubpassDescription subpass{};
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpass.colorAttachmentCount = 1;
@@ -442,34 +435,34 @@ namespace fc
     subpass.pDepthStencilAttachment = &depthAttachmentsReference;
 
 
-     // need to determine when layout transitions occur using subpass dependencies
+    // need to determine when layout transitions occur using subpass dependencies
     std::array<VkSubpassDependency, 2> subpassDependencies;
-     // conversion from VK_IMAGE_LAYOUT_UNDEFINED to VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-     // Transition must happen after...
+    // conversion from VK_IMAGE_LAYOUT_UNDEFINED to VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+    // Transition must happen after...
     subpassDependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL; // special value meaning outside of renderpass
     subpassDependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT; // pipeline stage
     subpassDependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT; //stage access mask (memory access)
-     // but must happen before...
+    // but must happen before...
     subpassDependencies[0].dstSubpass = 0;
     subpassDependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     subpassDependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     subpassDependencies[0].dependencyFlags = 0;
 
     // conversion from VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-     // Transition must happen after...
+    // Transition must happen after...
     subpassDependencies[1].srcSubpass = 0;
     subpassDependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT; // pipeline stage
     subpassDependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-     // but must happen before...
+    // but must happen before...
     subpassDependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
     subpassDependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
     subpassDependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
     subpassDependencies[1].dependencyFlags = 0;
 
 
-     // -- CREATE RENDERPASS -- //
+    // -- CREATE RENDERPASS -- //
     std::array<VkAttachmentDescription, 3> renderPassAttachments = {colorAttachment, colorAttchmentResolve, depthAttachment};
-     //
+    //
     VkRenderPassCreateInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     renderPassInfo.attachmentCount = static_cast<uint32_t>(renderPassAttachments.size());
@@ -519,38 +512,38 @@ namespace fc
   // }
 
 
-   // Partially free of swapchain resources -- used when resizing the window and recreating swapchain
+  // Partially free of swapchain resources -- used when resizing the window and recreating swapchain
   void FcSwapChain::clearSwapChain()
   {
 
-     // destroy all the frame buffers
+    // destroy all the frame buffers
     for (auto& frameBuffer : mSwapChainFramebuffers)
     {
       vkDestroyFramebuffer(pGpu->getVkDevice(), frameBuffer, nullptr);
     }
 
-     // destroy all the image views in our swapchain--the actual images and memory are freed by actual swapchain
+    // destroy all the image views in our swapchain--the actual images and memory are freed by actual swapchain
     for (auto& image : mSwapchainImages)
     {
-       image.destroyImageView();
+      image.destroyImageView();
     }
 
-     // make sure to shrink the swapchain images container in case we just need to recreateswapchain for window resize
+    // make sure to shrink the swapchain images container in case we just need to recreateswapchain for window resize
     mSwapchainImages.clear();
   }
 
-   // full destruction of swapchain, note: includes call to partial destruction of swapchain
+  // full destruction of swapchain, note: includes call to partial destruction of swapchain
   void FcSwapChain::destroy()
   {
-    std::cout << "calling: FcSwapChain::destroy" << std::endl;
+    fcPrintEndl("calling: FcSwapChain::destroy");
 
-     // destroy the render pass
-     vkDestroyRenderPass(pGpu->getVkDevice(), mRenderPass, nullptr);
+    // destroy the render pass
+    vkDestroyRenderPass(pGpu->getVkDevice(), mRenderPass, nullptr);
 
-     clearSwapChain();
+    clearSwapChain();
 
-      // finally destroy the swapchain itself
-     vkDestroySwapchainKHR(pGpu->getVkDevice(), mSwapchain, nullptr);
+    // finally destroy the swapchain itself
+    vkDestroySwapchainKHR(pGpu->getVkDevice(), mSwapchain, nullptr);
   }
 
 

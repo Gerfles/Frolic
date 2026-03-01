@@ -1,15 +1,18 @@
-// fc_gui.hpp
+//>--- fc_gui.hpp ---<//
 #pragma once
-
-
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "core/platform.hpp"
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <array>
 #include <vector>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'S   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+namespace fc { class Frolic; }
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
+
 
 namespace fc
 {
-  class Frolic;
-
+  //
   class FcGUI
   {
    private:
@@ -25,11 +28,9 @@ namespace fc
 
      std::array<std::vector<u32>, 5> helmetTexIndices;
      std::array<std::vector<u32>, 5> sponzaTexIndices;
+
    public:
      void drawGUI(Frolic* fc);
   };
-
-
-
 
 }// --- namespace fc --- (END)

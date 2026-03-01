@@ -1,9 +1,9 @@
-// fc_node.cpp
+//>--- fc_node.cpp ---<//
 #include "fc_node.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "fc_draw_collection.hpp"
 #include "fc_mesh.hpp"
-//
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
+
 
 namespace fc
 {

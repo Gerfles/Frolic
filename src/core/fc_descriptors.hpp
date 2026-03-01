@@ -13,10 +13,7 @@ namespace fc { class FcImage; class FcBuffer; }
 
 namespace fc
 {
-   // TODO handle this differently
-  const int MAX_OBJECTS = 30;
-  const int MAX_LIGHTS = 10;
-  const int MAX_BILLBOARDS = 30;
+
 
    // struct PointLight
    // {

@@ -1,18 +1,19 @@
-
+//>--- log.cpp ---<//
 #include "log.hpp"
-
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #if defined(_MSC_VER)
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #endif
-
 #include <stdio.h>
 #include <stdarg.h>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
 // TODO format according to Fc conventions
-namespace fc {
-
+namespace fc
+{
+  //
   LogService              s_log_service;
 
   static constexpr u32    k_string_buffer_size = 1024 * 1024;

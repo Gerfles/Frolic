@@ -1,13 +1,13 @@
+//>--- fc_memory.cpp ---<//
 #include "fc_memory.hpp"
-
-
-#include "core/assert.hpp"
-#include "core/log.hpp"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "assert.hpp"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <tlsf.h>
-#include <cstdlib>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <cstring>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
-// TODO include IMGUI support
 
 #if defined (FROLIC_MEMORY_STACK)
 // #include "../external/StackWalker.h"

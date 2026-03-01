@@ -1,17 +1,17 @@
-//>
+//>--- shadow_map.hpp ---<//
 #pragma once
-
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_pipeline.hpp"
 #include "fc_image.hpp"
-#include "glm/mat4x4.hpp"
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'S   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+namespace fc { class FcDrawCollection; class FrameAssets; }
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
+
 
 namespace fc
 {
-  class FcDrawCollection;
-  class FrameAssets;
-
-  constexpr uint32_t shadowMapSize{2048};
-
+  //
+  constexpr uint32_t SHADOW_MAP_SIZE{2048};
 
   struct ShadowPushConsts
   {

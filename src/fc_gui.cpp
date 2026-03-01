@@ -1,15 +1,17 @@
-// fc_gui.cpp
+//>--- fc_gui.cpp ---<//
 #include "fc_gui.hpp"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "frolic.hpp"
 #include "core/fc_cvar_system.hpp"
-#include "imgui.h"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "imgui_impl_sdl2.h"
-
 #include <SDL_timer.h>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
 namespace fc
 {
+  //
   void FcGUI::drawGUI(Frolic* fc)
   {
     // test ImGui UI

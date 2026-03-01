@@ -5,6 +5,5 @@
 namespace fc
 {
 
-  // TODO DELETE file
 
 }// --- namespace fc --- (END)

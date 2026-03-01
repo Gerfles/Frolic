@@ -1,6 +1,7 @@
+//>--- fc_skybox.cpp ---<//
 #include "fc_skybox.hpp"
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "core/fc_frame_assets.hpp"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "fc_frame_assets.hpp"
 #include "fc_descriptors.hpp"
 #include "fc_locator.hpp"
 #include "fc_defaults.hpp"
@@ -9,7 +10,6 @@
 
 namespace fc
 {
-  //
   //
   void FcSkybox::init(VkDescriptorSetLayout sceneDescriptorLayout,
                       std::vector<FrameAssets>& frames)

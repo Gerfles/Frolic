@@ -1,15 +1,12 @@
-//>> fc_types.hpp <//
+//>--- fc_types.hpp ---<//
 #pragma once
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_resources.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <glm/vec3.hpp>
-#include <glm/vec4.hpp>
-#include <glm/mat4x4.hpp>
 #include <vulkan/vulkan_core.h>
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'S   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 namespace fc { class FcMesh; }
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
 namespace fc
@@ -19,18 +16,41 @@ namespace fc
   const int MAX_LIGHTS = 10;
   const int MAX_BILLBOARDS = 30;
 
+  static constexpr unsigned int MAX_FRAME_DRAWS = 3;
+  static constexpr unsigned int BINDLESS_DESCRIPTOR_SLOT = 10;
+
   // Index locations of queue families
   struct QueueFamilyIndices
   {
      int graphicsFamily = -1;
      int presentationFamily = -1;
-      // check if queue family indices are valid
+     // check if queue family indices are valid
      inline const bool isValid() const
       {
         return graphicsFamily >= 0 && presentationFamily >= 0;
       }
   };
 
+
+
+  //
+  // TODO Can incrementally update push constants according to:
+  // https://docs.vulkan.org/guide/latest/push_constants.html
+  // May provide some benefits if done correctly
+  // TODO this is too much data for some GPU push constant limits
+  // ScenePCs are not created directly but instead are the values that the shader will recieve from
+  // pushing a FcSurface object with vkCmdPushConstants and using this struct as the size of the
+  // data sent. Then FcSurface must have the first members exactly match this structure. This will
+  // save us from having to create a ScenePushConstant to
+  // This structure should not be used directly but instead serves as a size indicator
+  struct ScenePushConstants
+  {
+     glm::mat4 worldMatrix;
+     glm::mat4 normalTransform;
+     VkDeviceAddress vertexBuffer;
+
+     ScenePushConstants() = delete;
+  };
 
 
 

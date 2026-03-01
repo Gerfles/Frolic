@@ -1,10 +1,11 @@
+//>--- service.hpp ---<//
 #pragma once
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
-//#include "platform.hpp"
 
 namespace fc
 {
-
+  //
   struct Service
   {
      virtual void init(void* configuration) { }

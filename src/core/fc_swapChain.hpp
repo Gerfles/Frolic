@@ -1,22 +1,15 @@
+//>--- fc_swapChain.hpp ---<//
 #pragma once
-
-
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_image.hpp"
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "vulkan/vulkan_core.h"
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <cstdint>
-#include <vector>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'S   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+namespace fc { class FcGpu; }
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
 namespace fc
 {
-   // FORWARD DECLARATIONS
-   // ?? better to place here or with member variable
-  class FcGpu;
-
-// ?? could maybe get rid of this
+  // ?? could maybe get rid of this
   struct SwapChainDetails
   {
      VkSurfaceCapabilitiesKHR surfaceCapabilities; // surface properties, eg image extent
@@ -28,14 +21,14 @@ namespace fc
   {
 
    private:
-      // BUG is there any issues with declaring the following pointer const?
+     // BUG is there any issues with declaring the following pointer const?
      FcGpu* pGpu;
      VkSwapchainKHR mSwapchain;
      VkExtent2D mSurfaceExtent;
      VkFormat mSwapchainFormat;
      VkRenderPass mRenderPass {nullptr};
-      //std::vector<SwapchainImage> mSwapchainImages;
-      // FRAMEBUFFER ATTACHMENTS
+     //std::vector<SwapchainImage> mSwapchainImages;
+     // FRAMEBUFFER ATTACHMENTS
      std::vector<FcImage> mSwapchainImages;
 
      std::vector<VkFramebuffer> mSwapChainFramebuffers;
@@ -62,7 +55,7 @@ namespace fc
      FcSwapChain() = default;
      FcSwapChain(FcSwapChain* oldSwapChain);
      uint32_t init(FcGpu& gpu, const VkExtent2D& windowSize);
-      // TODO see if we can just make this part of create swapChain??
+     // TODO see if we can just make this part of create swapChain??
      void transitionImage(VkCommandBuffer commandBuffer
                           , uint32_t currentFrame,  VkImageLayout currentLayout, VkImageLayout newLayout);
      void reCreateSwapChain(VkExtent2D windowSize);
@@ -74,8 +67,8 @@ namespace fc
      const VkFormat& getFormat() const { return mSwapchainFormat; }
      VkRenderPass& getRenderPass()  { return mRenderPass; }
      const VkSwapchainKHR& vkSwapchain() const { return mSwapchain; }
-    VkImage vkImage(uint32_t index)  { return mSwapchainImages.at(index).Image();  }
-      // CLEANUP
+     VkImage vkImage(uint32_t index)  { return mSwapchainImages.at(index).Image();  }
+     // CLEANUP
 //     ~FcSwapChain();
      void clearSwapChain();
      void destroy();

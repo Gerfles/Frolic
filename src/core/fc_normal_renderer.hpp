@@ -1,13 +1,15 @@
-// fc_normal_renderer.hpp
+//>--- fc_normal_renderer.hpp ---<//
 #pragma once
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_pipeline.hpp"
-#include "fc_frame_assets.hpp"
-//
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'S   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+namespace fc { class FrameAssets; class FcDrawCollection;}
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
+
+
 namespace fc
 {
-  class FcDrawCollection;
-
+  //
   class FcNormalRenderer
   {
    private:

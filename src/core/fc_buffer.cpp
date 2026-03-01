@@ -320,7 +320,7 @@ namespace  fc
 
     msg << "\n--Buffer size: " << mSize;
 
-    std::cout << msg.str() << std::endl;
+    fcPrintEndl("%s", msg.str().c_str());
   }
 
 

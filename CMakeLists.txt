@@ -8,7 +8,7 @@
 # #----------------------------------------------------------------------
 # specify the C++ standard
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_CXX_STANDARD_REQUIRED true)
 
 
 
@@ -178,7 +178,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
  set(CMAKE_GENERATOR "Ninja")
 
 # always compile for debugging
-set(CMAKE_BUILD_TYPE DEBUG)
+# set(CMAKE_BUILD_TYPE DEBUG)
 
 # NOT WORKING BUT SHOULD MAKE THIS WORK
 # if (NOT CMAKE_BUILD_TYPE EQUAL DEBUG)

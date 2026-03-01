@@ -1,15 +1,17 @@
+//>--- fc_timer.cpp ---<//
 #include "fc_timer.hpp"
-
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "SDL2/SDL_timer.h"
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
+
 
 namespace fc
 {
-
-
+  //
   const float FcTimer::TICK_PERIOD = 1.0 / (double)SDL_GetPerformanceFrequency();
-//static const TICK_PERIOD = 1.0 / (double)SDL_GetPerformanceFrequency();
+  //static const TICK_PERIOD = 1.0 / (double)SDL_GetPerformanceFrequency();
 
-// TODO consider using std::chrono::system_clock... etc;
+  // TODO consider using std::chrono::system_clock... etc;
   void FcTimer::start()
   {
     // start the timer

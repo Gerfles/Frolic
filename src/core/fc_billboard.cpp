@@ -33,7 +33,7 @@ namespace fc
     {
       // failed to load image so assign default image so we can continue loading scene
       *newTexture = FcDefaults::Textures.checkerboard;
-      std::cout << "Failed to load texture: " << filename << std::endl;
+      fcPrintEndl("Failed to load texture: %s", filename);
     }
 
     // TODO provide non-bindless alternate path

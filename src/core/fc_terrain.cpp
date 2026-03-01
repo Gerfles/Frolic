@@ -1,21 +1,19 @@
+//>--- fc_terrain.cpp ---<//
 #include "fc_terrain.hpp"
-
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
-#include "core/fc_descriptors.hpp"
-#include "fc_gpu.hpp"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "fc_descriptors.hpp"
 #include "fc_frustum.hpp"
 #include "fc_locator.hpp"
 #include "fc_defaults.hpp"
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <cstring>
-#include <stb_image.h>
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
-#include <filesystem>
-#include <glm/ext/matrix_clip_space.hpp>
 #include <algorithm>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
+
 
 namespace fc
 {
+  //
   void FcTerrain::init(std::filesystem::path filename)
   {
     loadHeightmap(filename, 64);

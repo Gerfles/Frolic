@@ -1,21 +1,13 @@
+//>--- fc_pipeline.cpp ---<//
 #include "fc_pipeline.hpp"
-
-// - FROLIC ENGINE -
-//#include "core/fc_descriptors.hpp"
-#include "fc_types.hpp"
-#include "core/fc_descriptors.hpp"
-#include "core/fc_locator.hpp"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "fc_descriptors.hpp"
+#include "fc_locator.hpp"
+#include "log.hpp"
 #include "fc_gpu.hpp"
-#include "core/fc_mesh.hpp"
 #include "utilities.hpp"
-// - EXTERNAL LIBRARIES -
-#include "vulkan/vulkan_core.h"
-// - STD LIBRARIES -
-#include <cstdint>
-#include <iostream>
-#include <stdexcept>
-// #include <cstddef>
-//#include <type_traits>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
+
 
 namespace fc
 {
@@ -428,7 +420,7 @@ namespace fc
   void FcPipeline::create(FcPipelineConfig& pipelineConfig)
   {
     // TODO CREATE SOME ASSERTS!!!
-    std::cout << "Creating Pipeline: " << pipelineConfig.name << std::endl;
+    fcPrintEndl("Creating Pipeline: %s", pipelineConfig.name);
 
     // -*-*-*-*-*-*-*-*-*-*-*-*-   CREATE PIPELINE LAYOUT   -*-*-*-*-*-*-*-*-*-*-*-*- //
     // save a pointer to the device instance
@@ -540,7 +532,7 @@ namespace fc
       if (vkCreateGraphicsPipelines(pDevice, VK_NULL_HANDLE, 1, &graphicsPipelineInfo, nullptr, &mPipeline)
           != VK_SUCCESS)
       {
-        std::cout << "failed to create pipeline" << std::endl;
+        fcPrintEndl("failed to create pipeline");
         //       return  VK_NULL_HANDLE; or -1, etc.
         //throw std::runtime_error("Failed to create Vulkan Graphics Pipeline!");
       }
@@ -580,7 +572,7 @@ namespace fc
 
   void FcPipeline::destroy()
   {
-    std::cout << "calling: FcPipeline::destroy" << std::endl;
+    fcPrintEndl("calling: FcPipeline::destroy");
 
     if (mPipelineLayout != nullptr)
     {

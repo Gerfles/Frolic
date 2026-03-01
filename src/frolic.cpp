@@ -1,37 +1,21 @@
+//>--- frolic.cpp ---<//
 #include "frolic.hpp"
-
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "core/fc_cvar_system.hpp"
-#include "core/fc_font.hpp"
 #include "core/fc_light.hpp"
 #include "core/fc_locator.hpp"
-#include "core/fc_player.hpp"
-#include "core/fc_text.hpp"
-#include "core/utilities.hpp"
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "SDL2/SDL_version.h"
-#include "SDL2/SDL_video.h"
-//
-#include "imgui.h"
 #include "imgui_impl_sdl2.h"
-//
-#include "vulkan/vulkan_core.h"
 #include <SDL_log.h>
-#include <SDL_timer.h>
-//
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/transform.hpp>
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <cstdint>
-#include <cstdlib>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <cstring>
-#include <string>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
 namespace fc
 {
-  // float CVar
-
+  //
   Frolic::Frolic()
   {
     // Application Specs for developer use
@@ -88,7 +72,7 @@ namespace fc
 
     // Initialize simple first person camera
     mPlayer.Camera().setPerspectiveProjection(60.0f, FcLocator::ScreenDims().width
-                                             , FcLocator::ScreenDims().height, 512.f, 0.01f);
+                                              , FcLocator::ScreenDims().height, 512.f, 0.01f);
     // TODO make sure all reference returns are const to avoid something like:
     /* mPlayer.Camera().Projection()[1][1] *= -1; */
 
@@ -309,10 +293,10 @@ namespace fc
       }
       avgFrameTime = (MAX_FRAME_SAMPLES - 1)/avgFrameTime;
     }
-     // make sure we wrap around on the MAX_FRAME_SAMPLE'th sample
+    // make sure we wrap around on the MAX_FRAME_SAMPLE'th sample
     mFrameTimeIndex = (mFrameTimeIndex + 1) % MAX_FRAME_SAMPLES;
 
-     // calculate and return the average famesPerSec
+    // calculate and return the average famesPerSec
     return MAX_FRAME_SAMPLES / mFrameTimeSum;
   }
 

@@ -1,16 +1,15 @@
-// pixel.cpp
+//>--- pixel.cpp ---<//
 #include "pixel.hpp"
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
+
 
 namespace fc
 {
-
-
   // TODO implement a pixel class that extrapolates any image format specifics, etc
   // that way we can just call pixel.r and get the right value
   // NOTE: looking at the pixel raw data, it appears the order of the bits is different
   // than might be expected
   // AAAAAAAA BBBBBBBB GGGGGGGG RRRRRRRR
-
   FcPixel::FcPixel(FcImage image)
   {
     mBytesPerChanel = image.byteDepth();
@@ -36,7 +35,5 @@ namespace fc
   {
     return static_cast<double>(mValue) / mNormalizationFactor;
   }
-
-
 
 }// --- namespace fc --- (END)

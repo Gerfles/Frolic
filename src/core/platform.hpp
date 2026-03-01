@@ -1,17 +1,17 @@
+//>--- platform.hpp ---<//
 #pragma once
-
-#include <cstdint>
-#include <glm/ext/matrix_float4x4.hpp>
-#include <limits>
-#include <stdint.h>
-#include <sys/types.h>
-
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include <glm/mat4x4.hpp>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #if !defined(_MSC_VER)
 #include <signal.h>
 #endif
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
+
 
 namespace fc
 {
+  //
   constexpr float PI = 3.14159265358f;
   constexpr float TWO_PI = PI * 2.0f;
   constexpr float PI_OVER_TWO = PI / 2.0f;

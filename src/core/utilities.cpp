@@ -1,29 +1,17 @@
+//>--- utilities.cpp ---<//
 #include "utilities.hpp"
-
-// - FROLIC ENGINE -
-
-// - EXTERNAL LIBRARIES -
-#include <vulkan/vulkan.h>
-// - STD LIBRARIES -
-#include <chrono>
-#include <cstddef>
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "platform.hpp"
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <cstring>
-#include <fstream>
-#include <functional>
-#include <glm/ext/matrix_clip_space.hpp>
-#include <ios>
-#include <stdexcept>
-#include <vector>
-#include <iostream>
-
-
-// DELETE
 #include <filesystem>
-#include "core/platform.hpp"
+#include <iostream>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
+
 
 namespace fc
 {
-
+  //
   void FcLog::openLogOutput(const std::string& filename, bool clearContents)
   {
     // open stream from give file and tell it to start reading from end
@@ -81,65 +69,65 @@ namespace fc
 
 
 // static VKAPI_ATTR VkBool32 VKAPI_CALL
-   // debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-   //               VkDebugUtilsMessageTypeFlagsEXT messageType,
-   //               const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
-   //               void* pUserData)
-   // {
+  // debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+  //               VkDebugUtilsMessageTypeFlagsEXT messageType,
+  //               const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
+  //               void* pUserData)
+  // {
 
-   //    //?? not sure why this is needed, seems it already prints callback message
-   //    // probably prints to some Log or something ?? research cerr output
-   //   std::cerr << "Validation Layer: " << pCallbackData->pMessage << std::endl;
+  //    //?? not sure why this is needed, seems it already prints callback message
+  //    // probably prints to some Log or something ?? research cerr output
+  //   std::cerr << "Validation Layer: " << pCallbackData->pMessage << std::endl;
 
-   //   return VK_FALSE;
-   // }
+  //   return VK_FALSE;
+  // }
 
-   // VkResult CreateDebugUtilsMessengerEXT(VkInstance instance,
-   //                                       const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-   //                                       const VkAllocationCallbacks* pAllocator,
-   //                                       VkDebugUtilsMessengerEXT* pDebugMessenger)
-   // {
-   //   auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance,
-   //                                                                         "vkCreateDebugUtilsMessengerEXT");
-   //   if (func != nullptr)
-   //   {
-   //     return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
-   //   }
+  // VkResult CreateDebugUtilsMessengerEXT(VkInstance instance,
+  //                                       const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+  //                                       const VkAllocationCallbacks* pAllocator,
+  //                                       VkDebugUtilsMessengerEXT* pDebugMessenger)
+  // {
+  //   auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance,
+  //                                                                         "vkCreateDebugUtilsMessengerEXT");
+  //   if (func != nullptr)
+  //   {
+  //     return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+  //   }
 
-   //   return VK_ERROR_EXTENSION_NOT_PRESENT;
-   // }
+  //   return VK_ERROR_EXTENSION_NOT_PRESENT;
+  // }
 
-   // void DestroyDebugUtilsMessengerExt(VkInstance instance,
-   //                                    VkDebugUtilsMessengerEXT debugMessenger,
-   //                                    const VkAllocationCallbacks* pAllocator)
-   // {
-   //   auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance,
-   //                                                                          "vkDestroyDebugUtilsMessengerEXT");
-   //   if (func != nullptr)
-   //   {
-   //     func(instance, debugMessenger, pAllocator);
-   //   }
-   // }
+  // void DestroyDebugUtilsMessengerExt(VkInstance instance,
+  //                                    VkDebugUtilsMessengerEXT debugMessenger,
+  //                                    const VkAllocationCallbacks* pAllocator)
+  // {
+  //   auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance,
+  //                                                                          "vkDestroyDebugUtilsMessengerEXT");
+  //   if (func != nullptr)
+  //   {
+  //     func(instance, debugMessenger, pAllocator);
+  //   }
+  // }
 
-   // bool areValidationLayersSupported(std::vector<const char*>& validationLayers)
-   // {
-   //    // make a list of all vulkan layers available to us
-   //   uint32_t layerCount;
-   //   vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
-   //   std::vector<VkLayerProperties> availableLayers(layerCount);
-   //   vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+  // bool areValidationLayersSupported(std::vector<const char*>& validationLayers)
+  // {
+  //    // make a list of all vulkan layers available to us
+  //   uint32_t layerCount;
+  //   vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+  //   std::vector<VkLayerProperties> availableLayers(layerCount);
+  //   vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
-   //   std::unordered_set<std::string> requiredLayers(validationLayers.begin(), validationLayers.end());
+  //   std::unordered_set<std::string> requiredLayers(validationLayers.begin(), validationLayers.end());
 
-   //    // make sure our required layers are covered by the layers found availablelayers
-   //   for (const auto& layer : availableLayers)
-   //   {
-   //     requiredLayers.erase(layer.layerName);
-   //   }
+  //    // make sure our required layers are covered by the layers found availablelayers
+  //   for (const auto& layer : availableLayers)
+  //   {
+  //     requiredLayers.erase(layer.layerName);
+  //   }
 
-   //    // return true if all the all the required layers were found in vulkans available layers
-   //   return requiredLayers.empty();
-   // }
+  //    // return true if all the all the required layers were found in vulkans available layers
+  //   return requiredLayers.empty();
+  // }
 
   //
   void fcLog(std::string header, int resetLogCount)
@@ -179,8 +167,8 @@ namespace fc
   }
 
 
-void printMat(const glm::mat4& mat, std::string_view name)
-{
+  void printMat(const glm::mat4& mat, std::string_view name)
+  {
     std::cout << name << " matrix: \n";
 
     for (int i = 0; i < 4; i++)
@@ -248,8 +236,8 @@ void printMat(const glm::mat4& mat, std::string_view name)
   // TODO set all environment variables from here
   void initEnv()
   {
-     // transfer and use soln from
-     // https://stackoverflow.com/questions/8591762/ifdef-debug-with-cmake-independent-from-platform
+    // transfer and use soln from
+    // https://stackoverflow.com/questions/8591762/ifdef-debug-with-cmake-independent-from-platform
 #ifndef NDEBUG
     std::printf("\n---- DEBUG BUILD ----\n");
 #else
@@ -328,16 +316,16 @@ void printMat(const glm::mat4& mat, std::string_view name)
 
     return glm::mat4 {
       height * oneOverTanX / width, 0, 0, 0
-             , 0, -oneOverTanX, 0, 0
-                      , 0, 0, negFarOverDepth, -1
-                               , 0, 0, near * negFarOverDepth, 0 };
+                                        , 0, -oneOverTanX, 0, 0
+                                                            , 0, 0, negFarOverDepth, -1
+                                                                                   , 0, 0, near * negFarOverDepth, 0 };
   }
 
 
 
   glm::mat4 orthographic(float left, float right, float bottom, float top, float near, float far )
   {
-        glm::mat4 orthographicProjectionMatrix = {
+    glm::mat4 orthographicProjectionMatrix = {
       // Column 1
       2.0f / (right - left),
       0.0f,

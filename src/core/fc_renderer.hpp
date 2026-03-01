@@ -8,20 +8,17 @@
 #include "fc_skybox.hpp"
 #include "fc_billboard_renderer.hpp"
 #include "fc_normal_renderer.hpp"
-#include "fc_swapChain.hpp"
 #include "fc_gpu.hpp"
 #include "fc_timer.hpp"
+#include "fc_frame_assets.hpp"
 #include "fc_types.hpp"
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'S   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 namespace fc { class FcCamera; }//class MaterialFeatures; }
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
 
 namespace fc
 {
-  static constexpr unsigned int MAX_FRAME_DRAWS = 3;
-  static constexpr unsigned int BINDLESS_DESCRIPTOR_SLOT = 10;
-
   // TODO //
   // create the instance first and figure out what kind of bufferring we can have (double,
   // tripple, etc) then initialize all following objects to have that size so we don't need

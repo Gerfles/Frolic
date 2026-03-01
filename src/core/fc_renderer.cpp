@@ -1,49 +1,21 @@
-// fc_renderer.cpp
+//>--- fc_renderer.cpp ---<//
 #include "fc_renderer.hpp"
-
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "core/assert.hpp"
-#include "core/fc_locator.hpp"
-/* #include "core/log.hpp" */
-#include "core/platform.hpp"
-#include "utilities.hpp"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "fc_locator.hpp"
 #include "fc_debug.hpp"
-#include "fc_text.hpp"
 #include "fc_descriptors.hpp"
 #include "fc_defaults.hpp"
 #include "fc_camera.hpp"
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <SDL_events.h>
-// #define GLM_FORCE_RADIANS
-// #define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/transform.hpp>
-#include <glm/ext/matrix_clip_space.hpp>
-#include <glm/ext/matrix_float4x4.hpp>
-#include <glm/ext/matrix_transform.hpp>
-#include <glm/ext/vector_float3.hpp>
-#include <glm/ext/vector_float4.hpp>
-#include <glm/packing.hpp>
+#include "fc_memory.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "vulkan/vulkan_core.h"
+#include <SDL_events.h>
 #include <SDL2/SDL_vulkan.h>
-// ImGUI
-#include "imgui.h"
 #include <imgui_impl_sdl2.h>
 #include <imgui_impl_vulkan.h>
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <string>
-#include <array>
-#include <cstddef>
-#include <cstring>
-#include <limits>
-#include <cstdlib>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <unordered_set>
-#include <iostream>
-#include <vector>
-#include <map>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
+
 
 // TODO (note may no longer be relevant) All of the helper functions that submit commands
 // so far have been set up to execute synchronously by waiting for the queue to become
@@ -922,7 +894,8 @@ namespace fc
           }
           else
           {
-            std::cout << "Failed to Update Bindless Resource: " << textureToUpdate.handle << std::endl;
+            fcPrintEndl("Failed to Update Bindless Resource: ")
+              /* std::cout << " << textureToUpdate.handle << std::endl; */
             descriptorWrite.dstSet = frame.billboardDescriptorSet;
             texture = &FcDefaults::Textures.checkerboard;
           }
@@ -1057,7 +1030,7 @@ namespace fc
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR)
     {
-      fcLog("ERROR out of date submit1");
+      fcPrintEndl("ERROR out of date submit1");
       mShouldWindowResize = true;
       //handleWindowResize();
       return -1;
@@ -1265,7 +1238,7 @@ namespace fc
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) // || mWindow.wasWindowResized())
     {
-      fcLog("ERRROR OUT of date submit");
+      fcPrintEndl("ERRROR OUT of date submit");
       mShouldWindowResize = true;
       //mWindow.resetWindowResizedFlag();
       //handleWindowResize();
@@ -1310,7 +1283,7 @@ namespace fc
 
   void FcRenderer::shutDown()
   {
-    std::cout << "calling: FcRenderer::shutDown" << std::endl;
+    /* std::cout << "calling: FcRenderer::shutDown" << std::endl; */
     // wait until no actions being run on device before destroying
     vkDeviceWaitIdle(pDevice);
 

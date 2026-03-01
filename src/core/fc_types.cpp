@@ -1,12 +1,11 @@
-//> fc_types.cpp <//
+//>--- fc_types.cpp ---<//
 #include "fc_types.hpp"
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
 namespace fc
 {
-
-// *-*-*-*-*-*-*-*-*-*-*-   BOILERPLATE BIT-WISE ENUM OPS   *-*-*-*-*-*-*-*-*-*-*- //
+  // *-*-*-*-*-*-*-*-*-*-*-   BOILERPLATE BIT-WISE ENUM OPS   *-*-*-*-*-*-*-*-*-*-*- //
   MaterialFeatures operator| (MaterialFeatures lhs, MaterialFeatures rhs)
   {
     using FeaturesType = std::underlying_type<MaterialFeatures>::type;

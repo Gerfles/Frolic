@@ -1,28 +1,19 @@
-//>  fc_scene_renderer.cpp <//
+//>---  fc_scene_renderer.cpp ---<//
 #include "fc_scene_renderer.hpp"
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_mesh.hpp"
-#include "fc_node.hpp"
 #include "fc_frame_assets.hpp"
-#include "core/fc_descriptors.hpp"
-#include "core/fc_draw_collection.hpp"
-#include "core/fc_gpu.hpp"
-#include "core/fc_locator.hpp"
-#include "core/fc_pipeline.hpp"
-#include "fc_types.hpp"
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <vulkan/vulkan_core.h>
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <vector>
+#include "fc_descriptors.hpp"
+#include "fc_locator.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
 
 namespace fc
 {
-
-
-
-  void FcSceneRenderer::init(VkDescriptorSetLayout sceneDescriptorLayout, glm::mat4& viewProj, std::vector<FrameAssets>& frames)
+  //
+  void FcSceneRenderer::init(VkDescriptorSetLayout sceneDescriptorLayout,
+                             glm::mat4& viewProj,
+                             std::vector<FrameAssets>& frames)
   {
     pViewProjection = &viewProj;
     buildPipelines(sceneDescriptorLayout, frames);

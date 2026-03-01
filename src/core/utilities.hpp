@@ -1,44 +1,27 @@
+//>--- utilities.hpp ---<//
 #pragma once
-
-
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL LIBRARIES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
-// TODO remove any vulkan initialization stuff from here and relocate if need be
-#include <vulkan/vulkan.h>
-#include <functional>
-#include <glm/vec3.hpp>
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <glm/mat4x4.hpp>
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STD LIBRARIES   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include <functional>
 #include <fstream>
-#include <vector>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
-
-
-// TODO don't forget the glm defines
 
 namespace fc
 {
-
-
-
-
-
-
-
-
   // TODO relocate all log/print utilities to a full class
   struct FcLog
   {
      // (EXAMPLE)
-    // FcLog log1("log1", true);
+     // FcLog log1("log1", true);
      // log1 << "This is a log value: " << val;
-    // log1.closeLogOutput();
+     // log1.closeLogOutput();
      std::ofstream mFile;
      void openLogOutput(const std::string& filename, bool clearContents = false);
      //
      FcLog(const std::string& filename, bool clearContents = false)
-      			{ openLogOutput(filename, clearContents); }
+      { openLogOutput(filename, clearContents); }
      std::ofstream& operator <<(std::string string);
      // variation if more complicated necessary
      void logOutput();

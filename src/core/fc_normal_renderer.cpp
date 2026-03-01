@@ -1,8 +1,8 @@
 //> fc_normal_renderer.cpp <//
 #include "fc_normal_renderer.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-/* #include "fc_node.hpp" */
-/* #include "fc_draw_collection.hpp" */
+#include "fc_frame_assets.hpp"
+#include "fc_types.hpp"
 #include "fc_mesh.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
