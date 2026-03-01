@@ -1,7 +1,7 @@
 //>--- fc_gpu.cpp ---<//
 #include "fc_gpu.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "assert.hpp"
+#include "fc_assert.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <SDL_log.h>
 // must resort to something like this or get thousands of warnings with vk_mem_alloc
@@ -52,8 +52,10 @@ namespace fc
         // ?? check thoroughly if we need to add different flags
         //vmaAllocatorInfo.flags  = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
 
-        VkResult result = vmaCreateAllocator(&vmaAllocatorInfo, &mAllocator);
-        check(result);
+        // VkResult result = vmaCreateAllocator(&vmaAllocatorInfo, &mAllocator);
+        // check(result);
+
+        VK_ASSERT(vmaCreateAllocator(&vmaAllocatorInfo, &mAllocator));
 
         return true;
       }
@@ -392,7 +394,7 @@ namespace fc
   // TODO pass list of required extensions to let us get rid of stored global deviceExtensions
   bool FcGpu::isDeviceExtensionSupported(const VkPhysicalDevice& device) const
   {
-
+    VkResult r = VK_ERROR_VALIDATION_FAILED;
     // get number of extensions supported
     uint32_t extensionCount = 0;
     vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);

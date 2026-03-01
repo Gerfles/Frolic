@@ -1,9 +1,10 @@
 //>---  fc_font.cpp  ---<//
 #include "fc_font.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "fc_assert.hpp"
 #include "fc_renderer.hpp"
 #include "fc_locator.hpp"
-#include "fc_debug.hpp"
+/* #include "fc_debug.hpp" */
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "freetype/freetype.h"
 #include "freetype/ftglyph.h"

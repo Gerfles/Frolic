@@ -1,7 +1,7 @@
 //>--- fc_resource_pool.cpp ---<//
 #include "fc_resource_pool.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "assert.hpp"
+#include "fc_assert.hpp"
 #include "fc_memory.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <cstring>

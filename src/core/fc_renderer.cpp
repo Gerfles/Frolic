@@ -10,6 +10,7 @@
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <SDL_events.h>
 #include <SDL2/SDL_vulkan.h>
+#include <SDL2/SDL_log.h>
 #include <imgui_impl_sdl2.h>
 #include <imgui_impl_vulkan.h>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
