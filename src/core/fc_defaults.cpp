@@ -4,6 +4,7 @@
 #include "fc_descriptors.hpp"
 #include "fc_buffer.hpp"
 #include "fc_locator.hpp"
+#include "fc_assert.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "glm/packing.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -87,45 +88,34 @@ namespace fc
     // TODO DON'T hard code
     samplerInfo.maxAnisotropy = VK_SAMPLE_COUNT_16_BIT;
 
-    if (vkCreateSampler(device, &samplerInfo, nullptr, &Samplers.Nearest) != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to create a Vulkan Texture Sampler!");
-    }
+    VK_ASSERT(vkCreateSampler(device, &samplerInfo, nullptr, &Samplers.Nearest));
 
     // -*-*-*-*-*-*-*-*-*-*-   NEAREST SAMPLER / LINEAR MIPMAP   -*-*-*-*-*-*-*-*-*-*- //
     samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
     samplerInfo.maxLod = VK_LOD_CLAMP_NONE;
     /* samplerInfo.maxLod = 0.0; */
-    if (vkCreateSampler(device, &samplerInfo, nullptr, &Samplers.Bilinear) != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to create a Vulkan Texture Sampler!");
-    }
+
+    VK_ASSERT(vkCreateSampler(device, &samplerInfo, nullptr, &Samplers.Bilinear));
 
     // *-*-*-*-*-*-*-*-*-*-   LINEAR SAMPLER / NEAREST MIPMAP   *-*-*-*-*-*-*-*-*-*- //
     samplerInfo.minFilter = VK_FILTER_LINEAR;
     samplerInfo.magFilter = VK_FILTER_LINEAR;
     samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-    if (vkCreateSampler(device, &samplerInfo, nullptr, &Samplers.Linear) != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to create a Vulkan Texture Sampler!");
-    }
+
+    VK_ASSERT(vkCreateSampler(device, &samplerInfo, nullptr, &Samplers.Linear));
 
     // -*-*-*-*-*-*-*-*-*-*-   LINEAR SAMPLER / LINEAR MIPMAP   -*-*-*-*-*-*-*-*-*-*- //
     samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-    if (vkCreateSampler(device, &samplerInfo, nullptr, &Samplers.Trilinear) != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to create a Vulkan Texture Sampler!");
-    }
+
+    VK_ASSERT(vkCreateSampler(device, &samplerInfo, nullptr, &Samplers.Trilinear));
 
     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   TERRAIN SAMPLER   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
     samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
     samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
     /* samplerInfo.maxLod = 0.0f; */
-    if (vkCreateSampler(device, &samplerInfo, nullptr, &Samplers.Terrain) != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to create a Vulkan Texture Sampler!");
-    }
+
+    VK_ASSERT(vkCreateSampler(device, &samplerInfo, nullptr, &Samplers.Terrain));
 
     // -*-*-*-*-*-*-*-*-*-*-*-*-*-   SHADOW MAP SAMPLER   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
     samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
@@ -136,10 +126,9 @@ namespace fc
     samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_WHITE;
     /* samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK; */
     /* samplerInfo.maxLod = 1.0f; */
-    if (vkCreateSampler(device, &samplerInfo, nullptr, &Samplers.ShadowMap) != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to create a Vulkan Texture Sampler!");
-    }
+
+    VK_ASSERT(vkCreateSampler(device, &samplerInfo, nullptr, &Samplers.ShadowMap));
+
   }
 
 

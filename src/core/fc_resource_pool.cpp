@@ -53,7 +53,7 @@ namespace fc
       }
     }
 
-    FCASSERT(mUsedIndices == 0);
+    FC_ASSERT(mUsedIndices == 0);
 
     pAllocator->deallocate(mMemory);
   }
@@ -85,7 +85,7 @@ namespace fc
       return freeIndex;
     }
     // ERROR: no more resources left!
-    FCASSERT(false);
+    FC_ASSERT(false);
     return FC_INVALID_INDEX;
   }
 

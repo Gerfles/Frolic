@@ -1,6 +1,7 @@
 //>--- fc_buffer.cpp ---<//
 #include "fc_buffer.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "fc_assert.hpp"
 #include "fc_renderer.hpp"
 #include "fc_locator.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -103,12 +104,8 @@ namespace  fc
 
     // TODO set names to see what isn't deleted;
     /* vmaSetAllocationName(VmaAllocator  _Nonnull allocator, VmaAllocation  _Nonnull allocation, const char * _Nullable pName); */
-    if (vmaCreateBuffer(FcLocator::Gpu().getAllocator(), &bufferInfo
-                        , &allocInfo, &mBuffer, &mAllocation, nullptr) != VK_SUCCESS)
-    {
-      printBufferStats();
-      /* throw std::runtime_error("Failed to create Vulkan Buffer!"); */
-    }
+    VK_ASSERT(vmaCreateBuffer(FcLocator::Gpu().getAllocator(), &bufferInfo
+                              , &allocInfo, &mBuffer, &mAllocation, nullptr));
   }
 
 
@@ -123,10 +120,7 @@ namespace  fc
     /* void* memAddress; */
     VmaAllocator allocator = FcLocator::Gpu().getAllocator();
 
-    if (vmaMapMemory(allocator, mAllocation, &mMemoryAddress) != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to map VMA buffer memory!");
-    }
+    VK_ASSERT(vmaMapMemory(allocator, mAllocation, &mMemoryAddress));
 
     return mMemoryAddress;
     // ?? The following method may also work with some research...
@@ -216,7 +210,7 @@ namespace  fc
 //     memoryAllocInfo.memoryTypeIndex = memoryTypeIndex;
 
 //      // allocate memory to VkDeviceMemory
-//     if (vkAllocateMemory(device, &memoryAllocInfo, nullptr, &mBufferMemory) != VK_SUCCESS)
+//     VK_ASSERT(vkAllocateMemory(device, &memoryAllocInfo, nullptr, &mBufferMemory));
 //     {
 //       throw std::runtime_error("Failed to allocate Vulkan Device Memory for FcBuffer!");
 //     }
@@ -234,10 +228,8 @@ namespace  fc
     void* memAddress;
     VmaAllocator allocator = FcLocator::Gpu().getAllocator();
 
-    if (vmaMapMemory(allocator, mAllocation, &memAddress) != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to map VMA buffer memory!");
-    }
+    VK_ASSERT(vmaMapMemory(allocator, mAllocation, &memAddress));
+
     // ?? Note that the following function will also accomplish the same thing but
     // in a more robust manner -- though it may be a bit slower, this also flushes
     // memory when needed so should really look into.
@@ -260,7 +252,7 @@ namespace  fc
     // void* memAddress;
     // VmaAllocator allocator = FcLocator::Gpu().getAllocator();
 
-    // if (vmaMapMemory(allocator, mAllocation, &memAddress) != VK_SUCCESS)
+    // VK_ASSERT(vmaMapMemory(allocator, mAllocation, &memAddress));
     // {
     //   throw std::runtime_error("Failed to map VMA buffer memory!");
     // }

@@ -1,6 +1,7 @@
 //>--- fc_image.cpp ---<//
 #include "fc_image.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "fc_assert.hpp"
 #include "fc_defaults.hpp"
 #include "fc_locator.hpp"
 #include "fc_renderer.hpp"
@@ -267,12 +268,7 @@ namespace fc
 
     FcGpu& gpu = FcLocator::Gpu();
 
-    if (vmaCreateImage(gpu.getAllocator(), &imageInfo
-                       , &allocInfo, &mImage, &mAllocation, nullptr)
-        != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to allocate a Vulkan image!: ");
-    }
+    VK_ASSERT(vmaCreateImage(gpu.getAllocator(), &imageInfo, &allocInfo, &mImage, &mAllocation, nullptr));
 
     // -*-*-*-*-*-*-*-*-*-*-*-*-*-   FINALIZE IMAGEVIEW   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
     imageViewInfo.format = mFormat;
@@ -280,11 +276,7 @@ namespace fc
     imageViewInfo.subresourceRange.layerCount = mLayerCount;
     imageViewInfo.subresourceRange.levelCount = mMipLevels;
 
-    if (vkCreateImageView(FcLocator::Device(), &imageViewInfo, nullptr, &mImageView)
-        != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to create an Image View!");
-    }
+    VK_ASSERT(vkCreateImageView(FcLocator::Device(), &imageViewInfo, nullptr, &mImageView));
 
     // Add image to the bindless array for deferred updating
     if (gpu.Properties().isBindlessSupported)
@@ -295,7 +287,7 @@ namespace fc
 
 
     // *-*-*-*-*-*-*-   CUSTOM MEMORY ALLOCATION SAVED FOR REFERENCE   *-*-*-*-*-*-*- //
-    // if (vkCreateImage(device, &imageInfo, nullptr, &mImage) != VK_SUCCESS)
+    // VK_ASSERT(vkCreateImage(device, &imageInfo, nullptr, &mImage));
     // {
     //   throw std::runtime_error("Failed to create a Vulkan Image!");
     // }
@@ -339,7 +331,7 @@ namespace fc
     // memAllocInfo.memoryTypeIndex = memoryTypeIndex;
 
     //  // allocate memory to VkDeviceMemory
-    // if (vkAllocateMemory(device, &memAllocInfo, nullptr, &mImageMemory) != VK_SUCCESS)
+    // VK_ASSERT(vkAllocateMemory(device, &memAllocInfo, nullptr, &mImageMemory));
     // {
     //   throw std::runtime_error("Failed to allocate Vulkan Device Memory for FcImage!");
     // }
@@ -372,10 +364,8 @@ namespace fc
     imageViewInfo.subresourceRange.baseArrayLayer = 0;
     imageViewInfo.subresourceRange.layerCount = 1;
 
-    if (vkCreateImageView(FcLocator::Device(), &imageViewInfo, nullptr, &mImageView) != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to create an Image View!");
-    }
+    VK_ASSERT(vkCreateImageView(FcLocator::Device(), &imageViewInfo, nullptr, &mImageView));
+
   }
 
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW METHOD   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //

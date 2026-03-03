@@ -17,16 +17,13 @@ namespace fc
   void FcFont::createRasterFont(std::string fontName
                                 , int size, int firstGlyph, int lastGlyph)
   {
-    int result;
     FT_Library fontLibrary;
 
      // load the font and get metrics
-    result = FT_Init_FreeType(&fontLibrary);
-    DBG_ASSERT_FT(result, "Could not init FreeType Library");
+    FT_ASSERT(FT_Init_FreeType(&fontLibrary));
 
     FT_Face face;
-    result = FT_New_Face(fontLibrary, fontName.c_str(), 0, &face);
-    DBG_ASSERT_FT(result, "Failed to load font");
+    FT_ASSERT(FT_New_Face(fontLibrary, fontName.c_str(), 0, &face));
 
      // set up the boundaries of the glyphs to render to an image
     mFirstGlyph = firstGlyph;
@@ -55,8 +52,8 @@ namespace fc
     {
        // load each glyph and save it to the glyph vector
       unsigned char charIndex = FT_Get_Char_Index(face, ch);
-      result = FT_Load_Glyph(face, charIndex, FT_LOAD_RENDER);
-      DBG_ASSERT_FT(result, "Failed to load glyph");
+
+      FT_ASSERT(FT_Load_Glyph(face, charIndex, FT_LOAD_RENDER));
 
        // ?? doesn't seem to exclude the proper characters
        // don't add any glyphy that does not have an associated bitmap
@@ -67,8 +64,7 @@ namespace fc
 
        // if the glyph has an image add it to our vector
       FT_Glyph loadedGlyph;
-      result = FT_Get_Glyph(curGlyph, &loadedGlyph);
-      DBG_ASSERT_FT(result, "Failed to retrieve currently loaded glyph");
+      FT_ASSERT(FT_Get_Glyph(curGlyph, &loadedGlyph));
 
       glyphs.push_back(loadedGlyph);
 
@@ -114,8 +110,7 @@ namespace fc
       unsigned char ch = glyphIndex + firstGlyph;
       mCharacters.at(ch).bearing.y += tallestChar - mCharacters.at(ch).size.y;
 
-      result = FT_Glyph_To_Bitmap(&glyphs[glyphIndex], FT_RENDER_MODE_NORMAL, nullptr, true);
-      DBG_ASSERT_FT(result, "failed to render glyph to bitmap");
+      FT_ASSERT(FT_Glyph_To_Bitmap(&glyphs[glyphIndex], FT_RENDER_MODE_NORMAL, nullptr, true));
 
        // bit of tricky casting and manipulation to make bitmap easier to access
       FT_BitmapGlyph currGlyph = (FT_BitmapGlyph)glyphs[glyphIndex];

@@ -1,6 +1,7 @@
 //>--- fc_pipeline.cpp ---<//
 #include "fc_pipeline.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "fc_assert.hpp"
 #include "fc_descriptors.hpp"
 #include "fc_locator.hpp"
 #include "log.hpp"
@@ -435,10 +436,7 @@ namespace fc
     layoutInfo.pSetLayouts = pipelineConfig.descriptorlayouts.data();
 
     // check it was created properly
-    if (vkCreatePipelineLayout(pDevice, &layoutInfo, nullptr, &mPipelineLayout) != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to create Pipeline Layout!");
-    }
+    VK_ASSERT(vkCreatePipelineLayout(pDevice, &layoutInfo, nullptr, &mPipelineLayout));
 
     mName = pipelineConfig.name;
 
@@ -480,11 +478,8 @@ namespace fc
       computePipelineInfo.layout = mPipelineLayout;
       computePipelineInfo.stage = shaderStages[0];
 
-      if (vkCreateComputePipelines(FcLocator::Device(), VK_NULL_HANDLE, 1,
-                                   &computePipelineInfo, nullptr, &mPipeline) != VK_SUCCESS)
-      {
-        throw std::runtime_error("Failed to create Vulkan Compute Pipeline!");
-      }
+      VK_ASSERT(vkCreateComputePipelines(FcLocator::Device(), VK_NULL_HANDLE, 1,
+                                         &computePipelineInfo, nullptr, &mPipeline));
 
       mBindPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
     }
@@ -560,10 +555,8 @@ namespace fc
     shaderInfo.pCode = reinterpret_cast<const uint32_t* >(code.data());
 
     VkShaderModule shaderModule;
-    if (vkCreateShaderModule(FcLocator::Device(), &shaderInfo, nullptr, &shaderModule) != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to create Shader Module!");
-    }
+
+    VK_ASSERT(vkCreateShaderModule(FcLocator::Device(), &shaderInfo, nullptr, &shaderModule));
 
     return shaderModule;
   } // --- FcPipeline::createShaderModule (_) --- (END)

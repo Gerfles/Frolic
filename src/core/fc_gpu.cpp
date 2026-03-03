@@ -17,17 +17,17 @@
 
 namespace fc
 {
-// TODO relocate to debug/error check header and maybe define with class, etc.
-  static void check_result(VkResult result);
-#define check(result) FCASSERTM( result == VK_SUCCESS, "Vulkan assert code %d", (int)result)
-
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   INIT   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+  //
   bool FcGpu::init(const VkInstance& instance, FcWindow& window)
   {
     // first couple the window instance to the GPU (needed for surface stuff)
     pWindow = &window;
 
-    const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME, VK_KHR_DYNAMIC_RENDERING_LOCAL_READ_EXTENSION_NAME};
+    const std::vector<const char*> deviceExtensions = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+	VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
+	VK_KHR_DYNAMIC_RENDERING_LOCAL_READ_EXTENSION_NAME };
+
     // TODO Make sure the extensions and layers are added to specific OSs
     //I believe the following is needed by MacOS
     //, "VK_KHR_portability_subset"};
@@ -51,9 +51,6 @@ namespace fc
         vmaAllocatorInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
         // ?? check thoroughly if we need to add different flags
         //vmaAllocatorInfo.flags  = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
-
-        // VkResult result = vmaCreateAllocator(&vmaAllocatorInfo, &mAllocator);
-        // check(result);
 
         VK_ASSERT(vmaCreateAllocator(&vmaAllocatorInfo, &mAllocator));
 
@@ -286,11 +283,7 @@ namespace fc
     deviceInfo.pNext = &features1_3;
 
     // createt the "logical" device
-    if (vkCreateDevice(mPhysicalGPU, &deviceInfo, nullptr, &mLogicalGPU) != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to create vulkan logical device!");
-      return false;
-    }
+    VK_ASSERT(vkCreateDevice(mPhysicalGPU, &deviceInfo, nullptr, &mLogicalGPU));
 
     // Queues are created at the same time as the device, so get hadles to them
     //TRY using a pointer to VkQueue in the GPU class declaration
@@ -394,7 +387,6 @@ namespace fc
   // TODO pass list of required extensions to let us get rid of stored global deviceExtensions
   bool FcGpu::isDeviceExtensionSupported(const VkPhysicalDevice& device) const
   {
-    VkResult r = VK_ERROR_VALIDATION_FAILED;
     // get number of extensions supported
     uint32_t extensionCount = 0;
     vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);

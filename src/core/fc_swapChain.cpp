@@ -1,6 +1,7 @@
 //>--- fc_swapChain.cpp ---<//
 #include "fc_swapChain.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "fc_assert.hpp"
 #include "log.hpp"
 #include "fc_gpu.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -119,13 +120,8 @@ namespace fc
     VkSwapchainKHR oldSwapchain = (shouldReUseOldSwapchain) ? mSwapchain : VK_NULL_HANDLE;
     swapChainInfo.oldSwapchain = oldSwapchain;
 
-
-
     // Finally, create the swapchain
-    if (vkCreateSwapchainKHR(pGpu->getVkDevice(), &swapChainInfo, nullptr, &mSwapchain) != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to create a swapchain");
-    }
+    VK_ASSERT(vkCreateSwapchainKHR(pGpu->getVkDevice(), &swapChainInfo, nullptr, &mSwapchain));
 
     // if we are reusing resources from old swap chain, make sure to destroy them after new swapchain creation
     if (shouldReUseOldSwapchain)
@@ -472,10 +468,8 @@ namespace fc
     renderPassInfo.dependencyCount = static_cast<uint32_t>(subpassDependencies.size());
     renderPassInfo.pDependencies = subpassDependencies.data();
 
-    if (vkCreateRenderPass(pGpu->getVkDevice(), &renderPassInfo, nullptr, &mRenderPass) != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to create a Vulkan Render Pass!");
-    }
+    VK_ASSERT(vkCreateRenderPass(pGpu->getVkDevice(), &renderPassInfo, nullptr, &mRenderPass));
+
   }
 
 

@@ -119,7 +119,7 @@ namespace fc
       fcPrint("Heap Allocator Shutdown - all memory free!\n");
     }
 
-    FCASSERTM(stats.allocatedBytes == 0, "Allocations still present! This indicates a bug in program!");
+    FC_ASSERT_MSG(stats.allocatedBytes == 0, "Allocations still present! This indicates a bug in program!");
 
     tlsf_destroy(tlsfHandle);
 
@@ -207,7 +207,7 @@ namespace fc
   //
   void* LinearAllocator::allocate(sizeT size, sizeT alignment)
   {
-    FCASSERT(size > 0);
+    FC_ASSERT(size > 0);
 
     const sizeT newStart = memoryAlign(allocatedSize, alignment);
     const sizeT newAllocatedSize = newStart + size;
@@ -303,7 +303,7 @@ namespace fc
   //
   void* StackAllocator::allocate(sizeT size, sizeT alignment)
   {
-    FCASSERT(size > 0);
+    FC_ASSERT(size > 0);
 
     const sizeT newStart = memoryAlign(allocatedSize, alignment);
     const sizeT newAllocatedSize = newStart + size;
@@ -329,10 +329,10 @@ namespace fc
   //
   void StackAllocator::deallocate(void *ptr)
   {
-    FCASSERT(ptr >= memory);
-    FCASSERTM(ptr < memory + totalSize, "Out of bound free on linear allocator (outside bounds). Atempting to to free %p, %llu after beginning of buffer (memory %p size %llu, allocated %llu)", (u8*)ptr, (u8*)ptr - memory, memory, totalSize, allocatedSize);
+    FC_ASSERT(ptr >= memory);
+    FC_ASSERT_MSG(ptr < memory + totalSize, "Out of bound free on linear allocator (outside bounds). Atempting to to free %p, %llu after beginning of buffer (memory %p size %llu, allocated %llu)", (u8*)ptr, (u8*)ptr - memory, memory, totalSize, allocatedSize);
 
-    FCASSERTM(ptr < memory + allocatedSize, "Out of bounds free on linear allocator (inside bounds, after allocated). Atempting to free %p, %llu after beginning of buffer (memory %p size %llu, allocated %llu)", (u8*)ptr, (u8*)ptr - memory, memory, totalSize, allocatedSize);
+    FC_ASSERT_MSG(ptr < memory + allocatedSize, "Out of bounds free on linear allocator (inside bounds, after allocated). Atempting to free %p, %llu after beginning of buffer (memory %p size %llu, allocated %llu)", (u8*)ptr, (u8*)ptr - memory, memory, totalSize, allocatedSize);
 
     const sizeT sizeAtPtr = (u8*)ptr - memory;
     allocatedSize = sizeAtPtr;
@@ -389,7 +389,7 @@ namespace fc
   //
   void* DoubleStackAllocator::allocate(sizeT size, sizeT alignment)
   {
-    FCASSERT(false);
+    FC_ASSERT(false);
     return nullptr;
   }
 
@@ -397,7 +397,7 @@ namespace fc
   //
   void* DoubleStackAllocator::allocate(sizeT size, sizeT alignment, cstring file, i32 line)
   {
-    FCASSERT(false);
+    FC_ASSERT(false);
     return nullptr;
   }
 
@@ -405,7 +405,7 @@ namespace fc
   //
   void* DoubleStackAllocator::allocateTop(sizeT size, sizeT alignment)
   {
-    FCASSERT(size > 0);
+    FC_ASSERT(size > 0);
 
     const sizeT newStart = memoryAlign(top - size, alignment);
     if (newStart <= bottom)
@@ -422,7 +422,7 @@ namespace fc
   //
   void* DoubleStackAllocator::allocateBottom(sizeT size, sizeT alignment)
   {
-    FCASSERT(size > 0);
+    FC_ASSERT(size > 0);
 
     const sizeT newStart = memoryAlign(bottom, alignment);
     const sizeT newAllocatedSize = newStart + size;
@@ -457,7 +457,7 @@ namespace fc
   //
   void DoubleStackAllocator::deallocate(void *ptr)
   {
-    FCASSERT(false);
+    FC_ASSERT(false);
   }
 
   //

@@ -21,28 +21,24 @@ namespace fc
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   MACROS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #define ArraySize(array) (sizeof(array) / sizeof((array)[0]))
 
-// TODO look into best practices
-#if defined(_MSC_VER)
+// TEST windows versions
+#if defined(_MSC_VER) // OR (_WIN32)
 //#define FROLIC_INLINE inline
-#define    FROLIC_FINLINE                          __forceinline
-#define    FROLIC_DEBUG_BREAK                      __debugbreak();
-#define    FROLIC_DISABLE_WARNING(warning_number)  __pragma(warning(disable : warning_number))
-#define    FROLIC_CONCAT_OPERATOR(x, y)            x##y
-#else
-#define    FROLIC_FINLINE                          always_inline
-#define    FROLIC_DEBUG_BREAK                      raise(SIGTRAP);
-#define    FROLIC_CONCAT_OPERATOR(x, y)            x y
-//#define  FROLIC_INLINE                           inline
-#endif // MSVC
+#define    FC_FINLINE                          __forceinline
+#define    FC_DEBUG_BREAK                      __debugbreak();
+#define    FC_DISABLE_WARNING(warning_number)  __pragma(warning(disable : warning_number))
+#define    FC_CONCAT(x, y)            x##y
+#else // works in most POSIX systems and should be fine in macOS
+#define    FC_FINLINE                          always_inline
+#define    FC_DEBUG_BREAK                      raise(SIGTRAP);
+#define    FC_CONCAT(x, y)            x y
+#define    FC_INLINE                           inline
+#endif // (_MSVC_VER) defined
 
-#define    FROLIC_STRINGTIZE(L)                    #L
-#define    FROLIC_MAKESTRING(L)                    FROLIC_STRINGTIZE(L)
-#define    FROLIC_CONCAT(x, y)                     FROLIC_CONCAT_OPERATOR(x, y)
-#define    FROLIC_LINE_STRING                      FROLIC_MAKESTRING(__LINE__)
-#define    FROLIC_FILELINE(MESSAGE)                __FILE__ "(" FROLIC_LINE_STRING ") : " MESSAGE
+  //
 
 // unique names
-#define    FROLIC_UNIQUE_SUFFIX(PARAM)             FROLIC_CONCAT(PARAM, __LINE__)
+#define    FC_UNIQUE_SUFFIX(PARAM)             FC_CONCAT(PARAM, __LINE__)
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-   NATIVE TYPE TYPEDEFS   *-*-*-*-*-*-*-*-*-*-*-*-*- //
   typedef  uint8_t   u8;

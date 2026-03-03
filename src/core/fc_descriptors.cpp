@@ -1,6 +1,7 @@
 //>--- fc_descriptors.cpp ---<//
 #include "fc_descriptors.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "fc_assert.hpp"
 #include "fc_buffer.hpp"
 #include "fc_image.hpp"
 #include "fc_locator.hpp"
@@ -142,10 +143,7 @@ namespace fc
       poolInfo.poolSizeCount = static_cast<uint32_t>(bindlessPoolSizes.size());
       poolInfo.pPoolSizes = bindlessPoolSizes.data();
 
-      if (vkCreateDescriptorPool(pDevice, &poolInfo, nullptr, &mBindlessDescriptorPool) != VK_SUCCESS)
-      {
-        throw std::runtime_error("Failed to create bindless descriptor pool!");
-      }
+      VK_ASSERT(vkCreateDescriptorPool(pDevice, &poolInfo, nullptr, &mBindlessDescriptorPool));
     }
   }
 
@@ -188,10 +186,7 @@ namespace fc
 
     VkDescriptorSetLayout descriptorLayout;
 
-    if (vkCreateDescriptorSetLayout(pDevice, &layoutInfo, nullptr, &descriptorLayout) != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to create a Vulkan descriptor set layout!");
-    }
+    VK_ASSERT(vkCreateDescriptorSetLayout(pDevice, &layoutInfo, nullptr, &descriptorLayout));
 
     return descriptorLayout;
   }
@@ -220,10 +215,7 @@ namespace fc
       allocInfo.descriptorPool = mBindlessDescriptorPool;
       allocInfo.pNext = &descCountInfo;
 
-      if (vkAllocateDescriptorSets(pDevice, &allocInfo, &descriptorSet) != VK_SUCCESS)
-      {
-        throw std::runtime_error("Failed to create Vulkan descriptor set!");
-      }
+      VK_ASSERT(vkAllocateDescriptorSets(pDevice, &allocInfo, &descriptorSet));
     }
     else
     {
@@ -240,10 +232,7 @@ namespace fc
 
         nextPool = getPool();
 
-        if (vkAllocateDescriptorSets(pDevice, &allocInfo, &descriptorSet) != VK_SUCCESS)
-        {
-          throw std::runtime_error("failed to allocate Vulkan Descriptor Set");
-        }
+        VK_ASSERT(vkAllocateDescriptorSets(pDevice, &allocInfo, &descriptorSet));
       }
 
       mReadyPools.push_back(nextPool);

@@ -3,6 +3,7 @@
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_locator.hpp"
 #include "fc_debug.hpp"
+#include "fc_assert.hpp"
 #include "fc_descriptors.hpp"
 #include "fc_defaults.hpp"
 #include "fc_camera.hpp"
@@ -292,11 +293,8 @@ namespace fc
     poolInfo.poolSizeCount = static_cast<uint32_t>(std::size(poolSizes));
     poolInfo.pPoolSizes = poolSizes;
 
-
-    if (vkCreateDescriptorPool(pDevice, &poolInfo, nullptr, &mImgGuiDescriptorPool) != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to allocate Descriptor Pool for ImGUI");
-    }
+    // Finally create the descriptor pool
+    VK_ASSERT(vkCreateDescriptorPool(pDevice, &poolInfo, nullptr, &mImgGuiDescriptorPool));
 
     // *-*-*-*-*-*-*-*-*-*-*-*-   INITIALIZE IMGUI LIBRARY   *-*-*-*-*-*-*-*-*-*-*-*- //
     // initialize core structures
@@ -434,12 +432,8 @@ namespace fc
     instanceInfo.ppEnabledLayerNames = validationLayers.data();
 
     // now just call the vulkan function to create an instance
-    VkResult result = vkCreateInstance(&instanceInfo, nullptr, &mInstance);
+    VK_ASSERT(vkCreateInstance(&instanceInfo, nullptr, &mInstance));
 
-    if (result != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to create Vulkan Instance!");
-    }
   }  // END void FcRenderer::createInstance(...)
 
 
@@ -534,35 +528,24 @@ namespace fc
     // To support mult-threading, we need to add multiple command pools
     for (FrameAssets &frame : mFrames)
     {
-      if (vkCreateCommandPool(pDevice, &commandPoolInfo, nullptr, &frame.commandPool) != VK_SUCCESS)
-      {
-        throw std::runtime_error("Failed to create a Vulkan Command Pool!");
-      }
+      VK_ASSERT(vkCreateCommandPool(pDevice, &commandPoolInfo, nullptr, &frame.commandPool));
 
       allocInfo.commandPool = frame.commandPool;
 
       // allocate command buffer from pool
-      if (vkAllocateCommandBuffers(pDevice, &allocInfo, &frame.commandBuffer) != VK_SUCCESS)
-      {
-        throw std::runtime_error("Failed to allocate a Vulkan Command Buffer!");
-      }
+      VK_ASSERT(vkAllocateCommandBuffers(pDevice, &allocInfo, &frame.commandBuffer));
     }
 
     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   GENERAL USE (IMMEDIATE)  -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     // allocate command pool for general renderer use
-    if (vkCreateCommandPool(pDevice, &commandPoolInfo, nullptr, &mImmediateCommandPool) != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to create a Vulkan Command Pool!");
-    }
+    VK_ASSERT(vkCreateCommandPool(pDevice, &commandPoolInfo, nullptr, &mImmediateCommandPool));
 
     // TODO try to create multiple command buffers for specific tasks that we can reuse...
     // Allocate command buffer for immediate commands (ie. transitioning images/buffers to GPU)
     allocInfo.commandPool = mImmediateCommandPool;
 
-    if (vkAllocateCommandBuffers(pDevice, &allocInfo, &mImmediateCmdBuffer) != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to allocate a Vulkan Command Buffer!");
-    }
+    VK_ASSERT(vkAllocateCommandBuffers(pDevice, &allocInfo, &mImmediateCmdBuffer));
+
   } // --- FcRenderer::createCommandPools (_) --- (END)
 
 
@@ -619,11 +602,7 @@ namespace fc
     submitInfo.pCommandBufferInfos = &cmdBufferSubmitInfo;
 
     // Submit the command buffer to the queue
-    // TODO assert, don't check like this
-    if (vkQueueSubmit2(mGpu.graphicsQueue(), 1, &submitInfo, mImmediateFence) != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to submit Vulkan Command Buffer to the queue!");
-    }
+    VK_ASSERT(vkQueueSubmit2(mGpu.graphicsQueue(), 1, &submitInfo, mImmediateFence));
 
     vkWaitForFences(pDevice, 1, &mImmediateFence, true, U64_MAX);
   }
@@ -979,24 +958,15 @@ namespace fc
     for (FrameAssets &frame : mFrames)
     {
       // create 2 semaphores (one tells us the image is ready to draw to and one tells us when we're done drawing)
-      if (vkCreateSemaphore(pDevice, &semaphoreInfo, nullptr, &frame.imageAvailableSemaphore) != VK_SUCCESS
-          || vkCreateSemaphore(pDevice, &semaphoreInfo, nullptr, &frame.renderFinishedSemaphore) != VK_SUCCESS)
-      {
-        throw std::runtime_error("Failed to create a Vulkan sychronization Semaphore!");
-      }
-      // create the fence that makes sure the draw commands of a a given frame is finished
+      VK_ASSERT(vkCreateSemaphore(pDevice, &semaphoreInfo, nullptr, &frame.imageAvailableSemaphore));
+      VK_ASSERT(vkCreateSemaphore(pDevice, &semaphoreInfo, nullptr, &frame.renderFinishedSemaphore));
 
-      if (vkCreateFence(pDevice, &fenceInfo, nullptr, &frame.renderFence) != VK_SUCCESS)
-      {
-        throw std::runtime_error("Failed to create a Vulkan sychronization Fence!");
-      }
+      // create the fence that makes sure the draw commands of a a given frame is finished
+      VK_ASSERT(vkCreateFence(pDevice, &fenceInfo, nullptr, &frame.renderFence));
     }
 
     // -*-*-*-*-*-*-*-*-*-*-*-*-   IMMEDIATE COMMAND SYNC   -*-*-*-*-*-*-*-*-*-*-*-*- //
-    if (vkCreateFence(pDevice, &fenceInfo, nullptr, &mImmediateFence) != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to create a Vulkan sychronization Fence!");
-    }
+    VK_ASSERT(vkCreateFence(pDevice, &fenceInfo, nullptr, &mImmediateFence));
 
   } // --- FcRenderer::createSynchronization (_) --- (END)
 
@@ -1065,11 +1035,7 @@ namespace fc
     // let vulkan know that we intend to only use this buffer once
     bufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-    if (vkBeginCommandBuffer(commandBuffer, &bufferBeginInfo) != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to start recording a Vulkan Command Buffer!");
-    }
-
+    VK_ASSERT(vkBeginCommandBuffer(commandBuffer, &bufferBeginInfo));
 
     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROM OLD METHOD   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
@@ -1180,7 +1146,6 @@ namespace fc
     mSwapchain.transitionImage(commandBuffer, swapchainImageIndex
                                , VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
                                , VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-
     //
     drawImGui(commandBuffer, mSwapchain.getFcImage(swapchainImageIndex).ImageView());
 
@@ -1189,10 +1154,7 @@ namespace fc
                                , VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
     // stop recording to command buffer
-    if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to stop recording a Vulkan Command Buffer!");
-    }
+    VK_ASSERT(vkEndCommandBuffer(commandBuffer));
 
     // prepare all the submit info for submiting commands to the queue
     VkCommandBufferSubmitInfo cmdBufferSubmitInfo = {};
@@ -1221,10 +1183,7 @@ namespace fc
     submitInfo.pCommandBufferInfos = &cmdBufferSubmitInfo;
 
     // Submit the command buffer to the queue
-    if (vkQueueSubmit2(mGpu.graphicsQueue(), 1, &submitInfo, getCurrentFrame().renderFence) != VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to submit Vulkan Command Buffer to the queue!");
-    }
+    VK_ASSERT(vkQueueSubmit2(mGpu.graphicsQueue(), 1, &submitInfo, getCurrentFrame().renderFence));
 
     // 3. present image to screen when it has signalled finished rendering
     VkPresentInfoKHR presentInfo = {};
@@ -1241,8 +1200,8 @@ namespace fc
     {
       fcPrintEndl("ERRROR OUT of date submit");
       mShouldWindowResize = true;
-      //mWindow.resetWindowResizedFlag();
-      //handleWindowResize();
+      /* mWindow.resetWindowResizedFlag(); */
+      /* handleWindowResize(); */
     }
     else if (result != VK_SUCCESS)
     {

@@ -1,6 +1,7 @@
 //>--- frolic.cpp ---<//
 #include "frolic.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "core/fc_assert.hpp"
 #include "core/fc_cvar_system.hpp"
 #include "core/fc_light.hpp"
 #include "core/fc_locator.hpp"
@@ -52,6 +53,7 @@ namespace fc
     // TODO should explicitly enable or disable non-uniform scaling utilizing functors for
     // actual function call to
 
+    /* FCASSERT(mShouldClose != false); */
 
     // TODO pull some stuff out of render initialize and have init VK systems?
     // TODO define our own exception classes and failure codes for debugging later
