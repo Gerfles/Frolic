@@ -7,8 +7,13 @@
 #include <vulkan/vk_enum_string_helper.h>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
+// TODO for release version, prefer message boxes for some things
+// std::ostringstream errorMsg;
+// errorMsg << "Window coulde not be created! SDL Error: " << SDL_GetError();
+// SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "SDL", errorMsg.str().c_str(), mWindow);
+// return false;
 
-namespace frolic
+namespace fc
 {
 
 #define FC_ERROR(message, function,  result)                            \

@@ -13,14 +13,21 @@
 #include "fc_frame_assets.hpp"
 #include "fc_types.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'S   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-namespace fc { class FcCamera; }//class MaterialFeatures; }
+namespace fc { class FcCamera; class FrolicConfig; }
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
 
 namespace fc
 {
-  // TODO //
-  // create the instance first and figure out what kind of bufferring we can have (double,
+  // The chain of function that the renderer will call when asked to draw
+  class FcDrawChain
+  {
+
+  };
+
+
+
+  // TODO create the instance first and figure out what kind of bufferring we can have (double,
   // tripple, etc) then initialize all following objects to have that size so we don't need
   // to resize anything
     class FcRenderer
@@ -74,13 +81,13 @@ namespace fc
        // TODO create agile version of data structures e.g. FcArray
        FcAllocator* pAllocator;
 
-       // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FUNCTIONS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+       // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   HELPERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
        void createInstance(VkApplicationInfo& appInfo);
-       bool areInstanceExtensionsSupported(const std::vector<const char*>& instanceExtensions);
+       /* bool areInstanceExtensionsSupported(const std::vector<const char*>& instanceExtensions); */
+       /* bool areValidationLayersSupported(std::vector<const char*>& validationLayers); */
        void createCommandPools();
        // void recordCommands(uint32_t currentFrame);
        void createSynchronization();
-       void updateUseFlags(MaterialFeatures feature, bool enable);
        void initDrawImage();
        void initImgui();
 
@@ -109,8 +116,6 @@ namespace fc
        bool shouldDrawWireframe {false};
        int mBoundingBoxId {-1};
 
-
-       void drawBackground();
        FcShadowMap mShadowMap;
        /* void drawShadowMap(bool drawDebug); */
        // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   PROFILING   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -155,12 +160,12 @@ namespace fc
        FcRenderer& operator=(const FcRenderer&) = delete;
        FcRenderer(const FcRenderer&) = delete;
        //
-       int init(VkApplicationInfo& appInfo, VkExtent2D screenSize, SceneDataUbo** pSceneData);
+       int init(FrolicConfig& config, SceneDataUbo** pSceneData);
        //
        void handleWindowResize();
        uint32_t beginFrame();
        void endFrame(uint32_t swapchainImgIndex);
-       void drawFrame(bool drawDebugShadowMap);
+       void drawFrame();
        inline void setActiveCamera(FcCamera* camera) { pActiveCamera = camera; }
        // TODO add bilboards to draw collection
        inline void addBillboard(FcBillboard& billboard) { mBillboardRenderer.addBillboard(billboard); }
@@ -179,6 +184,6 @@ namespace fc
        inline FcStats& getStats() { return mDrawCollection.stats; }
        void shutDown();
 
-    };
+    }; // ---     class FcRenderer --- (END)
 
 } // - End - NAMESPACE fc //

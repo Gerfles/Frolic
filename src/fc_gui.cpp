@@ -14,8 +14,11 @@ namespace fc
   //
   void FcGUI::drawGUI(Frolic* fc)
   {
-    // test ImGui UI
-    // Left here to add a demo windo that names all the features for (handy for searching)
+    // Let Imgui know that a new frame is being built
+    ImGui_ImplSDL2_NewFrame();
+    ImGui::NewFrame();
+
+    // Left here to add a demo windo that names all the features for (handy for searching features)
     /* ImGui::ShowDemoWindow(); */
 
     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   STATISTICS WINDOW   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -119,6 +122,7 @@ namespace fc
 
         // TODO this shouldn't be a CVAR but left for reference
         float* movementSpeed = CVarSystem::Get()->GetFloatCVar("movementSpeed.float");
+
         if (ImGui::SliderFloat("Movement Speed", movementSpeed, 1, 50, "%1.f"))
         {
           fc->mPlayer.setMoveSpeed(*movementSpeed);
@@ -155,9 +159,14 @@ namespace fc
         }
 
         // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   SHADOW MAP   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
+        bool* shouldDrawShadowMap = CVarSystem::Get()->GetBoolCVar("shouldDrawShadowMap.bool");
+        /* bool shouldDrawShadowMap = true; */
+        ImGui::Checkbox("Draw Shadow Map", shouldDrawShadowMap);
+
         // TODO use frustum instead
+
         Box& frustum = fc->mRenderer.mShadowMap.Frustum();
-        ImGui::Checkbox("Draw Shadow Map", &fc->mShouldDrawDebugShadowMap);
         if(ImGui::SliderFloat("Left", &frustum.left, -20.f, 20.f))
         {
           fc->mRenderer.mShadowMap.updateLightSpaceTransform();

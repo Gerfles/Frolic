@@ -13,7 +13,32 @@
 // TODO format according to Fc conventions
 namespace fc
 {
-  //
+// TODO remove duplicate functionality provided by log etc.
+// TODO clear output.txt each time and think about printing differently
+inline void dprintf(const char* fmt, ...)
+{
+  va_list parms;
+  static char buf[2048] = {0};
+
+   // try to print in the allocated space
+  va_start(parms, fmt);
+  vsprintf(buf, fmt, parms);
+  va_end(parms);
+
+  // write the information out ot a txt file
+  //  #if 0
+  FILE *fp = fopen("output.txt", "w");
+  fprintf(fp, "%s", buf);
+  fclose(fp);
+   // #endif
+
+   // output to the visual studio window
+   // OutputDebugStringA( buf );
+
+}// --- dprintf (_) --- (END)
+
+
+//
   LogService              s_log_service;
 
   static constexpr u32    k_string_buffer_size = 1024 * 1024;

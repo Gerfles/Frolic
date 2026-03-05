@@ -2,20 +2,21 @@
 #include "fc_renderer.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_locator.hpp"
-#include "fc_debug.hpp"
 #include "fc_assert.hpp"
 #include "fc_descriptors.hpp"
 #include "fc_defaults.hpp"
 #include "fc_camera.hpp"
 #include "fc_memory.hpp"
+#include "fc_cvar_system.hpp"
+#include "utilities.hpp"
+#include "frolic.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <SDL_events.h>
 #include <SDL2/SDL_vulkan.h>
 #include <SDL2/SDL_log.h>
+#include <SDL_version.h>
 #include <imgui_impl_sdl2.h>
 #include <imgui_impl_vulkan.h>
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <unordered_set>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
@@ -36,7 +37,7 @@ namespace fc
   //    // including a pointer to a VK_STRUCTURE type appinfo
   // }
 
-  int FcRenderer::init(VkApplicationInfo& appInfo, VkExtent2D screenSize, SceneDataUbo** pSceneData)
+  int FcRenderer::init(FrolicConfig& config, SceneDataUbo** pSceneData)
   {
     // TODO get rid of this perhaps
     try
@@ -44,10 +45,36 @@ namespace fc
       // TODO get rid of this within renderer and instead initialize in frolic.cpp probably or GPU
       FcLocator::init();
 
-      mWindow.initWindow(screenSize.width, screenSize.height, "Frolic Engine...");
+      VkExtent2D screenDims {config.windowWidth, config.windowHeight};
+      FcLocator::provide(screenDims);
+
+      mWindow.initWindow(screenDims, config.applicationName);
+
+      // Application Specs for developer use
+      VkApplicationInfo appInfo{};
+      appInfo.sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+      appInfo.pApplicationName   = config.applicationName.c_str();
+      appInfo.applicationVersion = VK_MAKE_VERSION(config.appVersionMajor,
+                                                   config.appVersionMinor,
+                                                   config.appVersionPatch);
+      appInfo.pEngineName        = "Frolic Engine";
+      appInfo.engineVersion      = VK_MAKE_VERSION(1, 0, 0);
+      // Make sure we let vulkan know which version we intend to use
+      appInfo.apiVersion         = VK_API_VERSION_1_3;
 
       // now we need a vulkan instance to do anything else
       createInstance(appInfo);
+
+      //TODO should do this in a builder class that goes out of scope when no longer needed
+      SDL_version compiled;
+      SDL_VERSION(&compiled);
+
+      SDL_version linked;
+      SDL_GetVersion(&linked);
+      // Pring version info
+      SDL_Log("SDL version(s): %u.%u.%u (compiled),  %u.%u.%u. (linked)\n",
+              compiled.major, compiled.minor, compiled.patch, linked.major, linked.minor, linked.patch);
+      SDL_Log("Window Dimensions: %i x %i", config.windowWidth, config.windowHeight);
 
       // create the surface (interface between Vulkan and window (SDL))
       mWindow.createWindowSurface(mInstance);
@@ -135,8 +162,6 @@ namespace fc
       mDynamicScissors.extent.width = mDrawExtent.width;
       mDynamicScissors.extent.height = mDrawExtent.height;
 
-
-
       // *-*-*-*-*-*-*-*-*-*-*-*-   FRAME DATA INITIALIZATION   *-*-*-*-*-*-*-*-*-*-*-*- //
       mSceneDataBuffer.allocate(sizeof(SceneDataUbo), FcBufferTypes::Uniform);
       // TODO create temporary storage for this in descClerk so we can just write the
@@ -188,10 +213,12 @@ namespace fc
   // TODO could pass pScene data here but probably better to just include this in mRenderer.init()
   void FcRenderer::initDefaults()//FcBuffer& sceneDataBuffer, SceneDataUbo* sceneData)
   {
-    /* mSceneRenderer.init(mSceneData.viewProj); */
     mShadowMap.init(mFrames);
+
     mTerrain.init("..//maps/terrain_heightmap_r16.ktx2");
-    // mTerrain.init(this, "..//maps/iceland_heightmap.png");
+
+    // FIXME should be able to load any kind of terrain map
+    /* mTerrain.init("..//maps/iceland_heightmap.png"); */
 
     // TODO Organize initialization
 
@@ -221,45 +248,10 @@ namespace fc
     mBillboardRenderer.buildPipelines(mFrames);
     // // TODO think about destroying layout here
 
-
-    /* sponza.loadGltf(*this, "..//models//sponza//Sponza.gltf"); */
-    // structure2.loadGltf(mSceneRenderer, "..//models//sponza//Sponza.gltf");
-    // structure2.addToDrawCollection(mDrawCollection);
-
-
-    // glm::mat4 buildingTranslate = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 12.0f, -24.0f));
-    // structure2.update(buildingTranslate);
-
-    // glm::vec3 translationVec = {45.0f, 9.0f, 20.0f};
-    // helmet.translate(translationVec);
-    // translationVec.y -= 2.0f;
-    // sponza.translate(translationVec);
-    // helmet.update();
-    // sponza.update();
-
-    // // NOTE: This moves the object not the camera/lights/etc...
-    // glm::mat4 drawMat{1.f};
-    // glm::vec3 translate{30.f, -00.f, 85.f};
-    // drawMat = glm::translate(drawMat, translate);
-    // structure.update(drawMat);
-
-    // BUG investigate why this file doesn't load
-    //structure.loadGltf(this, "..//models//monkey.glb");
-
-    // FIXME requires enabling one or more extensions in fastgltf
-    //structure.loadGltf(this, "..//models//SheenWoodLeatherSofa.glb");
-
-
-
     mSceneData.sunlightDirection = glm::vec4(43.1f, 25.f, 23.f, 1.f);
     glm::vec3 target{mSceneData.sunlightDirection.x, 0.0, mSceneData.sunlightDirection.z};
 
     mShadowMap.updateLightSource(mSceneData.sunlightDirection, target);
-    // initNormalDrawPipeline(sceneDataBuffer);
-    // initBoundingBoxPipeline(sceneDataBuffer);
-
-    // TODO remove at some point but prefer to leave in while debugging
-    vkDeviceWaitIdle(pDevice);
   }
 
 
@@ -344,39 +336,7 @@ namespace fc
     }
   }
 
-  //
-  // TODO delete
-  void FcRenderer::updateUseFlags(MaterialFeatures featureToUpdate, bool enable)
-  {
-    // // Get the address for the buffer of material constant data being refd by the shader
-    // MaterialConstants* changed = helmet.materialBufferAddress();
 
-    // // TODO need to do this for all "structures"
-
-
-    // // FIXME this worlks for now since samplers.size() == material count but may want to
-    // // do this a different way.
-    // int numMaterial = helmet.NumMaterials();
-    // std::cout << "numMaterials = " << numMaterial << std::endl;
-    // if (enable)
-    // {
-    //   for (size_t i = 0; i < numMaterial; i++)
-    //   {
-    //     changed->flags |= featureToUpdate;
-    //     changed++;
-    //   }
-    // }
-    // else
-    // {
-    //   for (size_t i = 0; i < numMaterial; i++)
-    //   {
-    //     changed->flags &= ~featureToUpdate;
-    //     changed++;
-    //   }
-    // }
-  }
-
-  //
   //
   void FcRenderer::createInstance(VkApplicationInfo& appInfo)
   {
@@ -386,20 +346,34 @@ namespace fc
     std::vector<const char*> extensions(sdlExtensionCount);
     SDL_Vulkan_GetInstanceExtensions(mWindow.SDLwindow(), &sdlExtensionCount, extensions.data());
 
-    // finally, define a Create struct to initialize the vulkan instance
+    // Include debug utilities only when required
+#ifndef NDEBUG
+    extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+#endif
+
+    // Not working for now
+    // if (enableValidationLayers)
+    // {
+    //   extensions.push_back(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME);
+    // }
+
+    // Define a Create struct to initialize the vulkan instance
     VkInstanceCreateInfo instanceInfo{};
 
-    // TODO change to platform dependent evaluation
+    // TODO change to platform dependent evaluation may not be needed with the above calls to SDL
+#if defined (__APPLE__)
     // Only seems to be required for macOS implementation and only when validation layers added
-    // extensions.push_back("VK_KHR_get_physical_device_properties2");
-    // extensions.push_back("VK_KHR_portability_enumeration");
-    // instanceInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+    extensions.push_back("VK_KHR_get_physical_device_properties2");
+    extensions.push_back("VK_KHR_portability_enumeration");
+    instanceInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+#endif
+
+    extensions.push_back("VK_KHR_get_physical_device_properties2");
+    // TODO investigate why not available on linux
+    /* extensions.push_back(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME); */
 
     // TODO LOG the required and found extensions
-    if (!areInstanceExtensionsSupported(extensions))
-    {
-      throw std::runtime_error("Missing required SDL extension");
-    }
+    FC_ASSERT(areFeaturesSupported(extensions, FeatureType::InstanceExtension));
 
     // Next, determine the what validation layers we need
     std::vector<const char *> validationLayers;
@@ -407,20 +381,64 @@ namespace fc
     if (enableValidationLayers)
     {
       validationLayers.push_back("VK_LAYER_KHRONOS_validation");
-      // check that Vulkan drivers support these validation layers
-      if (!areValidationLayersSupported(validationLayers))
+
+      // make sure our Vulkan drivers support these validation layers
+      if (! areFeaturesSupported(validationLayers, FeatureType::ValidationLayer))
       {
         throw std::runtime_error("Validation layers requested but not available!");
       }
 
+      // TODO may not be available on linux so should probably provide alternate path
       // enable the best practices layer extension to warn about possible efficiency mistakes
-      std::array<VkValidationFeatureEnableEXT, 1> featureEnables = {VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT};
-      VkValidationFeaturesEXT features = {};
-      features.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT;
-      features.enabledValidationFeatureCount = static_cast<uint32_t>(featureEnables.size());
-      features.pEnabledValidationFeatures = featureEnables.data();
-      instanceInfo.pNext = &features;
-      SDL_Log("Validation Layers added!");
+      std::array<VkValidationFeatureEnableEXT, 3> featureEnables = {
+	VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
+	// Massively slows things down ( TODO enable after implementing)
+	VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
+	VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,
+      };
+
+      VkValidationFeaturesEXT features = {
+        .sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT,
+	.enabledValidationFeatureCount = static_cast<uint32_t>(featureEnables.size()),
+	.pEnabledValidationFeatures = featureEnables.data(),
+      };
+
+
+      // Sometimes we need to disable specific Vulkan validation checks for performance or known
+      // bugs in the validation layers
+      VkBool32 gpuav_descriptor_checks = VK_FALSE;
+      VkBool32 gpuav_indirect_draws_buffers = VK_FALSE;
+      VkBool32 gpuav_post_proces_descriptor_indexing = VK_FALSE;
+
+#define LAYER_SETTINGS_BOOL32(name, var)        \
+      VkLayerSettingEXT {                       \
+        .pLayerName = validationLayers[0],          \
+      .pSettingName = name,                            \
+              .type = VK_LAYER_SETTING_TYPE_BOOL32_EXT, \
+        .valueCount = 1,                                \
+           .pValues = var }
+
+      const std::array<VkLayerSettingEXT, 3> settings = {
+        LAYER_SETTINGS_BOOL32("gpuav_descriptor_checks",
+                              &gpuav_descriptor_checks),
+	LAYER_SETTINGS_BOOL32("gpuav_indirect_draws_buffers",
+                              &gpuav_indirect_draws_buffers),
+	LAYER_SETTINGS_BOOL32("gpuav_post_process_descriptor_indexing",
+                              &gpuav_post_proces_descriptor_indexing)
+      };
+
+#undef LAYER_SETTINGS_BOOL32
+
+      const VkLayerSettingsCreateInfoEXT layerSettingsCreate = {
+        .sType = VK_STRUCTURE_TYPE_LAYER_SETTINGS_CREATE_INFO_EXT,
+	.settingCount = static_cast<u32>(settings.size()),
+	.pSettings = settings.data(),
+	.pNext = &features
+      };
+
+      instanceInfo.pNext = &layerSettingsCreate;
+
+      fcPrintEndl("INFO: Validation Layers added!");
     }
 
     instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -428,69 +446,28 @@ namespace fc
     instanceInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
     instanceInfo.ppEnabledExtensionNames = extensions.data();
     instanceInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-    // ?? Make sure this still works when validationlayers is empty!
     instanceInfo.ppEnabledLayerNames = validationLayers.data();
 
-    // now just call the vulkan function to create an instance
+    // Finally, call the vulkan function to create vulkan instance instance
     VK_ASSERT(vkCreateInstance(&instanceInfo, nullptr, &mInstance));
 
   }  // END void FcRenderer::createInstance(...)
 
 
-
-  bool FcRenderer::areInstanceExtensionsSupported(const std::vector<const char*>& instanceExtensions)
-  {
-    // populate list of all available vulkan instance extensions
-    uint32_t extensionCount = 0;
-    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
-    std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, availableExtensions.data());
-
-    // add all the required extentions to an unordered set for easy search
-    std::unordered_set<std::string> requiredExtensions(instanceExtensions.begin(), instanceExtensions.end());
-
-    // now go through and delete all the extensions that we know are available from the required list
-    for (const auto& extension : availableExtensions)
-    {
-      //std::cout << extension.extensionName << std::endl;
-      requiredExtensions.erase(extension.extensionName);
-    }
-
-    // return true if all the all the passed instance extensions were found in all available extensions
-    return requiredExtensions.empty();
-  }
-
-
+  //
   void FcRenderer::initDrawImage()
   {
-    // match our draw image to the window extent
-  mDrawImage.createImage(mWindow.ScreenSize().width, mWindow.ScreenSize().height
-                    , FcImageTypes::ScreenBuffer);
+    // Match our draw image to the window extent
+    mDrawImage.createImage(mWindow.ScreenSize().width,
+                           mWindow.ScreenSize().height, FcImageTypes::ScreenBuffer);
 
-  // -*-*-*-*-*-*-*-*-*-   CREATE BACKGROUND IMAGE DESCRIPTOR   -*-*-*-*-*-*-*-*-*- //
-    // // TODO some redundancy that might be able to be eliminated
-    // FcDescriptorBindInfo bindingInfo;
-    // bindingInfo.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT);
-    // bindingInfo.attachImage(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
-    //                         , mDrawImage, VK_IMAGE_LAYOUT_GENERAL, nullptr);
-
-    // FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
-    // mBackgroundDescriptorlayout = descClerk.createDescriptorSetLayout(bindingInfo);
-    // mDrawImageDescriptor = descClerk.createDescriptorSet(mBackgroundDescriptorlayout, bindingInfo);
-
-    // since we don't need the DSLayout, get rid of it
-    //vkDestroyDescriptorSetLayout(pDevice, mBackgroundDescriptorlayout, nullptr);
-
-    // -*-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE DEPTH IMAGE   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    // Create depth image (z buffer)
     mDepthImage.createImage(mWindow.ScreenSize().width, mWindow.ScreenSize().height
                        ,FcImageTypes::DepthBuffer);
 
-
     // TODO provide for these to change if VK_ERROR_OUT_OF_DATE_KHR, etc.
-    mDrawExtent.height = std::min(mSwapchain.getSurfaceExtent().height
-                                  , mDrawImage.Height());// * renderScale;
-    mDrawExtent.width = std::min(mSwapchain.getSurfaceExtent().width
-                                 , mDrawImage.Width());// * renderScale;
+    mDrawExtent.height = std::min(mSwapchain.getSurfaceExtent().height, mDrawImage.Height());
+    mDrawExtent.width = std::min(mSwapchain.getSurfaceExtent().width, mDrawImage.Width());
 
     // TODO create a function for allowing viewport and scisors to change
     // initialze the dynamic mDynamicViewport and mDynamicScisors
@@ -507,7 +484,7 @@ namespace fc
   }
 
   // create the command buffers and command pools
-  // TODO make two seperate functions, one for pool creation, one for command buffer allocation
+  // TODO make two separate functions, one for pool creation, one for command buffer allocation
   void FcRenderer::createCommandPools()
   {
     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FOR EACH FRAME   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -530,9 +507,8 @@ namespace fc
     {
       VK_ASSERT(vkCreateCommandPool(pDevice, &commandPoolInfo, nullptr, &frame.commandPool));
 
-      allocInfo.commandPool = frame.commandPool;
-
       // allocate command buffer from pool
+      allocInfo.commandPool = frame.commandPool;
       VK_ASSERT(vkAllocateCommandBuffers(pDevice, &allocInfo, &frame.commandBuffer));
     }
 
@@ -554,26 +530,9 @@ namespace fc
   // we could overlap the execution from this with the main render loop
   VkCommandBuffer FcRenderer::beginCommandBuffer()
   {
-    // command buffer to hold transfer commands
-    //VkCommandBuffer commandBuffer;
     vkResetFences(pDevice, 1, &mImmediateFence);
 
-    // ?? shouldn't be necessary if recording new commands
-    //vkResetCommandBuffer(mImmediateCmdBuffer, 0);
-
-    // TODO DELETE (buffer already allocated)
-    // command buffer details
-    // VkCommandBufferAllocateInfo allocInfo{};
-    // allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    // allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    // allocInfo.commandPool = mImmediateCommandPool;
-    // allocInfo.commandBufferCount = 1;
-
-    //  // allocate command buffer from pool
-    // vkAllocateCommandBuffers(FcLocator::Device(), &allocInfo, &commandBuffer);
-
     // information to be the command buffer record
-
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT; // becomes invalid after submit
@@ -649,90 +608,16 @@ namespace fc
     // could update frustum by sending camera in and then could in turn be sent to
     // various rendering methods
     mFrustum.update(mSceneData.viewProj);
-    mFrustum.normalize();
+    /* mFrustum.normalize(); */
     mTerrain.update(mFrustum);
 
-    // ?? elapsed time should already be in ms
-    mDrawCollection.stats.sceneUpdateTime = mTimer.elapsedTime() * 1000;
-  }
-
-  //
-  //
-  // TODO - Remove from current engine since we no longer render our own UI
-  // void FcRenderer::drawUI(std::vector<FcText>& UIelements, uint32_t swapchainImageIndex)
-  // {
-  //   // mUIrenderer.draw(UIelements, getCurrentFrame().commandBuffer, swapchainImageIndex);
-
-  //   VkCommandBuffer currCommandBuffer = getCurrentFrame().commandBuffer;
-  //   // bind pipeline to be used in render pass
-  //   mUiPipeline.bind(currCommandBuffer);
-  //   // DRAW ALL UI COMPONENTS (LAST)
-  //   // draw text box
-  //   for (size_t i = 0; i < UIelements.size(); i++)
-  //   {
-  //     vkCmdPushConstants(currCommandBuffer, mUiPipeline.Layout(),
-  //                        VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(BillboardPushes),
-  //                        // TODO require that UI elements has top members equal to billboardpushes
-  //                        &UIelements[i]);
-
-  //     VkDeviceSize offsets[] = { 0 };
-  //     // vkCmdBindVertexBuffers(mCommandBuffers[swapChainImageIndex], 0, 1, &font.VertexBuffer(), offsets);
-  //     // vkCmdBindIndexBuffer(mCommandBuffers[swapChainImageIndex], font.IndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
-
-  //     // TODO don't update UBO unless changed
-  //     FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
-
-  //     //descriptors.update(swapchainImageIndex, &mBillboardUbo);
-
-  //     std::array<VkDescriptorSet, 2> descriptorSets;
-  //     descriptorSets[0] = mFrames[swapchainImageIndex].sceneDataDescriptorSet;
-  //     descriptorSets[1] = UIelements[i].getDescriptor();
-
-
-  //     vkCmdBindDescriptorSets(currCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS
-  //                             , mUiPipeline.Layout(), 0, static_cast<uint32_t>(descriptorSets.size())
-  //                             , descriptorSets.data() , 0, nullptr);
-
-  //     //vkCmdDrawIndexed(mCommandBuffers[swapChainImageIndex], font.IndexCount(), 1, 0, 0, 0);
-  //     vkCmdDraw(currCommandBuffer, 6, 1, 0, 0);
-  //   }
-  // }
-
-
-
-  //
-  void FcRenderer::drawBackground()
-  {
-    // VkCommandBuffer cmd = getCurrentFrame().commandBuffer;
-
-    // // transition our main draw image into general layout so we can write into it
-    // mDrawImage.transitionLayout(cmd, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-
-    // // TODO pDrawPipeline deleted for now, encapsolate this functionality
-    // //vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pDrawPipeline);
-
-    // // bind the descriptorClerk set containing the draw image for the compute
-    // // pipeline
-    // FcDescriptorClerk& descriptorClerk = FcLocator::DescriptorClerk();
-
-    // //		drawImGui(cmd,
-    // //mSwapchain.getFcImage(swapchainImgIndex).ImageView());
-    // std::array<VkDescriptorSet, 1> ds{mDrawImageDescriptor};
-
-    // vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE,
-    //                         pDrawPipelineLayout, 0, 1, ds.data(), 0, nullptr);
-
-    // vkCmdPushConstants(cmd, pDrawPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
-    //                    sizeof(ComputePushConstants), &pushConstants);
-
-    // // execute the compute pipeline dispatch.
-    // vkCmdDispatch(cmd, std::ceil(mDrawImage.Width() / 16.0),
-    //               std::ceil(mDrawImage.Height() / 16.0), 1);
+    // Update sceneUpdate time in ms
+    mDrawCollection.stats.sceneUpdateTime = mTimer.elapsedTime();
   }
 
 
-
-  void FcRenderer::drawFrame(bool drawDebugShadowMap)
+  //
+  void FcRenderer::drawFrame()
   {
     // reset counters
     mDrawCollection.stats.objectsRendered = 0;
@@ -790,8 +675,9 @@ namespace fc
     vkCmdSetViewport(cmd, 0, 1, &mDynamicViewport);
     vkCmdSetScissor(cmd, 0, 1, &mDynamicScissors);
 
-    //
-    if (drawDebugShadowMap)
+    // TODO implement without branches
+    bool* shouldDrawShadowMap = CVarSystem::Get()->GetBoolCVar("shouldDrawShadowMap.bool");
+    if (*shouldDrawShadowMap)
     {
       mShadowMap.drawDebugMap(cmd, currentFrame);
     }
@@ -977,16 +863,8 @@ namespace fc
     // call to update scene immediately (before waiting on fences)
     updateScene();
 
-    // TODO put all ImGui stuff into renderer and maybe its own class
-    // update ImGui
-    // ImGui_ImplVulkan_NewFrame();
-    ImGui_ImplSDL2_NewFrame();
-    ImGui::NewFrame();
-
-    // TODO define in constants
-    uint64_t maxWaitTime = std::numeric_limits<uint64_t>::max();
     // don't keep adding images to the queue or commands to the buffer until last draw has finished
-    vkWaitForFences(pDevice, 1, &getCurrentFrame().renderFence, VK_TRUE, maxWaitTime);
+    vkWaitForFences(pDevice, 1, &getCurrentFrame().renderFence, VK_TRUE, U64_MAX);
 
     // delete any per frame resources no longer needed now the that frame has finished rendering
     // ?? this seems to be the wrong location for this, just by observation: test
@@ -995,7 +873,7 @@ namespace fc
 
     // 1. get the next available image to draw to and set to signal the semaphore when we're finished with it
     uint32_t swapchainImageIndex;
-    VkResult result = vkAcquireNextImageKHR(pDevice, mSwapchain.vkSwapchain(), maxWaitTime
+    VkResult result = vkAcquireNextImageKHR(pDevice, mSwapchain.vkSwapchain(), U64_MAX
                                             , getCurrentFrame().imageAvailableSemaphore
                                             , VK_NULL_HANDLE, &swapchainImageIndex);
 
@@ -1130,17 +1008,17 @@ namespace fc
 
     // now that the draw has been done to the draw image,
     // transition it into transfer source layout so we can copy to the swapchain after
-    mDrawImage.transitionLayout(commandBuffer, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+    mDrawImage.transitionLayout(commandBuffer,
+                                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 
     // transiton the swapchain so it can best accept an image being copied to it
-    mSwapchain.transitionImage(commandBuffer, swapchainImageIndex
-                               , VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    mSwapchain.transitionImage(commandBuffer, swapchainImageIndex,
+                               VK_IMAGE_LAYOUT_UNDEFINED,
+                               VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
     // execute a copy from the draw image into the swapchain
     mSwapchain.getFcImage(swapchainImageIndex).copyFromImage(commandBuffer, &mDrawImage);
-
-
-    // TODO ?? Note that drawImGui can also go here so should find out what they do in the examples
 
     // now transition swapchain image layout to attachment optimal so we can draw into it
     mSwapchain.transitionImage(commandBuffer, swapchainImageIndex
@@ -1150,8 +1028,9 @@ namespace fc
     drawImGui(commandBuffer, mSwapchain.getFcImage(swapchainImageIndex).ImageView());
 
     // finally transition the swapchain image into presentable layout so we can present to surface
-    mSwapchain.transitionImage(commandBuffer, swapchainImageIndex
-                               , VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+    mSwapchain.transitionImage(commandBuffer, swapchainImageIndex,
+                               VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                               VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
     // stop recording to command buffer
     VK_ASSERT(vkEndCommandBuffer(commandBuffer));
@@ -1199,6 +1078,7 @@ namespace fc
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) // || mWindow.wasWindowResized())
     {
       fcPrintEndl("ERRROR OUT of date submit");
+      // TODO  handle resize properly
       mShouldWindowResize = true;
       /* mWindow.resetWindowResizedFlag(); */
       /* handleWindowResize(); */
@@ -1305,7 +1185,7 @@ namespace fc
     }
     if (enableValidationLayers)
     {
-      DestroyDebugUtilsMessengerExt(mInstance, debugMessenger, nullptr);
+      /* DestroyDebugUtilsMessengerExt(mInstance, debugMessenger, nullptr); */
     }
   }
 

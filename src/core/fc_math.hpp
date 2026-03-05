@@ -1,8 +1,7 @@
 //>--- fc_math.hpp ---<//
 #pragma once
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "glm/vec3.hpp"
-#include "glm/vec4.hpp"
+#include "glm/mat4x4.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
@@ -26,4 +25,7 @@ namespace fc
   //
   glm::vec4 vec4FromSubtractMixed(const glm::vec3& v1, const glm::vec4& v2);
   glm::vec3 vec4FromSubtractMixed(const glm::vec4& v1, const glm::vec3& v2);
+  glm::mat4 perspective(float fovDegrees, float width, float height, float near, float far);
+  glm::mat4 orthographic(float left, float right, float bottom
+                         , float top, float near, float far);
 }// --- namespace fc --- (END)

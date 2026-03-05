@@ -2,11 +2,11 @@
 #include "shadow_map.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_frame_assets.hpp"
+#include "fc_math.hpp"
 #include "fc_mesh.hpp"
 #include "fc_descriptors.hpp"
 #include "fc_locator.hpp"
 #include "fc_defaults.hpp"
-#include "utilities.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <glm/gtc/matrix_transform.hpp>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //

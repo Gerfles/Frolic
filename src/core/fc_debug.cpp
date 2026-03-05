@@ -2,7 +2,6 @@
 #include "fc_debug.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <iostream>
-#include <unordered_set>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
@@ -52,14 +51,14 @@ namespace fc
   }
 
 
-
+  //
   VkResult CreateDebugUtilsMessengerEXT(VkInstance instance,
                                         const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
                                         const VkAllocationCallbacks* pAllocator,
                                         VkDebugUtilsMessengerEXT* pDebugMessenger)
   {
-    auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance,
-                                                                          "vkCreateDebugUtilsMessengerEXT");
+    auto func = (PFN_vkCreateDebugUtilsMessengerEXT)
+                vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
     if (func != nullptr)
     {
       return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
@@ -68,12 +67,17 @@ namespace fc
     return VK_ERROR_EXTENSION_NOT_PRESENT;
   }
 
+
+  //
   void DestroyDebugUtilsMessengerExt(VkInstance instance,
                                      VkDebugUtilsMessengerEXT debugMessenger,
                                      const VkAllocationCallbacks* pAllocator)
   {
-    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance,
-                                                                           "vkDestroyDebugUtilsMessengerEXT");
+    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)
+                vkGetInstanceProcAddr(instance,"vkDestroyDebugUtilsMessengerEXT");
+
+
+
     if (func != nullptr)
     {
       func(instance, debugMessenger, pAllocator);
@@ -81,28 +85,6 @@ namespace fc
   }
 
 
-   // TODO could be faster to only check for the layers we require instead of a for loop over all available layers
-   // since most of the time, we probably only require a few layers
-  bool areValidationLayersSupported(std::vector<const char*>& validationLayers)
-  {
-     // fill a vector with all the vulkan layers available to us
-    uint32_t layerCount;
-    vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
-    std::vector<VkLayerProperties> availableLayers(layerCount);
-    vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
-
-
-    std::unordered_set<std::string> requiredLayers(validationLayers.begin(), validationLayers.end());
-
-     // make sure our required layers are covered by the layers found availablelayers
-    for (const auto& layer : availableLayers)
-    {
-      requiredLayers.erase(layer.layerName);
-    }
-
-     // return true if all the all the required layers were found in vulkans available layers
-    return requiredLayers.empty();
-  }
 
 
   void displayFrameRate()

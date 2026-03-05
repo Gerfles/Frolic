@@ -2,6 +2,7 @@
 #include "fc_gpu.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_assert.hpp"
+#include "utilities.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <SDL_log.h>
 // must resort to something like this or get thousands of warnings with vk_mem_alloc
@@ -9,8 +10,6 @@
 #define VMA_IMPLEMENTATION // must declare only once before including vk_mem_alloc.h in CPP file
 #include "vk_mem_alloc.h"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-//TODO see if we can just substitute  one for  the other type of set
-#include <unordered_set>
 #include <set>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
@@ -23,11 +22,9 @@ namespace fc
     // first couple the window instance to the GPU (needed for surface stuff)
     pWindow = &window;
 
-    const std::vector<const char*> deviceExtensions = {
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-	VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
-	VK_KHR_DYNAMIC_RENDERING_LOCAL_READ_EXTENSION_NAME };
-
+    std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME
+                                                , VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME
+                                                , VK_KHR_DYNAMIC_RENDERING_LOCAL_READ_EXTENSION_NAME };
     // TODO Make sure the extensions and layers are added to specific OSs
     //I believe the following is needed by MacOS
     //, "VK_KHR_portability_subset"};
@@ -39,7 +36,7 @@ namespace fc
     if (mPhysicalGPU != VK_NULL_HANDLE)
     {
       // now create the logical device that vulkan actually uses to interface with the GPU
-      if (createLogicalDevice())
+      if (createLogicalDevice(deviceExtensions))
       {
         // Create and initialize the VMA allocator
         VmaAllocatorCreateInfo vmaAllocatorInfo = {};
@@ -63,63 +60,58 @@ namespace fc
   }
 
 
-
-
-  void FcGpu::pickPhysicalDevice(const VkInstance& instance
-                                 , const std::vector<const char*> deviceExtensions)
-
-  // PICK THE PHYSICAL DEVICE [GRAPHICS CARD]
+  //
+  void FcGpu::pickPhysicalDevice(const VkInstance& instance, std::vector<const char*>& deviceExtensions)
   {
-    // query the number of graphics cardshttps://vkguide.dev/docs/new_chapter_1/vulkan_init_code/
-    uint32_t deviceCount = 0;
+    u32 deviceCount = 0;
+
     vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 
-    // don't bother going further if no gfx cards
+    // don't bother going further if no gfx devices suppport vulkan
     if (deviceCount == 0)
     {
-      throw std::runtime_error("failed to find Graphics cards with Vulkan support!");
+      throw std::runtime_error("failed to find Graphics Device with Vulkan support!");
     }
-    // allocate an array to hold all of the VkPhysicalDevice handles
+
+    // allocate an array to hold all of the VkPhysicalDevice options available to us
     std::vector<VkPhysicalDevice> deviceOptions(deviceCount);
     vkEnumeratePhysicalDevices(instance, &deviceCount, deviceOptions.data());
+
+    // Store device properties for later property printing of device choice
+    VkPhysicalDeviceProperties2 deviceProperties = {
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2
+    };
 
     // check if any of the graphics cards meet the requirements we need
     for (VkPhysicalDevice potentialDevice : deviceOptions)
     {
-      // check that device extension is suppported
-      uint32_t extensionCount;
-      vkEnumerateDeviceExtensionProperties(potentialDevice, nullptr, &extensionCount, nullptr);
-      std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-      vkEnumerateDeviceExtensionProperties(potentialDevice, nullptr
-                                           , &extensionCount, availableExtensions.data());
-
-      // cool method (creation of a std::set introduces overhead, not that it matters here)
-      std::set<std::string> requiredExtensions(deviceExtensions.begin() ,deviceExtensions.end());
-
-      for (const auto& extension : availableExtensions)
+      // Make sure all our device extensions are supported
+      if (areFeaturesSupported(deviceExtensions, FeatureType::DeviceExtension, potentialDevice))
       {
-        requiredExtensions.erase(extension.extensionName);
-      }
-
-      if (!requiredExtensions.empty())
-      {  // something in the list wasn't supported so move on to next device
         continue;
       }
+
       // TODO check for each specific feature in a branch so we can provide
-      // alternitives in a release version
+      // alternatives in a release version
 
       // TODO add features to a builder vector to add and use with device creation
       // First populate the supported features, making sure to chain in the vulkan ext features
-      VkPhysicalDeviceVulkan12Features extFeatures_1_2 = {};
-      extFeatures_1_2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+      // VkPhysicalDeviceVulkan11Features extFeatures_1_1 = {
 
-      VkPhysicalDeviceVulkan13Features extFeatures_1_3 = {};
-      extFeatures_1_3.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
-      extFeatures_1_3.pNext = &extFeatures_1_2;
+      // }
+      VkPhysicalDeviceVulkan13Features extFeatures_1_3 = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES
+      };
 
-      VkPhysicalDeviceFeatures2 supportedFeatures = {};
-      supportedFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-      supportedFeatures.pNext = &extFeatures_1_3;
+      VkPhysicalDeviceVulkan12Features extFeatures_1_2 = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+	.pNext = &extFeatures_1_3
+      };
+
+      VkPhysicalDeviceFeatures2 supportedFeatures = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+      	.pNext = &extFeatures_1_2
+      };
 
       vkGetPhysicalDeviceFeatures2(potentialDevice, &supportedFeatures);
 
@@ -137,43 +129,74 @@ namespace fc
           extFeatures_1_2.runtimeDescriptorArray == VK_FALSE)
       {
         continue;
-        // TODO should not throw an error here but might be helpful to print a list of devices and
-        // print the choice of device that way the user can verify the proper device is being selected
-        // in the case of multiple GPUs
       }
 
-      // TODO think about makeing this VK...Properties2
-      VkPhysicalDeviceProperties deviceProperties = {};
-      vkGetPhysicalDeviceProperties(potentialDevice, &deviceProperties);
-
-      // make sure we're using a dedicated graphics card TODO write provisions to have a fallback GPU
-      // could simply add a stack where we push when a discrete GPU is found
-      if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+      // Make sure that our swapchain has the capabilities we need
+      SwapChainDetails swapChain = getSwapChainDetails(potentialDevice);
+      if (swapChain.presentModes.empty() || swapChain.formats.empty())
       {
-        if (isDeviceSuitable(potentialDevice))
-        {
-          fcPrintEndl("GPU: %s\nPush Constant max size:%u(Bytes)",
-                      deviceProperties.deviceName,
-                      deviceProperties.limits.maxPushConstantsSize)
-
-          mPhysicalGPU = potentialDevice;
-          break;
-        }
+        continue;
       }
 
-    } // End for(cycle through potential devices);
+      // Get the properties of the potential device to check to prefer GPU and set properties
+      vkGetPhysicalDeviceProperties2(potentialDevice, &deviceProperties);
+
+      // TEST (alternat OSs)
+      // Prefer a dedicated grapchics card ( TODO use a priority queue with score for GPU)
+      if (deviceProperties.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+      {
+        mPhysicalGPU = potentialDevice;
+        break;
+      }
+      else if (deviceProperties.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
+      {
+        mPhysicalGPU = potentialDevice;
+        continue;
+      }
+
+    } // ---  (_) --- (END)
 
     // if no available device was selected, terminate
     if (mPhysicalGPU == VK_NULL_HANDLE)
     {
       throw std::runtime_error("failed to find a suitable GPU!");
     }
+
+    // *-*-*-*-*-*-*-*-*-*-*-*-   SET OUR FC_GPU PROPERTIES   *-*-*-*-*-*-*-*-*-*-*-*- //
+    // determine the max sampler anisotropic filter when undersampling (having more texels than fragments)
+    mGpuPerformanceProperties.maxSamplerAnisotropy = deviceProperties
+                                                     .properties.limits.maxSamplerAnisotropy;
+
+    // determine the max Mult-Sample Anti-Aliasing that our graphics card is capable of
+    VkSampleCountFlags counts = deviceProperties.properties.limits.framebufferColorSampleCounts
+                                & deviceProperties.properties.limits.framebufferDepthSampleCounts;
+
+    // find the highest order MSAA samples bit and set maxMsaaSamples to that
+    for (int i = 0, max_sampling_enum = 0x00000040; i < 8; i++)
+    {
+      if ((counts & max_sampling_enum) == max_sampling_enum)
+      {
+        mGpuPerformanceProperties.maxMsaaSamples =
+          static_cast<VkSampleCountFlagBits>(max_sampling_enum >> i);
+        // Its set to the highest possible so exit loop
+        break;
+      }
+      counts <<= 1;
+    }
+
+    // BUG MSAA more than one fails, probably because of post processing image
+    // Should be able to enable eventually or do our own msaa sampling
+    mGpuPerformanceProperties.maxMsaaSamples = VK_SAMPLE_COUNT_1_BIT;
+
+    // TODO print more specs when in debug
+    fcPrintEndl("GPU: %s\nPush Constant max size:%u(Bytes)",
+                deviceProperties.properties.deviceName,
+                deviceProperties.properties.limits.maxPushConstantsSize);
   }
 
 
-
-
-  bool FcGpu::createLogicalDevice()
+  //
+  bool FcGpu::createLogicalDevice(std::vector<const char*>& deviceExtensions)
   {
     //TODO Consider changing the queue situation to make a little more logical sense - maybe creating a queue struct that has a queue member and an index member
     // Queue that logical device needs to be created
@@ -295,126 +318,7 @@ namespace fc
 
 
 
-  bool FcGpu::isDeviceSuitable(const VkPhysicalDevice& device)
-  {
-    // first make sure device extensions are supported
-    if (!isDeviceExtensionSupported(device))
-    {
-      fcPrintEndl("GPU Extensions Unsupported: ");
-      return false;
-    }
-
-    // TODO refactor so widow has the swapchain details etc. maybe could use a friend class
-    // or some other coupling method. Or just init the GPU by passing a fcWindow...
-    // next make sure that our swapchain has the capabilities we need
-    SwapChainDetails swapChain = swapChainDetails(device);
-    if (swapChain.presentModes.empty() || swapChain.formats.empty())
-    {
-      return false;
-    }
-
-    // info about the device
-    VkPhysicalDeviceProperties deviceProperties;
-    vkGetPhysicalDeviceProperties(device, &deviceProperties);
-
-    // determine the max sampler anti isotropic filter -- when undersampling (having more texels than fragments)
-    mGpuPerformanceProperties.maxSamplerAnisotropy = deviceProperties.limits.maxSamplerAnisotropy;
-
-    // determine the max Mult-Sample Anti-Aliasing that our graphics card is capable of
-    // ?? might be better to have two different sample counts instead of ANDing them
-    VkSampleCountFlags counts = deviceProperties.limits.framebufferColorSampleCounts
-                                & deviceProperties.limits.framebufferDepthSampleCounts;
-
-    // TODO find out if the following even works--probably a lot clearer to use multiple if-statements instead
-    //  // find the highest order MSAA samples bit and set maxMsaaSamples to that
-    // for (int i = 0, max32 = 0x80000000; i < 32; i++)
-    // {
-    //   if ((counts & max32) == max32)
-    //   {
-    //     mGpuPerformanceProperties.maxMsaaSamples = static_cast<VkSampleCountFlagBits>(max32 >> i);
-    //     break;
-//   }
-    //   counts <<= 1;
-    // }
-
-    // find the highest order MSAA samples bit and set maxMsaaSamples to that
-    // if (counts & VK_SAMPLE_COUNT_64_BIT) {
-    //   mGpuPerformanceProperties.maxMsaaSamples = VK_SAMPLE_COUNT_64_BIT;
-    //   std::cout << "maxMSAASamples: 64_BIT" << std::endl;
-    // }
-    // else if (counts & VK_SAMPLE_COUNT_32_BIT) {
-    //   mGpuPerformanceProperties.maxMsaaSamples = VK_SAMPLE_COUNT_32_BIT;
-    //   std::cout << "maxMSAASamples: 32_BIT" << std::endl;
-    // }
-    // else if (counts & VK_SAMPLE_COUNT_16_BIT) {
-    //   mGpuPerformanceProperties.maxMsaaSamples = VK_SAMPLE_COUNT_16_BIT;
-    //   std::cout << "maxMSAASamples: 16_BIT" << std::endl;
-    // }
-    // else if (counts & VK_SAMPLE_COUNT_8_BIT) {
-    //   mGpuPerformanceProperties.maxMsaaSamples = VK_SAMPLE_COUNT_8_BIT;
-    //   std::cout << "maxMSAASamples: 8_BIT" << std::endl;
-    // }
-    // else if (counts & VK_SAMPLE_COUNT_4_BIT) {
-    //   mGpuPerformanceProperties.maxMsaaSamples = VK_SAMPLE_COUNT_4_BIT;
-    //   std::cout << "maxMSAASamples: 4_BIT" << std::endl;
-    // }
-    // else if (counts & VK_SAMPLE_COUNT_2_BIT) {
-    //   mGpuPerformanceProperties.maxMsaaSamples = VK_SAMPLE_COUNT_2_BIT;
-    //   std::cout << "maxMSAASamples: 2_BIT" << std::endl;
-    // }
-    // else {
-    //   mGpuPerformanceProperties.maxMsaaSamples = VK_SAMPLE_COUNT_1_BIT;
-    //   std::cout << "maxMSAASamples: 1_BIT" << std::endl;
-    // }
-
-    // BUG override sample count
-    mGpuPerformanceProperties.maxMsaaSamples = VK_SAMPLE_COUNT_1_BIT;
-
-
-
-    // info about what features the gpu supports
-    VkPhysicalDeviceFeatures deviceFeatures;
-    vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
-
-    // ?? used to make sure that both queues are present (graphics and present but could do this check later or
-    // potentially omit since it is probably not likely to find a GPU without graphics and present queue...)
-    // get the graphics and presentation queues
-    //QueueFamilyIndices indices = getQueueFamilies(device);
-
-    return deviceFeatures.samplerAnisotropy;
-  }
-
-  // TODO pass list of required extensions to let us get rid of stored global deviceExtensions
-  bool FcGpu::isDeviceExtensionSupported(const VkPhysicalDevice& device) const
-  {
-    // get number of extensions supported
-    uint32_t extensionCount = 0;
-    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
-
-    // if no extensions found, return failure
-    if (extensionCount == 0)
-    {
-      return false;
-    }
-
-    // populate list of extensions
-    std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
-
-    // add all the required extentions to an unordered set for easy search
-    std::unordered_set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
-    // now go through and delete all the extensions that we know are available from the required list
-    for (const auto& extension : availableExtensions)
-    {
-      requiredExtensions.erase(extension.extensionName);
-    }
-
-    // return true if all the all the passed device extensions were found in all available extensions
-    return requiredExtensions.empty();
-  }
-
-
-
+  //
   const QueueFamilyIndices FcGpu::getQueueFamilies()
   {
     QueueFamilyIndices indices;
@@ -458,7 +362,7 @@ namespace fc
 
 
 
-  SwapChainDetails FcGpu::swapChainDetails(const VkPhysicalDevice& device) const
+  SwapChainDetails FcGpu::getSwapChainDetails(const VkPhysicalDevice& device) const
   {
     // create a new struct to hold all the details of the available swapchain
     SwapChainDetails swapChainDetails;
@@ -484,9 +388,9 @@ namespace fc
     if (presentationCount != 0)
     {
       swapChainDetails.presentModes.resize(presentationCount);
-      vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentationCount, swapChainDetails.presentModes.data());
+      vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentationCount,
+                                                swapChainDetails.presentModes.data());
     }
-
     return swapChainDetails;
   }
 

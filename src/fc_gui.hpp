@@ -26,6 +26,7 @@ namespace fc
      bool mRotateModel{false};
      bool mCycleExpansion{false};
 
+     // FIXME
      std::array<std::vector<u32>, 5> helmetTexIndices;
      std::array<std::vector<u32>, 5> sponzaTexIndices;
 

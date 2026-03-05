@@ -14,6 +14,7 @@ namespace fc
     INT,
     FLOAT,
     STRING,
+    BOOL
   };
 
 
@@ -112,11 +113,19 @@ namespace fc
      CVarParameter* InitCVar(const char* name, const char* description);
    public:
      CVarParameter* GetCVar(StringHash hash) override final;
+     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FLOAT   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      CVarParameter* CreateFloatCVar(const char* name, const char* description,
                                     float defaultValue, float currentValue) override final;
      float* GetFloatCVar(StringHash hash) override final;
      void setFloatCVar(StringHash hash, float value) override final;
-     // TODO More versions of create for ints/strings
+     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   BOOL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     CVarParameter* CreateBoolCVar(const char* name, const char* description,
+                                   bool defaultValue, bool currentValue) override final;
+     bool* GetBoolCVar(StringHash hash) override final;
+     void setBoolCVar(StringHash, bool value) override final;
+     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   TODO INTS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   TODO STRINGS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
 
      constexpr static int MAX_INT_CVARS = 100;
      CVarArray<int32_t> intCVars{ MAX_INT_CVARS };
@@ -126,6 +135,11 @@ namespace fc
 
      constexpr static int MAX_STRING_CVARS = 100;
      CVarArray<std::string> stringCVars{ MAX_STRING_CVARS };
+
+     constexpr static int MAX_BOOL_CVARS = 100;
+     CVarArray<bool> boolCVars { MAX_BOOL_CVARS };
+
+
 
      static CVarSystemImpl* Get()
       {
@@ -154,6 +168,14 @@ namespace fc
       {
         return &stringCVars;
       }
+
+
+     template<>
+     CVarArray<bool>* GetCVarArray()
+      {
+        return &boolCVars;
+      }
+
 
      // templated get/set cvar versions
      template<typename T>
@@ -224,7 +246,7 @@ namespace fc
     CVarSystemImpl::Get()->GetCVarArray<T>()->SetCurrent(data, index);
   }
 
-  // CVar float constructor
+  // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
   AutoCVarFloat::AutoCVarFloat(const char* name, const char* description, float defaultValue, CVarFlags flags)
   {
     CVarParameter* cvar = CVarSystem::Get()->CreateFloatCVar(name, description, defaultValue, defaultValue);
@@ -233,10 +255,20 @@ namespace fc
   }
 
 
-  CVarParameter* CVarSystemImpl::CreateFloatCVar(const char *name, const char *description
+  AutoCVarBool::AutoCVarBool(const char* name, const char* description, bool defaultValue, CVarFlags flags)
+  {
+    CVarParameter* cvar = CVarSystem::Get()->CreateBoolCVar(name, description, defaultValue, defaultValue);
+    cvar->flags = flags;
+    mIndex = cvar->arrayIndex;
+  }
+
+
+  // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+  CVarParameter* CVarSystemImpl::CreateFloatCVar(const char* name, const char* description
                                                  , float defaultValue, float currentValue)
   {
     CVarParameter* cVarParam = InitCVar(name, description);
+
     if (!cVarParam) return nullptr;
 
     cVarParam->type = CVarType::FLOAT;
@@ -247,6 +279,52 @@ namespace fc
   }
 
 
+  // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+  float* CVarSystemImpl::GetFloatCVar(StringHash hash)
+  {
+    return GetCVarCurrent<float>(hash);
+  }
+
+
+  // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+  void CVarSystemImpl::setFloatCVar(StringHash hash, float value)
+  {
+    SetCVarCurrent<float>(hash, value);
+  }
+
+
+  // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+  CVarParameter* CVarSystemImpl::CreateBoolCVar(const char* name, const char* description,
+                                                bool defaultValue, bool currentValue)
+  {
+    CVarParameter* cVarParam = InitCVar(name, description);
+
+    if (!cVarParam) return nullptr;
+
+    cVarParam->type = CVarType::BOOL;
+
+    GetCVarArray<bool>()->Add(defaultValue, currentValue, cVarParam);
+
+    return cVarParam;
+  }
+
+
+  // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+  bool* CVarSystemImpl::GetBoolCVar(StringHash hash)
+  {
+    return GetCVarCurrent<bool>(hash);
+  }
+
+
+  // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+  void CVarSystemImpl::setBoolCVar(StringHash hash, bool value)
+  {
+    SetCVarCurrent<bool>(hash, value);
+  }
+
+
+
+  // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
   CVarParameter* CVarSystemImpl::GetCVar(StringHash hash)
   {
     auto it = savedCVars.find(hash);
@@ -257,17 +335,6 @@ namespace fc
     }
 
     return nullptr;
-  }
-
-
-  float* CVarSystemImpl::GetFloatCVar(StringHash hash)
-  {
-    return GetCVarCurrent<float>(hash);
-  }
-
-  void CVarSystemImpl::setFloatCVar(StringHash hash, float value)
-  {
-    SetCVarCurrent<float>(hash, value);
   }
 
 }// --- namespace fc --- (END)

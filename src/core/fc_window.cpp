@@ -1,5 +1,7 @@
 //>--- fc_window.cpp ---<//
 #include "fc_window.hpp"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "log.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "SDL2/SDL.h"
 #include "SDL2/SDL_vulkan.h"
@@ -13,7 +15,7 @@
 namespace fc
 {
   //
-  bool FcWindow::initWindow(uint32_t width, uint32_t height, std::string name, bool isFullscreen)
+  bool FcWindow::initWindow(VkExtent2D screenDimensions, std::string name, bool isFullscreen)
   {
     // TODO allow application parameter to choose set.
     // TODO some work must be done in order for x11 to run corectly
@@ -21,7 +23,7 @@ namespace fc
     {
       if (!SDL_SetHint(SDL_HINT_VIDEODRIVER, "x11"))
       {
-        std::cout << "Failed to set x11 override hint";
+        fcPrintEndl("Failed to set x11 override hint");
       }
     }
 
@@ -39,21 +41,25 @@ namespace fc
       return false;
     }
 
-    // create fullscreen window
     // TODO On MacOS NSHighResolutionCapable must be set to true in the
     // application Info.plist for SDL_WINDOW_ALLOW_HIGHDPI to have any effect
+    uint32_t windowCreateFlags = SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI;
+
+    // create fullscreen window
     if (isFullscreen)
     {
-      mWindow = SDL_CreateWindow(name.c_str(), SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED
-                                 , width, height, SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN
-                                 | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_FULLSCREEN);
+      windowCreateFlags |= SDL_WINDOW_FULLSCREEN;
     }
     else
     {
-      mWindow = SDL_CreateWindow(name.c_str(), SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED
-                                 , width, height, SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN
-                                 | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
+      windowCreateFlags |= SDL_WINDOW_RESIZABLE;
     }
+
+    mWindow = SDL_CreateWindow(name.c_str(),
+                               SDL_WINDOWPOS_UNDEFINED,
+                               SDL_WINDOWPOS_UNDEFINED,
+                               screenDimensions.width, screenDimensions.height,
+                               windowCreateFlags);
 
     if (mWindow == nullptr)
     {
@@ -64,9 +70,7 @@ namespace fc
     }
 
     VkExtent2D wsize = ScreenSize();
-    std::cout << "mWindow dimensions init window: " << wsize.width
-              << " x " << wsize.height << std::endl;
-
+    fcPrintEndl("Window dimensions: %u x %u", wsize.width, wsize.height);
     return true;
   }
 
@@ -75,9 +79,8 @@ namespace fc
   const VkExtent2D FcWindow::ScreenSize()
   {
     int width, height;
-     // SDL_GetWindowSize(mWindow, &width, &height);
-    SDL_Vulkan_GetDrawableSize(mWindow, &width, &height);
 
+    SDL_Vulkan_GetDrawableSize(mWindow, &width, &height);
 
     VkExtent2D winExtent{static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
 

@@ -1,11 +1,13 @@
 //>--- utilities.cpp ---<//
 #include "utilities.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "core/log.hpp"
 #include "platform.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <cstring>
 #include <filesystem>
 #include <iostream>
+#include <unordered_set>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
@@ -56,18 +58,6 @@ namespace fc
   }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 // static VKAPI_ATTR VkBool32 VKAPI_CALL
   // debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
   //               VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -109,46 +99,8 @@ namespace fc
   //   }
   // }
 
-  // bool areValidationLayersSupported(std::vector<const char*>& validationLayers)
-  // {
-  //    // make a list of all vulkan layers available to us
-  //   uint32_t layerCount;
-  //   vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
-  //   std::vector<VkLayerProperties> availableLayers(layerCount);
-  //   vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
-
-  //   std::unordered_set<std::string> requiredLayers(validationLayers.begin(), validationLayers.end());
-
-  //    // make sure our required layers are covered by the layers found availablelayers
-  //   for (const auto& layer : availableLayers)
-  //   {
-  //     requiredLayers.erase(layer.layerName);
-  //   }
-
-  //    // return true if all the all the required layers were found in vulkans available layers
-  //   return requiredLayers.empty();
-  // }
 
   //
-  void fcLog(std::string header, int resetLogCount)
-  {
-    if (resetLogCount >= 0)
-    {
-      logCount = resetLogCount;
-    }
-    if (header != "")
-    {
-      std::cout << "FC-LOG: --*--*--*--*  " << header
-                << std::right << ":\tLog Count: "<< logCount++ << std::endl;
-    }
-    else
-    {
-      std::cout << "\t\t fcLog() called: " << std::right
-                << "\tLog Count:" << logCount++ << std::endl;
-    }
-  }
-
-
   void printIOtable(std::vector<glm::ivec2>& input, std::function<int(glm::ivec2)> PFN_func)
   {
     // print columns
@@ -233,27 +185,6 @@ namespace fc
     std::cout << std::endl;
   }
 
-  // TODO set all environment variables from here
-  void initEnv()
-  {
-    // transfer and use soln from
-    // https://stackoverflow.com/questions/8591762/ifdef-debug-with-cmake-independent-from-platform
-#ifndef NDEBUG
-    std::printf("\n---- DEBUG BUILD ----\n");
-#else
-    std::printf("\n---- RELEASE BUILD ----\n");
-#endif
-
-// Good method to differentiate between different compositors in within linux
-    if (std::strcmp(secure_getenv("XDG_SESSION_TYPE"), "wayland") == 0) {
-      printf("We're on wayland.\n");
-    } else if (std::strcmp(secure_getenv("XDG_SESSION_TYPE"), "x11") == 0) {
-      printf("We're on X11.\n");
-    } else {
-      printf("NOT IDENTIFIED ?\n");
-    }
-  }
-
 
 
   std::vector<char> readFile(const std::string& filename)
@@ -308,50 +239,71 @@ namespace fc
 
 
 
-  glm::mat4 perspective(float fovDegrees, float width, float height, float near, float far)
+
+
+
+  const bool areFeaturesSupported(std::vector<const char*>& extensionsOrLayers,
+                                            FeatureType type, VkPhysicalDevice device) noexcept
   {
-    //float inverseAspect = height / width;
-    float oneOverTanX = 1.0f / tan(fovDegrees * DEG_TO_RAD_OVER_TWO_FACTOR);
-    float negFarOverDepth = -far / (far - near);
+    u32 extensionOrLayerCount = 0;
+    std::vector<const char*> availablelayersOrExtensions;
 
-    return glm::mat4 {
-      height * oneOverTanX / width, 0, 0, 0
-                                        , 0, -oneOverTanX, 0, 0
-                                                            , 0, 0, negFarOverDepth, -1
-                                                                                   , 0, 0, near * negFarOverDepth, 0 };
+    // acquire all availabe Device Extensions and add their name to availableLayersOrExtensions
+    if (type == FeatureType::DeviceExtension)
+    {
+      vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionOrLayerCount, nullptr);
+
+      std::vector<VkExtensionProperties> availableExtensions(extensionOrLayerCount);
+      vkEnumerateDeviceExtensionProperties(device, nullptr
+                                           , &extensionOrLayerCount, availableExtensions.data());
+
+      for (VkExtensionProperties extension : availableExtensions)
+      {
+        /* fcPrintEndl("Available Vulkan Device Extension: %s", extension.extensionName); */
+        availablelayersOrExtensions.push_back(extension.extensionName);
+      }
+    }
+    // acquire all available validation layers and add their name to availableLayersOrExtensions
+    else if (type == FeatureType::ValidationLayer)
+    {
+      vkEnumerateInstanceLayerProperties(&extensionOrLayerCount, nullptr);
+      std::vector<VkLayerProperties> availableLayers(extensionOrLayerCount);
+      vkEnumerateInstanceLayerProperties(&extensionOrLayerCount, availableLayers.data());
+
+      for (VkLayerProperties& layer : availableLayers)
+      {
+        /* fcPrintEndl("Available Vulkan Layer: %s", layer.layerName); */
+        availablelayersOrExtensions.push_back(layer.layerName);
+      }
+    }
+    // acquire all available Instance extensions and add their name to availableLayersOrExtensions
+    else if (type == FeatureType::InstanceExtension)
+    {
+      vkEnumerateInstanceExtensionProperties(nullptr, &extensionOrLayerCount, nullptr);
+      std::vector<VkExtensionProperties> availableExtensions(extensionOrLayerCount);
+      vkEnumerateInstanceExtensionProperties(nullptr, &extensionOrLayerCount, availableExtensions.data());
+
+      for (VkExtensionProperties& extension : availableExtensions)
+      {
+        /* fcPrintEndl("Available Vulkan Instance Extension: %s", extension.extensionName); */
+        availablelayersOrExtensions.push_back(extension.extensionName);
+      }
+    }
+
+    if (extensionOrLayerCount == 0) {
+      return false;
+    }
+
+    // add all the required extentions to an unordered set for easy removal
+    std::unordered_set<std::string> requiredExtensionsOrLayers(extensionsOrLayers.begin(),
+                                                               extensionsOrLayers.end());
+
+    for (const char* extensionOrLayer : availablelayersOrExtensions)
+    {
+      requiredExtensionsOrLayers.erase(extensionOrLayer);
+    }
+
+    return requiredExtensionsOrLayers.empty();
   }
-
-
-
-  glm::mat4 orthographic(float left, float right, float bottom, float top, float near, float far )
-  {
-    glm::mat4 orthographicProjectionMatrix = {
-      // Column 1
-      2.0f / (right - left),
-      0.0f,
-      0.0f,
-      0.0f,
-      // Column 2
-      0.0f,
-      -2.0f / (bottom - top),
-      0.0f,
-      0.0f,
-	// Column 3
-      0.0f,
-      0.0f,
-      1.0f / (near - far),
-      0.0f,
-	// Column 4
-      -(right + left) / (right - left),
-      -(bottom + top) / (bottom - top),
-      near / (near - far),
-      1.0f
-    };
-
-    return orthographicProjectionMatrix;
-  }
-
-
-
 
 } // namespace fc - END

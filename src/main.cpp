@@ -10,16 +10,20 @@
 
 int main(int argc, char* argv[])
 {
-   // Cmake injects the NDEBUG symbols by default
-  #ifndef NDEBUG
-   std::cout << "\n-Debug Build-" << std::endl;
-  #else
-   std::cout << "\n-Release Build-" << std::endl;
-  #endif
+  // First setup all needed parameters
+  fc::FrolicConfig config;
+  config.appVersionMajor = 0;
+  config.appVersionMinor = 1;
+  config.appVersionPatch = 0;
+  config.windowWidth = 2100;
+  config.windowHeight = 1600;
+  config.mouseDeadzone = 50;
+  config.applicationName = "Frolic Engine Test";  		   // Our application name
+  // TODO implement  utilizing functors for actual function calls
+  config.enableNonUniformScaline = false;
 
-   fc::initEnv();
-
-   fc::Frolic frolic;
+  // initialize engine
+  fc::Frolic frolic(config);
 
   try
   {
@@ -27,7 +31,8 @@ int main(int argc, char* argv[])
   }
   catch (const std::exception& err)
   {
-    std::cerr << err.what() << '\n';
+    std::cerr << err.what() << std::endl;
+
     return EXIT_FAILURE;
   }
 

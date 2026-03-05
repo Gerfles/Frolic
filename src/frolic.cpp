@@ -17,75 +17,68 @@
 namespace fc
 {
   //
-  Frolic::Frolic()
+  Frolic::Frolic(FrolicConfig& config)
   {
-    // Application Specs for developer use
-    VkApplicationInfo appInfo{};
-    appInfo.sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    appInfo.pApplicationName   = "Frolic"; 		   // Our application name
-    appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0); // our application version
-    appInfo.pEngineName        = "Frolic Engine";          // custom engine name
-    appInfo.engineVersion      = VK_MAKE_VERSION(1, 0, 0); // custom engine version
-    // the following does affect the program unlike the above
-    appInfo.apiVersion         = VK_API_VERSION_1_3;       // the version of Vulkan ()
+    // ?? transfer and use soln from
+    // https://stackoverflow.com/questions/8591762/ifdef-debug-with-cmake-independent-from-platform
+#ifndef NDEBUG
+    std::printf("\n---- DEBUG BUILD ----\n");
+#else
+    std::printf("\n---- RELEASE BUILD ----\n");
+#endif
 
-    VkExtent2D screenDims {2100, 1600};
-    FcLocator::provide(screenDims);
-    // Version info
-    //TODO should do this in a builder class that goes out of scope when no longer needed
-    SDL_version compiled;
-    SDL_VERSION(&compiled);
+    // TODO add / check if
+    // Good method to differentiate between different compositors in within linux
+    if (std::strcmp(secure_getenv("XDG_SESSION_TYPE"), "wayland") == 0) {
+      printf("We're on wayland.\n");
+    } else if (std::strcmp(secure_getenv("XDG_SESSION_TYPE"), "x11") == 0) {
+      printf("We're on X11.\n");
+    } else {
+      printf("Compositor NOT identified\n");
+    }
 
-    SDL_version linked;
-    SDL_GetVersion(&linked);
-
-    SDL_Log("SDL version(s): %u.%u.%u (compiled),  %u.%u.%u. (linked)\n",
-            compiled.major, compiled.minor, compiled.patch, linked.major, linked.minor, linked.patch);
-    SDL_Log("Window Dimensions: %i x %i", screenDims.width, screenDims.height);
-
-    // Initialize the memory allocator
+    // Initialize the custom memory allocator
     // TODO make this part of our FcLocator scheme instead of the singleton it is
     MemoryService::instance()->init(nullptr);
+
     pAllocator = &MemoryService::instance()->systemAllocator;
+
     // TODO Make sure this deallocates properly
     mStackAllocator.init( megabytes(8) );
 
-    // TODO should explicitly enable or disable non-uniform scaling utilizing functors for
-    // actual function call to
-
-    /* FCASSERT(mShouldClose != false); */
-
     // TODO pull some stuff out of render initialize and have init VK systems?
     // TODO define our own exception classes and failure codes for debugging later
-    if (mRenderer.init(appInfo, screenDims, &pSceneData) != EXIT_SUCCESS)
+
+    if (mRenderer.init(config, &pSceneData) != EXIT_SUCCESS)
     {
       mShouldClose = true;
       return;
     }
 
-    // TODO set this as a static variable
     mInput.init(mRenderer.Window());
 
     // NOTE: must use screen dimension not pixel width and height
     // TODO should make a better distinction and perhaps have it available globally
-    mInput.setMouseDeadzone(50, screenDims.width, screenDims.height);
+    mInput.setMouseDeadzone(config.mouseDeadzone, config.windowWidth, config.windowHeight);
 
     mPlayer.init(&mInput);
 
     // Initialize simple first person camera
     mPlayer.Camera().setPerspectiveProjection(60.0f, FcLocator::ScreenDims().width
                                               , FcLocator::ScreenDims().height, 512.f, 0.01f);
+
     // TODO make sure all reference returns are const to avoid something like:
     /* mPlayer.Camera().Projection()[1][1] *= -1; */
 
     mRenderer.setActiveCamera(&mPlayer.Camera());
-    mRenderer.initDefaults();//mSceneDataBuffer, &mSceneData);
+
+    mRenderer.initDefaults();
 
     stats = &mRenderer.getStats();
 
   }// --- Frolic::Frolic (_) --- (END)
 
-  //
+
   //
   void Frolic::loadGameObjects()
   {
@@ -100,18 +93,19 @@ namespace fc
     mRenderer.addBillboard(mSunBillboard);
 
     // TODO implement with std::optional
-    // TODO should not load and add to draw collection simultaneously. WHY??
     helmet.loadGltf(mRenderer, "..//models//helmet//DamagedHelmet.gltf");
     /* helmet.loadGltf(mRenderer, "..//models//Box.gltf"); */
     /* helmet.loadGltf(mRenderer, "..//models//SimpleMeshes.gltf"); */
     /* helmet.loadGltf(mRenderer, "..//models//MaterialsVariantsShoe.glb"); */
     /* helmet.loadGltf(mRenderer, "..//models//rustediron//MetalRoughSpheres.gltf"); */
     /* helmet.loadGltf(mRenderer, "..//models//structure.glb"); */
-
     /* helmet.loadGltf(mRenderer, "..//models//ToyCar.glb"); */
     /* helmet.loadGltf(mRenderer, "..//models//MosquitoInAmber.glb"); */
     /* helmet.loadGltf(mRenderer, "..//models//BoomBoxWithAxes//glTF//BoomBoxWithAxes.gltf"); */
     /* helmet.loadGltf(mRenderer, "..//models//sponza//Sponza.gltf"); */
+
+    // BUG investigate why this file doesn't load
+    /* helmet.loadGltf(mRenderer, "..//models//monkey.glb"); */
 
     sponza.loadGltf(mRenderer, "..//models//sponza//Sponza.gltf");
     /* sponza.loadGltf(mRenderer, "..//models//MultipleScenes.gltf"); */
@@ -120,6 +114,9 @@ namespace fc
     /* sponza.loadGltf(mRenderer, "..//models//ToyCar.glb"); */
     /* sponza.loadGltf(mRenderer, "..//models//structure_mat.glb"); */
     /* sponza.loadGltf(mRenderer, "..//models//house2.glb"); */
+
+    // FIXME requires enabling one or more extensions in fastgltf
+    //structure.loadGltf(this, "..//models//SheenWoodLeatherSofa.glb");
 
     // Posistion the loaded scenes
     glm::vec3 translationVec = {45.0f, 10.0f, 20.0f};
@@ -149,6 +146,7 @@ namespace fc
     loadGameObjects();
 
     AutoCVarFloat cvarMovementSpeed("movementSpeed.float", "controls camera movement speed", 10.0f);
+    AutoCVarBool cvarShouldDrawShadowMap("shouldDrawShadowMap.bool", "determines whether to draw debug map", false);
 
     // zero out the ticklist for performance tracking
     std::memset(mFrameTimeList, 0, sizeof(mFrameTimeList));
@@ -160,7 +158,6 @@ namespace fc
     // TODO separate to make entirely own function
     while (!mShouldClose)
     {
-      bool shouldResize = false;
       // Check for events every cycle of the game loop
       while (SDL_PollEvent(&mEvent))
       {
@@ -178,14 +175,12 @@ namespace fc
                 break;
               }
               // ?? this event seems to cause issues in Wayland, seems like wayland already handles resize
-              // case SDL_WINDOWEVENT_SIZE_CHANGED:
-              // {
-              //    // TODO handle better here
-
-              //   mRenderer.handleWindowResize();
-              //   shouldResize = true;
-              //    //break;
-              // }
+              case SDL_WINDOWEVENT_SIZE_CHANGED:
+              {
+                // TEST all platforms etc. Also make sure ImGui resizes properly (cursors work as intended etc.)
+                mRenderer.handleWindowResize();
+                break;
+              }
               default:
                 break;
           }
@@ -197,12 +192,6 @@ namespace fc
           break;
         }
 
-        // TODO see if this is better handles (without this additional check) from SDL switch
-        if (mRenderer.shouldWindowResize())
-        {
-          mRenderer.handleWindowResize();
-        }
-
         // Send SDL event to imGUi for handling
         ImGui_ImplSDL2_ProcessEvent(&mEvent);
       }
@@ -210,9 +199,11 @@ namespace fc
       // that way we don't need to divide by 1000 to get a better representation of what's going on...
       // could consider bit-shifting by 1024 to get there also
       deltaTime = mTimer.elapsedTime();
+
       /* FcStats& stats = mRenderer.getStats(); */
       stats->frametime = deltaTime * 1000;
       stats->fpsAvg = calcFPS(deltaTime);
+
       // now re-start the time so that the start time is the start of each frame
       mTimer.start();
 
@@ -239,14 +230,7 @@ namespace fc
       // TODO make sure we can comment out drawGUI without crashing
       gui.drawGUI(this);
 
-      //mRenderer.drawModels(swapchainImgIndex, mUbo);
-      //mRenderer.drawBillboards(camera.Position(), frame, mUbo);
-      //mRenderer.drawUI(mUItextList, frame);
-      //mRenderer.drawBackground(mPushConstants[currentBackgroundEffect]);
-
-      // TODO may want to couple shadow map tighter with sceneRenderer
-      mShouldDrawDebugShadowMap = false;
-      mRenderer.drawFrame(mShouldDrawDebugShadowMap);
+      mRenderer.drawFrame();
 
       mRenderer.endFrame(swapchainImgIndex);
 
@@ -322,4 +306,4 @@ namespace fc
     MemoryService::instance()->shutdown();
   }
 
-} // namespace fc END
+}// --- namespace fc --- (END)

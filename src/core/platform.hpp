@@ -76,7 +76,7 @@ namespace fc
   // Total number of textures allowed to be bound dynamically
   static const u32 MAX_BINDLESS_RESOURCES = 1024;
   //?? not sure why we use 10 here
-  static const uint32_t BINDLESS_TEXTURE_BIND_SLOT = 10;
+  static const u32 BINDLESS_TEXTURE_BIND_SLOT = 10;
 
   static const glm::mat4 ID_MATRIX{1.0f};
 }

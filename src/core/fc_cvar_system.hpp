@@ -26,18 +26,26 @@ namespace fc
   class CVarSystem
   {
    public:
-     // TODO rename withou capital ugh!
+     // TODO rename without capital ugh!
      static CVarSystem* Get();
+     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FLOAT   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      virtual CVarParameter* CreateFloatCVar(const char* name, const char* description,
                                             float defaultValue, float currentValue) = 0;
-     virtual CVarParameter* GetCVar(StringHash hash) = 0;
      virtual float* GetFloatCVar(StringHash hash) = 0;
      virtual void setFloatCVar(StringHash hash, float value) = 0;
+     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   BOOL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     virtual CVarParameter* CreateBoolCVar(const char* name, const char* description,
+                                           bool defaultValue, bool currentValue) = 0;
+     virtual bool* GetBoolCVar(StringHash hash) = 0;
+     virtual void setBoolCVar(StringHash hash, bool value) = 0;
+     //// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     virtual CVarParameter* GetCVar(StringHash hash) = 0;
+
    private:
+  }; // ---   class CVarSystem --- (END)
 
-  };
 
-
+  //
   template<typename T>
   struct AutoCVar
   {
@@ -55,5 +63,17 @@ namespace fc
      float get();
      void set(float value);
   };
+
+
+  //
+  struct AutoCVarBool : AutoCVar<bool>
+  {
+     AutoCVarBool(const char* name, const char* description,
+                  bool defaultValue, CVarFlags flags = CVarFlags::None);
+     bool get();
+     void set(bool value);
+  };
+
+  /* struct AutoC */
 
 }// --- namespace fc --- (END)

@@ -14,6 +14,23 @@
 namespace fc
 {
   //
+  struct FrolicConfig
+  {
+     std::string applicationName;
+     u32 appVersionMajor {0};
+     u32 appVersionMinor {0};
+     u32 appVersionPatch {0};
+     u32 windowWidth {0};
+     u32 windowHeight {0};
+     u32 mouseDeadzone {0};
+     bool enableNonUniformScaline {false};
+     bool enableDebugShadowmapDraw {false};
+     bool enableValidationLayers {false};
+  };
+
+
+
+  //
   class Frolic
   {
    private:
@@ -30,8 +47,6 @@ namespace fc
      // note: order of declaration matters (member variables are allocated top to bottom
      // and destroyed in the reverse order)
      SceneDataUbo* pSceneData {nullptr};
-     //
-     bool mShouldDrawDebugShadowMap{false};
      //
      FcPlayer mPlayer;
      //
@@ -55,7 +70,8 @@ namespace fc
      int rotationSpeed {0};
 
    public:
-     Frolic();
+     Frolic(FrolicConfig& config);
+     Frolic() = delete;
      void run();
      void loadGameObjects();
      void update(float deltaTime);
@@ -64,4 +80,5 @@ namespace fc
      friend class FcGUI;
   };
 
-}
+
+}// --- namespace fc --- (END)

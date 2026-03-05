@@ -27,9 +27,7 @@ namespace fc
      FcWindow(const FcWindow&) = delete;
      FcWindow& operator=(const FcWindow) = delete;
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-     bool initWindow(uint32_t width,
-                     uint32_t height,
-                     std::string windowName,
+     bool initWindow(VkExtent2D screenDimensions,std::string windowName,
                      bool isFullscreen = false);
      const VkExtent2D ScreenSize();
      void createWindowSurface(const VkInstance& instance);
