@@ -24,12 +24,9 @@ namespace fc
   {
    private:
      VkPhysicalDevice mPhysicalGPU = VK_NULL_HANDLE;
-      // TODO consider renaming
-     VkDevice mLogicalGPU = VK_NULL_HANDLE;
+     VkDevice mLogicalDevice = VK_NULL_HANDLE;
      VmaAllocator mAllocator = VK_NULL_HANDLE;
-      // handles to Queues (graphics is often the same as presentation but could make dedicated)
-     VkQueue mGraphicsQueue {VK_NULL_HANDLE};
-     VkQueue mPresentationQueue {VK_NULL_HANDLE};
+     DeviceQueues mQueues;
      FcWindow* pWindow;
       // TODO delete VkCommandPool mCommandPool = VK_NULL_HANDLE;
       // used to setup graphics capabilities, sampler attributes, etc.
@@ -53,21 +50,20 @@ namespace fc
      // void submitCommandBuffer(VkCommandBuffer commandBuffer) const;
       // TODO establish convention that all getter functions are capitalized (since they "are" a type)
       // - GETTER FUNCTIONS -
-      // DEL QueueFamilyIndices getQueueFamilies(const VkPhysicalDevice& device) const;
-     const QueueFamilyIndices getQueueFamilies();
-     const VmaAllocator& getAllocator() const { return mAllocator; }
-     const VkDevice& getVkDevice() const { return mLogicalGPU; }
-     const VkPhysicalDevice physicalDevice() const { return mPhysicalGPU; }
-     const VkSurfaceKHR& surface() const { return pWindow->surface(); }
-     VkExtent2D SurfaceExtent() const { return pWindow->ScreenSize(); }
+     void getQueueFamilyIndicies();
 
-      // DELETE
-//     QueueFamilyIndices GpuQueueFamilies() const { return getQueueFamilies(mPhysicalGPU); }
-     const VkQueue& graphicsQueue() const { return mGraphicsQueue; }
-     const VkQueue& presentQueue() const { return mPresentationQueue; }
+     inline const VmaAllocator& getAllocator() const { return mAllocator; }
+     inline const VkDevice& getVkDevice() const { return mLogicalDevice; }
+     inline const VkPhysicalDevice physicalDevice() const { return mPhysicalGPU; }
+     inline const VkSurfaceKHR& surface() const { return pWindow->surface(); }
+     inline VkExtent2D SurfaceExtent() const { return pWindow->ScreenSize(); }
+     inline const DeviceQueues& getQueues() const { return mQueues; }
+
+     inline const VkQueue& graphicsQueue() const { return mQueues.graphicsQueue; }
+     inline const VkQueue& presentQueue() const { return mQueues.graphicsQueue; }
      SwapChainDetails getSwapChainDetails(const VkPhysicalDevice& device) const;
       // const VkCommandPool commandPool() const { return mCommandPool; }
-     const PerformanceProperties Properties() const { return mGpuPerformanceProperties; }
+     inline const PerformanceProperties Properties() const { return mGpuPerformanceProperties; }
       // Cleanup
      void release(VkInstance& instance);
   };

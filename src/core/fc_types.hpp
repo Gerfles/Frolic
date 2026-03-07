@@ -20,15 +20,25 @@ namespace fc
   static constexpr unsigned int BINDLESS_DESCRIPTOR_SLOT = 10;
 
   // Index locations of queue families
-  struct QueueFamilyIndices
+  struct DeviceQueues
   {
-     int graphicsFamily = -1;
-     int presentationFamily = -1;
+     const static u32 INVALID = 0xFFFFFFFF;
+     u32 graphicsFamily {INVALID};
+     u32 presentationFamily {INVALID};
+     u32 transferFamily {INVALID};
+     u32 computeFamily {INVALID};
      // check if queue family indices are valid
+     VkQueue graphicsQueue {VK_NULL_HANDLE};
+     VkQueue presentQueue {VK_NULL_HANDLE};
+     VkQueue computeQueue {VK_NULL_HANDLE};
+     VkQueue transferQueue {VK_NULL_HANDLE};
+
      inline const bool isValid() const
       {
-        return graphicsFamily >= 0 && presentationFamily >= 0;
+        return graphicsFamily != INVALID && presentationFamily != INVALID;
       }
+
+     inline const bool areGraphicsAndPresentationSame() const { return graphicsFamily == presentationFamily; }
   };
 
 

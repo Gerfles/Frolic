@@ -97,15 +97,12 @@ namespace fc
     swapChainInfo.clipped = VK_TRUE;
 
     // Get queue family indices
-    QueueFamilyIndices indices = pGpu->getQueueFamilies();
+    const DeviceQueues& queues = pGpu->getQueues();
+    uint32_t queueFamilyIndices[] = { queues.graphicsFamily, queues.presentationFamily };
 
     // if graphics and presentation families are different, then swapchain must let images be shared between families
-    if (indices.graphicsFamily != indices.presentationFamily)
+    if (queues.areGraphicsAndPresentationSame())
     {
-      // TODO should probably make indices uint32_t
-      uint32_t queueFamilyIndices[] = {static_cast<uint32_t>(indices.graphicsFamily)
-                                     , static_cast<uint32_t>(indices.presentationFamily) };
-
       swapChainInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
       swapChainInfo.queueFamilyIndexCount = 2;
       swapChainInfo.pQueueFamilyIndices = queueFamilyIndices;
@@ -113,6 +110,8 @@ namespace fc
     else // graphics queue and present queue are the same (often the case)
     {
       swapChainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+      swapChainInfo.queueFamilyIndexCount = 1;
+      swapChainInfo.pQueueFamilyIndices = VK_NULL_HANDLE;
     }
 
     // set oldswapchain to the previous swapchain if recreating, otherwise defaults to VK_NULL_HANDLE

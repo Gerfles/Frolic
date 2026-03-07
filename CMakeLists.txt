@@ -1,4 +1,4 @@
-# cmake_minimum_required(VERSION 3.11.0)
+cmake_minimum_required(VERSION 3.11.0)
 
 # #set the project name
 # project(lve VERSION 1.0)
@@ -303,6 +303,8 @@ file(GLOB_RECURSE SOURCES ${PROJECT_SOURCE_DIR}/src/[a-z]*.cpp)
 
 #file(GLOB_RECURSE EXTERNAL ${PROJECT_SOURCE_DIR}/external/[a-z]*.cpp)
 
+
+
 add_executable(${PROJECT_NAME}
   ${SOURCES}
 #  ${EXTERNAL}
@@ -311,11 +313,11 @@ add_executable(${PROJECT_NAME}
 # add_library(taskflow INTERFACE ${PROJECT_SOURCE_DIR}/external/taskflow/)
 
 # #specify the C++ standard
- # set(CMAKE_CXX_STANDARD 20)
- # set(CMAKE_CXX_STANDARD_REQUIRED true)
+# set(CMAKE_CXX_STANDARD 20)
+# set(CMAKE_CXX_STANDARD_REQUIRED true)
 # set(CMAKE_CXX_COMPILER  $/usr/bin/c++)
- set(CMAKE_CXX_COMPILER  clang++)
- target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
+set(CMAKE_CXX_COMPILER  clang++)
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC GLM_FORCE_DEPTH_ZERO_TO_ONE)
 
@@ -325,7 +327,7 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC GLM_FORCE_DEPTH_ZERO_TO_ONE)
 
 #set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/build")
 
-
+# TODO UPDATE WIN32 TO MIMICK UNIX FOR ALL INCLUDES
 if (WIN32)
   message(STATUS "CREATING BUILD FOR WINDOWS")
 
@@ -368,19 +370,6 @@ elseif (UNIX)
       ${FREETYPE_INCLUDE_DIRS}
     )
 
-
-
-
-
-
-
-    # DELETE
-
-    # target_include_directories(${PROJECT_NAME} INTERFACE
-    #   ${PROJECT_SOURCE_DIR}/external/taskflow/taskflow
-    #   )
-    # target_link_libraries(${PROJECT_NAME} INTERFACE taskflow)
-
     target_link_libraries(${PROJECT_NAME} PUBLIC #OR INTERFACE/PRIVATE
       ${Vulkan_LIBRARIES}
       ${SDL2_LIBRARIES}
@@ -398,76 +387,59 @@ elseif (UNIX)
 
   endif()
 
-
-
-
   message(STATUS "Cmake C++ flags: ${CMAKE_CXX_FLAGS}")
-
-
-# ############## Build SHADERS #######################
-
-# # Find all vertex and fragment sources within shaders directory
-# # taken from VBlancos vulkan tutorial
-# # https://github.com/vblanco20-1/vulkan-guide/blob/all-chapters/CMakeLists.txt
-# find_program(GLSL_VALIDATOR glslangValidator HINTS
-#   ${Vulkan_GLSLANG_VALIDATOR_EXECUTABLE}
-#   /usr/bin
-#   /usr/local/bin
-#   ${VULKAN_SDK_PATH}/Bin
-#   ${VULKAN_SDK_PATH}/Bin32
-#   $ENV{VULKAN_SDK}/Bin/
-#   $ENV{VULKAN_SDK}/Bin32/
-# )
-
-# # get all .vert and .frag files in shaders directory
-# file(GLOB_RECURSE GLSL_SOURCE_FILES
-#   "${PROJECT_SOURCE_DIR}/shaders/*.frag"
-#   "${PROJECT_SOURCE_DIR}/shaders/*.vert"
-# )
-
-# foreach(GLSL ${GLSL_SOURCE_FILES})
-#   get_filename_component(FILE_NAME ${GLSL} NAME)
-#   set(SPIRV "${PROJECT_SOURCE_DIR}/shaders/${FILE_NAME}.spv")
-#   add_custom_command(
-#     OUTPUT ${SPIRV}
-#     COMMAND ${GLSL_VALIDATOR} -V ${GLSL} -o ${SPIRV}
-#     DEPENDS ${GLSL})
-#   list(APPEND SPIRV_BINARY_FILES ${SPIRV})
-# endforeach(GLSL)
-
-# add_custom_target(
-#     Shaders
-#     DEPENDS ${SPIRV_BINARY_FILES}
-# )
 
 
 # Copy assets to build folder
 #---------------------------------------------------
 #file(COPY graphics DESTINATION ${CMAKE_BINARY_DIR})
 #file(COPY text DESTINATION ${CMAKE_BINARY_DIR})
-file(COPY fonts DESTINATION ${CMAKE_BINARY_DIR})
+# file(COPY fonts DESTINATION ${CMAKE_BINARY_DIR})
 #file(COPY audio DESTINATION ${CMAKE_BINARY_DIR})
-file(COPY maps DESTINATION ${CMAKE_BINARY_DIR})
-file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/shaders)
+# file(COPY maps DESTINATION ${CMAKE_BINARY_DIR})
 # file(COPY models DESTINATION ${CMAKE_BINARY_DIR})
 # file(COPY textures DESTINATION ${CMAKE_BINARY_DIR})
-file(COPY shaders/compile_shaders.sh DESTINATION ${CMAKE_BINARY_DIR})
-
+# file(COPY shaders/compile_shaders.sh DESTINATION ${CMAKE_BINARY_DIR})
 #file(COPY) compile_commands.json DESTINAMTION ../
 
+## BUILD SHADERS
+# Find Compiler for compiline GLSL files into SPIR-V binaries
+find_program(GLSL_VALIDATOR glslangValidator HINTS
+  ${Vulkan_GLSLANG_VALIDATOR_EXECUTABLE}
+  /usr/bin
+  /usr/local/bin
+  ${VULKAN_SDK_PATH}/Bin
+  ${VULKAN_SDK_PATH}/Bin32
+  $ENV{VULKAN_SDK}/Bin/
+  $ENV{VULKAN_SDK}/Bin32/
+)
+
 # compile shaders
-set(SHADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shaders)
-file(GLOB SHADERS ${SHADER_DIR}/*.vert ${SHADER_DIR}/*.frag ${SHADER_DIR}/*.comp
-${SHADER_DIR}/*.geom ${SHADER_DIR}/*.tesc ${SHADER_DIR}/*.tese)
+set(SHADER_DIR ${PROJECT_SOURCE_DIR}/shaders)
 
-foreach(SHADER ${SHADERS})
-  get_filename_component(FILENAME ${SHADER} NAME)
-  message("Shader: ${SHADER_DIR}")
-  add_custom_command(OUTPUT ${SHADER_DIR}/shaders/${FILENAME}.spv
-    COMMAND ${Vulkan_GLSLANG_VALIDATOR_EXECUTABLE} ${SHADER} -V -o ${SHADER_DIR}/../build/shaders/${FILENAME}.spv
-    DEPENDS ${SHADER}
-    COMMENT "Compiling ${FILENAME}")
-  list(APPEND SPV_SHADERS ${SHADER_DIR}/shaders/${FILENAME}.spv)
-endForeach()
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/shaders)
 
-add_custom_target(shaders ALL DEPENDS ${SPV_SHADERS})
+# get all GLSL files in shaders directory
+file(GLOB_RECURSE GLSL_FILES
+  "${SHADER_DIR}/*.vert"
+  "${SHADER_DIR}/*.frag"
+  "${SHADER_DIR}/*.comp"
+  "${SHADER_DIR}/*.geom"
+  "${SHADER_DIR}/*.tesc"
+  "${SHADER_DIR}/*.tese"
+)
+
+foreach(GLSL_FILE ${GLSL_FILES})
+  get_filename_component(FILENAME ${GLSL_FILE} NAME)
+  message("Shader: ${FILENAME}")
+  set (SPIRV_BINARY "${CMAKE_BINARY_DIR}/shaders/${FILENAME}.spv")
+  add_custom_command(
+    OUTPUT ${SPIRV_BINARY}
+    COMMAND ${Vulkan_GLSLANG_VALIDATOR_EXECUTABLE} -V "${GLSL_FILE}" -o "${SPIRV_BINARY}"
+    DEPENDS ${GLSL_FILE}
+    COMMENT "Compiling ${FILENAME}"
+  )
+
+  list(APPEND SPV_SHADERS ${SPIRV_BINARY})
+  target_sources(${PROJECT_NAME} PUBLIC ${SPIRV_BINARY})
+endForeach(GLSL_FILE)

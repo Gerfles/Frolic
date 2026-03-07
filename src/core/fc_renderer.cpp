@@ -488,13 +488,11 @@ namespace fc
   void FcRenderer::createCommandPools()
   {
     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FOR EACH FRAME   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    // get indices of queue families from device
-    QueueFamilyIndices queueFamilyIndices = mGpu.getQueueFamilies();
     VkCommandPoolCreateInfo commandPoolInfo = {};
     commandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     commandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     commandPoolInfo.pNext = nullptr;
-    commandPoolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily;
+    commandPoolInfo.queueFamilyIndex = mGpu.getQueues().graphicsFamily;
 
     // Allocate the default command buffer that we will use for rendering
     VkCommandBufferAllocateInfo allocInfo{};

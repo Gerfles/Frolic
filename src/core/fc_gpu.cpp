@@ -41,7 +41,7 @@ namespace fc
         // Create and initialize the VMA allocator
         VmaAllocatorCreateInfo vmaAllocatorInfo = {};
         vmaAllocatorInfo.physicalDevice = mPhysicalGPU;
-        vmaAllocatorInfo.device = mLogicalGPU;
+        vmaAllocatorInfo.device = mLogicalDevice;
         vmaAllocatorInfo.instance = instance;
         vmaAllocatorInfo.vulkanApiVersion = VK_API_VERSION_1_3;
         // this will let us use GPU pointers
@@ -198,32 +198,29 @@ namespace fc
   //
   bool FcGpu::createLogicalDevice(std::vector<const char*>& deviceExtensions)
   {
-    //TODO Consider changing the queue situation to make a little more logical sense - maybe creating a queue struct that has a queue member and an index member
-    // Queue that logical device needs to be created
-    QueueFamilyIndices indices = getQueueFamilies();
-
-    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+    // Determine queue families that logical device needs to be created
+    getQueueFamilyIndicies();
 
     // use a set to prevent the same queue from being added more than once
     // in the case where graphics and present queue are the same
-    std::set<int> queueFamilyIndices = {indices.graphicsFamily, indices.presentationFamily};
+    std::set<u32> queueFamilyIndices = { mQueues.graphicsFamily
+                                       , mQueues.presentationFamily
+                                       , mQueues.transferFamily
+                                       , mQueues.computeFamily };
 
-    SDL_Log("graphics family queue:%i", indices.graphicsFamily);
-    SDL_Log("present family queue:%i", indices.presentationFamily);
+    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 
-    // vector for queue creation information, and set for family indices
+    // vulkan needs to know how to handle multiple queues unfortunately we still haven't
+    // addressed the possibility of multiple queues this is because it's often the case
+    // that the graphics and presentat queues are the the same but not always.
     for (int queueFamilyIndex : queueFamilyIndices)
     {
       VkDeviceQueueCreateInfo queueInfo{};
       queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-      //queueInfo.queueFamilyIndex = indices.graphicsFamily;
       queueInfo.queueFamilyIndex = queueFamilyIndex;
       queueInfo.queueCount = 1;
-      // vulkan needs to know how to handle multiple queues
-      // ufortunately we still haven't addressed the possibility of multiple queues
-      // this is because it's often the case that the graphics and presentat queues are the the same
-      // but not always.
-      float priority = 1.0f; // 1 is highest, 0 is the lowest
+
+      float priority = 1.0f;
       queueInfo.pQueuePriorities = &priority;
 
       queueCreateInfos.push_back(queueInfo);
@@ -306,58 +303,77 @@ namespace fc
     deviceInfo.pNext = &features1_3;
 
     // createt the "logical" device
-    VK_ASSERT(vkCreateDevice(mPhysicalGPU, &deviceInfo, nullptr, &mLogicalGPU));
+    VK_ASSERT(vkCreateDevice(mPhysicalGPU, &deviceInfo, nullptr, &mLogicalDevice));
 
     // Queues are created at the same time as the device, so get hadles to them
     //TRY using a pointer to VkQueue in the GPU class declaration
-    vkGetDeviceQueue(mLogicalGPU, indices.graphicsFamily, 0, &mGraphicsQueue);
-    vkGetDeviceQueue(mLogicalGPU, indices.presentationFamily, 0, &mPresentationQueue);
+    vkGetDeviceQueue(mLogicalDevice, mQueues.graphicsFamily, 0, &mQueues.graphicsQueue);
+    vkGetDeviceQueue(mLogicalDevice, mQueues.presentationFamily, 0, &mQueues.presentQueue);
 
     return true;
   }
 
 
-
   //
-  const QueueFamilyIndices FcGpu::getQueueFamilies()
+  void FcGpu::getQueueFamilyIndicies()
   {
-    QueueFamilyIndices indices;
-
+    // Populate the list of queues
     uint32_t queueFamilyCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(mPhysicalGPU, &queueFamilyCount, nullptr);
-    std::vector<VkQueueFamilyProperties> queueFamilyList(queueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(mPhysicalGPU, &queueFamilyCount, queueFamilyList.data());
 
-    // go through each queue family and check if it has at least 1 of the required types of queues
-    int i = 0;
-    for (const auto& queueFamily : queueFamilyList)
+    // new
+    std::vector<VkQueueFamilyProperties2> properties(queueFamilyCount);
+    for (VkQueueFamilyProperties2& property : properties)
     {
-      // queueFamily can have no queues so make sure it has at least one (and that it's at least graphics)
-      if (queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
-      {
-        indices.graphicsFamily = i;
-      }
-
-      // check if queue family supports presentation (usually graphics queue also supports presentation)
-      VkBool32 presentationSupport = false;
-      vkGetPhysicalDeviceSurfaceSupportKHR(mPhysicalGPU, i, pWindow->surface(), &presentationSupport);
-
-      //
-      if (queueFamily.queueCount > 0 && presentationSupport)
-      {
-        indices.presentationFamily = i;
-      }
-
-      //?? this may be necessary later but right now we could just break from above if statement
-      if (indices.isValid())
-      {
-        break;
-      }
-
-      i++;
+      property.sType = VK_STRUCTURE_TYPE_QUEUE_FAMILY_PROPERTIES_2;
     }
 
-    return indices;
+    vkGetPhysicalDeviceQueueFamilyProperties2(mPhysicalGPU, &queueFamilyCount, properties.data());
+
+    auto findDedicatedQueueFamilyIndex = [&properties](VkQueueFlags require, VkQueueFlags avoid) -> u32
+     {
+       for (u32 i = 0; i != properties.size(); i++)
+       {
+         const VkQueueFamilyProperties& property = properties[i].queueFamilyProperties;
+         const bool isSuitable = (property.queueFlags & require) == require;
+         const bool isDedicated = (property.queueFlags & avoid) == 0;
+
+         if (property.queueCount && isSuitable && isDedicated)
+           return i;
+       }
+       return DeviceQueues::INVALID;
+     };
+
+    // Get dedicated queue for compute
+    mQueues.computeFamily = findDedicatedQueueFamilyIndex(VK_QUEUE_COMPUTE_BIT, VK_QUEUE_GRAPHICS_BIT);
+
+    // if we couldn't find a dedicated compute queue above, settle for any valid queue
+    if (mQueues.computeFamily == DeviceQueues::INVALID)
+    {
+      mQueues.computeFamily = findDedicatedQueueFamilyIndex(VK_QUEUE_COMPUTE_BIT, 0);
+    }
+
+    // Get dedicated queue for transfer
+    mQueues.transferFamily = findDedicatedQueueFamilyIndex(VK_QUEUE_TRANSFER_BIT, VK_QUEUE_GRAPHICS_BIT);
+
+    // if we couldn't find a dedicated compute queue above, settle for any valid queue
+    if (mQueues.computeFamily == DeviceQueues::INVALID)
+    {
+      mQueues.transferFamily = findDedicatedQueueFamilyIndex(VK_QUEUE_TRANSFER_BIT, 0);
+    }
+
+    // For graphics queue, we just need any valid graphics queue since it won't be dedicated
+    mQueues.graphicsFamily = findDedicatedQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT, 0);
+
+    // check if queue family supports presentation (usually graphics queue also supports presentation)
+    VkBool32 presentationSupport = false;
+    vkGetPhysicalDeviceSurfaceSupportKHR(mPhysicalGPU, mQueues.graphicsFamily,
+                                         pWindow->surface(), &presentationSupport);
+
+    if (presentationSupport)
+    {
+      mQueues.presentationFamily = mQueues.graphicsFamily;
+    }
   }
 
 
@@ -399,9 +415,9 @@ namespace fc
   {
     vmaDestroyAllocator(mAllocator);
 
-    if (mLogicalGPU != VK_NULL_HANDLE)
+    if (mLogicalDevice != VK_NULL_HANDLE)
     {
-      vkDestroyDevice(mLogicalGPU, nullptr);
+      vkDestroyDevice(mLogicalDevice, nullptr);
     }
   }
 

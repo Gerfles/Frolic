@@ -1,3 +1,3 @@
 #! /bin/sh
 
-cd build && ./frolic
+cmake --build build -j32 && cd build && ./frolic
