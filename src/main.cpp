@@ -10,20 +10,25 @@
 
 int main(int argc, char* argv[])
 {
-  // First setup all needed parameters
-  fc::FrolicConfig config;
-  config.appVersionMajor = 0;
-  config.appVersionMinor = 1;
-  config.appVersionPatch = 0;
-  config.windowWidth = 2100;
-  config.windowHeight = 1600;
-  config.mouseDeadzone = 50;
-  config.applicationName = "Frolic Engine Test";  		   // Our application name
-  // TODO implement  utilizing functors for actual function calls
-  config.enableNonUniformScaline = false;
+  fc::Frolic frolic;
 
-  // initialize engine
-  fc::Frolic frolic(config);
+  // initialize in subscope so our config gets taken off the stack once it's used
+  {
+    // First setup all needed parameters
+    fc::FcConfig config;
+    config.appVersionMajor = 0;
+    config.appVersionMinor = 1;
+    config.appVersionPatch = 0;
+    config.windowWidth = 2100;
+    config.windowHeight = 1600;
+    config.mouseDeadzone = 50;
+    config.applicationName = "Frolic Engine Test";  		   // Our application name
+    // TODO implement  utilizing functors for actual function calls
+    config.enableNonUniformScaline = false;
+
+    // initialize engine
+    frolic.init(config);
+  }
 
   try
   {

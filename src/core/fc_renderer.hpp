@@ -13,7 +13,7 @@
 #include "fc_frame_assets.hpp"
 #include "fc_types.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'S   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-namespace fc { class FcCamera; class FrolicConfig; }
+namespace fc { class FcCamera; }
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
 
@@ -82,7 +82,7 @@ namespace fc
        FcAllocator* pAllocator;
 
        // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   HELPERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-       void createInstance(VkApplicationInfo& appInfo);
+       void createInstance(VkApplicationInfo& appInfo, FcConfig& configOptions);
        /* bool areInstanceExtensionsSupported(const std::vector<const char*>& instanceExtensions); */
        /* bool areValidationLayersSupported(std::vector<const char*>& validationLayers); */
        void createCommandPools();
@@ -160,7 +160,7 @@ namespace fc
        FcRenderer& operator=(const FcRenderer&) = delete;
        FcRenderer(const FcRenderer&) = delete;
        //
-       int init(FrolicConfig& config, SceneDataUbo** pSceneData);
+       int init(FcConfig& config, SceneDataUbo** pSceneData);
        //
        void handleWindowResize();
        uint32_t beginFrame();

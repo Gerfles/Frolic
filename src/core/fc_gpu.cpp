@@ -2,7 +2,8 @@
 #include "fc_gpu.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_assert.hpp"
-#include "utilities.hpp"
+/* #include "utilities.hpp" */
+#include "fc_config.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <SDL_log.h>
 // must resort to something like this or get thousands of warnings with vk_mem_alloc
@@ -17,11 +18,12 @@
 namespace fc
 {
   //
-  bool FcGpu::init(const VkInstance& instance, FcWindow& window)
+  bool FcGpu::init(const VkInstance& instance, FcWindow& window, FcConfig& configOptions)
   {
     // first couple the window instance to the GPU (needed for surface stuff)
     pWindow = &window;
 
+    // TODO pass in via configOptions
     std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME
                                                 , VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME
                                                 , VK_KHR_DYNAMIC_RENDERING_LOCAL_READ_EXTENSION_NAME };
@@ -30,13 +32,13 @@ namespace fc
     //, "VK_KHR_portability_subset"};
 
     // First pick the best GPU
-    pickPhysicalDevice(instance, deviceExtensions);
+    pickPhysicalDevice(instance, deviceExtensions, configOptions);
 
     // now that we have the GPU chosen, interface the logical device to that GPU
     if (mPhysicalGPU != VK_NULL_HANDLE)
     {
       // now create the logical device that vulkan actually uses to interface with the GPU
-      if (createLogicalDevice(deviceExtensions))
+      if (createLogicalDevice(deviceExtensions, configOptions))
       {
         // Create and initialize the VMA allocator
         VmaAllocatorCreateInfo vmaAllocatorInfo = {};
@@ -60,8 +62,10 @@ namespace fc
   }
 
 
-  //
-  void FcGpu::pickPhysicalDevice(const VkInstance& instance, std::vector<const char*>& deviceExtensions)
+  // TODO pass device extensions via FcConfig
+  void FcGpu::pickPhysicalDevice(const VkInstance& instance,
+                                 std::vector<const char*>& deviceExtensions,
+                                 FcConfig& configOptions)
   {
     u32 deviceCount = 0;
 
@@ -86,47 +90,24 @@ namespace fc
     for (VkPhysicalDevice potentialDevice : deviceOptions)
     {
       // Make sure all our device extensions are supported
-      if (areFeaturesSupported(deviceExtensions, FeatureType::DeviceExtension, potentialDevice))
+      if (configOptions.areExtensionsSupported(deviceExtensions, FeatureType::DeviceExtension, potentialDevice))
       {
         continue;
       }
 
-      // TODO check for each specific feature in a branch so we can provide
-      // alternatives in a release version
+      VkPhysicalDeviceFeatures2 deviceFeatures_1_0 = {};
+      VkPhysicalDeviceVulkan11Features deviceFeatures_1_1 = {};
+      VkPhysicalDeviceVulkan12Features deviceFeatures_1_2 = {};
+      VkPhysicalDeviceVulkan13Features deviceFeatures_1_3 = {};
+      //
+      deviceFeatures_1_0.pNext = &deviceFeatures_1_1;
+      deviceFeatures_1_1.pNext = &deviceFeatures_1_2;
+      deviceFeatures_1_2.pNext = &deviceFeatures_1_3;
 
-      // TODO add features to a builder vector to add and use with device creation
-      // First populate the supported features, making sure to chain in the vulkan ext features
-      // VkPhysicalDeviceVulkan11Features extFeatures_1_1 = {
+      configOptions.populateVulkanPhysicalDeviceFeatures(deviceFeatures_1_0);
 
-      // }
-      VkPhysicalDeviceVulkan13Features extFeatures_1_3 = {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES
-      };
-
-      VkPhysicalDeviceVulkan12Features extFeatures_1_2 = {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
-	.pNext = &extFeatures_1_3
-      };
-
-      VkPhysicalDeviceFeatures2 supportedFeatures = {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-      	.pNext = &extFeatures_1_2
-      };
-
-      vkGetPhysicalDeviceFeatures2(potentialDevice, &supportedFeatures);
-
-      if (extFeatures_1_2.bufferDeviceAddress == VK_FALSE ||
-          extFeatures_1_2.descriptorIndexing == VK_FALSE ||
-          extFeatures_1_3.dynamicRendering == VK_FALSE ||
-          extFeatures_1_3.synchronization2 == VK_FALSE ||
-          // Check for support of bindless rendering so that we can automatically bind
-          // an array of textures that can be used across multiple shaders and accessed
-          // via index (note that this is an avaialable feature of the Nintendo Switch)
-          // Gives us the ability to partially bind a descriptor, since some entries in the
-          // bindless array will need to be empty
-          extFeatures_1_2.descriptorBindingPartiallyBound == VK_FALSE ||
-          // Gives us the binless descriptor usage with SpirV
-          extFeatures_1_2.runtimeDescriptorArray == VK_FALSE)
+      // Check the features we need from from our selected device
+      if ( !configOptions.areDeviceFeaturesSupported(potentialDevice, deviceFeatures_1_0))
       {
         continue;
       }
@@ -141,8 +122,8 @@ namespace fc
       // Get the properties of the potential device to check to prefer GPU and set properties
       vkGetPhysicalDeviceProperties2(potentialDevice, &deviceProperties);
 
-      // TEST (alternat OSs)
-      // Prefer a dedicated grapchics card ( TODO use a priority queue with score for GPU)
+      // TEST (alternate OSs)
+      // Prefer a dedicated grapchics card ( TODO use a priority queue with score for GPU, etc.)
       if (deviceProperties.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
       {
         mPhysicalGPU = potentialDevice;
@@ -176,8 +157,8 @@ namespace fc
     {
       if ((counts & max_sampling_enum) == max_sampling_enum)
       {
-        mGpuPerformanceProperties.maxMsaaSamples =
-          static_cast<VkSampleCountFlagBits>(max_sampling_enum >> i);
+        mGpuPerformanceProperties.maxMsaaSamples = static_cast<VkSampleCountFlagBits>
+                                                   (max_sampling_enum >> i);
         // Its set to the highest possible so exit loop
         break;
       }
@@ -196,13 +177,13 @@ namespace fc
 
 
   //
-  bool FcGpu::createLogicalDevice(std::vector<const char*>& deviceExtensions)
+  bool FcGpu::createLogicalDevice(std::vector<const char*>& deviceExtensions, FcConfig& configOptions)
   {
     // Determine queue families that logical device needs to be created
     getQueueFamilyIndicies();
 
     // use a set to prevent the same queue from being added more than once
-    // in the case where graphics and present queue are the same
+    // in the case where graphics and present queue are the same (usually the case)
     std::set<u32> queueFamilyIndices = { mQueues.graphicsFamily
                                        , mQueues.presentationFamily
                                        , mQueues.transferFamily
@@ -210,9 +191,7 @@ namespace fc
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 
-    // vulkan needs to know how to handle multiple queues unfortunately we still haven't
-    // addressed the possibility of multiple queues this is because it's often the case
-    // that the graphics and presentat queues are the the same but not always.
+    // Let vulkan know how to handle multiple queues.
     for (int queueFamilyIndex : queueFamilyIndices)
     {
       VkDeviceQueueCreateInfo queueInfo{};
@@ -226,67 +205,20 @@ namespace fc
       queueCreateInfos.push_back(queueInfo);
     }
 
-    // features the logical device will be using
-    // VkPhysicalDeviceFeatures deviceFeatures = {};
-    // deviceFeatures.samplerAnisotropy = VK_TRUE; // enable Anisotropy
-    // // ?? TEST
-    // deviceFeatures.shaderStorageImageMultisample = VK_TRUE;
-    // deviceFeatures.sampleRateShading = VK_TRUE;
-    // // TODO test for this feature first
-    // deviceFeatures.geometryShader = VK_TRUE;
-    // deviceFeatures.tessellationShader = VK_TRUE;
-    // // TODO test for this feature first!!
-    // deviceFeatures.fillModeNonSolid = VK_TRUE;
-
-
-    VkPhysicalDeviceFeatures2 deviceFeatures = {};
-    deviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-    deviceFeatures.features.samplerAnisotropy = VK_TRUE; // enable Anisotropy
-    // ?? TEST
-    deviceFeatures.features.shaderStorageImageMultisample = VK_TRUE;
-    deviceFeatures.features.sampleRateShading = VK_TRUE;
-    // TODO test for this feature first
-    deviceFeatures.features.geometryShader = VK_TRUE;
-    deviceFeatures.features.tessellationShader = VK_TRUE;
-    // TODO test for this feature first!!
-    deviceFeatures.features.fillModeNonSolid = VK_TRUE;
-    deviceFeatures.pNext = nullptr;
-
-    // TODO abstract this out into a builder structure
-    // vulkan features to request from version 1.2
-    VkPhysicalDeviceVulkan12Features features1_2 = {};
-    features1_2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
-    features1_2.bufferDeviceAddress = VK_TRUE;
-    features1_2.descriptorIndexing = VK_TRUE;
-    // TODO make this an optional branch path
-    // BUG: some of these features are not checked for
-    features1_2.descriptorBindingPartiallyBound = VK_TRUE;
-    features1_2.runtimeDescriptorArray = VK_TRUE;
-    features1_2.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
-    features1_2.descriptorBindingStorageImageUpdateAfterBind = VK_TRUE;
-    features1_2.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
-    features1_2.pNext = &deviceFeatures;
     //
+    VkPhysicalDeviceFeatures2 deviceFeatures_1_0 = {};
+    VkPhysicalDeviceVulkan11Features deviceFeatures_1_1 = {};
+    VkPhysicalDeviceVulkan12Features deviceFeatures_1_2 = {};
+    VkPhysicalDeviceVulkan13Features deviceFeatures_1_3 = {};
+    //
+    deviceFeatures_1_0.pNext = &deviceFeatures_1_1;
+    deviceFeatures_1_1.pNext = &deviceFeatures_1_2;
+    deviceFeatures_1_2.pNext = &deviceFeatures_1_3;
+
+    configOptions.populateVulkanPhysicalDeviceFeatures(deviceFeatures_1_0);
+
+    //FIXME
     mGpuPerformanceProperties.isBindlessSupported = true;
-
-    // vulkan features to request from version 1.3
-    VkPhysicalDeviceVulkan13Features features1_3 = {};
-    features1_3.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
-    features1_3.dynamicRendering = VK_TRUE;
-    features1_3.synchronization2 = VK_TRUE;
-    features1_3.pNext = &features1_2;
-
-    // VkPhysicalDeviceDynamicRenderingLocalReadFeaturesKHR dynamicRenderingFeatures{};
-    // dynamicRenderingFeatures.sType =
-    //   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_LOCAL_READ_FEATURES_KHR;
-    // dynamicRenderingFeatures.dynamicRenderingLocalRead = VK_TRUE;
-    // dynamicRenderingFeatures.pNext = &features1_3;
-
-    // VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{};
-    // indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
-    // indexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;
-    // indexingFeatures.runtimeDescriptorArray = VK_TRUE;
-    // indexingFeatures.pNext = &dynamicRenderingFeatures;
 
     VkDeviceCreateInfo deviceInfo{};
     deviceInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -297,10 +229,10 @@ namespace fc
     // deprecated as of Vulkan 1.1 since instance layers cover everything now
     deviceInfo.enabledLayerCount = 0;
     deviceInfo.ppEnabledLayerNames = nullptr;
-    // finally attach our required version features
-    /* deviceInfo.pEnabledFeatures = &deviceFeatures; */
+    // Because enabled feaures uses a VkPhysicalDeviceFeatures2,  we must set .pEnabled
+    // features to null and pass via pNext instead
     deviceInfo.pEnabledFeatures = nullptr;
-    deviceInfo.pNext = &features1_3;
+    deviceInfo.pNext = &deviceFeatures_1_0;
 
     // createt the "logical" device
     VK_ASSERT(vkCreateDevice(mPhysicalGPU, &deviceInfo, nullptr, &mLogicalDevice));
@@ -330,6 +262,8 @@ namespace fc
 
     vkGetPhysicalDeviceQueueFamilyProperties2(mPhysicalGPU, &queueFamilyCount, properties.data());
 
+    // Lambda function to try and acquire dedicated queue by passing the queue that you don't want
+    // to double up on (usually the graphics queue) as the second argument
     auto findDedicatedQueueFamilyIndex = [&properties](VkQueueFlags require, VkQueueFlags avoid) -> u32
      {
        for (u32 i = 0; i != properties.size(); i++)
@@ -377,7 +311,7 @@ namespace fc
   }
 
 
-
+  //
   SwapChainDetails FcGpu::getSwapChainDetails(const VkPhysicalDevice& device) const
   {
     // create a new struct to hold all the details of the available swapchain

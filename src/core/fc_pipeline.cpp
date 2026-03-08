@@ -420,8 +420,7 @@ namespace fc
 
   void FcPipeline::create(FcPipelineConfig& pipelineConfig)
   {
-    // TODO CREATE SOME ASSERTS!!!
-    fcPrintEndl("Creating Pipeline: %s", pipelineConfig.name);
+    /* fcPrintEndl("Creating Pipeline: %s", pipelineConfig.name); */
 
     // -*-*-*-*-*-*-*-*-*-*-*-*-   CREATE PIPELINE LAYOUT   -*-*-*-*-*-*-*-*-*-*-*-*- //
     // save a pointer to the device instance

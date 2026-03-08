@@ -14,23 +14,6 @@
 namespace fc
 {
   //
-  struct FrolicConfig
-  {
-     std::string applicationName;
-     u32 appVersionMajor {0};
-     u32 appVersionMinor {0};
-     u32 appVersionPatch {0};
-     u32 windowWidth {0};
-     u32 windowHeight {0};
-     u32 mouseDeadzone {0};
-     bool enableNonUniformScaline {false};
-     bool enableDebugShadowmapDraw {false};
-     bool enableValidationLayers {false};
-  };
-
-
-
-  //
   class Frolic
   {
    private:
@@ -70,8 +53,8 @@ namespace fc
      int rotationSpeed {0};
 
    public:
-     Frolic(FrolicConfig& config);
-     Frolic() = delete;
+     Frolic() = default;
+     void init(FcConfig& config);
      void run();
      void loadGameObjects();
      void update(float deltaTime);

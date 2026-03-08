@@ -100,18 +100,21 @@ namespace fc
     const DeviceQueues& queues = pGpu->getQueues();
     uint32_t queueFamilyIndices[] = { queues.graphicsFamily, queues.presentationFamily };
 
-    // if graphics and presentation families are different, then swapchain must let images be shared between families
+
+
+    // graphics queue and present queue are the same (often the case)
     if (queues.areGraphicsAndPresentationSame())
+    {
+      swapChainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+      // swapChainInfo.queueFamilyIndexCount = 1;
+      // swapChainInfo.pQueueFamilyIndices = VK_NULL_HANDLE;
+    }
+    // if graphics and presentation families are different, then swapchain must let images be shared between families
+    else     // TEST
     {
       swapChainInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
       swapChainInfo.queueFamilyIndexCount = 2;
       swapChainInfo.pQueueFamilyIndices = queueFamilyIndices;
-    }
-    else // graphics queue and present queue are the same (often the case)
-    {
-      swapChainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-      swapChainInfo.queueFamilyIndexCount = 1;
-      swapChainInfo.pQueueFamilyIndices = VK_NULL_HANDLE;
     }
 
     // set oldswapchain to the previous swapchain if recreating, otherwise defaults to VK_NULL_HANDLE

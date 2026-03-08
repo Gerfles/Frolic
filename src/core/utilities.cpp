@@ -7,7 +7,6 @@
 #include <cstring>
 #include <filesystem>
 #include <iostream>
-#include <unordered_set>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
@@ -235,75 +234,6 @@ namespace fc
 
     // TODO re-write this function to accept a std::vector<char> pointer so nothing is copied
     return fileBuffer;
-  }
-
-
-
-
-
-
-  const bool areFeaturesSupported(std::vector<const char*>& extensionsOrLayers,
-                                            FeatureType type, VkPhysicalDevice device) noexcept
-  {
-    u32 extensionOrLayerCount = 0;
-    std::vector<const char*> availablelayersOrExtensions;
-
-    // acquire all availabe Device Extensions and add their name to availableLayersOrExtensions
-    if (type == FeatureType::DeviceExtension)
-    {
-      vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionOrLayerCount, nullptr);
-
-      std::vector<VkExtensionProperties> availableExtensions(extensionOrLayerCount);
-      vkEnumerateDeviceExtensionProperties(device, nullptr
-                                           , &extensionOrLayerCount, availableExtensions.data());
-
-      for (VkExtensionProperties extension : availableExtensions)
-      {
-        /* fcPrintEndl("Available Vulkan Device Extension: %s", extension.extensionName); */
-        availablelayersOrExtensions.push_back(extension.extensionName);
-      }
-    }
-    // acquire all available validation layers and add their name to availableLayersOrExtensions
-    else if (type == FeatureType::ValidationLayer)
-    {
-      vkEnumerateInstanceLayerProperties(&extensionOrLayerCount, nullptr);
-      std::vector<VkLayerProperties> availableLayers(extensionOrLayerCount);
-      vkEnumerateInstanceLayerProperties(&extensionOrLayerCount, availableLayers.data());
-
-      for (VkLayerProperties& layer : availableLayers)
-      {
-        /* fcPrintEndl("Available Vulkan Layer: %s", layer.layerName); */
-        availablelayersOrExtensions.push_back(layer.layerName);
-      }
-    }
-    // acquire all available Instance extensions and add their name to availableLayersOrExtensions
-    else if (type == FeatureType::InstanceExtension)
-    {
-      vkEnumerateInstanceExtensionProperties(nullptr, &extensionOrLayerCount, nullptr);
-      std::vector<VkExtensionProperties> availableExtensions(extensionOrLayerCount);
-      vkEnumerateInstanceExtensionProperties(nullptr, &extensionOrLayerCount, availableExtensions.data());
-
-      for (VkExtensionProperties& extension : availableExtensions)
-      {
-        /* fcPrintEndl("Available Vulkan Instance Extension: %s", extension.extensionName); */
-        availablelayersOrExtensions.push_back(extension.extensionName);
-      }
-    }
-
-    if (extensionOrLayerCount == 0) {
-      return false;
-    }
-
-    // add all the required extentions to an unordered set for easy removal
-    std::unordered_set<std::string> requiredExtensionsOrLayers(extensionsOrLayers.begin(),
-                                                               extensionsOrLayers.end());
-
-    for (const char* extensionOrLayer : availablelayersOrExtensions)
-    {
-      requiredExtensionsOrLayers.erase(extensionOrLayer);
-    }
-
-    return requiredExtensionsOrLayers.empty();
   }
 
 } // namespace fc - END

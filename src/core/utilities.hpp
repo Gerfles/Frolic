@@ -11,12 +11,7 @@
 
 namespace fc
 {
-  enum class FeatureType : uint8_t
-  {
-    ValidationLayer,
-    InstanceExtension,
-    DeviceExtension,
-  };
+
 
 
   // TODO relocate all log/print utilities to a full class
@@ -47,10 +42,6 @@ namespace fc
 
   void printIOtable(std::vector<glm::ivec2>& input, std::function<int(glm::ivec2)> PFN_func);
   std::vector<char> readFile(const std::string& filename);
-
-  const bool areFeaturesSupported(std::vector<const char*>& extensionsOrLayers,
-                                  FeatureType type,
-                                  VkPhysicalDevice device = nullptr) noexcept;
 
   template <typename TP>
   // std::time_t to_time_t(TP tp);

@@ -4,6 +4,7 @@
 #include "fc_window.hpp"
 #include "fc_swapChain.hpp"
 #include "fc_types.hpp"
+#include "fc_config.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
@@ -23,31 +24,27 @@ namespace fc
   class FcGpu
   {
    private:
-     VkPhysicalDevice mPhysicalGPU = VK_NULL_HANDLE;
-     VkDevice mLogicalDevice = VK_NULL_HANDLE;
-     VmaAllocator mAllocator = VK_NULL_HANDLE;
+     VkPhysicalDevice mPhysicalGPU {VK_NULL_HANDLE};
+     VkDevice mLogicalDevice {VK_NULL_HANDLE};
+     VmaAllocator mAllocator {VK_NULL_HANDLE};
      DeviceQueues mQueues;
      FcWindow* pWindow;
-      // TODO delete VkCommandPool mCommandPool = VK_NULL_HANDLE;
       // used to setup graphics capabilities, sampler attributes, etc.
      PerformanceProperties mGpuPerformanceProperties;
-      //VkSurfaceKHR mSurface;
-      // - support functions
-
 
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   HELPERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-     void pickPhysicalDevice(const VkInstance& instance, std::vector<const char*>& deviceExtensions);
+     void pickPhysicalDevice(const VkInstance& instance,
+                             std::vector<const char*>& deviceExtensions,
+                             FcConfig& configOptions);
+     //
+     bool createLogicalDevice(std::vector<const char*>& deviceExtensions, FcConfig& configOptions);
 
    public:
      FcGpu() = default;
      ~FcGpu() = default;
       // - INITIALIZATION -
-     bool init(const VkInstance& instance, FcWindow& window);
-     bool createLogicalDevice(std::vector<const char*>& deviceExtensions);
+     bool init(const VkInstance& instance, FcWindow& window, FcConfig& configOptions);
 
-      // TODO DELETE 2 below
-     // VkCommandBuffer beginCommandBuffer() const;
-     // void submitCommandBuffer(VkCommandBuffer commandBuffer) const;
       // TODO establish convention that all getter functions are capitalized (since they "are" a type)
       // - GETTER FUNCTIONS -
      void getQueueFamilyIndicies();

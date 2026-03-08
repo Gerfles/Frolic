@@ -41,8 +41,6 @@ namespace fc
      inline const bool areGraphicsAndPresentationSame() const { return graphicsFamily == presentationFamily; }
   };
 
-
-
   //
   // TODO Can incrementally update push constants according to:
   // https://docs.vulkan.org/guide/latest/push_constants.html
@@ -53,14 +51,14 @@ namespace fc
   // data sent. Then FcSurface must have the first members exactly match this structure. This will
   // save us from having to create a ScenePushConstant to
   // This structure should not be used directly but instead serves as a size indicator
-  struct ScenePushConstants
-  {
-     glm::mat4 worldMatrix;
-     glm::mat4 normalTransform;
-     VkDeviceAddress vertexBuffer;
+    struct ScenePushConstants
+    {
+       glm::mat4 worldMatrix;
+       glm::mat4 normalTransform;
+       VkDeviceAddress vertexBuffer;
 
-     ScenePushConstants() = delete;
-  };
+       ScenePushConstants() = delete;
+    };
 
 
 

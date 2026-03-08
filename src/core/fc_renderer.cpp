@@ -8,7 +8,7 @@
 #include "fc_camera.hpp"
 #include "fc_memory.hpp"
 #include "fc_cvar_system.hpp"
-#include "utilities.hpp"
+/* #include "utilities.hpp" */
 #include "frolic.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <SDL_events.h>
@@ -37,11 +37,12 @@ namespace fc
   //    // including a pointer to a VK_STRUCTURE type appinfo
   // }
 
-  int FcRenderer::init(FrolicConfig& config, SceneDataUbo** pSceneData)
+  int FcRenderer::init(FcConfig& config, SceneDataUbo** pSceneData)
   {
     // TODO get rid of this perhaps
     try
     {
+
       // TODO get rid of this within renderer and instead initialize in frolic.cpp probably or GPU
       FcLocator::init();
 
@@ -62,8 +63,11 @@ namespace fc
       // Make sure we let vulkan know which version we intend to use
       appInfo.apiVersion         = VK_API_VERSION_1_3;
 
+      // TODO pass in
+      FcConfig configOptions;
+
       // now we need a vulkan instance to do anything else
-      createInstance(appInfo);
+      createInstance(appInfo, configOptions);
 
       //TODO should do this in a builder class that goes out of scope when no longer needed
       SDL_version compiled;
@@ -80,7 +84,7 @@ namespace fc
       mWindow.createWindowSurface(mInstance);
 
       // retrieve the physical device then create the logical device to interface with GPU & command pool
-      if ( !mGpu.init(mInstance, mWindow))
+      if ( !mGpu.init(mInstance, mWindow, config))
       {
         throw std::runtime_error("Failed to initialize GPU device!");
       }
@@ -338,7 +342,7 @@ namespace fc
 
 
   //
-  void FcRenderer::createInstance(VkApplicationInfo& appInfo)
+  void FcRenderer::createInstance(VkApplicationInfo& appInfo, FcConfig& configOptions)
   {
     // First determine all the extensions needed for SDL to run Vulkan instance
     uint32_t sdlExtensionCount = 0;
@@ -373,7 +377,7 @@ namespace fc
     /* extensions.push_back(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME); */
 
     // TODO LOG the required and found extensions
-    FC_ASSERT(areFeaturesSupported(extensions, FeatureType::InstanceExtension));
+    FC_ASSERT(configOptions.areExtensionsSupported(extensions, FeatureType::InstanceExtension));
 
     // Next, determine the what validation layers we need
     std::vector<const char *> validationLayers;
@@ -383,7 +387,7 @@ namespace fc
       validationLayers.push_back("VK_LAYER_KHRONOS_validation");
 
       // make sure our Vulkan drivers support these validation layers
-      if (! areFeaturesSupported(validationLayers, FeatureType::ValidationLayer))
+      if (! configOptions.areExtensionsSupported(validationLayers, FeatureType::ValidationLayer))
       {
         throw std::runtime_error("Validation layers requested but not available!");
       }

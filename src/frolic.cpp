@@ -10,32 +10,29 @@
 #include "imgui_impl_sdl2.h"
 #include <SDL_log.h>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <cstring>
+/* #include <cstring> */
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
 namespace fc
 {
   //
-  Frolic::Frolic(FrolicConfig& config)
+  void Frolic::init(FcConfig& config)
   {
-    // ?? transfer and use soln from
-    // https://stackoverflow.com/questions/8591762/ifdef-debug-with-cmake-independent-from-platform
+    // TODO https://stackoverflow.com/questions/8591762/ifdef-debug-with-cmake-independent-from-platform
 #ifndef NDEBUG
-    std::printf("\n---- DEBUG BUILD ----\n");
-#else
-    std::printf("\n---- RELEASE BUILD ----\n");
-#endif
-
-    // TODO add / check if
-    // Good method to differentiate between different compositors in within linux
-    if (std::strcmp(secure_getenv("XDG_SESSION_TYPE"), "wayland") == 0) {
-      printf("We're on wayland.\n");
-    } else if (std::strcmp(secure_getenv("XDG_SESSION_TYPE"), "x11") == 0) {
-      printf("We're on X11.\n");
+    fcPrintEndl("\n---- DEBUG BUILD ----\n");
+    // TODO make sure to include windows and macOS
+    if (strcmp(secure_getenv("XDG_SESSION_TYPE"), "wayland") == 0) {
+      fcPrintEndl("Compositor: Wayland.\n");
+    } else if (strcmp(secure_getenv("XDG_SESSION_TYPE"), "x11") == 0) {
+      printf("Compositor: X11.\n");
     } else {
-      printf("Compositor NOT identified\n");
+      printf("Compositor: NOT identified\n");
     }
+#else
+    fcPrintEndl("\n---- RELEASE BUILD ----\n");
+#endif
 
     // Initialize the custom memory allocator
     // TODO make this part of our FcLocator scheme instead of the singleton it is
@@ -149,7 +146,7 @@ namespace fc
     AutoCVarBool cvarShouldDrawShadowMap("shouldDrawShadowMap.bool", "determines whether to draw debug map", false);
 
     // zero out the ticklist for performance tracking
-    std::memset(mFrameTimeList, 0, sizeof(mFrameTimeList));
+    memset(mFrameTimeList, 0, sizeof(mFrameTimeList));
 
     FcTimer mTimer;
     mTimer.start();
