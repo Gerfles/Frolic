@@ -19,7 +19,7 @@ namespace fc
   constexpr float DEG_TO_RAD_OVER_TWO_FACTOR = PI_OVER_TWO / 180.f;
 
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   MACROS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#define ArraySize(array) (sizeof(array) / sizeof((array)[0]))
+#define ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
 
 // TEST windows versions
 #if defined(_MSC_VER) // OR (_WIN32)

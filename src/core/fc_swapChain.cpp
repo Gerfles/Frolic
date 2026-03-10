@@ -4,6 +4,7 @@
 #include "fc_assert.hpp"
 #include "log.hpp"
 #include "fc_gpu.hpp"
+#include "fc_config.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <array>
 #include <algorithm>
@@ -13,11 +14,11 @@
 namespace fc
 {
   //
-  uint32_t FcSwapChain::init(FcGpu& gpu, const VkExtent2D& windowSize)
+  uint32_t FcSwapChain::init(FcGpu& gpu, FcConfig& config)
   {
     pGpu = &gpu;
 
-    uint32_t swapchainImageCount = createSwapChain(windowSize);
+    uint32_t swapchainImageCount = createSwapChain(config);
 
     // TODO remove old vulkan renderpass methods or move to sub-vulkan initializer
     // createDepthBufferImage();
@@ -28,7 +29,7 @@ namespace fc
   }
 
 
-
+  // FIXME
   void FcSwapChain::reCreateSwapChain(VkExtent2D windowSize)
   {
     fcPrintEndl("Recreating Swapchain");
@@ -46,15 +47,17 @@ namespace fc
   }
 
 
-  uint32_t FcSwapChain::createSwapChain(const VkExtent2D& windowSize, bool shouldReUseOldSwapchain)
+  uint32_t FcSwapChain::createSwapChain(FcConfig& config, bool shouldReUseOldSwapchain)
   {
-    SwapChainDetails swapChainDetails = getSwapChainDetails();
+    SwapChainDetails swapChainDetails = getSwapChainDetails(config.getWindowPtr()->surface());
 
     // 1. Choose best surface format
     VkSurfaceFormatKHR surfaceFormat = chooseSurfaceFormat(swapChainDetails.formats);
     // 2. Choose best presentation modes
     VkPresentModeKHR presentMode = choosePresentMode(swapChainDetails.presentModes);
     // 3. Choose swap chain image resolution
+    VkExtent2D windowSize = {config.windowWidth, config.windowHeight};
+
     VkExtent2D extent = chooseSwapExtent(swapChainDetails.surfaceCapabilities, windowSize);
 
     fcPrintEndl("extent size: %u x %u", extent.width, extent.height);
@@ -79,7 +82,7 @@ namespace fc
     VkSwapchainCreateInfoKHR swapChainInfo{};
     swapChainInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     // TODO doesnt really make intuitive sense that a gpu should have a notion of surface
-    swapChainInfo.surface = pGpu->surface();
+    swapChainInfo.surface = config.getWindowPtr()->surface();
     swapChainInfo.imageFormat = surfaceFormat.format;
     swapChainInfo.imageColorSpace = surfaceFormat.colorSpace;
     swapChainInfo.presentMode = presentMode;
@@ -134,6 +137,7 @@ namespace fc
 
     // Store for later reference
     mSwapchainFormat = surfaceFormat.format;
+    // TODO should we remove mSurfaceExtent from implementation
     mSurfaceExtent = extent;
 
     //
@@ -238,13 +242,12 @@ namespace fc
     return VK_PRESENT_MODE_FIFO_KHR;
   }
 
-  SwapChainDetails FcSwapChain::getSwapChainDetails()
+  SwapChainDetails FcSwapChain::getSwapChainDetails(VkSurfaceKHR surface)
   {
     // create a new struct to hold all the details of the available swapchain
     SwapChainDetails swapChainDetails;
 
     const VkPhysicalDevice& device = pGpu->physicalDevice();
-    const VkSurfaceKHR& surface = pGpu->surface();
 
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &swapChainDetails.surfaceCapabilities);
 
@@ -280,7 +283,6 @@ namespace fc
   VkExtent2D FcSwapChain::chooseSwapExtent(VkSurfaceCapabilitiesKHR& surfaceCapabilities, const VkExtent2D& windowSize)
   {
     // if current extent is at numeric limits, then extent can vary. and we will have to determine it ourselves
-
     // Figure out what the resolution of the surface is in pixel size (account for high-DPI monitors)
     if (surfaceCapabilities.currentExtent.width == std::numeric_limits<uint32_t>::max())
     {
@@ -295,11 +297,6 @@ namespace fc
 
       return actualExtent;
     }
-
-    // Otherwise, it's just the size of window
-    fcPrintEndl("swapchain size: %u x %u",
-                surfaceCapabilities.currentExtent.width,
-                surfaceCapabilities.currentExtent.height);
 
     return surfaceCapabilities.currentExtent;
   }

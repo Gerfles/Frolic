@@ -2,8 +2,10 @@
 #include "fc_config.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "log.hpp"
+#include "fc_window.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <string>
+#include <stdexcept>
+/* #include <string> */
 #include <unordered_set>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
@@ -56,6 +58,12 @@ namespace fc
       features_1_3->dynamicRendering = dynamicRendering;
       features_1_3->synchronization2 = synchronization2;
     }
+  }
+
+  void FcConfig::enableValidationLayers() noexcept
+  {
+    validationLayersEnabled = true;
+    validationLayers.push_back("VK_LAYER_KHRONOS_validation");
   }
 
 
@@ -162,70 +170,155 @@ namespace fc
   }
 
 
-  //
-  const bool FcConfig::areExtensionsSupported(std::vector<const char*>& extensionsOrLayers,
-                                              FeatureType type, VkPhysicalDevice device) noexcept
+  // TODO templatize and move to utilities
+  const bool availableContainsRequired(std::vector<const char*>& availableElements,
+                                       std::vector<const char*>& requiredElements )
   {
-    u32 extensionsCount = 0;
-    std::vector<const char*> availablelayersOrExtensions;
-
-    // acquire all availabe Device Extensions and add their name to availableLayersOrExtensions
-    if (type == FeatureType::DeviceExtension)
-    {
-      vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionsCount, nullptr);
-
-      std::vector<VkExtensionProperties> availableExtensions(extensionsCount);
-      vkEnumerateDeviceExtensionProperties(device, nullptr
-                                           , &extensionsCount, availableExtensions.data());
-
-      for (VkExtensionProperties extension : availableExtensions)
-      {
-        /* fcPrintEndl("Available Vulkan Device Extension: %s", extension.extensionName); */
-        availablelayersOrExtensions.push_back(extension.extensionName);
-      }
-    }
-    // acquire all available validation layers and add their name to availableLayersOrExtensions
-    else if (type == FeatureType::ValidationLayer)
-    {
-      vkEnumerateInstanceLayerProperties(&extensionsCount, nullptr);
-      std::vector<VkLayerProperties> availableLayers(extensionsCount);
-      vkEnumerateInstanceLayerProperties(&extensionsCount, availableLayers.data());
-
-      for (VkLayerProperties& layer : availableLayers)
-      {
-        /* fcPrintEndl("Available Vulkan Layer: %s", layer.layerName); */
-        availablelayersOrExtensions.push_back(layer.layerName);
-      }
-    }
-    // acquire all available Instance extensions and add their name to availableLayersOrExtensions
-    else if (type == FeatureType::InstanceExtension)
-    {
-      vkEnumerateInstanceExtensionProperties(nullptr, &extensionsCount, nullptr);
-      std::vector<VkExtensionProperties> availableExtensions(extensionsCount);
-      vkEnumerateInstanceExtensionProperties(nullptr, &extensionsCount, availableExtensions.data());
-
-      for (VkExtensionProperties& extension : availableExtensions)
-      {
-        /* fcPrintEndl("Available Vulkan Instance Extension: %s", extension.extensionName); */
-        availablelayersOrExtensions.push_back(extension.extensionName);
-      }
-    }
-
-    if (extensionsCount == 0) {
+    if (availableElements.size() == 0) {
       return false;
     }
 
-    // add all the required extentions to an unordered set for easy removal
-    std::unordered_set<std::string> requiredExtensionsOrLayers(extensionsOrLayers.begin(),
-                                                               extensionsOrLayers.end());
+    std::unordered_set<std::string> requiredSet(requiredElements.begin(), requiredElements.end());
 
-    for (const char* extensionOrLayer : availablelayersOrExtensions)
+    for (auto& availableElement : availableElements)
     {
-      requiredExtensionsOrLayers.erase(extensionOrLayer);
+      /* fcPrintEndl("available Element: %s", availableElement); */
+      requiredSet.erase(availableElement);
     }
 
-    return requiredExtensionsOrLayers.empty();
+    // if the set is empty, all the requiredElements elements are also in availableElements
+    if (requiredSet.empty())
+    {
+      return true;
+    }
+
+    for (const std::string& element : requiredSet)
+    {
+      fcPrintEndl("Missing Element: %s", element.c_str());
+    }
+
+    return false;
   }
 
 
-      } // --- namespace fc --- (END)
+  //
+  const bool FcConfig::areDeviceExtensionsSupported(VkPhysicalDevice device) noexcept
+  {
+    // acquire all availabe Device Extensions and add their name to availableLayersOrExtensions
+    u32 extensionsCount = 0;
+    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionsCount, nullptr);
+    std::vector<VkExtensionProperties> availableExtensions(extensionsCount);
+    vkEnumerateDeviceExtensionProperties(device, nullptr
+                                         , &extensionsCount, availableExtensions.data());
+
+    // add all the extension names to a vector for processing
+    std::vector<const char*> availableExtensionNames;
+    for (VkExtensionProperties& extension : availableExtensions)
+    {
+      /* fcPrintEndl("Available Vulkan Device Extension: %s", extension.extensionName); */
+      availableExtensionNames.push_back(extension.extensionName);
+    }
+
+    return availableContainsRequired(availableExtensionNames, deviceExtensions);
+  }
+
+
+  //
+  const bool FcConfig::areValidationLayersSupported() noexcept
+  {
+    // acquire all available validation layers and add their name to availableLayersOrExtensions
+    u32 layerCount = 0;
+    vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+    std::vector<VkLayerProperties> availableLayers(layerCount);
+    vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+    // add all the layers names to a vector for processing
+    std::vector<const char*> availableLayerNames;
+    for (VkLayerProperties& layer : availableLayers)
+    {
+      /* fcPrintEndl("Available Vulkan Layer: %s", layer.layerName); */
+      availableLayerNames.push_back(layer.layerName);
+    }
+
+    return availableContainsRequired(availableLayerNames, validationLayers);
+  }
+
+
+  //
+  const bool FcConfig::areInstanceExtensionsSupported(std::vector<const char*>& extensions) noexcept
+  {
+    // acquire all available Instance extensions and add their name to availableLayersOrExtensions
+    u32 extensionsCount = 0;
+    vkEnumerateInstanceExtensionProperties(nullptr, &extensionsCount, nullptr);
+    std::vector<VkExtensionProperties> availableExtensions(extensionsCount);
+    vkEnumerateInstanceExtensionProperties(nullptr, &extensionsCount, availableExtensions.data());
+
+    // add all the extension names to a vector for processing
+    std::vector<const char*> availableExtensionNames;
+    for (VkExtensionProperties& extension : availableExtensions)
+    {
+      /* fcPrintEndl("Available Vulkan Instance Extension: %s", extension.extensionName); */
+      availableExtensionNames.push_back(extension.extensionName);
+    }
+
+    return availableContainsRequired(availableExtensionNames, extensions);
+  }
+
+
+  //
+  VkLayerSettingsCreateInfoEXT* FcConfig::getValidationLayerSettings()
+  {
+    if ( !validationLayersEnabled) {
+      fcPrintEndl("No Validation Layers enabled");
+      return VK_NULL_HANDLE;
+    }
+
+    // make sure our Vulkan drivers support these validation layers
+    if (!areValidationLayersSupported())
+    {
+      throw std::runtime_error("Validation layers requested but not available!");
+    }
+
+    // TODO may not be available on linux so should probably provide alternate path
+    // enable the best practices layer extension to warn about possible efficiency mistakes
+    featureEnables[0] = VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT;
+    // Massively slows things down ( TODO enable after implementing)
+    featureEnables[1] = VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT;
+    featureEnables[2] = VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT;
+
+    features.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT;
+    features.enabledValidationFeatureCount = static_cast<uint32_t>(ARRAY_SIZE(featureEnables));
+    features.pEnabledValidationFeatures = featureEnables;
+
+    // Sometimes we need to disable specific Vulkan validation checks for performance or known
+    // bugs in the validation layers
+    VkBool32 gpuav_descriptor_checks = VK_FALSE;
+    VkBool32 gpuav_indirect_draws_buffers = VK_FALSE;
+    VkBool32 gpuav_post_proces_descriptor_indexing = VK_FALSE;
+
+    // TODO use lambda instead
+#define LAYER_SETTINGS_BOOL32(name, var)                \
+    VkLayerSettingEXT {                                 \
+      .pLayerName = validationLayers[0],                \
+    .pSettingName = name,                               \
+            .type = VK_LAYER_SETTING_TYPE_BOOL32_EXT,   \
+      .valueCount = 1,                                  \
+         .pValues = var }
+
+    layerSettings[0] = LAYER_SETTINGS_BOOL32("gpuav_descriptor_checks", &gpuav_descriptor_checks);
+    layerSettings[1] = LAYER_SETTINGS_BOOL32("gpuav_indirect_draws_buffers", &gpuav_indirect_draws_buffers);
+    layerSettings[2] =LAYER_SETTINGS_BOOL32("gpuav_post_process_descriptor_indexing",
+                                       &gpuav_post_proces_descriptor_indexing);
+#undef LAYER_SETTINGS_BOOL32
+
+    //
+    layerSettingsCreate.sType = VK_STRUCTURE_TYPE_LAYER_SETTINGS_CREATE_INFO_EXT;
+    layerSettingsCreate.settingCount = static_cast<u32>(ARRAY_SIZE(layerSettings));
+    layerSettingsCreate.pSettings = layerSettings;
+    layerSettingsCreate.pNext = &features;
+
+    fcPrintEndl("INFO: Validation Layers added!");
+    return (&layerSettingsCreate);
+  }
+
+} // --- namespace fc --- (END)

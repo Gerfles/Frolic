@@ -26,6 +26,19 @@ int main(int argc, char* argv[])
     // TODO implement  utilizing functors for actual function calls
     config.enableNonUniformScaline = false;
 
+#ifdef NDEBUG
+    //
+#else
+    config.enableValidationLayers();
+#endif
+
+    // TODO Make sure the extensions and layers are added to specific OSs
+    //I believe the following is needed by MacOS
+    //, "VK_KHR_portability_subset"};
+    config.addDeviceExtension(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+    config.addDeviceExtension(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
+    config.addDeviceExtension(VK_KHR_DYNAMIC_RENDERING_LOCAL_READ_EXTENSION_NAME);
+    /* config.addDeviceExtension(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME); */
     // initialize engine
     frolic.init(config);
   }

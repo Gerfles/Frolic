@@ -39,17 +39,10 @@ namespace fc
 
   int FcRenderer::init(FcConfig& config, SceneDataUbo** pSceneData)
   {
-    // TODO get rid of this perhaps
+    // TODO make this (try) more robust
     try
     {
-
-      // TODO get rid of this within renderer and instead initialize in frolic.cpp probably or GPU
-      FcLocator::init();
-
-      VkExtent2D screenDims {config.windowWidth, config.windowHeight};
-      FcLocator::provide(screenDims);
-
-      mWindow.initWindow(screenDims, config.applicationName);
+      mWindow.initWindow(config);
 
       // Application Specs for developer use
       VkApplicationInfo appInfo{};
@@ -63,13 +56,9 @@ namespace fc
       // Make sure we let vulkan know which version we intend to use
       appInfo.apiVersion         = VK_API_VERSION_1_3;
 
-      // TODO pass in
-      FcConfig configOptions;
+      // First we need a vulkan instance to do anything else
+      createInstance(appInfo, config);
 
-      // now we need a vulkan instance to do anything else
-      createInstance(appInfo, configOptions);
-
-      //TODO should do this in a builder class that goes out of scope when no longer needed
       SDL_version compiled;
       SDL_VERSION(&compiled);
 
@@ -84,7 +73,7 @@ namespace fc
       mWindow.createWindowSurface(mInstance);
 
       // retrieve the physical device then create the logical device to interface with GPU & command pool
-      if ( !mGpu.init(mInstance, mWindow, config))
+      if ( !mGpu.init(mInstance, config))
       {
         throw std::runtime_error("Failed to initialize GPU device!");
       }
@@ -95,7 +84,7 @@ namespace fc
       pDevice = FcLocator::Gpu().getVkDevice();
 
       // create the swapchain & renderpass & frambuffers & depth buffer
-      mSwapchain.init(mGpu, mWindow.ScreenSize());
+      mSwapchain.init(mGpu, config);
 
       // -*-*-*-*-*-*-*-*-*-*-*-*-   INITIALIZE DESCRIPTORS   -*-*-*-*-*-*-*-*-*-*-*-*- //
       FcDescriptorClerk* descClerk = new FcDescriptorClerk;
@@ -141,18 +130,6 @@ namespace fc
 
       // synchronize the commandbuffers and swapchain
       createSynchronization();
-
-      //TODO isolate the following
-      // Create a mesh
-      // Vertex Data
-
-      // Setup elements of UI rendering
-      // FcCamera UIcamera;
-      // UIcamera.setViewDirection(glm::vec3(0.f, 0.f, -5.f), glm::vec3(0.f));
-      // mBillboardUbo.view = UIcamera.View();
-
-      // UIcamera.setOrthographicProjection(-1, 1, -1, 1, .1f, 100.f);
-      // mBillboardUbo.view = UIcamera.Projection();       // TODO combine this into one function
 
       // initialze the dynamic mDynamicViewport and mDynamicScisors
       mDynamicViewport.x = 0;
@@ -377,80 +354,15 @@ namespace fc
     /* extensions.push_back(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME); */
 
     // TODO LOG the required and found extensions
-    FC_ASSERT(configOptions.areExtensionsSupported(extensions, FeatureType::InstanceExtension));
-
-    // Next, determine the what validation layers we need
-    std::vector<const char *> validationLayers;
-
-    if (enableValidationLayers)
-    {
-      validationLayers.push_back("VK_LAYER_KHRONOS_validation");
-
-      // make sure our Vulkan drivers support these validation layers
-      if (! configOptions.areExtensionsSupported(validationLayers, FeatureType::ValidationLayer))
-      {
-        throw std::runtime_error("Validation layers requested but not available!");
-      }
-
-      // TODO may not be available on linux so should probably provide alternate path
-      // enable the best practices layer extension to warn about possible efficiency mistakes
-      std::array<VkValidationFeatureEnableEXT, 3> featureEnables = {
-	VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
-	// Massively slows things down ( TODO enable after implementing)
-	VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
-	VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,
-      };
-
-      VkValidationFeaturesEXT features = {
-        .sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT,
-	.enabledValidationFeatureCount = static_cast<uint32_t>(featureEnables.size()),
-	.pEnabledValidationFeatures = featureEnables.data(),
-      };
-
-
-      // Sometimes we need to disable specific Vulkan validation checks for performance or known
-      // bugs in the validation layers
-      VkBool32 gpuav_descriptor_checks = VK_FALSE;
-      VkBool32 gpuav_indirect_draws_buffers = VK_FALSE;
-      VkBool32 gpuav_post_proces_descriptor_indexing = VK_FALSE;
-
-#define LAYER_SETTINGS_BOOL32(name, var)        \
-      VkLayerSettingEXT {                       \
-        .pLayerName = validationLayers[0],          \
-      .pSettingName = name,                            \
-              .type = VK_LAYER_SETTING_TYPE_BOOL32_EXT, \
-        .valueCount = 1,                                \
-           .pValues = var }
-
-      const std::array<VkLayerSettingEXT, 3> settings = {
-        LAYER_SETTINGS_BOOL32("gpuav_descriptor_checks",
-                              &gpuav_descriptor_checks),
-	LAYER_SETTINGS_BOOL32("gpuav_indirect_draws_buffers",
-                              &gpuav_indirect_draws_buffers),
-	LAYER_SETTINGS_BOOL32("gpuav_post_process_descriptor_indexing",
-                              &gpuav_post_proces_descriptor_indexing)
-      };
-
-#undef LAYER_SETTINGS_BOOL32
-
-      const VkLayerSettingsCreateInfoEXT layerSettingsCreate = {
-        .sType = VK_STRUCTURE_TYPE_LAYER_SETTINGS_CREATE_INFO_EXT,
-	.settingCount = static_cast<u32>(settings.size()),
-	.pSettings = settings.data(),
-	.pNext = &features
-      };
-
-      instanceInfo.pNext = &layerSettingsCreate;
-
-      fcPrintEndl("INFO: Validation Layers added!");
-    }
+    FC_ASSERT(configOptions.areInstanceExtensionsSupported(extensions));
 
     instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instanceInfo.pApplicationInfo = &appInfo;
     instanceInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
     instanceInfo.ppEnabledExtensionNames = extensions.data();
-    instanceInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-    instanceInfo.ppEnabledLayerNames = validationLayers.data();
+    instanceInfo.enabledLayerCount = configOptions.getValidationLayerCount();
+    instanceInfo.ppEnabledLayerNames = configOptions.getValidationLayers();
+    instanceInfo.pNext = configOptions.getValidationLayerSettings();
 
     // Finally, call the vulkan function to create vulkan instance instance
     VK_ASSERT(vkCreateInstance(&instanceInfo, nullptr, &mInstance));
@@ -1185,10 +1097,10 @@ namespace fc
     {
       vkDestroyInstance(mInstance, nullptr);
     }
-    if (enableValidationLayers)
-    {
-      /* DestroyDebugUtilsMessengerExt(mInstance, debugMessenger, nullptr); */
-    }
+    // if (enableValidationLayers)
+    // {
+    //   /* DestroyDebugUtilsMessengerExt(mInstance, debugMessenger, nullptr); */
+    // }
   }
 
 

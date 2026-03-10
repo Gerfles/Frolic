@@ -1,6 +1,7 @@
 //>--- fc_config.hpp ---<//
 #pragma once
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "core/log.hpp"
 #include "platform.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <vulkan/vulkan_core.h>
@@ -12,17 +13,9 @@
 
 namespace fc
 {
+  class FcWindow;
   //
-  enum class FeatureType : uint8_t
-  {
-    ValidationLayer,
-    InstanceExtension,
-    DeviceExtension,
-  };
-
-
-  //
-  struct FcConfig
+  class FcConfig
   {
    public:
      std::string applicationName;
@@ -34,8 +27,16 @@ namespace fc
      u32 mouseDeadzone {0};
      bool enableNonUniformScaline {false};
      bool enableDebugShadowmapDraw {false};
-     bool enableValidationLayers {false};
-
+     bool isFullscreen {false};
+     //
+     void enableValidationLayers() noexcept;
+     //
+     inline void addDeviceExtension(const char* extensionName) noexcept {deviceExtensions.push_back(extensionName); }
+     //
+     inline void addValidationLayer(const char* layerName) noexcept {validationLayers.push_back(layerName); }
+     //
+     VkLayerSettingsCreateInfoEXT* getValidationLayerSettings();
+     //
      void enableBindlessDescriptorIndexing();
      //
      const bool areDeviceFeaturesSupported(VkPhysicalDevice device,
@@ -43,11 +44,35 @@ namespace fc
      //
      void populateVulkanPhysicalDeviceFeatures(VkPhysicalDeviceFeatures2& requiredFeatures_1_0) noexcept;
      //
-     // TODO make static or add suppor for extensions / layers to config
-     const bool areExtensionsSupported(std::vector<const char*>& extensionsOrLayers,
-                                       FeatureType type,
-                                       VkPhysicalDevice device = nullptr) noexcept;
+     const bool areDeviceExtensionsSupported(VkPhysicalDevice device) noexcept;
+     //
+     const bool areValidationLayersSupported() noexcept;
+     //
+     const bool areInstanceExtensionsSupported(std::vector<const char*>& extensions) noexcept;
+     //
+     inline const u32 getDeviceExtensionCount() const { return deviceExtensions.size(); }
+     //
+     inline const u32 getValidationLayerCount() const { return validationLayers.size(); }
+     //
+     inline const char* const* getDeviceExtensions() const { return deviceExtensions.data(); }
+     //
+     inline const char* const* getValidationLayers() const { return validationLayers.data(); }
+     //
+     inline void setWindowPtr(FcWindow* windowPtr) { pWindow = windowPtr; }
+     //
+     inline const FcWindow* getWindowPtr() { return pWindow; }
+
    private:
+     std::vector<const char*> deviceExtensions;
+     // validation layers
+     std::vector<const char*> validationLayers;
+     bool validationLayersEnabled {false};
+     VkValidationFeatureEnableEXT featureEnables[3];
+     VkValidationFeaturesEXT features;
+     VkLayerSettingEXT layerSettings[3];
+     VkLayerSettingsCreateInfoEXT layerSettingsCreate;
+     FcWindow* pWindow {nullptr};
+
      // Vulkan 1.0 features
      static constexpr bool samplerAnisotropy {VK_TRUE};
      static constexpr bool shaderStorageImageMultisample {VK_TRUE};

@@ -3,7 +3,7 @@
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_image.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'S   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-namespace fc { class FcGpu; }
+namespace fc { class FcGpu; class FcConfig; }
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
@@ -32,7 +32,7 @@ namespace fc
      std::vector<FcImage> mSwapchainImages;
 
      std::vector<VkFramebuffer> mSwapChainFramebuffers;
-     uint32_t createSwapChain(const VkExtent2D& windowSize, bool shouldReUseOldSwapchain = false);
+     uint32_t createSwapChain(FcConfig& config, bool shouldReUseOldSwapchain = false);
 
 // -*-*-*-*-*-*-*-*-*-*-   PREVENT MOVE, COPY, ASSIGNMENT   -*-*-*-*-*-*-*-*-*-*- //
      FcSwapChain(const FcSwapChain&) = delete;
@@ -41,7 +41,7 @@ namespace fc
      FcSwapChain& operator=(FcSwapChain&&) = delete;
 
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   HELPER FUNCTIONS   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-     SwapChainDetails getSwapChainDetails();
+     SwapChainDetails getSwapChainDetails(VkSurfaceKHR surface);
      VkSurfaceFormatKHR chooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
      VkPresentModeKHR choosePresentMode(const std::vector<VkPresentModeKHR>& presentModes);
      VkExtent2D chooseSwapExtent(VkSurfaceCapabilitiesKHR& surfaceCapabilities, const VkExtent2D& windowSize);
@@ -54,7 +54,7 @@ namespace fc
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   INITIALIZATION   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      FcSwapChain() = default;
      FcSwapChain(FcSwapChain* oldSwapChain);
-     uint32_t init(FcGpu& gpu, const VkExtent2D& windowSize);
+     uint32_t init(FcGpu& gpu, FcConfig& config);
      // TODO see if we can just make this part of create swapChain??
      void transitionImage(VkCommandBuffer commandBuffer
                           , uint32_t currentFrame,  VkImageLayout currentLayout, VkImageLayout newLayout);

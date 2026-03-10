@@ -24,11 +24,11 @@ namespace fc
     fcPrintEndl("\n---- DEBUG BUILD ----\n");
     // TODO make sure to include windows and macOS
     if (strcmp(secure_getenv("XDG_SESSION_TYPE"), "wayland") == 0) {
-      fcPrintEndl("Compositor: Wayland.\n");
+      fcPrintEndl("Compositor: Wayland");
     } else if (strcmp(secure_getenv("XDG_SESSION_TYPE"), "x11") == 0) {
-      printf("Compositor: X11.\n");
+      fcPrintEndl("Compositor: X11");
     } else {
-      printf("Compositor: NOT identified\n");
+      fcPrintEndl("Compositor: NOT identified");
     }
 #else
     fcPrintEndl("\n---- RELEASE BUILD ----\n");
@@ -42,6 +42,9 @@ namespace fc
 
     // TODO Make sure this deallocates properly
     mStackAllocator.init( megabytes(8) );
+
+    // Initialize our singleton locator
+    FcLocator::init();
 
     // TODO pull some stuff out of render initialize and have init VK systems?
     // TODO define our own exception classes and failure codes for debugging later
@@ -63,6 +66,9 @@ namespace fc
     // Initialize simple first person camera
     mPlayer.Camera().setPerspectiveProjection(60.0f, FcLocator::ScreenDims().width
                                               , FcLocator::ScreenDims().height, 512.f, 0.01f);
+    // TEST  that perspective is equal with both calls
+    // mPlayer.Camera().setPerspectiveProjection(60.0f, 2200
+    //                                           , 1600, 512.f, 0.01f);
 
     // TODO make sure all reference returns are const to avoid something like:
     /* mPlayer.Camera().Projection()[1][1] *= -1; */
@@ -101,7 +107,7 @@ namespace fc
     /* helmet.loadGltf(mRenderer, "..//models//BoomBoxWithAxes//glTF//BoomBoxWithAxes.gltf"); */
     /* helmet.loadGltf(mRenderer, "..//models//sponza//Sponza.gltf"); */
 
-    // BUG investigate why this file doesn't load
+    /* BUG investigate why this file doesn't load (probably has to do with not having textures??)*/
     /* helmet.loadGltf(mRenderer, "..//models//monkey.glb"); */
 
     sponza.loadGltf(mRenderer, "..//models//sponza//Sponza.gltf");

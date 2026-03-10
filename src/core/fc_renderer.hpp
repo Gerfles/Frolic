@@ -34,12 +34,14 @@ namespace fc
     {
      private:
 
-#ifdef NDEBUG
-       const bool enableValidationLayers = false;
-#else
-       const bool enableValidationLayers = true;
-#endif
-       // *-*-*-*-*-*-*-*-*-*-*-*-*-   RENDERING SUBSYSTEMS   *-*-*-*-*-*-*-*-*-*-*-*-*- //
+
+// #ifdef NDEBUG
+//     const bool enableValidationLayers = false;
+// #else
+//     const bool enableValidationLayers = true;
+// #endif
+
+// *-*-*-*-*-*-*-*-*-*-*-*-*-   RENDERING SUBSYSTEMS   *-*-*-*-*-*-*-*-*-*-*-*-*- //
        FcBillboardRenderer mBillboardRenderer;
        FcBoundingBoxRenderer mBoundingBoxRenderer;
        FcNormalRenderer mNormalRenderer;

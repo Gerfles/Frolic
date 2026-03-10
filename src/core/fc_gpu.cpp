@@ -18,27 +18,16 @@
 namespace fc
 {
   //
-  bool FcGpu::init(const VkInstance& instance, FcWindow& window, FcConfig& configOptions)
+  bool FcGpu::init(const VkInstance& instance, FcConfig& configOptions)
   {
-    // first couple the window instance to the GPU (needed for surface stuff)
-    pWindow = &window;
-
-    // TODO pass in via configOptions
-    std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME
-                                                , VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME
-                                                , VK_KHR_DYNAMIC_RENDERING_LOCAL_READ_EXTENSION_NAME };
-    // TODO Make sure the extensions and layers are added to specific OSs
-    //I believe the following is needed by MacOS
-    //, "VK_KHR_portability_subset"};
-
     // First pick the best GPU
-    pickPhysicalDevice(instance, deviceExtensions, configOptions);
+    pickPhysicalDevice(instance, configOptions);
 
     // now that we have the GPU chosen, interface the logical device to that GPU
     if (mPhysicalGPU != VK_NULL_HANDLE)
     {
       // now create the logical device that vulkan actually uses to interface with the GPU
-      if (createLogicalDevice(deviceExtensions, configOptions))
+      if (createLogicalDevice(configOptions))
       {
         // Create and initialize the VMA allocator
         VmaAllocatorCreateInfo vmaAllocatorInfo = {};
@@ -63,9 +52,7 @@ namespace fc
 
 
   // TODO pass device extensions via FcConfig
-  void FcGpu::pickPhysicalDevice(const VkInstance& instance,
-                                 std::vector<const char*>& deviceExtensions,
-                                 FcConfig& configOptions)
+  void FcGpu::pickPhysicalDevice(const VkInstance& instance, FcConfig& configOptions)
   {
     u32 deviceCount = 0;
 
@@ -90,7 +77,7 @@ namespace fc
     for (VkPhysicalDevice potentialDevice : deviceOptions)
     {
       // Make sure all our device extensions are supported
-      if (configOptions.areExtensionsSupported(deviceExtensions, FeatureType::DeviceExtension, potentialDevice))
+      if ( !configOptions.areDeviceExtensionsSupported(potentialDevice))
       {
         continue;
       }
@@ -113,7 +100,7 @@ namespace fc
       }
 
       // Make sure that our swapchain has the capabilities we need
-      SwapChainDetails swapChain = getSwapChainDetails(potentialDevice);
+      SwapChainDetails swapChain = getSwapChainDetails(potentialDevice, configOptions);
       if (swapChain.presentModes.empty() || swapChain.formats.empty())
       {
         continue;
@@ -177,10 +164,10 @@ namespace fc
 
 
   //
-  bool FcGpu::createLogicalDevice(std::vector<const char*>& deviceExtensions, FcConfig& configOptions)
+  bool FcGpu::createLogicalDevice(FcConfig& configOptions)
   {
     // Determine queue families that logical device needs to be created
-    getQueueFamilyIndicies();
+    getQueueFamilyIndicies(configOptions);
 
     // use a set to prevent the same queue from being added more than once
     // in the case where graphics and present queue are the same (usually the case)
@@ -224,12 +211,12 @@ namespace fc
     deviceInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     deviceInfo.queueCreateInfoCount = static_cast<uint32_t>(queueFamilyIndices.size());
     deviceInfo.pQueueCreateInfos = queueCreateInfos.data();
-    deviceInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
-    deviceInfo.ppEnabledExtensionNames = deviceExtensions.data();
+    deviceInfo.enabledExtensionCount = configOptions.getDeviceExtensionCount();
+    deviceInfo.ppEnabledExtensionNames = configOptions.getDeviceExtensions();
     // deprecated as of Vulkan 1.1 since instance layers cover everything now
     deviceInfo.enabledLayerCount = 0;
     deviceInfo.ppEnabledLayerNames = nullptr;
-    // Because enabled feaures uses a VkPhysicalDeviceFeatures2,  we must set .pEnabled
+    // Because enabled feaures uses a VkPhysicalDeviceFeatures2, we must set .pEnabled
     // features to null and pass via pNext instead
     deviceInfo.pEnabledFeatures = nullptr;
     deviceInfo.pNext = &deviceFeatures_1_0;
@@ -247,7 +234,7 @@ namespace fc
 
 
   //
-  void FcGpu::getQueueFamilyIndicies()
+  void FcGpu::getQueueFamilyIndicies(FcConfig& config)
   {
     // Populate the list of queues
     uint32_t queueFamilyCount = 0;
@@ -302,7 +289,8 @@ namespace fc
     // check if queue family supports presentation (usually graphics queue also supports presentation)
     VkBool32 presentationSupport = false;
     vkGetPhysicalDeviceSurfaceSupportKHR(mPhysicalGPU, mQueues.graphicsFamily,
-                                         pWindow->surface(), &presentationSupport);
+                                         config.getWindowPtr()->surface(),
+                                         &presentationSupport);
 
     if (presentationSupport)
     {
@@ -312,11 +300,11 @@ namespace fc
 
 
   //
-  SwapChainDetails FcGpu::getSwapChainDetails(const VkPhysicalDevice& device) const
+  SwapChainDetails FcGpu::getSwapChainDetails(const VkPhysicalDevice& device, FcConfig& config) const
   {
     // create a new struct to hold all the details of the available swapchain
     SwapChainDetails swapChainDetails;
-    const VkSurfaceKHR& surface = pWindow->surface();
+    const VkSurfaceKHR& surface = config.getWindowPtr()->surface();
 
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &swapChainDetails.surfaceCapabilities);
 

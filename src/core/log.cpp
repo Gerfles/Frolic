@@ -62,11 +62,11 @@ inline void dprintf(const char* fmt, ...)
 
     va_start( args, format );
 #if defined(_MSC_VER)
-    vsnprintf_s( log_buffer, ArraySize( log_buffer ), format, args );
+    vsnprintf_s( log_buffer, ARRAY_SIZE( log_buffer ), format, args );
 #else
-    vsnprintf( log_buffer, ArraySize( log_buffer), format, args );
+    vsnprintf( log_buffer, ARRAY_SIZE( log_buffer), format, args );
 #endif
-    log_buffer[ ArraySize( log_buffer ) - 1 ] = '\0';
+    log_buffer[ ARRAY_SIZE( log_buffer ) - 1 ] = '\0';
     va_end( args );
 
     output_console( log_buffer );
