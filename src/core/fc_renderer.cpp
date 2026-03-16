@@ -65,9 +65,8 @@ namespace fc
       SDL_version linked;
       SDL_GetVersion(&linked);
       // Pring version info
-      SDL_Log("SDL version(s): %u.%u.%u (compiled),  %u.%u.%u. (linked)\n",
-              compiled.major, compiled.minor, compiled.patch, linked.major, linked.minor, linked.patch);
-      SDL_Log("Window Dimensions: %i x %i", config.windowWidth, config.windowHeight);
+      fcPrintEndl("SDL version(s): %u.%u.%u (compiled),  %u.%u.%u. (linked)\n",
+                  compiled.major, compiled.minor, compiled.patch, linked.major, linked.minor, linked.patch);
 
       // create the surface (interface between Vulkan and window (SDL))
       mWindow.createWindowSurface(mInstance);
@@ -84,7 +83,7 @@ namespace fc
       pDevice = FcLocator::Gpu().getVkDevice();
 
       // create the swapchain & renderpass & frambuffers & depth buffer
-      mSwapchain.init(mGpu, config);
+      VkFormat swapchainImageFormat = mSwapchain.init(mGpu, config);
 
       // -*-*-*-*-*-*-*-*-*-*-*-*-   INITIALIZE DESCRIPTORS   -*-*-*-*-*-*-*-*-*-*-*-*- //
       FcDescriptorClerk* descClerk = new FcDescriptorClerk;
@@ -93,10 +92,11 @@ namespace fc
       FcLocator::provide(descClerk);
 
       // TODO document the pool ratios better
-      std::vector<PoolSizeRatio> poolRatios = { {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 6},
-                                                {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 6},
-                                                {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 6},
-                                                {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 8}
+      std::vector<PoolSizeRatio> poolRatios = {
+        {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 6},
+        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 6},
+        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 6},
+        {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 8}
       };
 
       //
@@ -120,7 +120,7 @@ namespace fc
       // mBillboardRenderer.createPipeline(mBillboardPipeline);
       // mUiRenderer.createPipeline(mUiPipeline);
 
-      initImgui();
+      initImgui(swapchainImageFormat);
 
       // create the command buffers& command Pool
       //mPipeline.createUniformBuffers(&mGpu, mSwapchain, sizeof(UboViewProjection));
@@ -237,7 +237,7 @@ namespace fc
 
 
 
-  void FcRenderer::initImgui()
+  void FcRenderer::initImgui(VkFormat swapchainFormat)
   {
     // Create the descriptor pool for IMGUI
     // probably oversized, doesn't seem to be in any imgui demo that was mentioned
@@ -289,7 +289,8 @@ namespace fc
     VkPipelineRenderingCreateInfoKHR pipelineRenderingInfo{};
     pipelineRenderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
     pipelineRenderingInfo.colorAttachmentCount = 1;
-    pipelineRenderingInfo.pColorAttachmentFormats = &mSwapchain.getFormat();
+    /* pipelineRenderingInfo.pColorAttachmentFormats = &mSwapchain.getFormat(); */
+    pipelineRenderingInfo.pColorAttachmentFormats = &swapchainFormat;
 
     ImGui_ImplVulkan_InitInfo imGuiInfo{};
     imGuiInfo.Instance = mInstance;
@@ -319,23 +320,23 @@ namespace fc
 
 
   //
-  void FcRenderer::createInstance(VkApplicationInfo& appInfo, FcConfig& configOptions)
+  void FcRenderer::createInstance(VkApplicationInfo& appInfo, FcConfig& config)
   {
     // First determine all the extensions needed for SDL to run Vulkan instance
-    uint32_t sdlExtensionCount = 0;
-    SDL_Vulkan_GetInstanceExtensions(mWindow.SDLwindow(), &sdlExtensionCount, nullptr);
-    std::vector<const char*> extensions(sdlExtensionCount);
-    SDL_Vulkan_GetInstanceExtensions(mWindow.SDLwindow(), &sdlExtensionCount, extensions.data());
+    // uint32_t sdlExtensionCount = 0;
+    // SDL_Vulkan_GetInstanceExtensions(mWindow.SDLwindow(), &sdlExtensionCount, nullptr);
+    // std::vector<const char*> extensions(sdlExtensionCount);
+    // SDL_Vulkan_GetInstanceExtensions(mWindow.SDLwindow(), &sdlExtensionCount, extensions.data());
 
     // Include debug utilities only when required
 #ifndef NDEBUG
-    extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    config.addInstanceExtension(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 #endif
 
     // Not working for now
     // if (enableValidationLayers)
     // {
-    //   extensions.push_back(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME);
+    //   config.addInstanceExtension(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME);
     // }
 
     // Define a Create struct to initialize the vulkan instance
@@ -344,29 +345,36 @@ namespace fc
     // TODO change to platform dependent evaluation may not be needed with the above calls to SDL
 #if defined (__APPLE__)
     // Only seems to be required for macOS implementation and only when validation layers added
-    extensions.push_back("VK_KHR_get_physical_device_properties2");
-    extensions.push_back("VK_KHR_portability_enumeration");
+    config.addInstanceExtension("VK_KHR_get_physical_device_properties2");
+    config.addInstanceExtension("VK_KHR_portability_enumeration");
     instanceInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
 #endif
 
-    extensions.push_back("VK_KHR_get_physical_device_properties2");
-    // TODO investigate why not available on linux
-    /* extensions.push_back(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME); */
+    // TODO swap out names above
+    config.addInstanceExtension(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 
-    // TODO LOG the required and found extensions
-    FC_ASSERT(configOptions.areInstanceExtensionsSupported(extensions));
+    // if (config.isExtendedSwapchainColorSpaceEnabled())
+    // config.addInstanceExtension(VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME);
+
+    // TODO investigate why not available on linux
+    /* config.addInstanceExtension(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME); */
+
+    // TODO LOG the required and found extensions and provide alternate paths if extension unavailable
+    FC_ASSERT(config.areInstanceExtensionsSupported());
 
     instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instanceInfo.pApplicationInfo = &appInfo;
-    instanceInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
-    instanceInfo.ppEnabledExtensionNames = extensions.data();
-    instanceInfo.enabledLayerCount = configOptions.getValidationLayerCount();
-    instanceInfo.ppEnabledLayerNames = configOptions.getValidationLayers();
-    instanceInfo.pNext = configOptions.getValidationLayerSettings();
+    instanceInfo.enabledExtensionCount = config.getInstanceExtensionCount();
+    instanceInfo.ppEnabledExtensionNames = config.getInstanceExtensions();
+    instanceInfo.enabledLayerCount = config.getValidationLayerCount();
+    instanceInfo.ppEnabledLayerNames = config.getValidationLayers();
+    instanceInfo.pNext = config.getValidationLayerSettings();
 
     // Finally, call the vulkan function to create vulkan instance instance
     VK_ASSERT(vkCreateInstance(&instanceInfo, nullptr, &mInstance));
 
+    // Give our instance handle to FcLocator to use with pointers to functions for Vulkan extensions etc.
+    FcLocator::provide(mInstance);
   }  // END void FcRenderer::createInstance(...)
 
 
@@ -382,8 +390,8 @@ namespace fc
                        ,FcImageTypes::DepthBuffer);
 
     // TODO provide for these to change if VK_ERROR_OUT_OF_DATE_KHR, etc.
-    mDrawExtent.height = std::min(mSwapchain.getSurfaceExtent().height, mDrawImage.Height());
-    mDrawExtent.width = std::min(mSwapchain.getSurfaceExtent().width, mDrawImage.Width());
+    mDrawExtent.height = std::min(mWindow.ScreenSize().height, mDrawImage.Height());
+    mDrawExtent.width = std::min(mWindow.ScreenSize().width, mDrawImage.Width());
 
     // TODO create a function for allowing viewport and scisors to change
     // initialze the dynamic mDynamicViewport and mDynamicScisors
@@ -721,7 +729,7 @@ namespace fc
 
     VkRenderingInfo renderInfo{};
     renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-    renderInfo.renderArea = VkRect2D{ VkOffset2D{0, 0}, mSwapchain.getSurfaceExtent() };
+    renderInfo.renderArea = VkRect2D{ VkOffset2D{0, 0}, mWindow.ScreenSize() };
     renderInfo.layerCount = 1;
     renderInfo.colorAttachmentCount = 1;
     renderInfo.pColorAttachments = &colorAttachment;

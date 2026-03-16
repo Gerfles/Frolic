@@ -1,8 +1,13 @@
 //>--- utilities.cpp ---<//
 #include "utilities.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "core/fc_assert.hpp"
+#include "core/fc_locator.hpp"
 #include "core/log.hpp"
 #include "platform.hpp"
+#include "fc_debug.hpp"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+/* #include "vulkan/utility/ */
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <cstring>
 #include <filesystem>
@@ -182,6 +187,54 @@ namespace fc
       }
     }
     std::cout << std::endl;
+  }
+
+  VkResult setObjectDebugName(VkDevice device, VkObjectType type, u64 handle, const char* name)
+  {
+    if (!name || !*name ||!vkSetDebugUtilsObjectNameEXT)
+    {
+      return VK_SUCCESS;
+    }
+
+    const VkDebugUtilsObjectNameInfoEXT nameInfo {
+      .sType {VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT}
+    , .objectHandle {handle}
+    , .objectType {type}
+    , .pObjectName {name}
+    };
+
+    return SetDebugUtilsObjectNameEXT(FcLocator::vkInstance(), device, &nameInfo);
+  }
+
+
+  //
+  VkSemaphore createSemaphore(VkDevice device, const char* debugName)
+  {
+    const VkSemaphoreCreateInfo semaphoreInfo = {
+      .sType {VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO}
+    , .flags {0}
+    };
+
+    VkSemaphore semaphore {VK_NULL_HANDLE};
+
+    // TODO &&
+    VK_ASSERT(vkCreateSemaphore(device, &semaphoreInfo, nullptr, &semaphore));
+    VK_ASSERT(setObjectDebugName(device, VK_OBJECT_TYPE_SEMAPHORE, (u64)semaphore, debugName));
+  }
+
+
+  VkFence createFence(VkDevice device, bool isSignaled, const char* debugName)
+  {
+    const VkFenceCreateInfo fenceInfo {
+      .sType {VK_STRUCTURE_TYPE_FENCE_CREATE_INFO}
+    , .flags {isSignaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0u}
+    };
+
+    VkFence fence {VK_NULL_HANDLE};
+
+    VK_ASSERT(vkCreateFence(device, &fenceInfo, nullptr, &fence));
+
+    VK_ASSERT(setObjectDebugName(device, VK_OBJECT_TYPE_FENCE, (u64)fence, debugName));
   }
 
 

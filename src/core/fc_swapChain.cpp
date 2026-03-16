@@ -14,18 +14,18 @@
 namespace fc
 {
   //
-  uint32_t FcSwapChain::init(FcGpu& gpu, FcConfig& config)
+  VkFormat FcSwapChain::init(FcGpu& gpu, FcConfig& config)
   {
     pGpu = &gpu;
 
-    uint32_t swapchainImageCount = createSwapChain(config);
+    VkFormat swapchainImageFormat = createSwapChain(config);
 
     // TODO remove old vulkan renderpass methods or move to sub-vulkan initializer
     // createDepthBufferImage();
     // createRenderPass();
     // createFrameBuffers();
 
-    return swapchainImageCount;
+    return swapchainImageFormat;
   }
 
 
@@ -47,78 +47,69 @@ namespace fc
   }
 
 
-  uint32_t FcSwapChain::createSwapChain(FcConfig& config, bool shouldReUseOldSwapchain)
+  VkFormat FcSwapChain::createSwapChain(FcConfig& config, bool shouldReUseOldSwapchain)
   {
-    SwapChainDetails swapChainDetails = getSwapChainDetails(config.getWindowPtr()->surface());
-
     // 1. Choose best surface format
-    VkSurfaceFormatKHR surfaceFormat = chooseSurfaceFormat(swapChainDetails.formats);
-    // 2. Choose best presentation modes
-    VkPresentModeKHR presentMode = choosePresentMode(swapChainDetails.presentModes);
-    // 3. Choose swap chain image resolution
-    VkExtent2D windowSize = {config.windowWidth, config.windowHeight};
+    VkSurfaceFormatKHR surfaceFormat = chooseSurfaceFormat(config);
 
-    VkExtent2D extent = chooseSwapExtent(swapChainDetails.surfaceCapabilities, windowSize);
+    // 2. Obtain the surface capabilities available
+    VkSurfaceCapabilitiesKHR surfaceCapabilities;
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(pGpu->physicalDevice(),
+                                              config.getWindowPtr()->surface(),
+                                              &surfaceCapabilities);
 
-    fcPrintEndl("extent size: %u x %u", extent.width, extent.height);
+    // 3. Choose the swapchain image count (buffering)
+    // request one additional image to make sure we are not waiting on the GPU
+    u32 desiredImageCount = surfaceCapabilities.minImageCount + 1;
 
-    // BUG this would NOT give us tripple buffering but give us double buffering if minImageCount is 1;
-    // How many images are in the swap chain? get 1 more than the minimum to allow tripple buffering
-    // But notice that VkSwapchainCreateInfoKHR uses minImageCount instead of imageCount
-    uint32_t imageCount = MAX_FRAME_DRAWS;
-    // BUG should pick one image count and stick with it.
-    //  uint32_t imageCount = swapChainDetails.surfaceCapabilities.minImageCount + 1;
-
-    // check to make sure
-    if (swapChainDetails.surfaceCapabilities.maxImageCount > 0 &&
-        swapChainDetails.surfaceCapabilities.maxImageCount < imageCount)
+    if (surfaceCapabilities.maxImageCount > 0 && surfaceCapabilities.maxImageCount < desiredImageCount)
     {
-      imageCount = swapChainDetails.surfaceCapabilities.maxImageCount;
+      desiredImageCount = surfaceCapabilities.maxImageCount;
     }
-
-    fcPrintEndl("Swapchain image count (buffers): %u", imageCount);
+    fcPrintEndl("Swapchain: %u buffers (image buffer count)", desiredImageCount);
 
     // creation information for swap chain
     VkSwapchainCreateInfoKHR swapChainInfo{};
     swapChainInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    // TODO doesnt really make intuitive sense that a gpu should have a notion of surface
     swapChainInfo.surface = config.getWindowPtr()->surface();
     swapChainInfo.imageFormat = surfaceFormat.format;
     swapChainInfo.imageColorSpace = surfaceFormat.colorSpace;
-    swapChainInfo.presentMode = presentMode;
-    swapChainInfo.imageExtent =  extent;
-    swapChainInfo.minImageCount = imageCount;
-
-    // Number of layers for each image in chain
+    swapChainInfo.presentMode = choosePresentMode(config.getWindowPtr()->surface());
+    swapChainInfo.imageExtent = chooseSwapExtent(surfaceCapabilities, config);
+    swapChainInfo.minImageCount = desiredImageCount;
     swapChainInfo.imageArrayLayers = 1;
-    // what attachment images will be used as
-    swapChainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-    swapChainInfo.preTransform = swapChainDetails.surfaceCapabilities.currentTransform;
-    // how to handle blending images with external grapics (e.g. other windows)
-    swapChainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    swapChainInfo.imageUsage = chooseUsageFlags(surfaceCapabilities, surfaceFormat.format);
+    swapChainInfo.preTransform = surfaceCapabilities.currentTransform;
     // whether to clip parts of image not in view (e.g. behind another window, off screen, etc)
     swapChainInfo.clipped = VK_TRUE;
 
-    // Get queue family indices
+    // Determine how to handle blending swapchainImages with external grapics (e.g. other windows)
+    if (surfaceCapabilities.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR != 0)
+    {
+      swapChainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    }
+    else
+    {
+      swapChainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;
+    }
+
+    // Determine how to share swapchain swapchainImages and how many queues we actually have
     const DeviceQueues& queues = pGpu->getQueues();
     uint32_t queueFamilyIndices[] = { queues.graphicsFamily, queues.presentationFamily };
 
-
-
-    // graphics queue and present queue are the same (often the case)
+    // check if graphics queue and present queue are the same (often the case)
     if (queues.areGraphicsAndPresentationSame())
     {
       swapChainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-      // swapChainInfo.queueFamilyIndexCount = 1;
-      // swapChainInfo.pQueueFamilyIndices = VK_NULL_HANDLE;
+      swapChainInfo.queueFamilyIndexCount = 1;
     }
-    // if graphics and presentation families are different, then swapchain must let images be shared between families
-    else     // TEST
+    else
     {
       swapChainInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
       swapChainInfo.queueFamilyIndexCount = 2;
-      swapChainInfo.pQueueFamilyIndices = queueFamilyIndices;
     }
+
+    swapChainInfo.pQueueFamilyIndices = queueFamilyIndices;
 
     // set oldswapchain to the previous swapchain if recreating, otherwise defaults to VK_NULL_HANDLE
     // this MAY help reuse existing resources to allow new swapchain to create faster / smoother resize
@@ -133,36 +124,35 @@ namespace fc
     {
       vkDestroySwapchainKHR(pGpu->getVkDevice(), oldSwapchain, nullptr);
     }
-    //
 
     // Store for later reference
-    mSwapchainFormat = surfaceFormat.format;
-    // TODO should we remove mSurfaceExtent from implementation
-    mSurfaceExtent = extent;
+    /* mSwapchainFormat = surfaceFormat.format; */
 
-    //
+    // determine the actual amount of buffers we were able to aquire and notify if different than requested
     uint32_t swapchainImageCount;
     vkGetSwapchainImagesKHR(pGpu->getVkDevice(), mSwapchain, &swapchainImageCount, nullptr);
-    fcPrintEndl("Actual Swap chain Image count: %u", swapchainImageCount);
-    std::vector<VkImage> images(swapchainImageCount);
-    vkGetSwapchainImagesKHR(pGpu->getVkDevice(), mSwapchain, &swapchainImageCount, images.data());
+    std::vector<VkImage> swapchainImages(swapchainImageCount);
+    vkGetSwapchainImagesKHR(pGpu->getVkDevice(), mSwapchain, &swapchainImageCount, swapchainImages.data());
 
-    for (VkImage image : images)
+    if (swapchainImageCount != desiredImageCount)
     {
-      //TODO may want to also store extent, format, etc within swapchain images
+      fcPrint("Warning: Actual Swap chain Image count differs from desired Count:");
+      fcPrintEndl("%u(actual) vs. %u(desired)", swapchainImageCount);
+    }
+
+    // Finally, create the actual Images that will be used in the swapchain
+    for (VkImage image : swapchainImages)
+    {
       FcImage swapChainImage{image};
 
-      // TODO BUG try this all in one fell swoop
-      //swapChainImage.image = image;
-
       // Create image view
-      swapChainImage.createImageView(mSwapchainFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+      swapChainImage.createImageView(surfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT);
       //
       mSwapchainImages.emplace_back(std::move(swapChainImage));
     }
 
     //  // TODO MOVE to renderpass class
-    // this is the way it was done pre-vulkan 1.3 (Without using deferred rendering)
+    // this is the way it was done pre-vulkan 1.3 (Without using dynamic rendering)
     // VkExtent3D temp = {mSurfaceExtent.width, mSurfaceExtent.height, 1};
 
     //  // finally create the color image and image view that will be used as multi-sampled color attachment
@@ -173,121 +163,170 @@ namespace fc
     //                           , VK_IMAGE_ASPECT_COLOR_BIT
     //                           , pGpu->Properties().maxMsaaSamples);
 
-    return swapchainImageCount;
+    return surfaceFormat.format;
   }
 
 
-
-  // Best format is subjective but ours will be:
-  // format : VK_FORMAT_R8G8B8A8_UNORM
-  // colorSpace : VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
-  // BUG This function would in not robust and only really works when desired format is available
-  // so better to do would be to return false or something if fails to find our format
-  VkSurfaceFormatKHR FcSwapChain::chooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats)
+  //
+  VkSurfaceFormatKHR FcSwapChain::chooseSurfaceFormat(FcConfig& config)
   {
-    // somewhat unintuitively, the following format means that all formats are available to use
-    if (formats.size() == 1 && formats[0].format == VK_FORMAT_UNDEFINED)
-    {
-      // since all are available, just pick what we prefer
-      return { VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR };
-    }
-
-    for (const auto& format : formats)
-    {
-      // BUG This won't work as expected--just returns the first in the list (no prioritization for RGB)
-      if ((format.format == VK_FORMAT_R8G8B8A8_UNORM || VK_FORMAT_B8G8R8A8_UNORM)
-          && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
-      {
-        return format;
-      }
-    }
-
-    // if the formats we want aren't available, just return the first format and hope it works
-    return formats[0];
-  }
-
-
-  // TODO print the current present mode
-  VkPresentModeKHR FcSwapChain::choosePresentMode(const std::vector<VkPresentModeKHR>& presentModes)
-  {
-    //return VK_PRESENT_MODE_MAILBOX_KHR;
-    return VK_PRESENT_MODE_IMMEDIATE_KHR;
-
-    for (const auto& presentMode : presentModes)
-    {
-      // TODO  we prefer mailbox mode as that reduces tearing and helps performance
-      if (presentMode == VK_PRESENT_MODE_MAILBOX_KHR)
-        //if (presentMode == VK_PRESENT_MODE_IMMEDIATE_KHR)
-      {
-        return VK_PRESENT_MODE_MAILBOX_KHR;
-        //return VK_PRESENT_MODE_IMMEDIATE_KHR;
-        //return presentMode;
-      }
-      // if (presentMode == VK_PRESENT_MODE_FIFO_RELAXED_KHR)
-      // {
-      //   return VK_PRESENT_MODE_IMMEDIATE_KHR;
-      // }
-    }
-
-    // TODO we should try and include a flag for the modes that allow framerate comparison
-    // Present mode: Immediate is good to check for performance via FPS
-    // for (const auto &availablePresentMode : availablePresentModes) {
-    //   if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
-    //     fcPrintEndl("Present mode: Immediate");
-    //     return availablePresentMode;
-    //   }
-    // }
-
-    // as per vulkan spec--this mode must always be available
-    return VK_PRESENT_MODE_FIFO_KHR;
-  }
-
-  SwapChainDetails FcSwapChain::getSwapChainDetails(VkSurfaceKHR surface)
-  {
-    // create a new struct to hold all the details of the available swapchain
-    SwapChainDetails swapChainDetails;
-
     const VkPhysicalDevice& device = pGpu->physicalDevice();
 
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &swapChainDetails.surfaceCapabilities);
-
-    // fcPrintEndl("surface capabilities size: " << swapChainDetails.surfaceCapabilities.maxImageExtent.width
-    //           << " x " << swapChainDetails.surfaceCapabilities.maxImageExtent.height );
-
     uint32_t formatCount = 0;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device, config.getWindowPtr()->surface(),
+                                         &formatCount, nullptr);
+
+    std::vector<VkSurfaceFormatKHR> availableFormats;
 
     // if formats available, get list of them
     if (formatCount != 0)
     {
-      swapChainDetails.formats.resize(formatCount);
-      vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, swapChainDetails.formats.data());
+      availableFormats.resize(formatCount);
+      vkGetPhysicalDeviceSurfaceFormatsKHR(device, config.getWindowPtr()->surface(),
+                                           &formatCount, availableFormats.data());
     }
 
-    // Get presentation modes
-    uint32_t presentationCount = 0;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentationCount, nullptr);
+    FC_ASSERT( !availableFormats.empty());
 
-    // if presentation modes available, get list of them
-    if (presentationCount != 0)
+    // FIXME this assumes that the first entries in the formats vector are preferred (native) formats
+    // for our surface and so this will set the nativeBGR boolean to true if they appear first
+    bool isSurfaceNativelyBGR = false;
+    for (const VkSurfaceFormatKHR& format : availableFormats)
     {
-      swapChainDetails.presentModes.resize(presentationCount);
-      vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentationCount, swapChainDetails.presentModes.data());
+      if (format.format == VK_FORMAT_R8G8B8A8_UNORM || format.format == VK_FORMAT_R8G8B8A8_SRGB
+          || format.format == VK_FORMAT_A2R10G10B10_UNORM_PACK32) {
+        isSurfaceNativelyBGR = false;
+        break;
+      }
+
+      if (format.format == VK_FORMAT_B8G8R8A8_UNORM || format.format == VK_FORMAT_B8G8R8A8_SRGB
+          || format.format == VK_FORMAT_A2B10G10R10_UNORM_PACK32) {
+        isSurfaceNativelyBGR = true;
+        break;
+      }
     }
 
-    return swapChainDetails;
+    VkSurfaceFormatKHR preferredFmt;
+    using ColorSpace = FcConfig::ColorSpace;
+
+    switch (config.requestedColorSpace)
+    {
+        case ColorSpace::SRGB_NONLINEAR:
+          preferredFmt = {isSurfaceNativelyBGR? VK_FORMAT_B8G8R8A8_UNORM : VK_FORMAT_R8G8B8A8_UNORM
+                        , VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
+          break;
+        case ColorSpace::SRGB_EXTENDED_LINEAR:
+          if (config.isExtendedSwapchainColorSpaceEnabled()) {
+            preferredFmt = {VK_FORMAT_R16G16B16A16_SFLOAT, VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT};
+            break;
+          }
+          [[fallthrough]];
+        case ColorSpace::HDR10:
+          if (config.isExtendedSwapchainColorSpaceEnabled()) {
+            preferredFmt = {isSurfaceNativelyBGR ?
+                          VK_FORMAT_A2B10G10R10_UNORM_PACK32 : VK_FORMAT_A2R10G10B10_UNORM_PACK32
+                          , VK_COLOR_SPACE_HDR10_ST2084_EXT};
+            break;
+          }
+          [[fallthrough]];
+        default: // Just use normal sRGB non-linear if nothing above works
+          preferredFmt = {isSurfaceNativelyBGR? VK_FORMAT_B8G8R8A8_SRGB : VK_FORMAT_R8G8B8A8_SRGB
+                        , VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
+    }
+
+    // If VK_FORMAT_UNDEFINED is only format returned, it means that all formats are available
+    if (availableFormats.size() == 1 && availableFormats[0].format == VK_FORMAT_UNDEFINED)
+    {
+      // since all are available, just pick what we prefer
+      return preferredFmt;
+    }
+
+    // initialize to the first available format in case none are found that match our preferred
+    VkSurfaceFormatKHR chosenFormat = availableFormats[0];
+    bool isPreferredFormatAvailable = false;
+
+    // See if we have the preferred format available, and if so return that
+    for (const VkSurfaceFormatKHR& format : availableFormats)
+    {
+      // if our preferred format is availabe override chosenFormat to this format and if we don't
+      // also end up matching color space, we will return this as the next best option
+      if (format.format == preferredFmt.format) {
+        chosenFormat = format;
+        isPreferredFormatAvailable = true;
+
+        // if our color space is also available, simply break so we can return the chosen format
+        if (format.colorSpace == preferredFmt.colorSpace) {
+          break;
+        }
+      }
+    }
+
+    if ( !isPreferredFormatAvailable)
+    {
+      // TODO issue this warning only if image storage (compute shaders) is being used
+      fcPrintEndl("Warning: no preferred swap chain formats available: defaulting to first supported format!");
+    }
+
+    // TODO Log the chosen format
+    return chosenFormat;
   }
 
 
+  //
+  VkPresentModeKHR FcSwapChain::choosePresentMode(VkSurfaceKHR surface)
+  {
+    // Get presentation modes
+    const VkPhysicalDevice& device = pGpu->physicalDevice();
 
-  VkExtent2D FcSwapChain::chooseSwapExtent(VkSurfaceCapabilitiesKHR& surfaceCapabilities, const VkExtent2D& windowSize)
+    uint32_t presentModesCount = 0;
+    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModesCount, nullptr);
+
+    // if presentation modes available, get list of them
+    std::vector<VkPresentModeKHR> presentModes;
+
+    if (presentModesCount != 0)
+    {
+      presentModes.resize(presentModesCount);
+      vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModesCount, presentModes.data());
+    }
+
+    // as per vulkan spec--this mode must always be available
+    VkPresentModeKHR chosenMode = VK_PRESENT_MODE_FIFO_KHR;
+    std::string modeName = "FIFO";
+
+    for (const auto& presentMode : presentModes)
+    {
+      // Prefer mailbox mode as that reduces tearing and helps performance
+      if (presentMode == VK_PRESENT_MODE_MAILBOX_KHR)
+      {
+        chosenMode = VK_PRESENT_MODE_MAILBOX_KHR;
+        modeName = "MAILBOX";
+        break;
+      }
+
+      // Second choice is immediate mode for decent performance albeit with tearing
+      if (presentMode == VK_PRESENT_MODE_IMMEDIATE_KHR)
+      {
+        chosenMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+        modeName = "IMMEDIATE";
+      }
+    }
+
+    // TODO log instead of print after release
+    fcPrintEndl("Present_Mode: %s", modeName.c_str());
+    return chosenMode;
+  }
+
+
+  //
+  VkExtent2D FcSwapChain::chooseSwapExtent(VkSurfaceCapabilitiesKHR& surfaceCapabilities, FcConfig& config)
   {
     // if current extent is at numeric limits, then extent can vary. and we will have to determine it ourselves
     // Figure out what the resolution of the surface is in pixel size (account for high-DPI monitors)
     if (surfaceCapabilities.currentExtent.width == std::numeric_limits<uint32_t>::max())
     {
       // if the value can vary, we need to set it manually so first set it to the actual window size
-      VkExtent2D actualExtent  = windowSize;
+      VkExtent2D actualExtent = {config.windowWidth, config.windowHeight};
 
       // Surface also defines max and min, so make sure within boundaries by clamping values
       actualExtent.width = std::clamp(actualExtent.width, surfaceCapabilities.minImageExtent.width
@@ -302,6 +341,39 @@ namespace fc
   }
 
 
+  //
+  VkImageUsageFlags FcSwapChain::chooseUsageFlags(VkSurfaceCapabilitiesKHR& surfaceCapabilities, VkFormat format)
+  {
+    VkImageUsageFlags usageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
+                                   | VK_IMAGE_USAGE_TRANSFER_DST_BIT
+                                   | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+
+    const bool isImageStorageSupported = (surfaceCapabilities.supportedUsageFlags
+                                          & VK_IMAGE_USAGE_STORAGE_BIT) > 0;
+
+    VkFormatProperties2 fmtProps {
+      .sType = VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_2
+    };
+
+    vkGetPhysicalDeviceFormatProperties2(pGpu->physicalDevice(), format, &fmtProps);
+
+    const bool isOptimalTilingSupported = (fmtProps.formatProperties.optimalTilingFeatures
+                                           & VK_FORMAT_FEATURE_2_STORAGE_IMAGE_BIT) > 0;
+
+    if (isImageStorageSupported && isOptimalTilingSupported)
+    {
+      usageFlags |= VK_IMAGE_USAGE_STORAGE_BIT;
+    }
+    else
+    {
+      fcPrintEndl("Warning: Swapchain image not usable for direct storage");
+    }
+
+    return usageFlags;
+  }
+
+
+  // TODO move to renderpass builder
   VkFormat  FcSwapChain::chooseSupportedFormat(const std::vector<VkFormat>& formats
                                                , VkImageTiling tiling, VkFormatFeatureFlags featureFlags)
   {
@@ -331,14 +403,6 @@ namespace fc
   }
 
 
-  // *-*-*-*-*-*-   MAKE CURRENT SWAPCHAIN FRAME INTO WRITEABLE IMAGE   *-*-*-*-*-*- //
-  void FcSwapChain::transitionImage(VkCommandBuffer commandBuffer, uint32_t currentFrame
-                                    , VkImageLayout oldLayout, VkImageLayout newLayout)
-  {
-    mSwapchainImages[currentFrame].transitionLayout(commandBuffer, oldLayout, newLayout, 1);
-  } // --- FcSwapChain::beginRendering (_) --- (END)
-
-
 // TODO older method move or delete
   // void FcSwapChain::createDepthBufferImage()
   // {
@@ -357,11 +421,14 @@ namespace fc
 
 
 
-  void FcSwapChain::createRenderPass()
+  // No longer needed in Vulkan 1.3 but but left in for devices that don't support dynamic rendering
+  void FcSwapChain::createRenderPass(FcConfig& config)
   {
+    VkSurfaceFormatKHR swapchainFormat = chooseSurfaceFormat(config);
+
     // color attachment of the render pass
     VkAttachmentDescription colorAttachment{};
-    colorAttachment.format = mSwapchainFormat;                              // Format to use for attachment
+    colorAttachment.format = swapchainFormat.format;                              // Format to use for attachment
     colorAttachment.samples = pGpu->Properties().maxMsaaSamples;            // Number of samples to write for multi
     colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;                   // Describes what to do with attachment before rendering
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;                 // Describes what to do with attachment after rendering
@@ -380,7 +447,7 @@ namespace fc
     // presented directly, we must add a resolve attachment that will instruct the render pass to
     // resolve the multisampled color image into a regular attachment
     VkAttachmentDescription colorAttchmentResolve{};
-    colorAttchmentResolve.format = mSwapchainFormat;
+    colorAttchmentResolve.format = swapchainFormat.format;
     colorAttchmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
 //    colorAttchmentResolve.samples = FcLocator::Gpu().Properties().maxMsaaSamples;
     colorAttchmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;

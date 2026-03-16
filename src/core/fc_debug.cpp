@@ -1,5 +1,6 @@
 //>--- fc_debug.cpp ---<//
 #include "fc_debug.hpp"
+#include "core/log.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <iostream>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
@@ -76,8 +77,7 @@ namespace fc
     auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)
                 vkGetInstanceProcAddr(instance,"vkDestroyDebugUtilsMessengerEXT");
 
-
-
+    fcPrintEndl("Got pointer");
     if (func != nullptr)
     {
       func(instance, debugMessenger, pAllocator);
@@ -85,10 +85,21 @@ namespace fc
   }
 
 
-
-
-  void displayFrameRate()
+  //
+  // void
+  // (PFN_vkSetDebugUtilsObjectNameEXT)
+  VkResult SetDebugUtilsObjectNameEXT(VkInstance instance,
+                                        VkDevice device,
+                                        const VkDebugUtilsObjectNameInfoEXT *pNameInfo)
   {
+    auto func = (PFN_vkSetDebugUtilsObjectNameEXT)
+                vkGetInstanceProcAddr(instance, "vkSetDebugUtilsObjectNameEXT");
+
+    if (func != nullptr)
+    {
+      func(device, pNameInfo);
+    }
   }
+
 
 } // namespace fc _END_

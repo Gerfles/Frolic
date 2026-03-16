@@ -91,7 +91,7 @@ namespace fc
        // void recordCommands(uint32_t currentFrame);
        void createSynchronization();
        void initDrawImage();
-       void initImgui();
+       void initImgui(VkFormat format);
 
        // -*-*-*-*-*-*-*-*-*-   TODO REFACTOR, ENCAPSULATE, OR DELETE   -*-*-*-*-*-*-*-*-*- //
 

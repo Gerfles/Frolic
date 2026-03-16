@@ -18,12 +18,16 @@ namespace fc
                 const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
                 void* pUserData);
 
-  VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-                                        const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger);
+  VkResult CreateDebugUtilsMessengerEXT(VkInstance instance,
+                                        const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+                                        const VkAllocationCallbacks* pAllocator,
+                                        VkDebugUtilsMessengerEXT* pDebugMessenger);
 
-  void DestroyDebugUtilsMessengerExt(VkInstance instance
-                                     , VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator);
+  void DestroyDebugUtilsMessengerExt(VkInstance instance,
+                                     VkDebugUtilsMessengerEXT debugMessenger,
+                                     const VkAllocationCallbacks* pAllocator);
 
-  void displayFrameRate();
-
+  VkResult SetDebugUtilsObjectNameEXT(VkInstance instance,
+                                      VkDevice device,
+                                      const VkDebugUtilsObjectNameInfoEXT *pNameInfo);
 } // namespace fc _END_

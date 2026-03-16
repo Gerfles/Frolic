@@ -18,6 +18,13 @@ namespace fc
   class FcConfig
   {
    public:
+     enum class ColorSpace : uint8_t
+     {
+       SRGB_NONLINEAR
+     , SRGB_EXTENDED_LINEAR
+     , HDR10
+     };
+     ColorSpace requestedColorSpace;
      std::string applicationName;
      u32 appVersionMajor {0};
      u32 appVersionMinor {0};
@@ -31,13 +38,22 @@ namespace fc
      //
      void enableValidationLayers() noexcept;
      //
-     inline void addDeviceExtension(const char* extensionName) noexcept {deviceExtensions.push_back(extensionName); }
+     inline void addDeviceExtension(const char* extensionName) noexcept
+      {mDeviceExtensions.push_back(extensionName); }
+     //
+     inline void addInstanceExtension(const char* extensionName) noexcept
+      {mInstanceExtensions.push_back(extensionName); }
      //
      inline void addValidationLayer(const char* layerName) noexcept {validationLayers.push_back(layerName); }
      //
      VkLayerSettingsCreateInfoEXT* getValidationLayerSettings();
      //
      void enableBindlessDescriptorIndexing();
+     //
+     void enableExtenedSwapchainColorSpace();
+     //
+     inline const bool isExtendedSwapchainColorSpaceEnabled() const noexcept
+      { return enableExtendedSwapchainColorSpace; }
      //
      const bool areDeviceFeaturesSupported(VkPhysicalDevice device,
                                            VkPhysicalDeviceFeatures2& requiredFeatures_1_0) noexcept;
@@ -48,13 +64,17 @@ namespace fc
      //
      const bool areValidationLayersSupported() noexcept;
      //
-     const bool areInstanceExtensionsSupported(std::vector<const char*>& extensions) noexcept;
+     const bool areInstanceExtensionsSupported() noexcept;
      //
-     inline const u32 getDeviceExtensionCount() const { return deviceExtensions.size(); }
+     inline const u32 getDeviceExtensionCount() const { return mDeviceExtensions.size(); }
+     //
+     inline const u32 getInstanceExtensionCount() const { return mInstanceExtensions.size(); }
      //
      inline const u32 getValidationLayerCount() const { return validationLayers.size(); }
      //
-     inline const char* const* getDeviceExtensions() const { return deviceExtensions.data(); }
+     inline const char* const* getDeviceExtensions() const { return mDeviceExtensions.data(); }
+     //
+     inline const char* const* getInstanceExtensions() const { return mInstanceExtensions.data(); }
      //
      inline const char* const* getValidationLayers() const { return validationLayers.data(); }
      //
@@ -63,10 +83,12 @@ namespace fc
      inline const FcWindow* getWindowPtr() { return pWindow; }
 
    private:
-     std::vector<const char*> deviceExtensions;
+     std::vector<const char*> mDeviceExtensions;
+     std::vector<const char*> mInstanceExtensions;
      // validation layers
      std::vector<const char*> validationLayers;
      bool validationLayersEnabled {false};
+     bool enableExtendedSwapchainColorSpace {false};
      VkValidationFeatureEnableEXT featureEnables[3];
      VkValidationFeaturesEXT features;
      VkLayerSettingEXT layerSettings[3];

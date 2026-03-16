@@ -49,14 +49,11 @@ namespace fc
      inline const VmaAllocator& getAllocator() const { return mAllocator; }
      inline const VkDevice& getVkDevice() const { return mLogicalDevice; }
      inline const VkPhysicalDevice physicalDevice() const { return mPhysicalGPU; }
-     /* inline const VkSurfaceKHR& surface() const { return pWindow->surface(); } */
-     /* inline VkExtent2D SurfaceExtent() const { return pWindow->ScreenSize(); } */
      inline const DeviceQueues& getQueues() const { return mQueues; }
 
      inline const VkQueue& graphicsQueue() const { return mQueues.graphicsQueue; }
      inline const VkQueue& presentQueue() const { return mQueues.graphicsQueue; }
-     SwapChainDetails getSwapChainDetails(const VkPhysicalDevice& device, FcConfig& config) const;
-      // const VkCommandPool commandPool() const { return mCommandPool; }
+
      inline const PerformanceProperties Properties() const { return mGpuPerformanceProperties; }
       // Cleanup
      void release(VkInstance& instance);

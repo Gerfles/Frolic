@@ -13,17 +13,18 @@ namespace fc
   FcGpu* FcLocator::pGpu;
   VkDevice FcLocator::pDevice;
   VkPhysicalDevice FcLocator::pPhysicalDevice;
-   //static Audio* pAudioService;
+  //static Audio* pAudioService;
   FcDescriptorClerk* FcLocator::pDescriptorClerk;
   VkExtent2D FcLocator::mScreenDimensions;
+  VkInstance FcLocator::mInstance;
 
 
-   // initialze game object list to maximum size allowed
+  // initialze game object list to maximum size allowed
 //  std::vector<FcGameObject*> FcLocator::mGameObjectsList(MAX_GAME_OBJECTS, nullptr);
   /* std::vector<FcGameObject*> FcLocator::mGameObjectsList;//(100, nullptr); */
-   //
+  //
   std::vector<FcLight*> FcLocator::mLightsList;
-   //
+  //
   // TODO make this part of drawCollection and delete
   /* std::vector<FcBillboard* > FcLocator::mBillboardsList; */
 
@@ -40,7 +41,7 @@ namespace fc
   {
     if (renderer == nullptr)
     {
-       // revert to default null device
+      // revert to default null device
       fcPrintEndl("Failed to assign proper FcGpu pointer to locator");
     }
     else
@@ -53,7 +54,7 @@ namespace fc
   {
     if (pRenderer == nullptr)
     {
-       // revert to default null device
+      // revert to default null device
       fcPrintEndl("Requested Renderer but none was provided!");
     }
     return *pRenderer;
@@ -62,36 +63,48 @@ namespace fc
 
 
   void FcLocator::provide(FcGpu* gpu)
-        {
-          if (gpu == nullptr)
-          {
-             // revert to default null device
-            fcPrintEndl("Failed to assign proper FcGpu pointer to locator");
-//              pGpu = &mNullGpu;
-          }
-          else
-          {
-             // TODO should check for null values here as well
-            pGpu = gpu;
-            pDevice = gpu->getVkDevice();
-             //pPhysicalDevice = nullptr;
-            pPhysicalDevice = gpu->physicalDevice();
-          }
-        }
+  {
+    if (gpu == nullptr)
+    {
+      fcPrintEndl("Failed to assign proper FcGpu pointer to locator");
+      return;
+    }
 
+    // TODO should check for null values here as well
+    pGpu = gpu;
+    pDevice = gpu->getVkDevice();
+    //pPhysicalDevice = nullptr;
+    pPhysicalDevice = gpu->physicalDevice();
+  }
+
+
+  //
+  void FcLocator::provide(VkInstance instance)
+  {
+    if (instance == nullptr)
+    {
+      fcPrintEndl("ERROR: Failed to assign proper VkInstance to FcLocator class!");
+      return;
+    }
+
+    mInstance = instance;
+  }
+
+
+  //
   void FcLocator::provide(FcDescriptorClerk* descriptorClerk)
-        {
-          if (descriptorClerk == nullptr)
-          {
-             // revert to default null device
-            fcPrintEndl("Failed to assign proper FcDescriptor pointer to locator");
+  {
+    if (descriptorClerk == nullptr)
+    {
+      // revert to default null device
+      fcPrintEndl("Failed to assign proper FcDescriptor pointer to locator");
 //            pDescriptorClerk = &mNullDescriptorClerk;
-          }
-          else
-          {
-            pDescriptorClerk = descriptorClerk;
-          }
-        }
+    }
+    else
+    {
+      pDescriptorClerk = descriptorClerk;
+    }
+  }
 
 
   void FcLocator::provide(VkExtent2D screenDimensions)

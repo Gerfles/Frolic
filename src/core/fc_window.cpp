@@ -69,6 +69,7 @@ namespace fc
       return false;
     }
 
+    fcPrintEndl("Window size: %u x %u", config.windowWidth, config.windowHeight);
     // Get the actual (Drawable) surface size in pixels (may be different from window size esp w/ high DPI)
     VkExtent2D actualWindowSize = ScreenSize();
 
@@ -76,12 +77,24 @@ namespace fc
     config.windowWidth = actualWindowSize.width;
     config.windowHeight = actualWindowSize.height;
 
+    fcPrintEndl("Drawable surface dimensions (pixels): %u x %u", actualWindowSize.width, actualWindowSize.height);
+    FcLocator::provide(actualWindowSize);
+
     // attach the window pointer to config for use in swapchain creation, etc.
     config.setWindowPtr(this);
 
-    FcLocator::provide(actualWindowSize);
+    // add all necessary extensions to config that are needed by this window
+    // First determine all the extensions needed for SDL to run Vulkan instance
+    uint32_t sdlExtensionCount = 0;
+    SDL_Vulkan_GetInstanceExtensions(mWindow, &sdlExtensionCount, nullptr);
+    std::vector<const char*> requiredExtensions(sdlExtensionCount);
+    SDL_Vulkan_GetInstanceExtensions(mWindow, &sdlExtensionCount, requiredExtensions.data());
 
-    fcPrintEndl("Window drawable dimensions (pixels): %u x %u", actualWindowSize.width, actualWindowSize.height);
+    for (const char* extension :requiredExtensions)
+    {
+      config.addInstanceExtension(extension);
+    }
+
     return true;
   }
 
@@ -94,8 +107,6 @@ namespace fc
     SDL_Vulkan_GetDrawableSize(mWindow, &width, &height);
 
     VkExtent2D winExtent{static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
-
-    /* winExtent = {static_cast<uint32_t>(2200), static_cast<uint32_t>(1600)}; */
 
     return winExtent;
   }

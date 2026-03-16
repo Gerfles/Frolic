@@ -10,6 +10,7 @@
 /* #pragma clang diagnostic ignored "-Wnullability-completeness" */
 #define VMA_IMPLEMENTATION // must declare only once before including vk_mem_alloc.h in CPP file
 #include "vk_mem_alloc.h"
+
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <set>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -99,12 +100,13 @@ namespace fc
         continue;
       }
 
+      // FIXME could add this feature if we really want to make sure the device support our swapchain needs
       // Make sure that our swapchain has the capabilities we need
-      SwapChainDetails swapChain = getSwapChainDetails(potentialDevice, configOptions);
-      if (swapChain.presentModes.empty() || swapChain.formats.empty())
-      {
-        continue;
-      }
+      // SwapChainDetails swapChain = getSwapChainDetails(potentialDevice, configOptions);
+      // if (swapChain.presentModes.empty() || swapChain.formats.empty())
+      // {
+      //   continue;
+      // }
 
       // Get the properties of the potential device to check to prefer GPU and set properties
       vkGetPhysicalDeviceProperties2(potentialDevice, &deviceProperties);
@@ -157,7 +159,7 @@ namespace fc
     mGpuPerformanceProperties.maxMsaaSamples = VK_SAMPLE_COUNT_1_BIT;
 
     // TODO print more specs when in debug
-    fcPrintEndl("GPU: %s\nPush Constant max size:%u(Bytes)",
+    fcPrintEndl("GPU: %s\n\tPush Constant max size:%u(Bytes)",
                 deviceProperties.properties.deviceName,
                 deviceProperties.properties.limits.maxPushConstantsSize);
   }
@@ -300,39 +302,6 @@ namespace fc
 
 
   //
-  SwapChainDetails FcGpu::getSwapChainDetails(const VkPhysicalDevice& device, FcConfig& config) const
-  {
-    // create a new struct to hold all the details of the available swapchain
-    SwapChainDetails swapChainDetails;
-    const VkSurfaceKHR& surface = config.getWindowPtr()->surface();
-
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &swapChainDetails.surfaceCapabilities);
-
-    uint32_t formatCount = 0;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
-
-    // if formats available, get list of them
-    if (formatCount != 0)
-    {
-      swapChainDetails.formats.resize(formatCount);
-      vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, swapChainDetails.formats.data());
-    }
-
-    // Get presentation modes
-    uint32_t presentationCount = 0;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentationCount, nullptr);
-
-    // if presentation modes available, get list of them
-    if (presentationCount != 0)
-    {
-      swapChainDetails.presentModes.resize(presentationCount);
-      vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentationCount,
-                                                swapChainDetails.presentModes.data());
-    }
-    return swapChainDetails;
-  }
-
-
   void FcGpu::release(VkInstance& instance)
   {
     vmaDestroyAllocator(mAllocator);

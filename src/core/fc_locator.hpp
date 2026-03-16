@@ -34,6 +34,7 @@ namespace fc
      static VkDevice pDevice;
      static VkPhysicalDevice pPhysicalDevice;
      static VkExtent2D mScreenDimensions;
+     static VkInstance mInstance;
       // this is the global handle table -- a simple array of pointers to FcGameObjects
 
       // TODO resize to make mgameobjectslist size of MAX_GAME_OBJECTS
@@ -53,6 +54,7 @@ namespace fc
      static void provide(FcDescriptorClerk* descriptorClerk);
      static void provide(VkExtent2D screenDimensions);
      static void provide(FcRenderer* renderer);
+     static void provide(VkInstance instance);
       // - GETTERS -
       // TODO think about making some of these const
      static FcRenderer& Renderer();
@@ -61,6 +63,7 @@ namespace fc
      // ?? figure out why this one is const static
      const static VkDevice& Device() { return pDevice; }
      static VkPhysicalDevice vkPhysicalDevice() { return pPhysicalDevice; }
+     static VkInstance vkInstance() { return mInstance; }
      static VkExtent2D& ScreenDims() { return mScreenDimensions; }
      /* static std::vector<FcGameObject* >& GameObjects() { return mGameObjectsList; } */
      static std::vector<FcLight* >& Lights() { return mLightsList; }

@@ -12,6 +12,13 @@
 
 namespace fc
 {
+  // TEST that we can add to instance extensions before SDL_Vulkan retrieves data()
+  void FcConfig::enableExtenedSwapchainColorSpace()
+  {
+    mInstanceExtensions.push_back(VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME);
+    enableExtendedSwapchainColorSpace = true;
+  }
+
   //
   void FcConfig::populateVulkanPhysicalDeviceFeatures(VkPhysicalDeviceFeatures2& features_1_0) noexcept
   {
@@ -219,7 +226,7 @@ namespace fc
       availableExtensionNames.push_back(extension.extensionName);
     }
 
-    return availableContainsRequired(availableExtensionNames, deviceExtensions);
+    return availableContainsRequired(availableExtensionNames, mDeviceExtensions);
   }
 
 
@@ -245,7 +252,7 @@ namespace fc
 
 
   //
-  const bool FcConfig::areInstanceExtensionsSupported(std::vector<const char*>& extensions) noexcept
+  const bool FcConfig::areInstanceExtensionsSupported() noexcept
   {
     // acquire all available Instance extensions and add their name to availableLayersOrExtensions
     u32 extensionsCount = 0;
@@ -261,7 +268,7 @@ namespace fc
       availableExtensionNames.push_back(extension.extensionName);
     }
 
-    return availableContainsRequired(availableExtensionNames, extensions);
+    return availableContainsRequired(availableExtensionNames, mInstanceExtensions);
   }
 
 

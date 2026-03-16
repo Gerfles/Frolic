@@ -27,8 +27,9 @@ namespace fc
  #define fcPrintEndl(format, ...) fc::LogService::instance()->print_format(format, __VA_ARGS__); \
   fc::LogService::instance()->print_format("\n");
 #else
- #define fcPrint(format, ...) fc::LogService::instance()->print_format(format, ## __VA_ARGS__);
- #define fcPrintEndl(format, ...) fc::LogService::instance()->print_format(format, ## __VA_ARGS__); \
+  // TODO change many of the print statements when release ver. to Log instead
+#define fcPrint(format, ...) fc::LogService::instance()->print_format(format, ## __VA_ARGS__);
+#define fcPrintEndl(format, ...) fc::LogService::instance()->print_format(format, ## __VA_ARGS__); \
   fc::LogService::instance()->print_format("\n");
 #endif
 

@@ -10,7 +10,9 @@
 
 int main(int argc, char* argv[])
 {
-  fc::Frolic frolic;
+  using namespace fc;
+
+  Frolic frolic;
 
   // initialize in subscope so our config gets taken off the stack once it's used
   {
@@ -26,9 +28,7 @@ int main(int argc, char* argv[])
     // TODO implement  utilizing functors for actual function calls
     config.enableNonUniformScaline = false;
 
-#ifdef NDEBUG
-    //
-#else
+#ifndef NDEBUG
     config.enableValidationLayers();
 #endif
 
@@ -38,7 +38,14 @@ int main(int argc, char* argv[])
     config.addDeviceExtension(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
     config.addDeviceExtension(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
     config.addDeviceExtension(VK_KHR_DYNAMIC_RENDERING_LOCAL_READ_EXTENSION_NAME);
-    /* config.addDeviceExtension(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME); */
+
+
+    // TODO combine requestedColorSpace with enableExtended...
+    config.requestedColorSpace = FcConfig::ColorSpace::SRGB_NONLINEAR;
+    /* config.requestedColorSpace = FcConfig::ColorSpace::SRGB_EXTENDED_LINEAR; */
+    /* config.requestedColorSpace = FcConfig::ColorSpace::HDR10; */
+    config.enableExtenedSwapchainColorSpace();
+
     // initialize engine
     frolic.init(config);
   }

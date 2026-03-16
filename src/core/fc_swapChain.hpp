@@ -9,75 +9,75 @@ namespace fc { class FcGpu; class FcConfig; }
 
 namespace fc
 {
-  // ?? could maybe get rid of this
-  struct SwapChainDetails
-  {
-     VkSurfaceCapabilitiesKHR surfaceCapabilities; // surface properties, eg image extent
-     std::vector<VkSurfaceFormatKHR> formats;      // surface image formats, eg R8G8B8A8_UNORM
-     std::vector<VkPresentModeKHR> presentModes;   // presentaion capabilities, eg Mailbox, fifo
-  };
-
+  //
   class FcSwapChain
   {
-
    private:
      // BUG is there any issues with declaring the following pointer const?
      FcGpu* pGpu;
      VkSwapchainKHR mSwapchain;
-     VkExtent2D mSurfaceExtent;
-     VkFormat mSwapchainFormat;
      VkRenderPass mRenderPass {nullptr};
-     //std::vector<SwapchainImage> mSwapchainImages;
      // FRAMEBUFFER ATTACHMENTS
      std::vector<FcImage> mSwapchainImages;
-
      std::vector<VkFramebuffer> mSwapChainFramebuffers;
-     uint32_t createSwapChain(FcConfig& config, bool shouldReUseOldSwapchain = false);
+     //
+     VkFormat createSwapChain(FcConfig& config, bool shouldReUseOldSwapchain = false);
 
-// -*-*-*-*-*-*-*-*-*-*-   PREVENT MOVE, COPY, ASSIGNMENT   -*-*-*-*-*-*-*-*-*-*- //
+     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   HELPER FUNCTIONS   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     VkSurfaceFormatKHR chooseSurfaceFormat(FcConfig& config);
+     //
+     VkPresentModeKHR choosePresentMode(VkSurfaceKHR surface);
+     //
+     VkExtent2D chooseSwapExtent(VkSurfaceCapabilitiesKHR& surfaceCapabilities, FcConfig& config);
+     //
+     VkFormat chooseSupportedFormat(const std::vector<VkFormat>& formats
+                                    , VkImageTiling tiling, VkFormatFeatureFlags featureFlags);
+     //
+     VkImageUsageFlags chooseUsageFlags(VkSurfaceCapabilitiesKHR& surfaceCapabilities, VkFormat format);
+     //
+     void createRenderPass(FcConfig& config);
+     //
+     void createDepthBufferImage();
+     //
+     void createFrameBuffers();
+
+   public:
+     // -*-*-*-*-*-*-*-*-*-*-   PREVENT MOVE, COPY, ASSIGNMENT   -*-*-*-*-*-*-*-*-*-*- //
      FcSwapChain(const FcSwapChain&) = delete;
      FcSwapChain(FcSwapChain&&) = delete;
      FcSwapChain& operator=(const FcSwapChain&) = delete;
      FcSwapChain& operator=(FcSwapChain&&) = delete;
-
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-   HELPER FUNCTIONS   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-     SwapChainDetails getSwapChainDetails(VkSurfaceKHR surface);
-     VkSurfaceFormatKHR chooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
-     VkPresentModeKHR choosePresentMode(const std::vector<VkPresentModeKHR>& presentModes);
-     VkExtent2D chooseSwapExtent(VkSurfaceCapabilitiesKHR& surfaceCapabilities, const VkExtent2D& windowSize);
-     VkFormat chooseSupportedFormat(const std::vector<VkFormat>& formats
-                                    , VkImageTiling tiling, VkFormatFeatureFlags featureFlags);
-     void createRenderPass();
-     void createDepthBufferImage();
-     void createFrameBuffers();
-   public:
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   INITIALIZATION   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   INITIALIZATION   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      FcSwapChain() = default;
+     //
      FcSwapChain(FcSwapChain* oldSwapChain);
-     uint32_t init(FcGpu& gpu, FcConfig& config);
+     //
+     VkFormat init(FcGpu& gpu, FcConfig& config);
      // TODO see if we can just make this part of create swapChain??
-     void transitionImage(VkCommandBuffer commandBuffer
-                          , uint32_t currentFrame,  VkImageLayout currentLayout, VkImageLayout newLayout);
+     // *-*-*-*-*-*-   MAKE CURRENT SWAPCHAIN FRAME INTO WRITEABLE IMAGE   *-*-*-*-*-*- //
+     inline void transitionImage(VkCommandBuffer commandBuffer, uint32_t currentFrame,
+                                 VkImageLayout currentLayout, VkImageLayout newLayout) noexcept
+      { mSwapchainImages[currentFrame].transitionLayout(commandBuffer, currentLayout, newLayout, 1); }
+     //
      void reCreateSwapChain(VkExtent2D windowSize);
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-   GETTER FUNCTIONS   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   GETTER FUNCTIONS   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      VkFramebuffer& getFrameBuffer(int index) { return mSwapChainFramebuffers[index]; }
+     //
      FcImage& getFcImage(uint32_t index) { return mSwapchainImages[index]; }
+     //
      const size_t imageCount() const { return mSwapChainFramebuffers.size(); }
-     const VkExtent2D& getSurfaceExtent() const { return mSurfaceExtent; }
-     const VkFormat& getFormat() const { return mSwapchainFormat; }
+     //
      VkRenderPass& getRenderPass()  { return mRenderPass; }
+     //
      const VkSwapchainKHR& vkSwapchain() const { return mSwapchain; }
+     //
      VkImage vkImage(uint32_t index)  { return mSwapchainImages.at(index).Image();  }
-     // CLEANUP
-//     ~FcSwapChain();
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CLEANUP   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     //     ~FcSwapChain();
+     //
      void clearSwapChain();
+     //
      void destroy();
   };
-
-
-
-
-
-
 
 } //END - namespace fc - END
