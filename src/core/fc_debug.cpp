@@ -97,8 +97,10 @@ namespace fc
 
     if (func != nullptr)
     {
-      func(device, pNameInfo);
+      return func(device, pNameInfo);
     }
+
+    return VK_ERROR_EXTENSION_NOT_PRESENT;
   }
 
 

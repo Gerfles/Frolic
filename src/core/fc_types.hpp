@@ -1,9 +1,12 @@
 //>--- fc_types.hpp ---<//
 #pragma once
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "fc_commands.hpp"
 #include "fc_resources.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <vulkan/vulkan_core.h>
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include <future>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'S   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 namespace fc { class FcMesh; }
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
@@ -11,81 +14,11 @@ namespace fc { class FcMesh; }
 
 namespace fc
 {
-  struct SubmitHandle
-  {
-     u32 bufferIndex = 0;
-     u32 submitId = 0;
-     //
-     SubmitHandle() = default;
-     //
-     explicit SubmitHandle(u64 handle) : bufferIndex(u32(handle & 0xffffffff)),
-                                         submitId(u32(handle >> 32)) {}
-     //
-     inline const bool isEmpty() const { return submitId == 0; }
-     //
-     inline u64 handle() const { return (u64(submitId) << 32) + bufferIndex; }
-  };
-
-
-
-  // TODO move
-  class VulkanImmediateCommands final
-  {
-   private:
-     static constexpr u32  kMaxCommandBuffers = 64;
-
-     struct CommandBufferWrapper
-     {
-        VkCommandBuffer cmdBuffer {VK_NULL_HANDLE};
-        VkCommandBuffer cmdBufferAllocated {VK_NULL_HANDLE};
-        SubmitHandle handle {};
-        VkFence fence {VK_NULL_HANDLE};
-        VkSemaphore semaphore {VK_NULL_HANDLE};
-        bool isEncoding {false};
-     };
-
-     // TODO make static since unless we only have one instance
-     VkDevice mDevice {VK_NULL_HANDLE};
-     VkQueue mQueue {VK_NULL_HANDLE};
-     VkCommandPool mCmdPool {VK_NULL_HANDLE};
-     u32 mQueueFamilyIdx {0};
-     u32 mNumAvailableCmdBuffers {kMaxCommandBuffers};
-     u32 mSubmitCounter {1};
-     const char* mDebugName {""};
-     SubmitHandle mLastSubmitHandle {SubmitHandle()};
-     SubmitHandle mNextSubmitHandle {SubmitHandle()};
-     CommandBufferWrapper mCmdBuffers[kMaxCommandBuffers];
-     //
-     VkSemaphoreSubmitInfo mLastSubmitSemaphore {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO
-                                               , .stageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT};
-     VkSemaphoreSubmitInfo mWaitSemaphore {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO
-                                         , .stageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT};
-     // mSignalSemaphore is injected at the end of the frame (by calling signalSemaphore() ), before
-     // presenting the final image to the screen and is used to orchestrate the swapchain presentation
-     VkSemaphoreSubmitInfo mSignalSemaphore {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO
-                                           , .stageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT};
-     void purgeCmdBuffers();
-
-   public:
-     VulkanImmediateCommands(VkDevice device, u32 queueFamilyIdx, const char* debugName);
-     ~VulkanImmediateCommands();
-     const CommandBufferWrapper& acquire();
-     SubmitHandle submit(const CommandBufferWrapper& wrapper);
-     void waitSemaphore(VkSemaphore semaphore);
-     void signalSemaphore(VkSemaphore semaphore, u64 signalValue);
-     VkSemaphore acquireLastSubmitSemaphore();
-     SubmitHandle getLastSubmitHandle() const;
-     bool isReady(const SubmitHandle handle) const ;
-     void wait(const SubmitHandle handle);
-     void waitAll();
-  };
-
 
   // TODO handle this differently
-    const int MAX_OBJECTS = 30;
+  const int MAX_OBJECTS = 30;
   const int MAX_LIGHTS = 10;
   const int MAX_BILLBOARDS = 30;
-
 
   // TODO get rid of this throughout engine
   static constexpr unsigned int MAX_FRAME_DRAWS = 3;
@@ -240,14 +173,23 @@ namespace fc
   };
 
 
+  struct DeferredTask
+  {
+     std::packaged_task<void()> mTask;
+     SubmitHandle mHandle;
+
+     DeferredTask(std::packaged_task<void()>&& task, SubmitHandle handle)
+       : mTask(std::move(task)), mHandle(handle) {}
+  };
+
 
   //
   //
-  struct TerrainPushConstants
-  {
-     VkDeviceAddress address;
-     float time;
-  };
+    struct TerrainPushConstants
+    {
+       VkDeviceAddress address;
+       float time;
+    };
 
   //
   struct BillboardPushConstants

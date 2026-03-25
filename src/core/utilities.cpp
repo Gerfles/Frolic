@@ -2,12 +2,12 @@
 #include "utilities.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "core/fc_assert.hpp"
-#include "core/fc_locator.hpp"
-#include "core/log.hpp"
+#include "fc_locator.hpp"
+#include "core/fc_debug.hpp"
 #include "platform.hpp"
-#include "fc_debug.hpp"
+
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-/* #include "vulkan/utility/ */
+
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <cstring>
 #include <filesystem>
@@ -17,7 +17,7 @@
 
 namespace fc
 {
-  //
+//
   void FcLog::openLogOutput(const std::string& filename, bool clearContents)
   {
     // open stream from give file and tell it to start reading from end
@@ -191,6 +191,9 @@ namespace fc
 
   VkResult setObjectDebugName(VkDevice device, VkObjectType type, u64 handle, const char* name)
   {
+    return VK_SUCCESS;
+
+
     if (!name || !*name ||!vkSetDebugUtilsObjectNameEXT)
     {
       return VK_SUCCESS;
@@ -203,7 +206,11 @@ namespace fc
     , .pObjectName {name}
     };
 
-    return SetDebugUtilsObjectNameEXT(FcLocator::vkInstance(), device, &nameInfo);
+
+    // TODO get working
+    /* return SetDebugUtilsObjectNameEXT(FcLocator::vkInstance(), device, &nameInfo); */
+    // FIXME this should be done and sent to the VMA allocator (a list of functions), see lvk
+    return vkSetDebugUtilsObjectNameEXT(device, &nameInfo);
   }
 
 
@@ -212,6 +219,7 @@ namespace fc
   {
     const VkSemaphoreCreateInfo semaphoreInfo = {
       .sType {VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO}
+    /* , .pNext = VK_NULL_HANDLE */
     , .flags {0}
     };
 
@@ -220,6 +228,30 @@ namespace fc
     // TODO &&
     VK_ASSERT(vkCreateSemaphore(device, &semaphoreInfo, nullptr, &semaphore));
     VK_ASSERT(setObjectDebugName(device, VK_OBJECT_TYPE_SEMAPHORE, (u64)semaphore, debugName));
+
+    return semaphore;
+  }
+
+
+  VkSemaphore createTimelineSemaphore(VkDevice device, u64 initialValue, const char* debugName)
+  {
+    const VkSemaphoreTypeCreateInfo typeInfo = {
+      .sType {VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO}
+    , .semaphoreType {VK_SEMAPHORE_TYPE_TIMELINE}
+    , .initialValue {initialValue}
+    };
+
+    const VkSemaphoreCreateInfo semaphoreInfo = {
+      .sType {VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO}
+    , .pNext {&typeInfo}
+    , .flags {0}
+    };
+
+    VkSemaphore semaphore {VK_NULL_HANDLE};
+    VK_ASSERT(vkCreateSemaphore(device, &semaphoreInfo, nullptr, &semaphore));
+    VK_ASSERT(setObjectDebugName(device, VK_OBJECT_TYPE_SEMAPHORE, (u64)semaphore, debugName));
+
+    return semaphore;
   }
 
 
@@ -233,8 +265,9 @@ namespace fc
     VkFence fence {VK_NULL_HANDLE};
 
     VK_ASSERT(vkCreateFence(device, &fenceInfo, nullptr, &fence));
-
     VK_ASSERT(setObjectDebugName(device, VK_OBJECT_TYPE_FENCE, (u64)fence, debugName));
+
+    return fence;
   }
 
 

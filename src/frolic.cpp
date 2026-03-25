@@ -1,12 +1,10 @@
 //>--- frolic.cpp ---<//
 #include "frolic.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "core/fc_assert.hpp"
 #include "core/fc_cvar_system.hpp"
 #include "core/fc_light.hpp"
 #include "core/fc_locator.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "SDL2/SDL_version.h"
 #include "imgui_impl_sdl2.h"
 #include <SDL_log.h>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -115,7 +113,7 @@ namespace fc
     /* sponza.loadGltf(mRenderer, "..//models//Box.gltf"); */
     // sponza.loadGltf(this, "..//models//GlassHurricaneCandleHolder.glb");
     /* sponza.loadGltf(mRenderer, "..//models//ToyCar.glb"); */
-    /* sponza.loadGltf(mRenderer, "..//models//structure_mat.glb"); */
+    /* sponza.loadGltf(mRenderer, "..//models//structure.glb"); */
     /* sponza.loadGltf(mRenderer, "..//models//house2.glb"); */
 
     // FIXME requires enabling one or more extensions in fastgltf
@@ -225,7 +223,9 @@ namespace fc
       // -*-*-*-*-*-*-*-*-*-*-*-*-*-   START THE NEW FRAME   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
       // mRenderer.generateShadowMap();
 
-      uint32_t swapchainImgIndex = mRenderer.beginFrame();
+
+      uint32_t swapchainImgIndex {0};
+      ICommandBuffer& cmd = mRenderer.beginFrame(swapchainImgIndex);
 
       // FcPipeline* selected = mPipelines[currentBackgroundEffect];
       /* mRenderer.attachPipeline(selected); */
@@ -235,8 +235,11 @@ namespace fc
 
       mRenderer.drawFrame();
 
-      mRenderer.endFrame(swapchainImgIndex);
+      mRenderer.endFrame(cmd, swapchainImgIndex);
 
+
+      // TODO should not be a member!
+      /* mShouldClose = true; */
     } // _END_ while(!shouldClose);
   }
 

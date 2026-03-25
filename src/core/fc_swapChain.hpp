@@ -16,10 +16,11 @@ namespace fc
      // BUG is there any issues with declaring the following pointer const?
      FcGpu* pGpu;
      VkSwapchainKHR mSwapchain;
+     // TODO extrapolate into separate class
      VkRenderPass mRenderPass {nullptr};
      // FRAMEBUFFER ATTACHMENTS
      std::vector<FcImage> mSwapchainImages;
-     std::vector<VkFramebuffer> mSwapChainFramebuffers;
+     /* std::vector<VkFramebuffer> mSwapChainFramebuffers; */
      //
      VkFormat createSwapChain(FcConfig& config, bool shouldReUseOldSwapchain = false);
 
@@ -61,11 +62,12 @@ namespace fc
      //
      void reCreateSwapChain(VkExtent2D windowSize);
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   GETTER FUNCTIONS   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-     VkFramebuffer& getFrameBuffer(int index) { return mSwapChainFramebuffers[index]; }
+     /* VkFramebuffer& getFrameBuffer(int index) { return mSwapChainFramebuffers[index]; } */
      //
      FcImage& getFcImage(uint32_t index) { return mSwapchainImages[index]; }
      //
-     const size_t imageCount() const { return mSwapChainFramebuffers.size(); }
+     /* const size_t imageCount() const { return mSwapChainFramebuffers.size(); } */
+     const size_t imageCount() const { return mSwapchainImages.size(); }
      //
      VkRenderPass& getRenderPass()  { return mRenderPass; }
      //

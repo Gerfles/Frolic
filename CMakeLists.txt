@@ -175,10 +175,10 @@ set(NAME frolic)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 #Choose the build program
- set(CMAKE_GENERATOR "Ninja")
+set(CMAKE_GENERATOR "Ninja")
 
 # always compile for debugging
-# set(CMAKE_BUILD_TYPE DEBUG)
+set(CMAKE_BUILD_TYPE DEBUG)
 
 # NOT WORKING BUT SHOULD MAKE THIS WORK
 # if (NOT CMAKE_BUILD_TYPE EQUAL DEBUG)

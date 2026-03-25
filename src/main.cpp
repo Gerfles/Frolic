@@ -24,7 +24,7 @@ int main(int argc, char* argv[])
     config.windowWidth = 2100;
     config.windowHeight = 1600;
     config.mouseDeadzone = 50;
-    config.applicationName = "Frolic Engine Test";  		   // Our application name
+    config.applicationName = "Frolic Engine Test"; // Our application name
     // TODO implement  utilizing functors for actual function calls
     config.enableNonUniformScaline = false;
 

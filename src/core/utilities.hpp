@@ -45,7 +45,11 @@ namespace fc
   std::vector<char> readFile(const std::string& filename);
 
   VkResult setObjectDebugName(VkInstance instance, VkDevice device, VkObjectType type, u64 handle, const char* name);
+
+  // TODO combine by passing u64 for timeline semaphore then DELETE
   VkSemaphore createSemaphore(VkDevice device, const char* debugName);
+  VkSemaphore createTimelineSemaphore(VkDevice device, u64 initialValue, const char* debugName);
+
   // TODO could default is Signaled to false
   VkFence createFence(VkDevice device, bool isSignaled, const char* debugName);
 

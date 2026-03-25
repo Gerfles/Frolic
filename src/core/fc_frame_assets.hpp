@@ -10,8 +10,8 @@ namespace fc
   struct FrameAssets
   {
      // TODO might be better to make this an entire class with all methods and static ints (numFrame)
-     VkCommandPool commandPool = VK_NULL_HANDLE;
-     VkCommandBuffer commandBuffer;
+     // VkCommandPool commandPool = VK_NULL_HANDLE;
+     // VkCommandBuffer commandBuffer;
      VkSemaphore imageAvailableSemaphore;
      VkSemaphore renderFinishedSemaphore;
      VkFence renderFence;

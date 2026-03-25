@@ -264,8 +264,9 @@ namespace  fc
 
   void FcBuffer::copyBuffer(const FcBuffer& srcBuffer, VkDeviceSize bufferSize)
   {
-     // allocate and begin the command buffer to transfer a buffer
-    VkCommandBuffer cmd = FcLocator::Renderer().beginCommandBuffer();
+    // allocate and begin the command buffer to transfer a buffer
+    /* VkCommandBuffer cmd = FcLocator::Renderer().beginCommandBuffer(); */
+    const CommandBufferWrapper& cmd = FcLocator::Renderer().beginCommandBuffer();
 
      // region of data to copy from and to
     VkBufferCopy bufferCopyRegion{};
@@ -274,9 +275,9 @@ namespace  fc
     bufferCopyRegion.size = bufferSize;
 
      // command to copy src buffer to dst buffer
-    vkCmdCopyBuffer(cmd, srcBuffer.mBuffer, mBuffer, 1, &bufferCopyRegion);
+    vkCmdCopyBuffer(cmd.cmdBuffer, srcBuffer.mBuffer, mBuffer, 1, &bufferCopyRegion);
 
-    FcLocator::Renderer().submitCommandBuffer();
+    FcLocator::Renderer().submitCommandBuffer(cmd);
   }
 
 
@@ -316,21 +317,28 @@ namespace  fc
   }
 
 
-
   void FcBuffer::destroy()
   {
-    if (mMemoryAddress != nullptr)
+    // Make sure we don't try and delete a non-allocated buffer
+    if (mBuffer == VK_NULL_HANDLE)
+    {
+      return;
+    }
+
+    // unmap any memory that is currently being addressed in VMA
+    if(mMemoryAddress != nullptr)
     {
       VmaAllocator allocator = FcLocator::Gpu().getAllocator();
       vmaUnmapMemory(allocator, mAllocation);
     }
 
-    // Destroy buffer and deallocate memory
-    if (mBuffer != nullptr)
-    {
+    FcLocator::Renderer().deferredTask(std::packaged_task<void()>([vma = FcLocator::Gpu().getAllocator(),
+                                                                   buffer = mBuffer,
+                                                                   allocation = mAllocation]() {
+      // TODO use empty lamda with values set as below
       // Destroy the VMA buffer allocation which will in turn call vkDestroyBuffer and vkFreeMemory
-      vmaDestroyBuffer(FcLocator::Gpu().getAllocator(), mBuffer, mAllocation);
-    }
+      vmaDestroyBuffer(FcLocator::Gpu().getAllocator(), buffer, allocation);
+    }));
   }
 
 } // namespace  fc _END_

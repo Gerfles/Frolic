@@ -12,6 +12,7 @@
 #include "fc_timer.hpp"
 #include "fc_frame_assets.hpp"
 #include "fc_types.hpp"
+#include "fc_commands.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'S   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 namespace fc { class FcCamera; }
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -68,12 +69,13 @@ namespace fc
        VkDescriptorSet mDrawImageDescriptor;
        //Fc[...]renderSystem m[...]Renderer;
        bool mShouldWindowResize {false};
+       // TODO change to u64
        u32 mFrameNumber {0};
-       // TODO extrapolate into separate class
-       VkFence mImmediateFence;
 
-       VkCommandPool mImmediateCommandPool;
-       VkCommandBuffer mImmediateCmdBuffer;
+       // DELETE
+       /* VkFence mImmediateFence; */
+       /* VkCommandPool mImmediateCommandPool; */
+       /* VkCommandBuffer mImmediateCmdBuffer; */
 
        // TODO think about integrating into descriptorClerk
        VkDescriptorPool mImgGuiDescriptorPool;
@@ -108,10 +110,30 @@ namespace fc
        FcBuffer mSceneDataBuffer;
        VkDescriptorSetLayout mSceneDataDescriptorLayout;
 
-       // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   TEMP   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
+
+       // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   TEMP??   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+       // TODO move at least some to swapchain
+       VkSemaphore mTimelineSemaphore {VK_NULL_HANDLE};
+       VulkanImmediateCommands mImmediateCommandsf;
+       CommandBuffer mCurrentCommandBuffer;
+       // TODO change MAX_FRAME_DRAWS to MAX_SWAPCHAIN_BUFFERS
+       u64 mTimelineWaitValues[MAX_FRAME_DRAWS] {};
+       VkFence mAcquireFence[MAX_FRAME_DRAWS] {};
+       VkSemaphore mAcquireSemaphore[MAX_FRAME_DRAWS] {};
+       bool mGetNextImage {true};
+       std::vector<DeferredTask> mDeferredTasks;
+       void processDeferredTasks();
      public:
+       void deferredTask(std::packaged_task<void()>&& task, SubmitHandle handle = SubmitHandle());
+       // TODO move to swapchain
+       // BUG, im pretty sure this could fail if MAX_FRAME_DRAWS is not the actual number of buffers
+       inline u32 getCurrentFrameIndex() { return mFrameNumber % MAX_FRAME_DRAWS; }
 
+       // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END TEMP   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
+
+       friend class CommandBuffer;
        // TODO Make these all private
        bool mDrawNormalVectors {false};
        bool mDrawBoundingBoxes {false};
@@ -133,8 +155,10 @@ namespace fc
        //void setResizeFlag(bool shouldWindowResizeFlag) { mWindowResizeFlag = shouldWindowResizeFlag; }
        // TODO probably best to issue multiple command buffers, one for each task
        bool shouldWindowResize() { return mShouldWindowResize; }
-       VkCommandBuffer beginCommandBuffer();
-       void submitCommandBuffer();
+       /* VkCommandBuffer beginCommandBuffer(); */
+       const CommandBufferWrapper& beginCommandBuffer();
+       /* void submitCommandBuffer(); */
+       void submitCommandBuffer(const CommandBufferWrapper& wrapper);
        void drawImGui(VkCommandBuffer cmd, VkImageView targetImageView);
        // TODO implement differently
        // FcPipeline mGradientPipeline;
@@ -165,15 +189,24 @@ namespace fc
        int init(FcConfig& config, SceneDataUbo** pSceneData);
        //
        void handleWindowResize();
-       uint32_t beginFrame();
-       void endFrame(uint32_t swapchainImgIndex);
+       ICommandBuffer& beginFrame(u32& swapchainIndex);
+       void endFrame(ICommandBuffer& cmdBuffer, u32 swapchainImgIndex);
        void drawFrame();
        inline void setActiveCamera(FcCamera* camera) { pActiveCamera = camera; }
-       // TODO add bilboards to draw collection
        inline void addBillboard(FcBillboard& billboard) { mBillboardRenderer.addBillboard(billboard); }
+
+       // TEMP??
+       ICommandBuffer& acquireCommandBuffer();
 
        // - GETTERS -
        inline FrameAssets& getCurrentFrame() { return mFrames[mFrameNumber % MAX_FRAME_DRAWS]; }
+
+
+
+
+
+
+
        inline FcDrawCollection& DrawCollection() { return mDrawCollection; }
        inline float ScreenWidth() { return mWindow.ScreenSize().width; }
        inline float ScreenHeight() { return mWindow.ScreenSize().height; }

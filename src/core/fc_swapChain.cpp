@@ -575,13 +575,6 @@ namespace fc
   // Partially free of swapchain resources -- used when resizing the window and recreating swapchain
   void FcSwapChain::clearSwapChain()
   {
-
-    // destroy all the frame buffers
-    for (auto& frameBuffer : mSwapChainFramebuffers)
-    {
-      vkDestroyFramebuffer(pGpu->getVkDevice(), frameBuffer, nullptr);
-    }
-
     // destroy all the image views in our swapchain--the actual images and memory are freed by actual swapchain
     for (auto& image : mSwapchainImages)
     {
