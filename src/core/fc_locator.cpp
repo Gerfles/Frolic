@@ -11,10 +11,13 @@ namespace fc
   //
   FcRenderer* FcLocator::pRenderer;
   FcGpu* FcLocator::pGpu;
+  FcDescriptorClerk* FcLocator::pDescriptorClerk;
+  FcJanitor* FcLocator::pJanitor;
+  //
   VkDevice FcLocator::pDevice;
   VkPhysicalDevice FcLocator::pPhysicalDevice;
   //static Audio* pAudioService;
-  FcDescriptorClerk* FcLocator::pDescriptorClerk;
+  // DELETE
   VkExtent2D FcLocator::mScreenDimensions;
   VkInstance FcLocator::mInstance;
 
@@ -35,21 +38,35 @@ namespace fc
     pDevice = nullptr;
     pPhysicalDevice = nullptr;
     pDescriptorClerk = nullptr;
+    pJanitor = nullptr;
   }
 
+
+  //
   void FcLocator::provide(FcRenderer* renderer)
   {
+    pRenderer = renderer;
+
     if (renderer == nullptr)
     {
-      // revert to default null device
       fcPrintEndl("Failed to assign proper FcGpu pointer to locator");
-    }
-    else
-    {
-      pRenderer = renderer;
     }
   }
 
+
+  //
+  void FcLocator::provide(FcJanitor* janitor)
+  {
+    pJanitor = janitor;
+
+    if (pJanitor == nullptr)
+    {
+      fcPrintEndl("Failed to assign proper FcJanitor pointer to locator");
+    }
+  }
+
+
+  //
   FcRenderer& FcLocator::Renderer()
   {
     if (pRenderer == nullptr)
@@ -61,7 +78,7 @@ namespace fc
   }
 
 
-
+  //
   void FcLocator::provide(FcGpu* gpu)
   {
     if (gpu == nullptr)

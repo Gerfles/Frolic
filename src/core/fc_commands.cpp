@@ -59,7 +59,7 @@ namespace fc
       buffer.fence = createFence(device, false, fenceName);
 
       VK_ASSERT(vkAllocateCommandBuffers(mDevice, &allocInfo, &buffer.cmdBufferAllocated));
-      mCmdBuffers[i].handle.bufferIndex = i;
+      mCmdBuffers[i].handle.cmdBufferIndex = i;
      }
   }
 
@@ -97,10 +97,9 @@ namespace fc
     , .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
     };
 
-    VK_ASSERT(vkBeginCommandBuffer(current->cmdBuffer, &beginInfo));
-
-    // TODO place above??
     mNextSubmitHandle = current->handle;
+
+    VK_ASSERT(vkBeginCommandBuffer(current->cmdBuffer, &beginInfo));
 
     return *current;
   }
@@ -115,7 +114,7 @@ namespace fc
     for (size_t i = 0; i < numBuffers; ++i)
     {
       // Start with the oldest submited buffer first
-      const u32 index = i + mLastSubmitHandle.bufferIndex + 1;
+      const u32 index = i + mLastSubmitHandle.cmdBufferIndex + 1;
 
       // Since we start with the oldest buffer, we must wrap around after checking that one
       CommandBufferWrapper& cmdBuffer = mCmdBuffers[index % numBuffers];
@@ -260,7 +259,7 @@ namespace fc
   }
 
 
-  // Basically a high level equivalent of vkWaitForFences() with timeout set to 0
+  // Basically a high level equivalent of vkWaitForFences() with timeout set to 0 to get current fence status
   bool VulkanImmediateCommands::isReady(const SubmitHandle handle) const
   {
     // First make sure we don't just have an empty submit handle
@@ -268,7 +267,7 @@ namespace fc
       return true;
 
     // Next check if the command buffer has already been recycled by purge()
-    const CommandBufferWrapper& cmdBuffer = mCmdBuffers[handle.bufferIndex];
+    const CommandBufferWrapper& cmdBuffer = mCmdBuffers[handle.cmdBufferIndex];
     if (cmdBuffer.cmdBuffer == VK_NULL_HANDLE)
       return true;
 
@@ -296,12 +295,12 @@ namespace fc
 
     // FIXME BUG
     /* if (!FC_ASSERT(!mCmdBuffers[handle.bufferIndex].isEncoding)) */
-    if (!mCmdBuffers[handle.bufferIndex].isEncoding)
+    if (!mCmdBuffers[handle.cmdBufferIndex].isEncoding)
     {
       return;
     }
 
-    VK_ASSERT(vkWaitForFences(mDevice, 1, &mCmdBuffers[handle.bufferIndex].fence, VK_TRUE, U64_MAX));
+    VK_ASSERT(vkWaitForFences(mDevice, 1, &mCmdBuffers[handle.cmdBufferIndex].fence, VK_TRUE, U64_MAX));
 
     // Since we are sure there is now at least one available command buffer we can reclaim,
     purgeCmdBuffers();
@@ -357,7 +356,7 @@ namespace fc
 
 
   CommandBuffer::CommandBuffer(FcRenderer* renderer)
-  : mRenderer(renderer), mWrapper(&renderer->mImmediateCommandsf.acquire())
+  : mRenderer(renderer), mWrapper(&renderer->mImmediateCommands.acquire())
   {
   }
 

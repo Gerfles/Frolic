@@ -1,6 +1,7 @@
 //> fc_renderer.hpp <//
 #pragma once
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "fc_janitor.hpp"
 #include "fc_frustum.hpp"
 #include "fc_scene_renderer.hpp"
 #include "fc_terrain.hpp"
@@ -26,199 +27,178 @@ namespace fc
 
   };
 
-
-
   // TODO create the instance first and figure out what kind of bufferring we can have (double,
   // tripple, etc) then initialize all following objects to have that size so we don't need
   // to resize anything
-    class FcRenderer
-    {
-     private:
+  class FcRenderer
+  {
+   private:
+
+     // *-*-*-*-*-*-*-*-*-*-*-*-*-   RENDERING SUBSYSTEMS   *-*-*-*-*-*-*-*-*-*-*-*-*- //
+     FcBillboardRenderer mBillboardRenderer;
+     FcBoundingBoxRenderer mBoundingBoxRenderer;
+     FcNormalRenderer mNormalRenderer;
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     VkDebugUtilsMessengerEXT debugMessenger;
+     FcWindow mWindow;
+     VkInstance mInstance = nullptr;
+     FcGpu mGpu;
+     FcSwapChain mSwapchain;
+     VkViewport mDynamicViewport{};
+     VkRect2D mDynamicScissors{};
+     VkDevice pDevice;
+     VkExtent2D mDrawExtent;
+     // Right now we only have one draw image and depth image, but on a more developed
+     // engine it could be significantly more, and re-creating all that can be a
+     // considerable hassle. Instead, we create the draw and depth image at startup with
+     // a preset size, and then draw into a section of it if the window is small, or
+     // scale it up if the window is bigger. As we arent reallocating but just rendering
+     // into a corner, we can also use this same logic to perform dynamic resolution,
+     // which is a useful way of scaling performance, and can be handy for debugging.
+     FcImage mDrawImage;
+     FcImage mDepthImage; // <--Normally in the swapchain
+     // Only needed if we are using a compute shader to draw to the draw image
+     VkDescriptorSet mDrawImageDescriptor;
+     //Fc[...]renderSystem m[...]Renderer;
+     bool mShouldWindowResize {false};
+
+     // DELETE
 
 
-// #ifdef NDEBUG
-//     const bool enableValidationLayers = false;
-// #else
-//     const bool enableValidationLayers = true;
-// #endif
+     // TODO think about integrating into descriptorClerk
+     VkDescriptorPool mImgGuiDescriptorPool;
+     std::vector<FrameAssets> mFrames {MAX_FRAME_DRAWS};
+     FcFrustum mFrustum;
 
-// *-*-*-*-*-*-*-*-*-*-*-*-*-   RENDERING SUBSYSTEMS   *-*-*-*-*-*-*-*-*-*-*-*-*- //
-       FcBillboardRenderer mBillboardRenderer;
-       FcBoundingBoxRenderer mBoundingBoxRenderer;
-       FcNormalRenderer mNormalRenderer;
-       //
-       VkDebugUtilsMessengerEXT debugMessenger;
-       FcWindow mWindow;
-       VkInstance mInstance = nullptr;
-       FcGpu mGpu;
-       FcSwapChain mSwapchain;
-       VkViewport mDynamicViewport{};
-       VkRect2D mDynamicScissors{};
-       VkDevice pDevice;
-       VkExtent2D mDrawExtent;
-       // Right now we only have one draw image and depth image, but on a more developed
-       // engine it could be significantly more, and re-creating all that can be a
-       // considerable hassle. Instead, we create the draw and depth image at startup with
-       // a preset size, and then draw into a section of it if the window is small, or
-       // scale it up if the window is bigger. As we arent reallocating but just rendering
-       // into a corner, we can also use this same logic to perform dynamic resolution,
-       // which is a useful way of scaling performance, and can be handy for debugging.
-       FcImage mDrawImage;
-       FcImage mDepthImage; // <--Normally in the swapchain
-       // Only needed if we are using a compute shader to draw to the draw image
-       VkDescriptorSet mDrawImageDescriptor;
-       //Fc[...]renderSystem m[...]Renderer;
-       bool mShouldWindowResize {false};
-       // TODO change to u64
-       u32 mFrameNumber {0};
+     // TODO create agile version of data structures e.g. FcArray
+     FcAllocator* pAllocator;
 
-       // DELETE
-       /* VkFence mImmediateFence; */
-       /* VkCommandPool mImmediateCommandPool; */
-       /* VkCommandBuffer mImmediateCmdBuffer; */
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   HELPERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     void createInstance(VkApplicationInfo& appInfo, FcConfig& configOptions);
+     /* bool areInstanceExtensionsSupported(const std::vector<const char*>& instanceExtensions); */
+     /* bool areValidationLayersSupported(std::vector<const char*>& validationLayers); */
+     void createCommandPools();
+     // void recordCommands(uint32_t currentFrame);
+     void createSynchronization();
+     void initDrawImage();
+     void initImgui(VkFormat format);
 
-       // TODO think about integrating into descriptorClerk
-       VkDescriptorPool mImgGuiDescriptorPool;
-       std::vector<FrameAssets> mFrames {MAX_FRAME_DRAWS};
-       FcFrustum mFrustum;
+     // -*-*-*-*-*-*-*-*-*-   TODO REFACTOR, ENCAPSULATE, OR DELETE   -*-*-*-*-*-*-*-*-*- //
 
-       // TODO create agile version of data structures e.g. FcArray
-       FcAllocator* pAllocator;
+     // TODO may want to add to sceneRenderer but need for shadow map
+     // although shadow map may also be preferred to be added to scene renderer
+     FcDrawCollection mDrawCollection;
 
-       // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   HELPERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-       void createInstance(VkApplicationInfo& appInfo, FcConfig& configOptions);
-       /* bool areInstanceExtensionsSupported(const std::vector<const char*>& instanceExtensions); */
-       /* bool areValidationLayersSupported(std::vector<const char*>& validationLayers); */
-       void createCommandPools();
-       // void recordCommands(uint32_t currentFrame);
-       void createSynchronization();
-       void initDrawImage();
-       void initImgui(VkFormat format);
+     FcBuffer materialConstants;
+     FcTerrain mTerrain;
+     // // debugging effects
 
-       // -*-*-*-*-*-*-*-*-*-   TODO REFACTOR, ENCAPSULATE, OR DELETE   -*-*-*-*-*-*-*-*-*- //
-
-       // TODO may want to add to sceneRenderer but need for shadow map
-       // although shadow map may also be preferred to be added to scene renderer
-       FcDrawCollection mDrawCollection;
-
-       FcBuffer materialConstants;
-       FcTerrain mTerrain;
-       // // debugging effects
-
-       FcCamera* pActiveCamera;
-       SceneDataUbo mSceneData;
-       FcBuffer mSceneDataBuffer;
-       VkDescriptorSetLayout mSceneDataDescriptorLayout;
+     FcCamera* pActiveCamera;
+     SceneDataUbo mSceneData;
+     FcBuffer mSceneDataBuffer;
+     VkDescriptorSetLayout mSceneDataDescriptorLayout;
 
 
+     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   TEMP??   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     // TODO use new operator for janitor and other fcLocator entities
+     FcJanitor mJanitor;
 
-       // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   TEMP??   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-       // TODO move at least some to swapchain
-       VkSemaphore mTimelineSemaphore {VK_NULL_HANDLE};
-       VulkanImmediateCommands mImmediateCommandsf;
-       CommandBuffer mCurrentCommandBuffer;
-       // TODO change MAX_FRAME_DRAWS to MAX_SWAPCHAIN_BUFFERS
-       u64 mTimelineWaitValues[MAX_FRAME_DRAWS] {};
-       VkFence mAcquireFence[MAX_FRAME_DRAWS] {};
-       VkSemaphore mAcquireSemaphore[MAX_FRAME_DRAWS] {};
-       bool mGetNextImage {true};
-       std::vector<DeferredTask> mDeferredTasks;
-       void processDeferredTasks();
-     public:
-       void deferredTask(std::packaged_task<void()>&& task, SubmitHandle handle = SubmitHandle());
-       // TODO move to swapchain
-       // BUG, im pretty sure this could fail if MAX_FRAME_DRAWS is not the actual number of buffers
-       inline u32 getCurrentFrameIndex() { return mFrameNumber % MAX_FRAME_DRAWS; }
-
-       // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END TEMP   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     CommandBuffer mCurrentCommandBuffer;
+     // TODO change MAX_FRAME_DRAWS to MAX_SWAPCHAIN_BUFFERS
 
 
-       friend class CommandBuffer;
-       // TODO Make these all private
-       bool mDrawNormalVectors {false};
-       bool mDrawBoundingBoxes {false};
-       bool shouldDrawWireframe {false};
-       int mBoundingBoxId {-1};
-
-       FcShadowMap mShadowMap;
-       /* void drawShadowMap(bool drawDebug); */
-       // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   PROFILING   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-       FcTimer mTimer;
-       /* FcStats stats; */
-       FcSkybox mSkybox;
-       // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
-       FcSceneRenderer mSceneRenderer;
-       void updateScene();
-       float aspectRatio() { return static_cast<float>(mWindow.ScreenSize().width)
-           / static_cast<float>(mWindow.ScreenSize().height); }
-       //void setResizeFlag(bool shouldWindowResizeFlag) { mWindowResizeFlag = shouldWindowResizeFlag; }
-       // TODO probably best to issue multiple command buffers, one for each task
-       bool shouldWindowResize() { return mShouldWindowResize; }
-       /* VkCommandBuffer beginCommandBuffer(); */
-       const CommandBufferWrapper& beginCommandBuffer();
-       /* void submitCommandBuffer(); */
-       void submitCommandBuffer(const CommandBufferWrapper& wrapper);
-       void drawImGui(VkCommandBuffer cmd, VkImageView targetImageView);
-       // TODO implement differently
-       // FcPipeline mGradientPipeline;
-       // FcPipeline mSkyPipeline;
-
-       void initDefaults();//FcBuffer& sceneDataBuffer, SceneDataUbo* sceneData);
-       void setColorTextureUse(bool enable);
-       void setRoughMetalUse(bool enable);
-       void setAmbientOcclussionUse(bool enable);
-       void setNormalMapUse(bool enable);
-       void setEmissiveTextureUse(bool enable);
-
-       /* void initNormalDrawPipeline(FcBuffer& sceneDataBuffer); */
-       /* void initBoundingBoxPipeline(FcBuffer& sceneDataBuffer); */
-       /* void drawNormals(VkCommandBuffer cmd, const FcRenderObject& surface); */
-       /* void drawBoundingBox(VkCommandBuffer cmd, const FcRenderObject& surface); */
-       // DELETE
-       /* void drawSurface(VkCommandBuffer cmd, const FcRenderObject& surface); */
-
-       // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
-       // TODO add move ctors Constructors, etc. - Prevent copying or altering -
-       FcRenderer() = default;
-       ~FcRenderer() = default;
-       FcRenderer& operator=(const FcRenderer&) = delete;
-       FcRenderer(const FcRenderer&) = delete;
-       //
-       int init(FcConfig& config, SceneDataUbo** pSceneData);
-       //
-       void handleWindowResize();
-       ICommandBuffer& beginFrame(u32& swapchainIndex);
-       void endFrame(ICommandBuffer& cmdBuffer, u32 swapchainImgIndex);
-       void drawFrame();
-       inline void setActiveCamera(FcCamera* camera) { pActiveCamera = camera; }
-       inline void addBillboard(FcBillboard& billboard) { mBillboardRenderer.addBillboard(billboard); }
-
-       // TEMP??
-       ICommandBuffer& acquireCommandBuffer();
-
-       // - GETTERS -
-       inline FrameAssets& getCurrentFrame() { return mFrames[mFrameNumber % MAX_FRAME_DRAWS]; }
+   public:
+     u64 mTimelineWaitValues[MAX_FRAME_DRAWS] {};
+     VkSemaphore mTimelineSemaphore {VK_NULL_HANDLE};
+     VulkanImmediateCommands mImmediateCommands;
 
 
 
 
+     // TODO move to swapchain DELETE
+     u32 mFrameNumber {0};
+     // BUG, im pretty sure this could fail if MAX_FRAME_DRAWS is not the actual number of buffers
+     inline u32 getCurrentFrameIndex() { return mFrameNumber % MAX_FRAME_DRAWS; }
 
 
 
-       inline FcDrawCollection& DrawCollection() { return mDrawCollection; }
-       inline float ScreenWidth() { return mWindow.ScreenSize().width; }
-       inline float ScreenHeight() { return mWindow.ScreenSize().height; }
-       inline SDL_Window* Window() { return mWindow.SDLwindow(); }
-       inline VkRenderPass RenderPass() { return mSwapchain.getRenderPass(); }
-       inline int BoundingBox() { return mBoundingBoxId; }
-       inline float& ExpansionFactor() { return mSceneRenderer.ExpansionFactor(); };
-       inline const FcGpu& Gpu() const { return mGpu; }
-       inline const FcSwapChain& Swapchain() { return mSwapchain; }
-       inline FcStats& getStats() { return mDrawCollection.stats; }
-       void shutDown();
 
-    }; // ---     class FcRenderer --- (END)
+     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END TEMP   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
+
+     friend class CommandBuffer;
+     // TODO Make these all private
+     bool mDrawNormalVectors {false};
+     bool mDrawBoundingBoxes {false};
+     bool shouldDrawWireframe {false};
+     int mBoundingBoxId {-1};
+
+     FcShadowMap mShadowMap;
+     /* void drawShadowMap(bool drawDebug); */
+     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   PROFILING   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     FcTimer mTimer;
+     /* FcStats stats; */
+     FcSkybox mSkybox;
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
+     FcSceneRenderer mSceneRenderer;
+     void updateScene();
+     float aspectRatio() { return static_cast<float>(mWindow.ScreenSize().width)
+         / static_cast<float>(mWindow.ScreenSize().height); }
+     //void setResizeFlag(bool shouldWindowResizeFlag) { mWindowResizeFlag = shouldWindowResizeFlag; }
+     bool shouldWindowResize() { return mShouldWindowResize; }
+     // TODO probably best to issue multiple command buffers, one for each task
+     const CommandBufferWrapper& beginCommandBuffer();
+     void submitCommandBuffer(const CommandBufferWrapper& wrapper);
+     SubmitHandle getCurrentCommandBuffer() { return mImmediateCommands.getNextSubmitHandle(); }
+     void drawImGui(VkCommandBuffer cmd, VkImageView targetImageView);
+     void initDefaults();//FcBuffer& sceneDataBuffer, SceneDataUbo* sceneData);
+     void setColorTextureUse(bool enable);
+     void setRoughMetalUse(bool enable);
+     void setAmbientOcclussionUse(bool enable);
+     void setNormalMapUse(bool enable);
+     void setEmissiveTextureUse(bool enable);
+
+     /* void initNormalDrawPipeline(FcBuffer& sceneDataBuffer); */
+     /* void initBoundingBoxPipeline(FcBuffer& sceneDataBuffer); */
+     /* void drawNormals(VkCommandBuffer cmd, const FcRenderObject& surface); */
+     /* void drawBoundingBox(VkCommandBuffer cmd, const FcRenderObject& surface); */
+     // DELETE
+     /* void drawSurface(VkCommandBuffer cmd, const FcRenderObject& surface); */
+
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
+     // TODO add move ctors Constructors, etc. - Prevent copying or altering -
+     FcRenderer() = default;
+     ~FcRenderer() = default;
+     FcRenderer& operator=(const FcRenderer&) = delete;
+     FcRenderer(const FcRenderer&) = delete;
+     //
+     int init(FcConfig& config, SceneDataUbo** pSceneData);
+     //
+     void handleWindowResize();
+     ICommandBuffer& beginFrame();
+     void endFrame(ICommandBuffer& cmdBuffer);
+     void drawFrame();
+     inline void setActiveCamera(FcCamera* camera) { pActiveCamera = camera; }
+     inline void addBillboard(FcBillboard& billboard) { mBillboardRenderer.addBillboard(billboard); }
+
+     // - GETTERS -
+     inline FrameAssets& getCurrentFrame() { return mFrames[mFrameNumber % MAX_FRAME_DRAWS]; }
+
+
+     inline FcDrawCollection& DrawCollection() { return mDrawCollection; }
+     inline float ScreenWidth() { return mWindow.ScreenSize().width; }
+     inline float ScreenHeight() { return mWindow.ScreenSize().height; }
+     inline SDL_Window* Window() { return mWindow.SDLwindow(); }
+     inline VkRenderPass RenderPass() { return mSwapchain.getRenderPass(); }
+     inline int BoundingBox() { return mBoundingBoxId; }
+     inline float& ExpansionFactor() { return mSceneRenderer.ExpansionFactor(); };
+     inline const FcGpu& Gpu() const { return mGpu; }
+     inline const FcSwapChain& Swapchain() { return mSwapchain; }
+     inline FcStats& getStats() { return mDrawCollection.stats; }
+     void shutDown();
+
+  }; // ---     class FcRenderer --- (END)
 
 } // - End - NAMESPACE fc //

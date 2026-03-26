@@ -5,7 +5,9 @@
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <vector>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'S   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-namespace fc { class FcDescriptorClerk; class FcGpu; class FcBillboard; class FcRenderer; class FcLight; }
+namespace fc { class FcDescriptorClerk; class FcGpu; class FcBillboard; class FcRenderer; class FcLight;
+	       class FcJanitor;
+}
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
@@ -31,6 +33,7 @@ namespace fc
      static FcRenderer* pRenderer;
      static FcGpu* pGpu;
      static FcDescriptorClerk* pDescriptorClerk;
+     static FcJanitor* pJanitor;
      static VkDevice pDevice;
      static VkPhysicalDevice pPhysicalDevice;
      static VkExtent2D mScreenDimensions;
@@ -52,14 +55,19 @@ namespace fc
      static void init();
      static void provide(FcGpu* gpu);
      static void provide(FcDescriptorClerk* descriptorClerk);
-     static void provide(VkExtent2D screenDimensions);
      static void provide(FcRenderer* renderer);
+     static void provide(FcJanitor* janitor);
      static void provide(VkInstance instance);
+     // TODO delete
+     static void provide(VkExtent2D screenDimensions);
+
+
       // - GETTERS -
       // TODO think about making some of these const
      static FcRenderer& Renderer();
      static FcGpu& Gpu() { return *pGpu; }
      static FcDescriptorClerk& DescriptorClerk() { return *pDescriptorClerk; }
+     static FcJanitor& Janitor() { return *pJanitor; }
      // ?? figure out why this one is const static
      const static VkDevice& Device() { return pDevice; }
      static VkPhysicalDevice vkPhysicalDevice() { return pPhysicalDevice; }

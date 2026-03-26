@@ -224,8 +224,8 @@ namespace fc
       // mRenderer.generateShadowMap();
 
 
-      uint32_t swapchainImgIndex {0};
-      ICommandBuffer& cmd = mRenderer.beginFrame(swapchainImgIndex);
+
+      ICommandBuffer& cmd = mRenderer.beginFrame();
 
       // FcPipeline* selected = mPipelines[currentBackgroundEffect];
       /* mRenderer.attachPipeline(selected); */
@@ -235,7 +235,7 @@ namespace fc
 
       mRenderer.drawFrame();
 
-      mRenderer.endFrame(cmd, swapchainImgIndex);
+      mRenderer.endFrame(cmd);
 
 
       // TODO should not be a member!

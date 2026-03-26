@@ -11,9 +11,10 @@
 
 namespace  fc
 {
-   //
+  //
   void FcBuffer::allocate(VkDeviceSize bufferSize, FcBufferTypes bufferType)
   {
+    isDestroyed = false;
     mSize = bufferSize;
     mBufferType = bufferType;
 
@@ -261,7 +262,7 @@ namespace  fc
   }
 
 
-
+  //
   void FcBuffer::copyBuffer(const FcBuffer& srcBuffer, VkDeviceSize bufferSize)
   {
     // allocate and begin the command buffer to transfer a buffer
@@ -281,7 +282,7 @@ namespace  fc
   }
 
 
-
+  //
   void FcBuffer::printBufferStats() const
   {
     std::stringstream msg;
@@ -317,13 +318,12 @@ namespace  fc
   }
 
 
+  //
   void FcBuffer::destroy()
   {
     // Make sure we don't try and delete a non-allocated buffer
     if (mBuffer == VK_NULL_HANDLE)
-    {
       return;
-    }
 
     // unmap any memory that is currently being addressed in VMA
     if(mMemoryAddress != nullptr)
@@ -332,13 +332,23 @@ namespace  fc
       vmaUnmapMemory(allocator, mAllocation);
     }
 
-    FcLocator::Renderer().deferredTask(std::packaged_task<void()>([vma = FcLocator::Gpu().getAllocator(),
-                                                                   buffer = mBuffer,
-                                                                   allocation = mAllocation]() {
-      // TODO use empty lamda with values set as below
-      // Destroy the VMA buffer allocation which will in turn call vkDestroyBuffer and vkFreeMemory
-      vmaDestroyBuffer(FcLocator::Gpu().getAllocator(), buffer, allocation);
-    }));
+    // ?? also works!! I think the previous just defers the delete a little longer
+    /* submitHandle = mImmediateCommands.getLastSubmitHandle(); */
+    /* submitHandle = mImmediateCommands.getNextSubmitHandle(); */
+    FcLocator::Janitor().deleteAfterDone(mBuffer, mAllocation, FcLocator::Renderer().getCurrentCommandBuffer());
+
+    isDestroyed = true;
+  }
+
+
+  // DELETE after test
+  FcBuffer::~FcBuffer()
+  {
+    if (!isDestroyed)
+    {
+      fcPrintEndl("Buffer Destructor Called without being destroyed");
+      printBufferStats();
+    }
   }
 
 } // namespace  fc _END_

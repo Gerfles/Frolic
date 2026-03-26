@@ -130,8 +130,10 @@ namespace fc
 
 
       // NEW
-      mImmediateCommandsf.init(pDevice, mGpu.getQueues().graphicsFamily, "SYNC");
+      mImmediateCommands.init(pDevice, mGpu.getQueues().graphicsFamily, "SYNC");
 
+      //
+      FcLocator::provide(&mJanitor);
 
 
       // initialze the dynamic mDynamicViewport and mDynamicScisors
@@ -239,7 +241,7 @@ namespace fc
   }
 
 
-
+  //
   void FcRenderer::initImgui(VkFormat swapchainFormat)
   {
     // Create the descriptor pool for IMGUI
@@ -475,7 +477,7 @@ namespace fc
   {
     /* fcPrintEndl("Acquiring command buffer"); */
     // begin recording transfer commands
-    const CommandBufferWrapper& cmdBuffer = mImmediateCommandsf.acquire();
+    const CommandBufferWrapper& cmdBuffer = mImmediateCommands.acquire();
     return cmdBuffer;
   }
 
@@ -509,7 +511,7 @@ namespace fc
     //   const u64
     // }
     // End commands
-    mImmediateCommandsf.submit(wrapper);
+    mImmediateCommands.submit(wrapper);
 
     /* vkWaitForFences(pDevice, 1, &mImmediateFence, true, U64_MAX); */
   }
@@ -773,17 +775,7 @@ namespace fc
   }
 
 
-  ICommandBuffer& FcRenderer::acquireCommandBuffer()
-  {
-    FC_ASSERT(mCurrentCommandBuffer == VK_NULL_HANDLE);
-
-    mCurrentCommandBuffer = CommandBuffer(this);
-
-    return mCurrentCommandBuffer;
-  }
-
-
-
+  //
   // Create the Synchronization structures used in rendering each frame
   void FcRenderer::createSynchronization()
   {
@@ -822,207 +814,32 @@ namespace fc
     mTimelineSemaphore = createTimelineSemaphore(pDevice, mSwapchain.imageCount() - 1, "Semaphore: mTimelineSemaphore");
 
     // Create aquire semaphores and fences
-    for (sizeT i = 0; i < mSwapchain.imageCount(); ++i)
-    {
-      char debugName[256];
-      snprintf(debugName, sizeof(debugName) - 1, "Semaphore: mAcquireSemaphore[%u]", i);
-      mAcquireSemaphore[i] = createSemaphore(pDevice, debugName);
+    // for (sizeT i = 0; i < mSwapchain.imageCount(); ++i)
+    // {
+    //   char debugName[256];
+    //   snprintf(debugName, sizeof(debugName) - 1, "Semaphore: mAcquireSemaphore[%u]", i);
+    //   mAcquireSemaphore[i] = createSemaphore(pDevice, debugName);
 
-      //  TODO look into strlen instead of sizeof etc.
-      snprintf(debugName, sizeof(debugName) - 1, "Fence: mAcquireFence[%u]            ", i);
-      mAcquireFence[i] = createFence(pDevice, true, debugName);
-    }
-
-
-
+    //   //  TODO look into strlen instead of sizeof etc.
+    //   snprintf(debugName, sizeof(debugName) - 1, "Fence: mAcquireFence[%u]            ", i);
+    //   mAcquireFence[i] = createFence(pDevice, true, debugName);
+    // }
     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
   } // --- FcRenderer::createSynchronization (_) --- (END)
 
-  ICommandBuffer& FcRenderer::beginFrame(u32& swapchainIndex)
+  ICommandBuffer& FcRenderer::beginFrame()
   {
-    // TODO try to remove this check
-    if (mGetNextImage)
-    {
-      // call to update scene immediately (before waiting on fences)
-      updateScene();
+    // call to update scene immediately (before waiting on fences)
+    updateScene();
 
-      u32 currentFrame = getCurrentFrameIndex();
-
-      const VkSemaphoreWaitInfo waitInfo = {
-        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO
-      , .semaphoreCount = 1
-      , .pSemaphores = &mTimelineSemaphore
-      , .pValues = &mTimelineWaitValues[currentFrame]
-      };
-
-      VK_ASSERT(vkWaitSemaphores(pDevice, &waitInfo, U64_MAX));
-
-      VkFence acquireFence {VK_NULL_HANDLE};
-
-      // FIXME - try to use the other method from lvk
-      // TODO add check here for maintenance_1_KHR see lvk and remove once maintenance1 becomes mandatory
-      // Without VK_KHR_swapchain_maintenance1, use aquireFences to synchronize semaphore reuse
-      VK_ASSERT(vkWaitForFences(pDevice, 1, &mAcquireFence[currentFrame], VK_TRUE, U64_MAX));
-      VK_ASSERT(vkResetFences(pDevice, 1, &mAcquireFence[currentFrame]));
-
-      acquireFence = mAcquireFence[currentFrame];
-
-      VkSemaphore acquireSemaphore = mAcquireSemaphore[currentFrame];
-
-
-      // FIXME this may not be the semaphore we're seeking
-      /* VkSemaphore imageAvailableSemaphore = mImmediateCommandsf.acquireLastSubmitSemaphore(); */
-      /* mCurrentCommandBuffer = mImmediateCommandsf.acquire(); */
-      /* const CommandBufferWrapper& wrapper = mImmediateCommandsf.acquire(); */
-
-      /* curWrap = &wrapper; */
-      // don't keep adding images to the queue or commands to the buffer until last draw has finished
-
-      // FIXME
-      /* vkWaitForFences(pDevice, 1, &getCurrentFrame().renderFence, VK_TRUE, U64_MAX); */
-      /* vkWaitForFences(pDevice, 1, &wrapper.fence, VK_TRUE, U64_MAX); */
-
-      // delete any per frame resources no longer needed now the that frame has finished rendering
-      // ?? this seems to be the wrong location for this, just by observation: test
-      // getCurrentFrame().janitor.flush();
-
-      // 1. get the next available image to draw to and set to signal the semaphore when we're finished with it
-
-      /* VkSemaphore swapSemaphore = wrapper.semaphore; */
-
-      VkResult result = vkAcquireNextImageKHR(pDevice, mSwapchain.vkSwapchain(), U64_MAX
-                                              , acquireSemaphore
-                                              , acquireFence
-                                              , &swapchainIndex);
-
-      if (result == VK_ERROR_OUT_OF_DATE_KHR)
-      {
-        fcPrintEndl("ERROR out of date submit1");
-        mShouldWindowResize = true;
-        //handleWindowResize();
-        // BUG FIXME should flag failure
-        return mCurrentCommandBuffer;
-      }
-      else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
-      {
-        throw std::runtime_error("Failed to acquire Vulkan Swap Chain image!");
-      }
-
-      mImmediateCommandsf.waitSemaphore(acquireSemaphore);
-    }
-
-
-    // manully un-signal (close) the fence ONLY when we are sure we're submitting work (result == VK_SUCESS)
-    /* vkResetFences(pDevice, 1, &getCurrentFrame().renderFence); */
-
-    // ?? don't think we need this assert since we use semaphores and fences
-    // assert(!mIsFrameStarted && "Can't call recordCommands() while frame is already in progress!");
-
-    // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW METHOD   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
-    // TODO DELETE
-    /* VkCommandBuffer commandBuffer = getCurrentFrame().commandBuffer; */
-
-    // TODO remove after extensive test if this is even needed or does vkBegin... carry implicit reset
-    // since we know the commands finished executing (vkFence), reset command buffer to begin recording again
-    // if (vkResetCommandBuffer(commandBuffer, 0) != VK_SUCCESS)
-    // {
-    //   throw std::runtime_error("Failed to reset command buffer!");
-    // }
-
-    // information about how to begin each command
-    // VkCommandBufferBeginInfo bufferBeginInfo = {};
-    // bufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    // // let vulkan know that we intend to only use this buffer once
-    // bufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    // TRY DELETE
-    /* VK_ASSERT(vkBeginCommandBuffer(commandBuffer, &bufferBeginInfo)); */
-
-    // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROM OLD METHOD   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
-    // TODO would this make more sense to relocate to window resize?
-    // ?? also, what are the costs associated with having dynamic states
-    // make sure our dynamic viewport and scissors are set properly (if resizing the window etc.)
-    // mDynamicViewport.width = static_cast<uint32_t>(mSwapchain.getSurfaceExtent().width);
-// mDynamicViewport.height = static_cast<uint32_t>(mSwapchain.getSurfaceExtent().height);
-    // mDynamicScissors.extent = mSwapchain.getSurfaceExtent();
-    //  //
-    // vkCmdSetViewport(commandBuffer, 0, 1, &mDynamicViewport);
-    // vkCmdSetScissor(commandBuffer, 0, 1, &mDynamicScissors);
-
-    // -*-*-*-*-*-*-*-*-*-*-*-*-*-   END FROM OLD METHOD   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
-
-    // VkImageSubresourceRange clearRange {};
-    // clearRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    // clearRange.baseMipLevel = 0;
-    // clearRange.levelCount = VK_REMAINING_MIP_LEVELS;
-    // clearRange.baseArrayLayer = 0;
-    // clearRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
-
-    //  //make a clear-color from frame number. This will flash with a 120 frame period.
-
-    //  VkClearDepthStencilValue clearValue;
-    // //float flash = std::abs(std::sin(currentFrame / 60.f));
-    //  clearValue = { 0.0f};
-
-    //  vkCmdClearDepthStencilImage(commandBuffer, mDepthImage.Image(), VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clearRange);
-    /* vkCmdClearColorImage(commandBuffer, mDrawImage.Image(), VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clearRange); */
-    /* vkCmdClearDepthStencilImage(cmd, mSwapchain., VkImageLayout imageLayout, const VkClearDepthStencilValue *pDepthStencil, uint32_t rangeCount, const VkImageSubresourceRange *pRanges) */
-    // bind the compute pipeline
+    mSwapchain.getCurrentFrame();
 
     mCurrentCommandBuffer = CommandBuffer(this);
+
     // ?? probably don't need to return DELETE
     return mCurrentCommandBuffer;
   } // _END_ beginFrame()
-
-  // *-*-*-*-*-*-   OLD METHOD (VULKAN 1_1 WHEN SYNCH2 NOT AVAILABLE)   *-*-*-*-*-*- //
-
-  // // information about how to begin each command
-  //     VkCommandBufferBeginInfo bufferBeginInfo = {};
-  //     bufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
-  //      // information about how to begin a render pass (only needed for graphical applications)
-  //     VkRenderPassBeginInfo renderPassBeginInfo = {};
-  //     renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-  //     renderPassBeginInfo.renderPass = mSwapchain.getRenderPass();
-  //     renderPassBeginInfo.renderArea.offset = {0, 0};
-  //     renderPassBeginInfo.renderArea.extent = mSwapchain.getSurfaceExtent();
-
-  //     std::array<VkClearValue, 3> clearValues = {};
-  //     clearValues[0].color = {0.6f, 0.65f, 0.4f, 1.0f};
-  //     clearValues[1].color = {0.0f, 0.0f, 0.0f}; // ?? why are there 2 color attachmentes and not 1?
-  //     clearValues[2].depthStencil.depth = 1.0f;
-
-  //     renderPassBeginInfo.pClearValues = clearValues.data();
-  //      // TODO since we know this ahead of time always--set simply
-  //     renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-
-  //      // assign the framebuffer of the corresponding command buffer to assign to the render pass
-  //     renderPassBeginInfo.framebuffer = mSwapchain.getFrameBuffer(nextSwapchainImage);
-
-  //      // start recording commands to command buffer
-  //     if (vkBeginCommandBuffer(mCommandBuffers[nextSwapchainImage], &bufferBeginInfo) != VK_SUCCESS)
-  //     {
-  //       throw std::runtime_error("Failed to start recording a Vulkan Command Buffer!");
-  //     }
-
-  //      // Begin render pass
-  //     vkCmdBeginRenderPass(mCommandBuffers[nextSwapchainImage], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-  //      // TODO would this make more sense to relocate to window resize?
-  //      // ?? also, what are the costs associated with having dynamic states
-  //      // make sure our dynamic viewport and scissors are set properly (if resizing the window etc.)
-  //     mDynamicViewport.width = static_cast<uint32_t>(mSwapchain.getSurfaceExtent().width);
-  //     mDynamicViewport.height = static_cast<uint32_t>(mSwapchain.getSurfaceExtent().height);
-  //     mDynamicScissors.extent = mSwapchain.getSurfaceExtent();
-  //      //
-  //     vkCmdSetViewport(mCommandBuffers[nextSwapchainImage], 0, 1, &mDynamicViewport);
-  //     vkCmdSetScissor(mCommandBuffers[nextSwapchainImage], 0, 1, &mDynamicScissors);
-
-  //     return nextSwapchainImage;
-
 
 
   // TODO fix nomenclature of currentFrame vs nextImageIndex
@@ -1121,139 +938,39 @@ namespace fc
 
   // ?? could pass vkCommandBuffer instead
 
-  void FcRenderer::endFrame(ICommandBuffer& cmd, u32 swapchainImageIndex)
+  void FcRenderer::endFrame(ICommandBuffer& IcmdBuffer)
   {
     // TODO don't need this if using mCurrrentCommandBuffer
-    CommandBuffer* vkCmdBuffer = static_cast<CommandBuffer*>(&cmd);
 
+    CommandBuffer* cmdBuffer = static_cast<CommandBuffer*>(&IcmdBuffer);
 
-    FC_ASSERT(vkCmdBuffer);
-    FC_ASSERT(vkCmdBuffer->mRenderer);
-    FC_ASSERT(vkCmdBuffer->mWrapper);
+    FC_ASSERT(cmdBuffer);
+    FC_ASSERT(cmdBuffer->mRenderer);
+    FC_ASSERT(cmdBuffer->mWrapper);
 
-    const VkCommandBuffer cmdBuffer = vkCmdBuffer->getVkCommandBuffer();
-    /* const VkCommandBuffer cmdBuffer = mCurrentCommandBuffer; */
+    const VkCommandBuffer cmd = cmdBuffer->getVkCommandBuffer();
+    /* const VkCommandBuffer cmd = mCurrentCommandBuffer; */
 
-      // transition images
-      // now that the draw has been done to the draw image,
-      // transition it into transfer source layout so we can copy to the swapchain after
-      mDrawImage.transitionLayout(cmdBuffer,
-                                  VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                                  VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-
-      // transiton the swapchain so it can best accept an image being copied to it
-      mSwapchain.transitionImage(cmdBuffer, swapchainImageIndex,
-                                 VK_IMAGE_LAYOUT_UNDEFINED,
-                                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-
-      // execute a copy from the draw image into the swapchain
-      mSwapchain.getFcImage(swapchainImageIndex).copyFromImage(cmdBuffer, &mDrawImage);
-
-      // now transition swapchain image layout to attachment optimal so we can draw into it
-      mSwapchain.transitionImage(cmdBuffer, swapchainImageIndex
-                                 , VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
-                                 , VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-      //
-      drawImGui(cmdBuffer, mSwapchain.getFcImage(swapchainImageIndex).ImageView());
-
-      // finally transition the swapchain image into presentable layout so we can present to surface
-      mSwapchain.transitionImage(cmdBuffer, swapchainImageIndex,
-                                 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                                 VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-
-      /* mImmediateCommandsf.submit(*curWrap); */
-
-
-
-
-    const u64 signalValue = mFrameNumber + mSwapchain.imageCount();
-
-    // VkSemaphoreSubmitInfo waitSemaphorInfo = {};
-    // waitSemaphorInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
-    // waitSemaphorInfo.semaphore = getCurrentFrame().imageAvailableSemaphore;
-    // waitSemaphorInfo.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-    // waitSemaphorInfo.value = 1;
-
-    /* mImmediateCommandsf.signalSemaphore(getCurrentFrame().imageAvailableSemaphore, signalValue); */
-
-    // VkSemaphoreSubmitInfo signalSemaphorInfo = {};
-    // signalSemaphorInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
-    // signalSemaphorInfo.semaphore = getCurrentFrame().renderFinishedSemaphore;
-    // signalSemaphorInfo.stageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT;
-    // signalSemaphorInfo.value = 1;
-    /* mImmediateCommandsf.signalSemaphore(getCurrentFrame().renderFinishedSemaphore, signalValue); */
-
+    // now that we have finished drawing to our internal draw image, copy to swapchain and present
+    mSwapchain.present(mDrawImage, cmd);
 
     // ?? should we do something with this handle, also, should it be lower in proceedure
+    cmdBuffer->mLastSubmitHandle = mImmediateCommands.submit(*cmdBuffer->mWrapper);
 
-    vkCmdBuffer->mLastSubmitHandle = mImmediateCommandsf.submit(*vkCmdBuffer->mWrapper);
+    /* processDeferredTasks(); */
+    mJanitor.flushBuffers();
 
-
-    // 3. present image to screen when it has signalled finished rendering
-    VkPresentInfoKHR presentInfo = {};
-    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    presentInfo.waitSemaphoreCount = 1;                                       	 // Number of semaphores to wait on
-    presentInfo.pWaitSemaphores = &getCurrentFrame().renderFinishedSemaphore; // semaphore to wait on
-    // FIXME probaly not the semaphore we want
-    VkSemaphore waitSemapore = mImmediateCommandsf.acquireLastSubmitSemaphore();  // semaphore to wait on
-    /* VkSemaphore waitSemapore = cmd.semaphore; */
-    presentInfo.pWaitSemaphores = &waitSemapore;  // semaphore to wait on
-    presentInfo.swapchainCount = 1;                                           // number of swapchains to present to
-    presentInfo.pSwapchains = &mSwapchain.vkSwapchain();                      // swapchain to present images to
-    presentInfo.pImageIndices = &swapchainImageIndex;                         //index of images in swapchains to present
-
-    VkResult result = vkQueuePresentKHR(mGpu.presentQueue(), &presentInfo);
-
-    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) // || mWindow.wasWindowResized())
-    {
-      fcPrintEndl("ERRROR OUT of date submit");
-      // TODO  handle resize properly
-      mShouldWindowResize = true;
-      /* mWindow.resetWindowResizedFlag(); */
-      /* handleWindowResize(); */
-    }
-    else if (result != VK_SUCCESS)
-    {
-      throw std::runtime_error("Faled to submit image to Vulkan Present Queue!");
-    }
-
-    // TODO prefer janitor.flush()
-    processDeferredTasks();
     mCurrentCommandBuffer = {};
 
     // get next frame (use % MAX_FRAME_DRAWS to keep value below the number of frames we have in flight
     // increase the number of frames drawn
-    mFrameNumber++;
-    mDrawCollection.stats.frame = mFrameNumber;
-  }
-
-
-  void FcRenderer::deferredTask(std::packaged_task<void()>&& task, SubmitHandle handle)
-  {
-    if (handle.isEmpty())
-    {
-      handle = mImmediateCommandsf.getNextSubmitHandle();
-    }
-
-    mDeferredTasks.emplace_back(std::move(task), handle);
+    /* mFrameNumber++; */
+    /* mDrawCollection.stats.frame = mFrameNumber; */
+    mDrawCollection.stats.frame = 0;
   }
 
 
   //
-  void FcRenderer::processDeferredTasks() //const
-  {
-    std::vector<DeferredTask>::iterator it = mDeferredTasks.begin();
-
-    // TODO investigate why our .isReady() requires 1 arg instead of 2
-    while (it != mDeferredTasks.end() && mImmediateCommandsf.isReady(it->mHandle))
-    {
-      (it++)->mTask();
-    }
-
-    mDeferredTasks.erase(mDeferredTasks.begin(), it);
-  }
-
-
   void FcRenderer::handleWindowResize()
   {
     // On some platforms, it is normal that maxImageExtent may become (0, 0), for example when the
@@ -1309,6 +1026,7 @@ namespace fc
     ImGui_ImplVulkan_Shutdown();
     vkDestroyDescriptorPool(pDevice, mImgGuiDescriptorPool, nullptr);
 
+    // TODO DELETE since we are no longer using per frame sync
     // ?? don't think that the reference is needed here
     for (FrameAssets &frame : mFrames)
     {
@@ -1316,11 +1034,10 @@ namespace fc
       // TRY DELETE
       // vkDestroyCommandPool(pDevice, frame.commandPool, nullptr);
 
-      vkDestroySemaphore(pDevice, frame.imageAvailableSemaphore, nullptr);
-      vkDestroySemaphore(pDevice, frame.renderFinishedSemaphore, nullptr);
-      vkDestroyFence(pDevice, frame.renderFence, nullptr);
+      // vkDestroySemaphore(pDevice, frame.imageAvailableSemaphore, nullptr);
+      // vkDestroySemaphore(pDevice, frame.renderFinishedSemaphore, nullptr);
+      // vkDestroyFence(pDevice, frame.renderFence, nullptr);
     }
-
 
     // -*-*-*-*-*-*-*-*-*-*-   IMMEDIATE COMMAND ARCHITECTURE   -*-*-*-*-*-*-*-*-*-*- //
     /* vkDestroyCommandPool(pDevice, mImmediateCommandPool, nullptr); */

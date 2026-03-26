@@ -2,9 +2,12 @@
 #include "fc_swapChain.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_assert.hpp"
+#include "utilities.hpp"
+#include "fc_renderer.hpp"
 #include "log.hpp"
 #include "fc_gpu.hpp"
 #include "fc_config.hpp"
+#include "fc_locator.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <array>
 #include <algorithm>
@@ -151,17 +154,19 @@ namespace fc
       mSwapchainImages.emplace_back(std::move(swapChainImage));
     }
 
-    //  // TODO MOVE to renderpass class
-    // this is the way it was done pre-vulkan 1.3 (Without using dynamic rendering)
-    // VkExtent3D temp = {mSurfaceExtent.width, mSurfaceExtent.height, 1};
 
-    //  // finally create the color image and image view that will be used as multi-sampled color attachment
-    // mMultiSampledImage.create(temp, mSwapchainFormat
-    //                           , VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
-    //                           |   VK_IMAGE_USAGE_TRANSFER_DST_BIT
-    //                           | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT
-    //                           , VK_IMAGE_ASPECT_COLOR_BIT
-    //                           , pGpu->Properties().maxMsaaSamples);
+    //
+    // Create aquire semaphores and fences
+    for (sizeT i = 0; i < mSwapchainImages.size(); ++i)
+    {
+      char debugName[256];
+      snprintf(debugName, sizeof(debugName) - 1, "Semaphore: mAcquireSemaphore[%u]", i);
+      mAcquireSemaphore[i] = createSemaphore(pGpu->getVkDevice(), debugName);
+
+      //  TODO look into strlen instead of sizeof etc.
+      snprintf(debugName, sizeof(debugName) - 1, "Fence: mAcquireFence[%u]            ", i);
+      mAcquireFence[i] = createFence(pGpu->getVkDevice(), true, debugName);
+    }
 
     return surfaceFormat.format;
   }
@@ -572,10 +577,168 @@ namespace fc
   // }
 
 
+  void FcSwapChain::present(FcImage& drawImage, VkCommandBuffer cmd)
+  {
+    // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   TRANSITION IMAGES   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    // First transition draw image into transfer source layout so we can copy to the swapchain image
+    drawImage.transitionLayout(cmd, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+
+    // Next transiton the swapchain so it can best accept an image being copied to it
+    transitionImage(cmd, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+    // execute a copy from the draw image into the swapchain
+    getFrameTexture().copyFromImage(cmd, &drawImage);
+
+    // now transition swapchain image layout to attachment optimal so we can directly draw into it
+    transitionImage(cmd, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
+    //
+    FcLocator::Renderer().drawImGui(cmd, getFrameTexture().ImageView());
+
+    // finally transition the swapchain image into presentable layout so we can present to surface
+    transitionImage(cmd, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+
+    const u64 signalValue = mCurrentFrame + imageCount();
+
+    // DELETE
+    u32 deleteThisNum = getCurrentBufferIndex();
+    VkSemaphore waitSemaphore = FcLocator::Renderer().mImmediateCommands.acquireLastSubmitSemaphore();
+
+
+    // 3. present image to screen when it has signalled finished rendering
+    VkPresentInfoKHR presentInfo = {};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.waitSemaphoreCount = 1;                                       	 // Number of semaphores to wait on
+    /* presentInfo.pWaitSemaphores = waitSemaphore; // semaphore to wait on */
+    // // FIXME probaly not the semaphore we want
+    // VkSemaphore waitSemapore = mImmediateCommands.acquireLastSubmitSemaphore();  // semaphore to wait on
+    /* VkSemaphore waitSemapore = IcmdBuffer.semaphore; */
+    presentInfo.pWaitSemaphores = &waitSemaphore;  // semaphore to wait on
+    presentInfo.swapchainCount = 1;                                           // number of swapchains to present to
+    presentInfo.pSwapchains = &mSwapchain;                      // swapchain to present images to
+    presentInfo.pImageIndices = &deleteThisNum;                         //index of images in swapchains to present
+
+    VkResult result = vkQueuePresentKHR(pGpu->presentQueue(), &presentInfo);
+
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) // || mWindow.wasWindowResized())
+    {
+      fcPrintEndl("ERRROR OUT of date submit");
+      // TODO  handle resize properly
+      mShouldResizeWindow = true;
+      /* mWindow.resetWindowResizedFlag(); */
+      /* handleWindowResize(); */
+    }
+    else if (result != VK_SUCCESS)
+    {
+      throw std::runtime_error("Faled to submit image to Vulkan Present Queue!");
+    }
+
+    ++mCurrentFrame;
+  }
+
+
+
+  //
+  void FcSwapChain::getCurrentFrame()
+  {
+        // TODO try to remove this check
+    if (mGetNextImage)
+    {
+      VkDevice pDevice = FcLocator::Device();
+
+      const VkSemaphoreWaitInfo waitInfo = {
+        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO
+      , .semaphoreCount = 1
+      , .pSemaphores = &FcLocator::Renderer().mTimelineSemaphore
+      , .pValues = &FcLocator::Renderer().mTimelineWaitValues[mCurrentBufferIndex]
+      };
+
+      VK_ASSERT(vkWaitSemaphores(pDevice, &waitInfo, U64_MAX));
+
+      VkFence acquireFence {VK_NULL_HANDLE};
+
+      // FIXME - try to use the other method from lvk
+      // TODO add check here for maintenance_1_KHR see lvk and remove once maintenance1 becomes mandatory
+      // Without VK_KHR_swapchain_maintenance1, use aquireFences to synchronize semaphore reuse
+      VK_ASSERT(vkWaitForFences(pDevice, 1, &mAcquireFence[mCurrentBufferIndex], VK_TRUE, U64_MAX));
+      VK_ASSERT(vkResetFences(pDevice, 1, &mAcquireFence[mCurrentBufferIndex]));
+
+      acquireFence = mAcquireFence[mCurrentBufferIndex];
+
+      VkSemaphore acquireSemaphore = mAcquireSemaphore[mCurrentBufferIndex];
+
+      // FIXME this may not be the semaphore we're seeking
+      /* VkSemaphore imageAvailableSemaphore = mImmediateCommandsf.acquireLastSubmitSemaphore(); */
+      /* mCurrentCommandBuffer = mImmediateCommandsf.acquire(); */
+      /* const CommandBufferWrapper& wrapper = mImmediateCommandsf.acquire(); */
+
+      /* curWrap = &wrapper; */
+      // don't keep adding images to the queue or commands to the buffer until last draw has finished
+
+      // FIXME
+      /* vkWaitForFences(pDevice, 1, &getCurrentFrame().renderFence, VK_TRUE, U64_MAX); */
+      /* vkWaitForFences(pDevice, 1, &wrapper.fence, VK_TRUE, U64_MAX); */
+
+      // delete any per frame resources no longer needed now the that frame has finished rendering
+      // ?? this seems to be the wrong location for this, just by observation: test
+      // getCurrentFrame().janitor.flush();
+
+      // 1. get the next available image to draw to and set to signal the semaphore when we're finished with it
+
+      /* VkSemaphore swapSemaphore = wrapper.semaphore; */
+
+      VkResult result = vkAcquireNextImageKHR(pDevice, mSwapchain, U64_MAX
+                                              , acquireSemaphore
+                                              , acquireFence
+                                              , &mCurrentBufferIndex);
+
+      if (result == VK_ERROR_OUT_OF_DATE_KHR)
+      {
+        fcPrintEndl("ERROR out of date submit1");
+        mShouldResizeWindow = true;
+        //handleWindowResize();
+        // BUG FIXME should flag failure
+        /* return mCurrentCommandBuffer; */
+      }
+      else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+      {
+        throw std::runtime_error("Failed to acquire Vulkan Swap Chain image!");
+      }
+
+      FcLocator::Renderer().mImmediateCommands.waitSemaphore(acquireSemaphore);
+    }
+
+
+    // TODO do we need to update the current buffer index
+
+
+    // manully un-signal (close) the fence ONLY when we are sure we're submitting work (result == VK_SUCESS)
+    /* vkResetFences(pDevice, 1, &getCurrentFrame().renderFence); */
+
+    // ?? don't think we need this assert since we use semaphores and fences
+    // assert(!mIsFrameStarted && "Can't call recordCommands() while frame is already in progress!");
+
+    // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROM OLD METHOD   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
+    // TODO would this make more sense to relocate to window resize?
+    // ?? also, what are the costs associated with having dynamic states
+    // make sure our dynamic viewport and scissors are set properly (if resizing the window etc.)
+    // mDynamicViewport.width = static_cast<uint32_t>(mSwapchain.getSurfaceExtent().width);
+// mDynamicViewport.height = static_cast<uint32_t>(mSwapchain.getSurfaceExtent().height);
+    // mDynamicScissors.extent = mSwapchain.getSurfaceExtent();
+    //  //
+    // vkCmdSetViewport(commandBuffer, 0, 1, &mDynamicViewport);
+    // vkCmdSetScissor(commandBuffer, 0, 1, &mDynamicScissors);
+  }
+
+
+
+
   // Partially free of swapchain resources -- used when resizing the window and recreating swapchain
   void FcSwapChain::clearSwapChain()
   {
     // destroy all the image views in our swapchain--the actual images and memory are freed by actual swapchain
+    // FIXME
     for (auto& image : mSwapchainImages)
     {
       image.destroyImageView();

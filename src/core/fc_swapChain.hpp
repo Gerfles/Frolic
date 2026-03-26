@@ -1,6 +1,7 @@
 //>--- fc_swapChain.hpp ---<//
 #pragma once
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "fc_types.hpp"
 #include "fc_image.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'S   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 namespace fc { class FcGpu; class FcConfig; }
@@ -13,7 +14,7 @@ namespace fc
   class FcSwapChain
   {
    private:
-     // BUG is there any issues with declaring the following pointer const?
+     // TRY is there any issues with declaring the following pointer const?
      FcGpu* pGpu;
      VkSwapchainKHR mSwapchain;
      // TODO extrapolate into separate class
@@ -21,6 +22,18 @@ namespace fc
      // FRAMEBUFFER ATTACHMENTS
      std::vector<FcImage> mSwapchainImages;
      /* std::vector<VkFramebuffer> mSwapChainFramebuffers; */
+
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     bool mGetNextImage {true};
+     // FIXME act on window resize
+     bool mShouldResizeWindow {false};
+     u32 mCurrentBufferIndex {0}; // [0...Number of Swapchain Images)
+     // TODO change to u64
+     u32  mCurrentFrame {0}; // [0...+inf)
+     VkFence mAcquireFence[MAX_FRAME_DRAWS] {};
+     VkSemaphore mAcquireSemaphore[MAX_FRAME_DRAWS] {};
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
      //
      VkFormat createSwapChain(FcConfig& config, bool shouldReUseOldSwapchain = false);
 
@@ -41,8 +54,14 @@ namespace fc
      void createDepthBufferImage();
      //
      void createFrameBuffers();
-
    public:
+     // DELETE
+     u32 getCurrentBufferIndex() {return mCurrentBufferIndex; }
+
+
+
+
+
      // -*-*-*-*-*-*-*-*-*-*-   PREVENT MOVE, COPY, ASSIGNMENT   -*-*-*-*-*-*-*-*-*-*- //
      FcSwapChain(const FcSwapChain&) = delete;
      FcSwapChain(FcSwapChain&&) = delete;
@@ -56,17 +75,24 @@ namespace fc
      VkFormat init(FcGpu& gpu, FcConfig& config);
      // TODO see if we can just make this part of create swapChain??
      // *-*-*-*-*-*-   MAKE CURRENT SWAPCHAIN FRAME INTO WRITEABLE IMAGE   *-*-*-*-*-*- //
-     inline void transitionImage(VkCommandBuffer commandBuffer, uint32_t currentFrame,
-                                 VkImageLayout currentLayout, VkImageLayout newLayout) noexcept
-      { mSwapchainImages[currentFrame].transitionLayout(commandBuffer, currentLayout, newLayout, 1); }
+     inline void transitionImage(VkCommandBuffer commandBuffer,
+                                 VkImageLayout currentLayout,
+                                 VkImageLayout newLayout) noexcept
+      { mSwapchainImages[mCurrentBufferIndex].transitionLayout(commandBuffer, currentLayout, newLayout, 1); }
      //
      void reCreateSwapChain(VkExtent2D windowSize);
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
+     void present(FcImage& drawImage, VkCommandBuffer cmd);
+
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   GETTER FUNCTIONS   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-     /* VkFramebuffer& getFrameBuffer(int index) { return mSwapChainFramebuffers[index]; } */
      //
-     FcImage& getFcImage(uint32_t index) { return mSwapchainImages[index]; }
+     void getCurrentFrame();
+     //
+     FcImage& getFrameTexture() { return mSwapchainImages[mCurrentBufferIndex]; }
      //
      /* const size_t imageCount() const { return mSwapChainFramebuffers.size(); } */
+     // TODO delete??
      const size_t imageCount() const { return mSwapchainImages.size(); }
      //
      VkRenderPass& getRenderPass()  { return mRenderPass; }

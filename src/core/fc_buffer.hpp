@@ -24,13 +24,13 @@
 namespace fc
 {
 
-enum class FcBufferTypes : uint8_t {
-  Staging,
-  Vertex,
-  Index,
-  Uniform,
-  Gpu,
-  Custom,
+  enum class FcBufferTypes : uint8_t {
+    Staging
+  , Vertex
+  , Index
+  , Uniform
+  , Gpu
+  , Custom
 };
 
   // TODO create a transferToGpu function
@@ -42,9 +42,13 @@ enum class FcBufferTypes : uint8_t {
        VkDeviceSize mSize;
        FcBufferTypes mBufferType;
        void* mMemoryAddress {nullptr};
+
+       // DELETE
+       bool isDestroyed {true};
+
      public:
        FcBuffer() = default;
-       ~FcBuffer() = default;
+       ~FcBuffer();
        FcBuffer(VkDeviceSize bufferSize, FcBufferTypes bufferType)
 	        { allocate(bufferSize, bufferType); }
        FcBuffer& operator=(const FcBuffer&) = delete;

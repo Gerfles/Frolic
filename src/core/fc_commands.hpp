@@ -17,17 +17,17 @@ namespace fc
 
     struct SubmitHandle
     {
-       u32 bufferIndex = 0;
-       u32 submitId = 0;
+       u32 cmdBufferIndex {0};
+       u32 submitId {0};
        //
        SubmitHandle() = default;
        //
-       explicit SubmitHandle(u64 handle) : bufferIndex(u32(handle & 0xffffffff)),
+       explicit SubmitHandle(u64 handle) : cmdBufferIndex(u32(handle & 0xffffffff)),
                                            submitId(u32(handle >> 32)) {}
        //
        inline const bool isEmpty() const { return submitId == 0; }
        //
-       inline u64 handle() const { return (u64(submitId) << 32) + bufferIndex; }
+       inline u64 handle() const { return (u64(submitId) << 32) + cmdBufferIndex; }
     };
 
 
