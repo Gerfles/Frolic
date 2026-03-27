@@ -26,7 +26,9 @@ namespace fc
      float mFrameTimeSum {0};
      int mFrameTimeIndex {0};
      float mFrameTimeList[MAX_FRAME_SAMPLES];
-
+     VkInstance mInstance = nullptr;
+     // relocate window and GPU to frolic class
+     FcWindow mWindow;
      // note: order of declaration matters (member variables are allocated top to bottom
      // and destroyed in the reverse order)
      SceneDataUbo* pSceneData {nullptr};
@@ -55,6 +57,7 @@ namespace fc
    public:
      Frolic() = default;
      void init(FcConfig& config);
+     void createInstance(VkApplicationInfo& appInfo, FcConfig& config);
      void run();
      void loadGameObjects();
      void update(float deltaTime);

@@ -7,8 +7,7 @@
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "imgui_impl_sdl2.h"
 #include <SDL_log.h>
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-/* #include <cstring> */
+#include <SDL_version.h>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
@@ -32,6 +31,38 @@ namespace fc
     fcPrintEndl("\n---- RELEASE BUILD ----\n");
 #endif
 
+    mWindow.initWindow(config);
+
+    SDL_version compiled;
+    SDL_VERSION(&compiled);
+
+    SDL_version linked;
+    SDL_GetVersion(&linked);
+    // Pring version info
+    fcPrintEndl("SDL version(s): %u.%u.%u (compiled),  %u.%u.%u. (linked)\n",
+                compiled.major, compiled.minor, compiled.patch, linked.major, linked.minor, linked.patch);
+
+    // Application Specs for developer use
+    VkApplicationInfo appInfo{};
+    appInfo.sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    appInfo.pApplicationName   = config.applicationName.c_str();
+    appInfo.applicationVersion = VK_MAKE_VERSION(config.appVersionMajor,
+                                                 config.appVersionMinor,
+                                                 config.appVersionPatch);
+    appInfo.pEngineName        = "Frolic Engine";
+    appInfo.engineVersion      = VK_MAKE_VERSION(1, 0, 0);
+    // Make sure we let vulkan know which version we intend to use
+    appInfo.apiVersion         = VK_API_VERSION_1_3;
+
+    // Initialize our singleton locator
+    FcLocator::init();
+
+    // First we need a vulkan instance to do anything else
+    createInstance(appInfo, config);
+
+    // create the surface (interface between Vulkan and window (SDL))
+    mWindow.createWindowSurface(mInstance);
+
     // Initialize the custom memory allocator
     // TODO make this part of our FcLocator scheme instead of the singleton it is
     MemoryService::instance()->init(nullptr);
@@ -41,8 +72,6 @@ namespace fc
     // TODO Make sure this deallocates properly
     mStackAllocator.init( megabytes(8) );
 
-    // Initialize our singleton locator
-    FcLocator::init();
 
     // TODO pull some stuff out of render initialize and have init VK systems?
     // TODO define our own exception classes and failure codes for debugging later
@@ -53,7 +82,8 @@ namespace fc
       return;
     }
 
-    mInput.init(mRenderer.Window());
+    /* mInput.init(mRenderer.Window()); */
+    mInput.init(mWindow.SDLwindow());
 
     // NOTE: must use screen dimension not pixel width and height
     // TODO should make a better distinction and perhaps have it available globally
@@ -64,9 +94,6 @@ namespace fc
     // Initialize simple first person camera
     mPlayer.Camera().setPerspectiveProjection(60.0f, FcLocator::ScreenDims().width
                                               , FcLocator::ScreenDims().height, 512.f, 0.01f);
-    // TEST  that perspective is equal with both calls
-    // mPlayer.Camera().setPerspectiveProjection(60.0f, 2200
-    //                                           , 1600, 512.f, 0.01f);
 
     // TODO make sure all reference returns are const to avoid something like:
     /* mPlayer.Camera().Projection()[1][1] *= -1; */
@@ -78,6 +105,60 @@ namespace fc
     stats = &mRenderer.getStats();
 
   }// --- Frolic::Frolic (_) --- (END)
+
+
+
+  void Frolic::createInstance(VkApplicationInfo& appInfo, FcConfig& config)
+  {
+    // Include debug utilities only when required
+#ifndef NDEBUG
+    config.addInstanceExtension(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+#endif
+
+    // Not working for now
+    // if (enableValidationLayers)
+    // {
+    //   config.addInstanceExtension(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME);
+    // }
+
+    // Define a Create struct to initialize the vulkan instance
+    VkInstanceCreateInfo instanceInfo{};
+
+    // TODO change to platform dependent evaluation may not be needed with the above calls to SDL
+#if defined (__APPLE__)
+    // Only seems to be required for macOS implementation and only when validation layers added
+    config.addInstanceExtension("VK_KHR_get_physical_device_properties2");
+    config.addInstanceExtension("VK_KHR_portability_enumeration");
+    instanceInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+#endif
+
+    // TODO swap out names above
+    config.addInstanceExtension(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+
+    if (config.isExtendedSwapchainColorSpaceEnabled())
+    config.addInstanceExtension(VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME);
+
+    // TODO investigate why not available on linux
+    /* config.addInstanceExtension(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME); */
+
+    // TODO LOG the required and found extensions and provide alternate paths if extension unavailable
+    FC_ASSERT(config.areInstanceExtensionsSupported());
+
+    instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    instanceInfo.pApplicationInfo = &appInfo;
+    instanceInfo.enabledExtensionCount = config.getInstanceExtensionCount();
+    instanceInfo.ppEnabledExtensionNames = config.getInstanceExtensions();
+    instanceInfo.enabledLayerCount = config.getValidationLayerCount();
+    instanceInfo.ppEnabledLayerNames = config.getValidationLayers();
+    instanceInfo.pNext = config.getValidationLayerSettings();
+
+    // Finally, call the vulkan function to create vulkan instance instance
+    VK_ASSERT(vkCreateInstance(&instanceInfo, nullptr, &mInstance));
+
+    // Give our instance handle to FcLocator to use with pointers to functions for Vulkan extensions etc.
+    FcLocator::provide(mInstance);
+  }  // END void FcRenderer::createInstance(...)
+
 
 
   //
@@ -137,8 +218,8 @@ namespace fc
 
   void Frolic::run()
   {
-    // FIXME if possible, may be an issue with linux
-    SDL_ShowCursor(SDL_DISABLE);
+    // FIXME Cursor showing is overriden by ImGui,
+    mInput.hideCursor(true);
 
     // Initialize player controls and position
     mPlayer.setPosition(glm::vec3(36.f, 25.f, 19.f));
@@ -146,7 +227,7 @@ namespace fc
     // load everything we need for the scene
     loadGameObjects();
 
-    AutoCVarFloat cvarMovementSpeed("movementSpeed.float", "controls camera movement speed", 10.0f);
+    AutoCVarFloat cvarMovementSpeed("movementSpeed.float", "controls camera movement speed", 20.0f);
     AutoCVarBool cvarShouldDrawShadowMap("shouldDrawShadowMap.bool", "determines whether to draw debug map", false);
 
     // zero out the ticklist for performance tracking
@@ -178,8 +259,9 @@ namespace fc
               // ?? this event seems to cause issues in Wayland, seems like wayland already handles resize
               case SDL_WINDOWEVENT_SIZE_CHANGED:
               {
-                // TEST all platforms etc. Also make sure ImGui resizes properly (cursors work as intended etc.)
-                mRenderer.handleWindowResize();
+                // FIXME then test all platforms etc. Also make sure ImGui resizes properly (cursors work as intended etc.)
+                mWindow.handleResize();
+                // TODO update swapchain accordingly
                 break;
               }
               default:
@@ -223,20 +305,16 @@ namespace fc
       // -*-*-*-*-*-*-*-*-*-*-*-*-*-   START THE NEW FRAME   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
       // mRenderer.generateShadowMap();
 
-
-
-      ICommandBuffer& cmd = mRenderer.beginFrame();
-
-      // FcPipeline* selected = mPipelines[currentBackgroundEffect];
-      /* mRenderer.attachPipeline(selected); */
-
-      // TODO make sure we can comment out drawGUI without crashing
-      gui.drawGUI(this);
-
+      mRenderer.beginFrame();
+      // TODO updateScene();
       mRenderer.drawFrame();
 
-      mRenderer.endFrame(cmd);
+      // TODO make sure we can comment out drawGUI without crashing
 
+      gui.updateGUI(this);
+      mRenderer.drawImGui();
+
+      mRenderer.endFrame();
 
       // TODO should not be a member!
       /* mShouldClose = true; */
@@ -309,7 +387,14 @@ namespace fc
 
     mRenderer.shutDown();
 
+    mWindow.close(FcLocator::vkInstance());
+
     MemoryService::instance()->shutdown();
+
+    if (mInstance != nullptr)
+    {
+      vkDestroyInstance(mInstance, nullptr);
+    }
   }
 
 }// --- namespace fc --- (END)

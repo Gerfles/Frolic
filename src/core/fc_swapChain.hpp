@@ -23,13 +23,18 @@ namespace fc
      std::vector<FcImage> mSwapchainImages;
      /* std::vector<VkFramebuffer> mSwapChainFramebuffers; */
 
+     // *-*-*-*-*-*-*-*-*-   CACHED TO AVOID RECREATION EACH FRAME   *-*-*-*-*-*-*-*-*- //
+     VkRenderingAttachmentInfo mColorAttachment {};
+     VkRenderingInfo mRenderInfo {};
+     VkPresentInfoKHR presentInfo = {};
+
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      bool mGetNextImage {true};
      // FIXME act on window resize
      bool mShouldResizeWindow {false};
      u32 mCurrentBufferIndex {0}; // [0...Number of Swapchain Images)
      // TODO change to u64
-     u32  mCurrentFrame {0}; // [0...+inf)
+     u64  mCurrentFrame {0}; // [0...+inf)
      VkFence mAcquireFence[MAX_FRAME_DRAWS] {};
      VkSemaphore mAcquireSemaphore[MAX_FRAME_DRAWS] {};
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -87,7 +92,7 @@ namespace fc
 
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   GETTER FUNCTIONS   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      //
-     void getCurrentFrame();
+     void acquireCurrentFrame();
      //
      FcImage& getFrameTexture() { return mSwapchainImages[mCurrentBufferIndex]; }
      //

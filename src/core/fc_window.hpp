@@ -28,11 +28,12 @@ namespace fc
      FcWindow& operator=(const FcWindow) = delete;
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      bool initWindow(FcConfig& config);
-     const VkExtent2D ScreenSize();
+     void handleResize();
+     const VkExtent2D ScreenSize() const;
      void createWindowSurface(const VkInstance& instance);
      SDL_Window* SDLwindow() const { return mWindow; }
      inline const VkSurfaceKHR& surface() const { return mSurface; }
-     void close(VkInstance& instance);
+     void close(VkInstance instance);
   };
 
 }// --- namespace fc --- (END)

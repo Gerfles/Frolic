@@ -40,14 +40,20 @@ namespace fc
      FcNormalRenderer mNormalRenderer;
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      VkDebugUtilsMessengerEXT debugMessenger;
-     FcWindow mWindow;
-     VkInstance mInstance = nullptr;
+
+     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   TODO   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     // relocate window and GPU to frolic class
+     /* FcWindow mWindow; */
+     /* VkInstance mInstance = nullptr; */
      FcGpu mGpu;
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
+
      FcSwapChain mSwapchain;
      VkViewport mDynamicViewport{};
      VkRect2D mDynamicScissors{};
      VkDevice pDevice;
-     VkExtent2D mDrawExtent;
+     /* VkExtent2D mDrawExtent; */
      // Right now we only have one draw image and depth image, but on a more developed
      // engine it could be significantly more, and re-creating all that can be a
      // considerable hassle. Instead, we create the draw and depth image at startup with
@@ -60,9 +66,7 @@ namespace fc
      // Only needed if we are using a compute shader to draw to the draw image
      VkDescriptorSet mDrawImageDescriptor;
      //Fc[...]renderSystem m[...]Renderer;
-     bool mShouldWindowResize {false};
 
-     // DELETE
 
 
      // TODO think about integrating into descriptorClerk
@@ -77,11 +81,8 @@ namespace fc
      void createInstance(VkApplicationInfo& appInfo, FcConfig& configOptions);
      /* bool areInstanceExtensionsSupported(const std::vector<const char*>& instanceExtensions); */
      /* bool areValidationLayersSupported(std::vector<const char*>& validationLayers); */
-     void createCommandPools();
-     // void recordCommands(uint32_t currentFrame);
-     void createSynchronization();
-     void initDrawImage();
-     void initImgui(VkFormat format);
+
+     void initImgui(VkFormat swapchainFormat, FcConfig& config);
 
      // -*-*-*-*-*-*-*-*-*-   TODO REFACTOR, ENCAPSULATE, OR DELETE   -*-*-*-*-*-*-*-*-*- //
 
@@ -98,6 +99,10 @@ namespace fc
      FcBuffer mSceneDataBuffer;
      VkDescriptorSetLayout mSceneDataDescriptorLayout;
 
+     // *-*-*-*-*-*-*-*-*-   CACHED TO PREVENT CREATION EACH FRAME   *-*-*-*-*-*-*-*-*- //
+     VkRenderingAttachmentInfo mColorAttachment {};
+     VkRenderingInfo mRenderInfo {};
+     VkRenderingAttachmentInfo mDepthAttachment {};
 
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   TEMP??   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      // TODO use new operator for janitor and other fcLocator entities
@@ -106,26 +111,22 @@ namespace fc
      CommandBuffer mCurrentCommandBuffer;
      // TODO change MAX_FRAME_DRAWS to MAX_SWAPCHAIN_BUFFERS
 
-
+     // TODO rename semaphores to this
+     // (vkCreateSemaphore(pDevice, &semaphoreInfo, nullptr, &frame.imageAvailableSemaphore));
+     // (vkCreateSemaphore(pDevice, &semaphoreInfo, nullptr, &frame.renderFinishedSemaphore));
    public:
      u64 mTimelineWaitValues[MAX_FRAME_DRAWS] {};
      VkSemaphore mTimelineSemaphore {VK_NULL_HANDLE};
      VulkanImmediateCommands mImmediateCommands;
-
-
-
 
      // TODO move to swapchain DELETE
      u32 mFrameNumber {0};
      // BUG, im pretty sure this could fail if MAX_FRAME_DRAWS is not the actual number of buffers
      inline u32 getCurrentFrameIndex() { return mFrameNumber % MAX_FRAME_DRAWS; }
 
-
-
-
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END TEMP   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
-
+     // TODO try and eliminate
      friend class CommandBuffer;
      // TODO Make these all private
      bool mDrawNormalVectors {false};
@@ -143,15 +144,14 @@ namespace fc
 
      FcSceneRenderer mSceneRenderer;
      void updateScene();
-     float aspectRatio() { return static_cast<float>(mWindow.ScreenSize().width)
-         / static_cast<float>(mWindow.ScreenSize().height); }
+
      //void setResizeFlag(bool shouldWindowResizeFlag) { mWindowResizeFlag = shouldWindowResizeFlag; }
-     bool shouldWindowResize() { return mShouldWindowResize; }
+
      // TODO probably best to issue multiple command buffers, one for each task
      const CommandBufferWrapper& beginCommandBuffer();
      void submitCommandBuffer(const CommandBufferWrapper& wrapper);
      SubmitHandle getCurrentCommandBuffer() { return mImmediateCommands.getNextSubmitHandle(); }
-     void drawImGui(VkCommandBuffer cmd, VkImageView targetImageView);
+     void drawImGui();
      void initDefaults();//FcBuffer& sceneDataBuffer, SceneDataUbo* sceneData);
      void setColorTextureUse(bool enable);
      void setRoughMetalUse(bool enable);
@@ -176,21 +176,24 @@ namespace fc
      //
      int init(FcConfig& config, SceneDataUbo** pSceneData);
      //
-     void handleWindowResize();
-     ICommandBuffer& beginFrame();
-     void endFrame(ICommandBuffer& cmdBuffer);
+     void beginFrame();
      void drawFrame();
+     void endFrame();
+     //
+     void updateBindlessDescriptors();
+     //
      inline void setActiveCamera(FcCamera* camera) { pActiveCamera = camera; }
      inline void addBillboard(FcBillboard& billboard) { mBillboardRenderer.addBillboard(billboard); }
 
      // - GETTERS -
      inline FrameAssets& getCurrentFrame() { return mFrames[mFrameNumber % MAX_FRAME_DRAWS]; }
 
-
      inline FcDrawCollection& DrawCollection() { return mDrawCollection; }
-     inline float ScreenWidth() { return mWindow.ScreenSize().width; }
-     inline float ScreenHeight() { return mWindow.ScreenSize().height; }
-     inline SDL_Window* Window() { return mWindow.SDLwindow(); }
+     // float aspectRatio() { return static_cast<float>(mWindow.ScreenSize().width)
+     //     / static_cast<float>(mWindow.ScreenSize().height); }
+     // inline float ScreenWidth() { return mWindow.ScreenSize().width; }
+     // inline float ScreenHeight() { return mWindow.ScreenSize().height; }
+     // inline SDL_Window* Window() { return mWindow.SDLwindow(); }
      inline VkRenderPass RenderPass() { return mSwapchain.getRenderPass(); }
      inline int BoundingBox() { return mBoundingBoxId; }
      inline float& ExpansionFactor() { return mSceneRenderer.ExpansionFactor(); };

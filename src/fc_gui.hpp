@@ -12,7 +12,7 @@ namespace fc { class Frolic; }
 
 namespace fc
 {
-  //
+  // TODO remove all hardcoding
   class FcGUI
   {
    private:
@@ -31,7 +31,7 @@ namespace fc
      std::array<std::vector<u32>, 5> sponzaTexIndices;
 
    public:
-     void drawGUI(Frolic* fc);
+     void updateGUI(Frolic* fc);
   };
 
 }// --- namespace fc --- (END)

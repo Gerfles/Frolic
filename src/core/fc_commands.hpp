@@ -114,10 +114,10 @@ struct CommandBufferWrapper
    private:
 
      friend class FcRenderer;
-     FcRenderer* mRenderer = nullptr;
+     /* FcRenderer* mRenderer = nullptr; */
      const CommandBufferWrapper* mWrapper = nullptr;
      SubmitHandle mLastSubmitHandle {};
-     // TODO remove
+     // DELETE
      bool mIsRendering = false;
   };
 

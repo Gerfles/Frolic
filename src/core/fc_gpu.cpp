@@ -19,7 +19,7 @@
 namespace fc
 {
   //
-  bool FcGpu::init(const VkInstance& instance, FcConfig& configOptions)
+  bool FcGpu::init(const VkInstance instance, FcConfig& configOptions)
   {
     // First pick the best GPU
     pickPhysicalDevice(instance, configOptions);
@@ -302,7 +302,7 @@ namespace fc
 
 
   //
-  void FcGpu::release(VkInstance& instance)
+  void FcGpu::release(VkInstance instance)
   {
     vmaDestroyAllocator(mAllocator);
 

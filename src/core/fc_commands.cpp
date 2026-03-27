@@ -355,8 +355,7 @@ namespace fc
   }
 
 
-  CommandBuffer::CommandBuffer(FcRenderer* renderer)
-  : mRenderer(renderer), mWrapper(&renderer->mImmediateCommands.acquire())
+  CommandBuffer::CommandBuffer(FcRenderer* renderer) : mWrapper(&renderer->mImmediateCommands.acquire())
   {
   }
 

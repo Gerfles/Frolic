@@ -8,6 +8,8 @@
 #include "fc_gpu.hpp"
 #include "fc_config.hpp"
 #include "fc_locator.hpp"
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include <imgui_impl_vulkan.h>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <array>
 #include <algorithm>
@@ -41,7 +43,7 @@ namespace fc
     vkDeviceWaitIdle(pGpu->getVkDevice());
 
     //  // toss out old swap chain stuff
-    // clearSwapChain();
+    /* clearSwapChain(); */
 
     // // create new swap chain stuff
     // createSwapChain(windowSize, true);
@@ -128,8 +130,30 @@ namespace fc
       vkDestroySwapchainKHR(pGpu->getVkDevice(), oldSwapchain, nullptr);
     }
 
-    // Store for later reference
-    /* mSwapchainFormat = surfaceFormat.format; */
+
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.waitSemaphoreCount = 1;                                       	 // Number of semaphores to wait on
+    /* presentInfo.pWaitSemaphores = waitSemaphore; // semaphore to wait on */
+    // // FIXME probaly not the semaphore we want
+    // VkSemaphore waitSemapore = mImmediateCommands.acquireLastSubmitSemaphore();  // semaphore to wait on
+    /* VkSemaphore waitSemapore = IcmdBuffer.semaphore; */
+    presentInfo.swapchainCount = 1;                                           // number of swapchains to present to
+    presentInfo.pSwapchains = &mSwapchain;                      // swapchain to present images to
+
+    // TODO place in function along with other init detailed stuff
+    mColorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+    mColorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    mColorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+    mColorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+    mRenderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+    // TODO have swapchain dims available locally (and different from window dims in some cases)
+    mRenderInfo.renderArea = VkRect2D{ VkOffset2D{0, 0}, FcLocator::ScreenDims() };
+    mRenderInfo.layerCount = 1;
+    mRenderInfo.colorAttachmentCount = 1;
+    mRenderInfo.pColorAttachments = &mColorAttachment;
+    mRenderInfo.pDepthAttachment = nullptr;
+    mRenderInfo.pStencilAttachment = nullptr;
 
     // determine the actual amount of buffers we were able to aquire and notify if different than requested
     uint32_t swapchainImageCount;
@@ -160,11 +184,12 @@ namespace fc
     for (sizeT i = 0; i < mSwapchainImages.size(); ++i)
     {
       char debugName[256];
-      snprintf(debugName, sizeof(debugName) - 1, "Semaphore: mAcquireSemaphore[%u]", i);
+      snprintf(debugName, strlen(debugName), "Semaphore: mAcquireSemaphore[%u]", i);
       mAcquireSemaphore[i] = createSemaphore(pGpu->getVkDevice(), debugName);
 
       //  TODO look into strlen instead of sizeof etc.
-      snprintf(debugName, sizeof(debugName) - 1, "Fence: mAcquireFence[%u]            ", i);
+      // create the fence that makes sure the draw commands of a a given frame is finished
+      snprintf(debugName, strlen(debugName), "Fence: mAcquireFence[%u]            ", i);
       mAcquireFence[i] = createFence(pGpu->getVkDevice(), true, debugName);
     }
 
@@ -378,6 +403,7 @@ namespace fc
   }
 
 
+  //
   // TODO move to renderpass builder
   VkFormat  FcSwapChain::chooseSupportedFormat(const std::vector<VkFormat>& formats
                                                , VkImageTiling tiling, VkFormatFeatureFlags featureFlags)
@@ -408,24 +434,7 @@ namespace fc
   }
 
 
-// TODO older method move or delete
-  // void FcSwapChain::createDepthBufferImage()
-  // {
-  //    // create an ordered list of formats with higher prioritization at the front of list
-  //   std::vector<VkFormat> formats{VK_FORMAT_D32_SFLOAT
-  //                               , VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT};
-
-  //   VkFormat depthFormat = chooseSupportedFormat(formats, VK_IMAGE_TILING_OPTIMAL
-  //                                                , VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
-
-  //    // create depth buffer image
-  //   mDepthBufferImage.create(mSurfaceExtent.width, mSurfaceExtent.height, depthFormat, ImageTypes::Custom
-  //                            , VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
-  //                            , VK_IMAGE_ASPECT_DEPTH_BIT, pGpu->Properties().maxMsaaSamples);
-  // }
-
-
-
+  //
   // No longer needed in Vulkan 1.3 but but left in for devices that don't support dynamic rendering
   void FcSwapChain::createRenderPass(FcConfig& config)
   {
@@ -589,34 +598,15 @@ namespace fc
     // execute a copy from the draw image into the swapchain
     getFrameTexture().copyFromImage(cmd, &drawImage);
 
-    // now transition swapchain image layout to attachment optimal so we can directly draw into it
-    transitionImage(cmd, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-
-    //
-    FcLocator::Renderer().drawImGui(cmd, getFrameTexture().ImageView());
-
     // finally transition the swapchain image into presentable layout so we can present to surface
-    transitionImage(cmd, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+    transitionImage(cmd, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
-    const u64 signalValue = mCurrentFrame + imageCount();
-
-    // DELETE
-    u32 deleteThisNum = getCurrentBufferIndex();
+    // TODO decouple
     VkSemaphore waitSemaphore = FcLocator::Renderer().mImmediateCommands.acquireLastSubmitSemaphore();
 
-
     // 3. present image to screen when it has signalled finished rendering
-    VkPresentInfoKHR presentInfo = {};
-    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    presentInfo.waitSemaphoreCount = 1;                                       	 // Number of semaphores to wait on
-    /* presentInfo.pWaitSemaphores = waitSemaphore; // semaphore to wait on */
-    // // FIXME probaly not the semaphore we want
-    // VkSemaphore waitSemapore = mImmediateCommands.acquireLastSubmitSemaphore();  // semaphore to wait on
-    /* VkSemaphore waitSemapore = IcmdBuffer.semaphore; */
-    presentInfo.pWaitSemaphores = &waitSemaphore;  // semaphore to wait on
-    presentInfo.swapchainCount = 1;                                           // number of swapchains to present to
-    presentInfo.pSwapchains = &mSwapchain;                      // swapchain to present images to
-    presentInfo.pImageIndices = &deleteThisNum;                         //index of images in swapchains to present
+    presentInfo.pWaitSemaphores = &waitSemaphore; // semaphore to wait on
+    presentInfo.pImageIndices = &mCurrentBufferIndex; //index of image in swapchains to present
 
     VkResult result = vkQueuePresentKHR(pGpu->presentQueue(), &presentInfo);
 
@@ -639,9 +629,9 @@ namespace fc
 
 
   //
-  void FcSwapChain::getCurrentFrame()
+  void FcSwapChain::acquireCurrentFrame()
   {
-        // TODO try to remove this check
+    // TODO try to remove this check
     if (mGetNextImage)
     {
       VkDevice pDevice = FcLocator::Device();
@@ -649,6 +639,7 @@ namespace fc
       const VkSemaphoreWaitInfo waitInfo = {
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO
       , .semaphoreCount = 1
+      // TODO get uncouple
       , .pSemaphores = &FcLocator::Renderer().mTimelineSemaphore
       , .pValues = &FcLocator::Renderer().mTimelineWaitValues[mCurrentBufferIndex]
       };
@@ -667,26 +658,11 @@ namespace fc
 
       VkSemaphore acquireSemaphore = mAcquireSemaphore[mCurrentBufferIndex];
 
-      // FIXME this may not be the semaphore we're seeking
-      /* VkSemaphore imageAvailableSemaphore = mImmediateCommandsf.acquireLastSubmitSemaphore(); */
-      /* mCurrentCommandBuffer = mImmediateCommandsf.acquire(); */
-      /* const CommandBufferWrapper& wrapper = mImmediateCommandsf.acquire(); */
-
-      /* curWrap = &wrapper; */
-      // don't keep adding images to the queue or commands to the buffer until last draw has finished
-
-      // FIXME
-      /* vkWaitForFences(pDevice, 1, &getCurrentFrame().renderFence, VK_TRUE, U64_MAX); */
-      /* vkWaitForFences(pDevice, 1, &wrapper.fence, VK_TRUE, U64_MAX); */
-
       // delete any per frame resources no longer needed now the that frame has finished rendering
       // ?? this seems to be the wrong location for this, just by observation: test
       // getCurrentFrame().janitor.flush();
 
       // 1. get the next available image to draw to and set to signal the semaphore when we're finished with it
-
-      /* VkSemaphore swapSemaphore = wrapper.semaphore; */
-
       VkResult result = vkAcquireNextImageKHR(pDevice, mSwapchain, U64_MAX
                                               , acquireSemaphore
                                               , acquireFence
@@ -707,33 +683,12 @@ namespace fc
 
       FcLocator::Renderer().mImmediateCommands.waitSemaphore(acquireSemaphore);
     }
-
-
-    // TODO do we need to update the current buffer index
-
-
     // manully un-signal (close) the fence ONLY when we are sure we're submitting work (result == VK_SUCESS)
     /* vkResetFences(pDevice, 1, &getCurrentFrame().renderFence); */
-
-    // ?? don't think we need this assert since we use semaphores and fences
-    // assert(!mIsFrameStarted && "Can't call recordCommands() while frame is already in progress!");
-
-    // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROM OLD METHOD   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
-    // TODO would this make more sense to relocate to window resize?
-    // ?? also, what are the costs associated with having dynamic states
-    // make sure our dynamic viewport and scissors are set properly (if resizing the window etc.)
-    // mDynamicViewport.width = static_cast<uint32_t>(mSwapchain.getSurfaceExtent().width);
-// mDynamicViewport.height = static_cast<uint32_t>(mSwapchain.getSurfaceExtent().height);
-    // mDynamicScissors.extent = mSwapchain.getSurfaceExtent();
-    //  //
-    // vkCmdSetViewport(commandBuffer, 0, 1, &mDynamicViewport);
-    // vkCmdSetScissor(commandBuffer, 0, 1, &mDynamicScissors);
   }
 
 
-
-
+  //
   // Partially free of swapchain resources -- used when resizing the window and recreating swapchain
   void FcSwapChain::clearSwapChain()
   {
@@ -754,7 +709,7 @@ namespace fc
     fcPrintEndl("calling: FcSwapChain::destroy");
 
     // destroy the render pass
-    vkDestroyRenderPass(pGpu->getVkDevice(), mRenderPass, nullptr);
+    /* vkDestroyRenderPass(pGpu->getVkDevice(), mRenderPass, nullptr); */
 
     clearSwapChain();
 

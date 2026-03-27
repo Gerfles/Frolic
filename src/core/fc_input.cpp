@@ -29,12 +29,15 @@ namespace fc
     p_text = NULL;
   }
 
+
+  //
   bool FcInput::mouseInWindow()
   {
     return (SDL_GetMouseFocus() == pWindow);
   }
 
 
+  //
   void FcInput::setMouseDeadzone(int radiusInPixels, int screenWidth, int screenHeight)
   {
     mDeadzoneRadius = radiusInPixels;
@@ -42,6 +45,8 @@ namespace fc
     mCenterY = screenHeight / 2;
   }
 
+
+  //
   void FcInput::update()
   {
      // get the current state of all the keys on keyboard
@@ -75,6 +80,7 @@ namespace fc
   }
 
 
+  //
   void FcInput::receiveEvent(SDL_Event &event)
   {
     // make sure we have established a string to write to
@@ -109,6 +115,7 @@ namespace fc
   }
 
 
+  //
   void FcInput::enableTextInput(std::string* text)
   {
      // point the text update to the string we need to alter
@@ -117,6 +124,7 @@ namespace fc
   }
 
 
+  //
   int FcInput::textInputStatus()
   {
      // if no more text to render
@@ -140,6 +148,7 @@ namespace fc
   }
 
 
+  //
   void FcInput::kill()
   {
     m_hasTextUpdated = false;
@@ -147,7 +156,7 @@ namespace fc
   }
 
 
-
+  //
   //TODO change all safety checks to asserts
   bool FcInput::keyDown(int key)
   {
@@ -159,6 +168,7 @@ namespace fc
   }
 
 
+  //
   bool FcInput::keyHit(int key)
   {
     if (key < 0 || key > SDL_NUM_SCANCODES)
@@ -169,6 +179,7 @@ namespace fc
   }
 
 
+  //
   bool FcInput::keyUp(int key)
   {
     if (key < 0 || key > SDL_NUM_SCANCODES)
@@ -179,6 +190,7 @@ namespace fc
   }
 
 
+  //
   bool FcInput::mouseDown(int key)
   {
     if (key < 0 || key > 3)
@@ -189,6 +201,7 @@ namespace fc
   }
 
 
+  //
   bool FcInput::mouseHit(int key)
   {
     if (key < 0 || key > 3)
@@ -198,6 +211,8 @@ namespace fc
     return (mouseKeys[key] && !prevMouseKeys[key]);
   }
 
+
+  //
   bool FcInput::mouseUp(int key)
   {
     if (key < 0 || key > 3)
@@ -207,6 +222,8 @@ namespace fc
     return (prevMouseKeys[key] && !mouseKeys[key]);
   }
 
+
+  //
   // Not relative in the sense that we're finding the delta for mouse movement but
   // rather that we're returning the position relative to the deadzone
   void FcInput::RelativeMousePosition(int &mouseX, int &mouseY)
@@ -243,14 +260,14 @@ namespace fc
   }
 
 
-
+  //
   void FcInput::setMousePos(int x, int y)
   {
     SDL_WarpMouseInWindow(pWindow, x, y);
   }
 
 
-
+  //
   void FcInput::hideCursor(bool hide)
   {
     (hide) ? SDL_ShowCursor(SDL_DISABLE) : SDL_ShowCursor(SDL_ENABLE);

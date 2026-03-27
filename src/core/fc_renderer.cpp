@@ -10,7 +10,7 @@
 #include "fc_cvar_system.hpp"
 #include "utilities.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include <SDL_events.h>
+/* #include <SDL_events.h> */
 #include <SDL2/SDL_vulkan.h>
 #include <SDL2/SDL_log.h>
 #include <SDL_version.h>
@@ -38,40 +38,11 @@ namespace fc
 
   int FcRenderer::init(FcConfig& config, SceneDataUbo** pSceneData)
   {
-    // TODO make this (try) more robust
+    // TODO make this (try) more robust and add try catch blocks to all non-rendering functions
     try
     {
-      mWindow.initWindow(config);
-
-      // Application Specs for developer use
-      VkApplicationInfo appInfo{};
-      appInfo.sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-      appInfo.pApplicationName   = config.applicationName.c_str();
-      appInfo.applicationVersion = VK_MAKE_VERSION(config.appVersionMajor,
-                                                   config.appVersionMinor,
-                                                   config.appVersionPatch);
-      appInfo.pEngineName        = "Frolic Engine";
-      appInfo.engineVersion      = VK_MAKE_VERSION(1, 0, 0);
-      // Make sure we let vulkan know which version we intend to use
-      appInfo.apiVersion         = VK_API_VERSION_1_3;
-
-      // First we need a vulkan instance to do anything else
-      createInstance(appInfo, config);
-
-      SDL_version compiled;
-      SDL_VERSION(&compiled);
-
-      SDL_version linked;
-      SDL_GetVersion(&linked);
-      // Pring version info
-      fcPrintEndl("SDL version(s): %u.%u.%u (compiled),  %u.%u.%u. (linked)\n",
-                  compiled.major, compiled.minor, compiled.patch, linked.major, linked.minor, linked.patch);
-
-      // create the surface (interface between Vulkan and window (SDL))
-      mWindow.createWindowSurface(mInstance);
-
       // retrieve the physical device then create the logical device to interface with GPU & command pool
-      if ( !mGpu.init(mInstance, config))
+      if ( !mGpu.init(FcLocator::vkInstance(), config))
       {
         throw std::runtime_error("Failed to initialize GPU device!");
       }
@@ -101,10 +72,16 @@ namespace fc
       //
       descClerk->initDescriptorPools(1024, poolRatios);
 
-      initDrawImage();
+      // Used to match our draw images to the window extent
+      VkExtent2D screenSize = config.getWindowPtr()->ScreenSize();
 
-      // create the command pool for later allocating command from. Also create the command buffers
-      createCommandPools();
+      // Initialize our draw image
+      mDrawImage.createImage(screenSize.width,
+                             screenSize.height, FcImageTypes::ScreenBuffer);
+
+      // Initialize our depth image (z buffer)
+      mDepthImage.createImage(screenSize.width, screenSize.height
+                              ,FcImageTypes::DepthBuffer);
 
       // create the graphics pipeline && create/attach descriptors create the uniform
       // buffers & initialize the descriptor sets that tell the pipeline about our uniform
@@ -112,41 +89,19 @@ namespace fc
       // TODO rename from create to init maybe
       // TODO determine is descriptorclerk should be a local variable or heap variable as is
 
-      initImgui(swapchainImageFormat);
+      //
+      initImgui(swapchainImageFormat, config);
 
-      // create the command buffers& command Pool
-      //mPipeline.createUniformBuffers(&mGpu, mSwapchain, sizeof(UboViewProjection));
-      // setup draw
-      //mPipeline.createDescriptorPool();
-      //mPipeline.createDescriptorSets();
+      // create timeline semaphore
+      mTimelineSemaphore = createTimelineSemaphore(pDevice,
+                                                   mSwapchain.imageCount() - 1,
+                                                   "Semaphore: mTimelineSemaphore");
 
-      // synchronize the commandbuffers and swapchain
-      createSynchronization();
-      // VulkanImmediateCommands sync {mGpu.getVkDevice()
-      //                             , mGpu.getQueues().graphicsFamily
-      //                             , "SYNC"
-      // };
-
-
-
-      // NEW
+      //
       mImmediateCommands.init(pDevice, mGpu.getQueues().graphicsFamily, "SYNC");
 
       //
       FcLocator::provide(&mJanitor);
-
-
-      // initialze the dynamic mDynamicViewport and mDynamicScisors
-      mDynamicViewport.x = 0;
-      mDynamicViewport.y = 0;
-      mDynamicViewport.width = mDrawExtent.width;
-      mDynamicViewport.height = mDrawExtent.height;
-      mDynamicViewport.minDepth = 0.0f;
-      mDynamicViewport.maxDepth = 1.0f;
-
-      mDynamicScissors.offset = {0, 0};
-      mDynamicScissors.extent.width = mDrawExtent.width;
-      mDynamicScissors.extent.height = mDrawExtent.height;
 
       // *-*-*-*-*-*-*-*-*-*-*-*-   FRAME DATA INITIALIZATION   *-*-*-*-*-*-*-*-*-*-*-*- //
       mSceneDataBuffer.allocate(sizeof(SceneDataUbo), FcBufferTypes::Uniform);
@@ -178,6 +133,7 @@ namespace fc
                                          sceneDescriptorBinding);
       }
 
+      // Initialize all the default textures/samplers/etc. to use in places where they are not imported
       FcDefaults::init(pDevice);
 
       // *-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE RESOURCE POOLS   *-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -196,11 +152,55 @@ namespace fc
     return EXIT_SUCCESS;
   }
 
+
+  //
   // TODO could pass pScene data here but probably better to just include this in mRenderer.init()
   void FcRenderer::initDefaults()//FcBuffer& sceneDataBuffer, SceneDataUbo* sceneData)
   {
-    mShadowMap.init(mFrames);
+    // TODO place in function along with other init detailed stuff
+    mColorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+    mColorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    // using LOAD_OP_DONT_CARE here since we know the entire image will be written over
+    mColorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    mColorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
+    // Depth image attachment info for drawing into the z-buffer
+    mDepthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+    mDepthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+    mDepthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    mDepthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    mDepthAttachment.clearValue.depthStencil.depth = 0.f;
+    mDepthAttachment.imageView = mDepthImage.ImageView();
+
+    // TODO create a function for allowing viewport and scisors to change
+    // TODO have swapchain dims available locally (and different from window dims in some cases)
+    // TODO provide for these to change if VK_ERROR_OUT_OF_DATE_KHR, etc.
+    VkExtent2D drawExtent;
+    drawExtent.height = std::min(FcLocator::ScreenDims().height, mDrawImage.Height());
+    drawExtent.width = std::min(FcLocator::ScreenDims().width, mDrawImage.Width());
+
+    //
+    mRenderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+    mRenderInfo.renderArea = VkRect2D{VkOffset2D{0, 0}, drawExtent};
+    mRenderInfo.layerCount = 1;
+    mRenderInfo.colorAttachmentCount = 1;
+    mRenderInfo.pColorAttachments = &mColorAttachment;
+
+    // initialze the dynamic Viewport
+    mDynamicViewport.x = 0;
+    mDynamicViewport.y = 0;
+    mDynamicViewport.width = drawExtent.width;
+    mDynamicViewport.height = drawExtent.height;
+    mDynamicViewport.minDepth = 0.0f;
+    mDynamicViewport.maxDepth = 1.0f;
+
+    // initialze the dynamic scissors
+    mDynamicScissors.offset = {0, 0};
+    mDynamicScissors.extent.width = mDynamicViewport.width;
+    mDynamicScissors.extent.height = mDynamicViewport.height;
+
+    //
+    mShadowMap.init(mFrames);
     mTerrain.init("..//maps/terrain_heightmap_r16.ktx2");
 
     // FIXME should be able to load any kind of terrain map
@@ -242,7 +242,7 @@ namespace fc
 
 
   //
-  void FcRenderer::initImgui(VkFormat swapchainFormat)
+  void FcRenderer::initImgui(VkFormat swapchainFormat, FcConfig& config)
   {
     // Create the descriptor pool for IMGUI
     // probably oversized, doesn't seem to be in any imgui demo that was mentioned
@@ -285,7 +285,7 @@ namespace fc
     ImGui::StyleColorsDark();
 
     // initialize Platform / Renderer backends
-    if (!ImGui_ImplSDL2_InitForVulkan(mWindow.SDLwindow()))
+    if (!ImGui_ImplSDL2_InitForVulkan(config.getWindowPtr()->SDLwindow()))
     {
       throw std::runtime_error("Failed to initialize ImGui within SDL2");
     }
@@ -298,7 +298,7 @@ namespace fc
     pipelineRenderingInfo.pColorAttachmentFormats = &swapchainFormat;
 
     ImGui_ImplVulkan_InitInfo imGuiInfo{};
-    imGuiInfo.Instance = mInstance;
+    imGuiInfo.Instance = FcLocator::vkInstance();
     imGuiInfo.PhysicalDevice = mGpu.physicalDevice();
     imGuiInfo.Device = mGpu.getVkDevice();
     imGuiInfo.Queue = mGpu.graphicsQueue();
@@ -325,154 +325,7 @@ namespace fc
 
 
   //
-  void FcRenderer::createInstance(VkApplicationInfo& appInfo, FcConfig& config)
-  {
-    // First determine all the extensions needed for SDL to run Vulkan instance
-    // uint32_t sdlExtensionCount = 0;
-    // SDL_Vulkan_GetInstanceExtensions(mWindow.SDLwindow(), &sdlExtensionCount, nullptr);
-    // std::vector<const char*> extensions(sdlExtensionCount);
-    // SDL_Vulkan_GetInstanceExtensions(mWindow.SDLwindow(), &sdlExtensionCount, extensions.data());
-
-    // Include debug utilities only when required
-#ifndef NDEBUG
-    config.addInstanceExtension(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-#endif
-
-    // Not working for now
-    // if (enableValidationLayers)
-    // {
-    //   config.addInstanceExtension(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME);
-    // }
-
-    // Define a Create struct to initialize the vulkan instance
-    VkInstanceCreateInfo instanceInfo{};
-
-    // TODO change to platform dependent evaluation may not be needed with the above calls to SDL
-#if defined (__APPLE__)
-    // Only seems to be required for macOS implementation and only when validation layers added
-    config.addInstanceExtension("VK_KHR_get_physical_device_properties2");
-    config.addInstanceExtension("VK_KHR_portability_enumeration");
-    instanceInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
-#endif
-
-    // TODO swap out names above
-    config.addInstanceExtension(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-
-    // if (config.isExtendedSwapchainColorSpaceEnabled())
-    // config.addInstanceExtension(VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME);
-
-    // TODO investigate why not available on linux
-    /* config.addInstanceExtension(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME); */
-
-    // TODO LOG the required and found extensions and provide alternate paths if extension unavailable
-    FC_ASSERT(config.areInstanceExtensionsSupported());
-
-    instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    instanceInfo.pApplicationInfo = &appInfo;
-    instanceInfo.enabledExtensionCount = config.getInstanceExtensionCount();
-    instanceInfo.ppEnabledExtensionNames = config.getInstanceExtensions();
-    instanceInfo.enabledLayerCount = config.getValidationLayerCount();
-    instanceInfo.ppEnabledLayerNames = config.getValidationLayers();
-    instanceInfo.pNext = config.getValidationLayerSettings();
-
-    // Finally, call the vulkan function to create vulkan instance instance
-    VK_ASSERT(vkCreateInstance(&instanceInfo, nullptr, &mInstance));
-
-    // Give our instance handle to FcLocator to use with pointers to functions for Vulkan extensions etc.
-    FcLocator::provide(mInstance);
-  }  // END void FcRenderer::createInstance(...)
-
-
-  //
-  void FcRenderer::initDrawImage()
-  {
-    // Match our draw image to the window extent
-    mDrawImage.createImage(mWindow.ScreenSize().width,
-                           mWindow.ScreenSize().height, FcImageTypes::ScreenBuffer);
-
-    // Create depth image (z buffer)
-    mDepthImage.createImage(mWindow.ScreenSize().width, mWindow.ScreenSize().height
-                       ,FcImageTypes::DepthBuffer);
-
-    // TODO provide for these to change if VK_ERROR_OUT_OF_DATE_KHR, etc.
-    mDrawExtent.height = std::min(mWindow.ScreenSize().height, mDrawImage.Height());
-    mDrawExtent.width = std::min(mWindow.ScreenSize().width, mDrawImage.Width());
-
-    // TODO create a function for allowing viewport and scisors to change
-    // initialze the dynamic mDynamicViewport and mDynamicScisors
-    mDynamicViewport.x = 0;
-    mDynamicViewport.y = 0;
-    mDynamicViewport.width = mDrawExtent.width;
-    mDynamicViewport.height = mDrawExtent.height;
-    mDynamicViewport.minDepth = 0.0f;
-    mDynamicViewport.maxDepth = 1.0f;
-
-    mDynamicScissors.offset = {0, 0};
-    mDynamicScissors.extent.width = mDrawExtent.width;
-    mDynamicScissors.extent.height = mDrawExtent.height;
-  }
-
-  // create the command buffers and command pools
-  // TODO make two separate functions, one for pool creation, one for command buffer allocation
-  void FcRenderer::createCommandPools()
-  {
-    // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FOR EACH FRAME   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    VkCommandPoolCreateInfo commandPoolInfo = {};
-    commandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    commandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    commandPoolInfo.pNext = nullptr;
-    commandPoolInfo.queueFamilyIndex = mGpu.getQueues().graphicsFamily;
-
-    // Allocate the default command buffer that we will use for rendering
-    VkCommandBufferAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = 1;
-
-    // To support mult-threading, we need to add multiple command pools
-    for (FrameAssets &frame : mFrames)
-    {
-      // TRY DELETE
-      // VK_ASSERT(vkCreateCommandPool(pDevice, &commandPoolInfo, nullptr, &frame.commandPool));
-
-      // // allocate command buffer from pool
-      // allocInfo.commandPool = frame.commandPool;
-      // VK_ASSERT(vkAllocateCommandBuffers(pDevice, &allocInfo, &frame.commandBuffer));
-    }
-
-    // TODO remove (in favor of VulkanImmediateCommands class)
-    // // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   GENERAL USE (IMMEDIATE)  -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    // // allocate command pool for general renderer use
-    // VK_ASSERT(vkCreateCommandPool(pDevice, &commandPoolInfo, nullptr, &mImmediateCommandPool));
-
-    // // TODO try to create multiple command buffers for specific tasks that we can reuse...
-    // // Allocate command buffer for immediate commands (ie. transitioning images/buffers to GPU)
-    // allocInfo.commandPool = mImmediateCommandPool;
-
-    // VK_ASSERT(vkAllocateCommandBuffers(pDevice, &allocInfo, &mImmediateCmdBuffer));
-
-  } // --- FcRenderer::createCommandPools (_) --- (END)
-
-
-  // TODO stage beginInfo, submit info, etc.
-  // TODO SHOULD speed this up would by running on different queue than graphics queue so
-  // we could overlap the execution from this with the main render loop
-  // VkCommandBuffer FcRenderer::beginCommandBuffer()
-  // {
-
-  //   vkResetFences(pDevice, 1, &mImmediateFence);
-
-  //   // information to be the command buffer record
-  //   VkCommandBufferBeginInfo beginInfo{};
-  //   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-  //   beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT; // becomes invalid after submit
-
-  //   // begin recording transfer commands
-  //   vkBeginCommandBuffer(mImmediateCmdBuffer, &beginInfo);
-
-  //   // return commandBuffer;
-  //   return mImmediateCmdBuffer;
-  // }
+  // TODO try to create multiple command buffers for specific tasks that we can reuse...
   const CommandBufferWrapper& FcRenderer::beginCommandBuffer()
   {
     /* fcPrintEndl("Acquiring command buffer"); */
@@ -482,26 +335,7 @@ namespace fc
   }
 
 
-  // void FcRenderer::submitCommandBuffer()
-  // {
-  //   // End commands
-  //   vkEndCommandBuffer(mImmediateCmdBuffer);
-
-  //   VkCommandBufferSubmitInfo cmdBufferSubmitInfo = {};
-  //   cmdBufferSubmitInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
-  //   cmdBufferSubmitInfo.commandBuffer = mImmediateCmdBuffer;
-
-  //   // Queue submission information
-  //   VkSubmitInfo2 submitInfo{};
-  //   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
-  //   submitInfo.commandBufferInfoCount = 1;
-  //   submitInfo.pCommandBufferInfos = &cmdBufferSubmitInfo;
-
-  //   // Submit the command buffer to the queue
-  //   VK_ASSERT(vkQueueSubmit2(mGpu.graphicsQueue(), 1, &submitInfo, mImmediateFence));
-
-  //   vkWaitForFences(pDevice, 1, &mImmediateFence, true, U64_MAX);
-  // }
+  // FIXME
   void FcRenderer::submitCommandBuffer(const CommandBufferWrapper& wrapper)
   {
     // const bool shouldPresent = hasSwapChain() && present;
@@ -540,46 +374,39 @@ namespace fc
     mSceneData.lighSpaceTransform = clip * mShadowMap.LightSpaceMatrix();
     mSceneDataBuffer.write(&mSceneData, sizeof(SceneDataUbo));
 
-    // angle = rotationSpeed * 0.001f;
-    // glm::vec3 rotationAxis = {0.f, -1.f, 0.f};
-
-
-    // helmet.rotateInPlace(angle, rotationAxis);
-    // /* structure2.rotateInPlace(angle, rotationAxis); */
-
-
     // // TODO could flag draw collection items with nodes that "know" they need to be updated
     // // then draw collection could do all the updating in one go.
-    // helmet.update();
-    // /* structure2.update(mDrawCollection); */
-
 
     // TODO
     // could update frustum by sending camera in and then could in turn be sent to
     // various rendering methods
     mFrustum.update(mSceneData.viewProj);
-    /* mFrustum.normalize(); */
+    mFrustum.normalize();
     mTerrain.update(mFrustum);
 
     // Update sceneUpdate time in ms
-    mDrawCollection.stats.sceneUpdateTime = mTimer.elapsedTime();
+    mDrawCollection.stats.sceneUpdateTime = mTimer.elapsedTime() * 1000;
   }
 
 
   //
-  void FcRenderer::drawFrame()
+  void FcRenderer::beginFrame()
   {
-    // reset counters
+    // call to update scene immediately (before waiting on fences)
+    // TODO remove from drawframe and place in frolic
+    updateScene();
+
+    mSwapchain.acquireCurrentFrame();
+
+    // TODO fix command buffer stuff (Icommand buffer etc...)
+    mCurrentCommandBuffer = CommandBuffer(this);
+
+    // reset counters and frame clock
     mDrawCollection.stats.objectsRendered = 0;
     mDrawCollection.stats.triangleCount = 0;
-    // begin clock
     mTimer.start();
 
-    FrameAssets& currentFrame = getCurrentFrame();
 
-    // TRY DELETE
-    /* VkCommandBuffer cmd = currentFrame.commandBuffer; */
-    /* const CommandBufferWrapper& cmd = FcLocator::Renderer().beginCommandBuffer(); */
 
     // transition draw image from undefined layout to best format we can draw to
     mDrawImage.transitionLayout(mCurrentCommandBuffer, VK_IMAGE_LAYOUT_UNDEFINED,
@@ -590,42 +417,31 @@ namespace fc
     //
     mShadowMap.generateMap(mCurrentCommandBuffer, mDrawCollection);
 
-    // TODO extract into builder...
-    // begin a render pass connected to our draw image
-    VkRenderingAttachmentInfo colorAttachment{};
-    colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-    colorAttachment.imageView = mDrawImage.ImageView();
-    colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    //		colorAttachment.loadOp = clear ? VK_ATTACHMENT_LOAD_OP_CLEAR :
-    //VK_ATTACHMENT_LOAD_OP_LOAD;
 
-    // TODO Should use LOAD_OP_DONT_CARE here if we know the entire image will be written over
-    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
-    // depth
-    VkRenderingAttachmentInfo depthAttachment{};
-    depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-    depthAttachment.imageView = mDepthImage.ImageView();
-    depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-    depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    depthAttachment.clearValue.depthStencil.depth = 0.f;
+// load the color attachment and depth attachment to our draw image and depth image
+    mColorAttachment.imageView = mDrawImage.ImageView();
 
-    //
-    VkRenderingInfo renderInfo{};
-    renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-    renderInfo.renderArea = VkRect2D{VkOffset2D{0, 0}, mDrawExtent};
-    renderInfo.layerCount = 1;
-    renderInfo.colorAttachmentCount = 1;
-    renderInfo.pColorAttachments = &colorAttachment;
-    renderInfo.pDepthAttachment = &depthAttachment;
-    renderInfo.pStencilAttachment = nullptr;
 
-    vkCmdBeginRendering(mCurrentCommandBuffer, &renderInfo);
+    // Attach depthImage to the previously null render info
+    mRenderInfo.pDepthAttachment = &mDepthAttachment;
+
+
+
+    vkCmdBeginRendering(mCurrentCommandBuffer, &mRenderInfo);
 
     vkCmdSetViewport(mCurrentCommandBuffer, 0, 1, &mDynamicViewport);
     vkCmdSetScissor(mCurrentCommandBuffer, 0, 1, &mDynamicScissors);
+
+
+  }
+
+
+
+  //
+  void FcRenderer::drawFrame()
+  {
+    FrameAssets& currentFrame = getCurrentFrame();
 
     // TODO implement without branches
     bool* shouldDrawShadowMap = CVarSystem::Get()->GetBoolCVar("shouldDrawShadowMap.bool");
@@ -654,9 +470,9 @@ namespace fc
       // TODO extrapolate functionality to frolic.cpp or cartridge
       // TODO have safegaurd for when the surface at index does not exist
       // only draw terrain when outside of building
-      // const FcSurface& building = mDrawCollection.getSurfaceAtIndex(32);
-      // // if (camera.isInside(building))...
-      // if (building.isInBounds(mSceneData.eye))
+      const FcSubmesh& building = mDrawCollection.getSurfaceAtIndex(32);
+      // if (camera.isInside(building))...
+      if (building.isInBounds(mSceneData.eye))
       {
         mTerrain.draw(mCurrentCommandBuffer, mSceneData, shouldDrawWireframe);
       }
@@ -670,12 +486,65 @@ namespace fc
 
     vkCmdEndRendering(mCurrentCommandBuffer);
 
+
+    // FIXME this should signal our timeline semaphore
+    //const u64 signalValue = mCurrentFrame + imageCount();
+
+    // now that we have finished drawing to our internal draw image, copy to swapchain and present
+    mSwapchain.present(mDrawImage, mCurrentCommandBuffer);
+
+    // Convert elapsed time to milliseconds
+    mDrawCollection.stats.meshDrawTime = mTimer.elapsedTime() * 1000;
+  }
+
+
+  //
+  void FcRenderer::drawImGui()
+  {
+    mColorAttachment.imageView = mSwapchain.getFrameTexture().ImageView();
+
+    // Remove the previously connected depth attachment from the render info (since ImGui doesn't need it)
+    mRenderInfo.pDepthAttachment = nullptr;
+
+    VkCommandBuffer cmd = mCurrentCommandBuffer.mWrapper->cmdBuffer;
+
+    // Start rendering for GUI
+    vkCmdBeginRendering(cmd, &mRenderInfo);
+
+    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
+
+    vkCmdEndRendering(cmd);
+  }
+
+
+  //
+  void FcRenderer::endFrame()
+  {
+    mCurrentCommandBuffer.mLastSubmitHandle = mImmediateCommands.submit(*mCurrentCommandBuffer.mWrapper);
+
+    // Try and delete some of the buffers we created along the way (staging buffers, etc.)
+    mJanitor.flushBuffers();
+
     // TODO call to resource manager Update(). Do any texture uploads along with deletions...
     // ?? For now update bindless textures here, after the rendering with textures has ended
     // TRY to relocate to a more descriptive/intuitive location if possible
     if (mDrawCollection.bindlessTextureUpdates.size())
     {
-      // Handle deferred writes to bindless textures
+      updateBindlessDescriptors();
+    }
+
+    // TODO eliminate mFrameNumber from renderer -> swapchain already contains this
+    // get next frame (use % MAX_FRAME_DRAWS to keep value below the number of frames we have in flight
+    // increase the number of frames drawn
+    mFrameNumber++;
+    mDrawCollection.stats.frame = mFrameNumber;
+  }
+
+
+  //
+  void FcRenderer::updateBindlessDescriptors()
+  {
+    // Handle deferred writes to bindless textures
       // TODO probably should define these as vectors of size bindlessTextureUpdates.size()
       VkWriteDescriptorSet bindlessDescriptorWrites[MAX_BINDLESS_RESOURCES];
       VkDescriptorImageInfo bindlessImageInfos[MAX_BINDLESS_RESOURCES];
@@ -740,266 +609,15 @@ namespace fc
       {
         vkUpdateDescriptorSets(pDevice, currentWriteIndex, bindlessDescriptorWrites, 0, nullptr);
       }
-    }
-
-    // ?? elapsed time should already be in ms
-    mDrawCollection.stats.meshDrawTime = mTimer.elapsedTime() * 1000;
-  }
-
-
-
-  void FcRenderer::drawImGui(VkCommandBuffer cmd, VkImageView targetImageView)
-  {
-    VkRenderingAttachmentInfo colorAttachment{};
-    colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-    colorAttachment.imageView = targetImageView;
-    colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-
-    VkRenderingInfo renderInfo{};
-    renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-    renderInfo.renderArea = VkRect2D{ VkOffset2D{0, 0}, mWindow.ScreenSize() };
-    renderInfo.layerCount = 1;
-    renderInfo.colorAttachmentCount = 1;
-    renderInfo.pColorAttachments = &colorAttachment;
-    renderInfo.pDepthAttachment = nullptr;
-    renderInfo.pStencilAttachment = nullptr;
-
-    // TODO eliminate separate calls to beging/end
-    vkCmdBeginRendering(cmd, &renderInfo);
-
-    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
-
-    vkCmdEndRendering(cmd);
   }
 
 
   //
-  // Create the Synchronization structures used in rendering each frame
-  void FcRenderer::createSynchronization()
-  {
-    // *-*-*-*-*-*-*-*-*-*-*-   FRAME COMMAND SYNCHRONIZATION   *-*-*-*-*-*-*-*-*-*-*- //
-    // mImageReadySemaphores.resize(MAX_FRAME_DRAWS);
-    // mRenderFinishedSemaphores.resize(MAX_FRAME_DRAWS);
-    // mDrawFences.resize(MAX_FRAME_DRAWS);
-
-    // semaphore creation information
-    VkSemaphoreCreateInfo semaphoreInfo{};
-    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-    // fence creation information
-    VkFenceCreateInfo fenceInfo{};
-    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    // we want this fence to start off signaled (open) so that it can go through the first draw function.
-    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-    for (FrameAssets &frame : mFrames)
-    {
-      // TRY DELETE
-      // // create 2 semaphores (one tells us the image is ready to draw to and one tells us when we're done drawing)
-      VK_ASSERT(vkCreateSemaphore(pDevice, &semaphoreInfo, nullptr, &frame.imageAvailableSemaphore));
-      VK_ASSERT(vkCreateSemaphore(pDevice, &semaphoreInfo, nullptr, &frame.renderFinishedSemaphore));
-
-      // // create the fence that makes sure the draw commands of a a given frame is finished
-      VK_ASSERT(vkCreateFence(pDevice, &fenceInfo, nullptr, &frame.renderFence));
-    }
-
-
-    // -*-*-*-*-*-*-*-*-*-*-*-*-   IMMEDIATE COMMAND SYNC   -*-*-*-*-*-*-*-*-*-*-*-*- //
-    /* VK_ASSERT(vkCreateFence(pDevice, &fenceInfo, nullptr, &mImmediateFence)); */
-
-    // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    // create timeline semaphore
-    mTimelineSemaphore = createTimelineSemaphore(pDevice, mSwapchain.imageCount() - 1, "Semaphore: mTimelineSemaphore");
-
-    // Create aquire semaphores and fences
-    // for (sizeT i = 0; i < mSwapchain.imageCount(); ++i)
-    // {
-    //   char debugName[256];
-    //   snprintf(debugName, sizeof(debugName) - 1, "Semaphore: mAcquireSemaphore[%u]", i);
-    //   mAcquireSemaphore[i] = createSemaphore(pDevice, debugName);
-
-    //   //  TODO look into strlen instead of sizeof etc.
-    //   snprintf(debugName, sizeof(debugName) - 1, "Fence: mAcquireFence[%u]            ", i);
-    //   mAcquireFence[i] = createFence(pDevice, true, debugName);
-    // }
-    // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
-  } // --- FcRenderer::createSynchronization (_) --- (END)
-
-  ICommandBuffer& FcRenderer::beginFrame()
-  {
-    // call to update scene immediately (before waiting on fences)
-    updateScene();
-
-    mSwapchain.getCurrentFrame();
-
-    mCurrentCommandBuffer = CommandBuffer(this);
-
-    // ?? probably don't need to return DELETE
-    return mCurrentCommandBuffer;
-  } // _END_ beginFrame()
-
-
-  // TODO fix nomenclature of currentFrame vs nextImageIndex
-  // void FcRenderer::endFrame(uint32_t swapchainImageIndex)
-  // {
-  //   // alias for brevity
-  //   VkCommandBuffer commandBuffer = getCurrentFrame().commandBuffer;
-
-  //   // now that the draw has been done to the draw image,
-  //   // transition it into transfer source layout so we can copy to the swapchain after
-  //   mDrawImage.transitionLayout(commandBuffer,
-  //                               VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-  //                               VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-
-  //   // transiton the swapchain so it can best accept an image being copied to it
-  //   mSwapchain.transitionImage(commandBuffer, swapchainImageIndex,
-  //                              VK_IMAGE_LAYOUT_UNDEFINED,
-  //                              VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-
-  //   // execute a copy from the draw image into the swapchain
-  //   mSwapchain.getFcImage(swapchainImageIndex).copyFromImage(commandBuffer, &mDrawImage);
-
-  //   // now transition swapchain image layout to attachment optimal so we can draw into it
-  //   mSwapchain.transitionImage(commandBuffer, swapchainImageIndex
-  //                              , VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
-  //                              , VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-  //   //
-  //   drawImGui(commandBuffer, mSwapchain.getFcImage(swapchainImageIndex).ImageView());
-
-  //   // finally transition the swapchain image into presentable layout so we can present to surface
-  //   mSwapchain.transitionImage(commandBuffer, swapchainImageIndex,
-  //                              VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-  //                              VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-
-  //   // stop recording to command buffer
-  //   VK_ASSERT(vkEndCommandBuffer(commandBuffer));
-
-  //   // prepare all the submit info for submiting commands to the queue
-  //   VkCommandBufferSubmitInfo cmdBufferSubmitInfo = {};
-  //   cmdBufferSubmitInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
-  //   cmdBufferSubmitInfo.commandBuffer = commandBuffer;
-
-  //   VkSemaphoreSubmitInfo waitSemaphorInfo = {};
-  //   waitSemaphorInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
-  //   waitSemaphorInfo.semaphore = getCurrentFrame().imageAvailableSemaphore;
-  //   waitSemaphorInfo.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-  //   waitSemaphorInfo.value = 1;
-
-  //   VkSemaphoreSubmitInfo signalSemaphorInfo = {};
-  //   signalSemaphorInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
-  //   signalSemaphorInfo.semaphore = getCurrentFrame().renderFinishedSemaphore;
-  //   signalSemaphorInfo.stageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT;
-  //   signalSemaphorInfo.value = 1;
-
-  //   VkSubmitInfo2 submitInfo = {};
-  //   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
-  //   submitInfo.waitSemaphoreInfoCount = 1; // == nullptr ? 0 : 1 -> in build function
-  //   submitInfo.pWaitSemaphoreInfos = &waitSemaphorInfo;
-  //   submitInfo.signalSemaphoreInfoCount = 1; // == nullptr ? 0 : 1 -> in build function
-  //   submitInfo.pSignalSemaphoreInfos = &signalSemaphorInfo;
-  //   submitInfo.commandBufferInfoCount = 1;
-  //   submitInfo.pCommandBufferInfos = &cmdBufferSubmitInfo;
-
-  //   // Submit the command buffer to the queue
-  //   VK_ASSERT(vkQueueSubmit2(mGpu.graphicsQueue(), 1, &submitInfo, getCurrentFrame().renderFence));
-
-  //   // 3. present image to screen when it has signalled finished rendering
-  //   VkPresentInfoKHR presentInfo = {};
-  //   presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-  //   presentInfo.waitSemaphoreCount = 1;                                       // Number of semaphores to wait on
-  //   presentInfo.pWaitSemaphores = &getCurrentFrame().renderFinishedSemaphore; // semaphore to wait on
-  //   presentInfo.swapchainCount = 1;                                           // number of swapchains to present to
-  //   presentInfo.pSwapchains = &mSwapchain.vkSwapchain();                      // swapchain to present images to
-  //   presentInfo.pImageIndices = &swapchainImageIndex;                         //index of images in swapchains to present
-
-  //   VkResult result = vkQueuePresentKHR(mGpu.presentQueue(), &presentInfo);
-
-  //   if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) // || mWindow.wasWindowResized())
-  //   {
-  //     fcPrintEndl("ERRROR OUT of date submit");
-  //     // TODO  handle resize properly
-  //     mShouldWindowResize = true;
-  //     /* mWindow.resetWindowResizedFlag(); */
-  //     /* handleWindowResize(); */
-  //   }
-  //   else if (result != VK_SUCCESS)
-  //   {
-  //     throw std::runtime_error("Faled to submit image to Vulkan Present Queue!");
-  //   }
-
-  //   // get next frame (use % MAX_FRAME_DRAWS to keep value below the number of frames we have in flight
-  //   // increase the number of frames drawn
-  //   mFrameNumber++;
-  //   mDrawCollection.stats.frame = mFrameNumber;
-  // }
-
-  // ?? could pass vkCommandBuffer instead
-
-  void FcRenderer::endFrame(ICommandBuffer& IcmdBuffer)
-  {
-    // TODO don't need this if using mCurrrentCommandBuffer
-
-    CommandBuffer* cmdBuffer = static_cast<CommandBuffer*>(&IcmdBuffer);
-
-    FC_ASSERT(cmdBuffer);
-    FC_ASSERT(cmdBuffer->mRenderer);
-    FC_ASSERT(cmdBuffer->mWrapper);
-
-    const VkCommandBuffer cmd = cmdBuffer->getVkCommandBuffer();
-    /* const VkCommandBuffer cmd = mCurrentCommandBuffer; */
-
-    // now that we have finished drawing to our internal draw image, copy to swapchain and present
-    mSwapchain.present(mDrawImage, cmd);
-
-    // ?? should we do something with this handle, also, should it be lower in proceedure
-    cmdBuffer->mLastSubmitHandle = mImmediateCommands.submit(*cmdBuffer->mWrapper);
-
-    /* processDeferredTasks(); */
-    mJanitor.flushBuffers();
-
-    mCurrentCommandBuffer = {};
-
-    // get next frame (use % MAX_FRAME_DRAWS to keep value below the number of frames we have in flight
-    // increase the number of frames drawn
-    /* mFrameNumber++; */
-    /* mDrawCollection.stats.frame = mFrameNumber; */
-    mDrawCollection.stats.frame = 0;
-  }
-
-
-  //
-  void FcRenderer::handleWindowResize()
-  {
-    // On some platforms, it is normal that maxImageExtent may become (0, 0), for example when the
-    // window is minimized. In such a case, it is not possible to create a swapchain due to the
-    // Valid Usage requirements, so wait until the window is not minimized, for example, before
-    // creating the new swapchain
-    int width = 0, height = 0;
-    SDL_Vulkan_GetDrawableSize(mWindow.SDLwindow(), &width, &height);
-    // make sure to wait for finish resize
-    while (width == 0 || height == 0)
-    {
-      SDL_Vulkan_GetDrawableSize(mWindow.SDLwindow(), &width, &height);
-      SDL_WaitEvent(nullptr);
-    }
-
-    vkDeviceWaitIdle(pDevice);
-    VkExtent2D winExtent{static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
-
-    //
-    mSwapchain.reCreateSwapChain(winExtent);
-
-    mShouldWindowResize = false;
-  }
-
-
   void FcRenderer::shutDown()
   {
-    /* std::cout << "calling: FcRenderer::shutDown" << std::endl; */
     // wait until no actions being run on device before destroying
+    mJanitor.flushBuffers();
+
     vkDeviceWaitIdle(pDevice);
 
     mDrawCollection.destroy();
@@ -1009,7 +627,6 @@ namespace fc
 
     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DEFAULTS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     FcDefaults::destroy();
-    //mUiRenderer.destroy();
 
     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   SCENE DATA   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     mSceneRenderer.destroy();
@@ -1026,39 +643,14 @@ namespace fc
     ImGui_ImplVulkan_Shutdown();
     vkDestroyDescriptorPool(pDevice, mImgGuiDescriptorPool, nullptr);
 
-    // TODO DELETE since we are no longer using per frame sync
-    // ?? don't think that the reference is needed here
-    for (FrameAssets &frame : mFrames)
-    {
-      // TODO should this have an allocator for the command pool
-      // TRY DELETE
-      // vkDestroyCommandPool(pDevice, frame.commandPool, nullptr);
-
-      // vkDestroySemaphore(pDevice, frame.imageAvailableSemaphore, nullptr);
-      // vkDestroySemaphore(pDevice, frame.renderFinishedSemaphore, nullptr);
-      // vkDestroyFence(pDevice, frame.renderFence, nullptr);
-    }
-
-    // -*-*-*-*-*-*-*-*-*-*-   IMMEDIATE COMMAND ARCHITECTURE   -*-*-*-*-*-*-*-*-*-*- //
-    /* vkDestroyCommandPool(pDevice, mImmediateCommandPool, nullptr); */
-    /* vkDestroyFence(pDevice, mImmediateFence, nullptr); */
-
     // TODO conditionalize all elements that might not need destroying if outside
     // game is using engine and does NOT create all expected elements
-
     mSwapchain.destroy();
-
     mDrawImage.destroy();
     mDepthImage.destroy();
+    //
+    mGpu.release(FcLocator::vkInstance());
 
-    mGpu.release(mInstance);
-
-    mWindow.close(mInstance);
-
-    if (mInstance != nullptr)
-    {
-      vkDestroyInstance(mInstance, nullptr);
-    }
     // if (enableValidationLayers)
     // {
     //   /* DestroyDebugUtilsMessengerExt(mInstance, debugMessenger, nullptr); */

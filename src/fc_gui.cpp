@@ -12,7 +12,7 @@
 namespace fc
 {
   //
-  void FcGUI::drawGUI(Frolic* fc)
+  void FcGUI::updateGUI(Frolic* fc)
   {
     // Let Imgui know that a new frame is being built
     ImGui_ImplSDL2_NewFrame();
@@ -197,6 +197,7 @@ namespace fc
     // make ImGui calculate internal draw structures
     ImGui::Render();
   }
+
 
 
 } // *-END- (namespace fc) -END-*

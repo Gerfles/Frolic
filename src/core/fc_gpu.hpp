@@ -40,7 +40,7 @@ namespace fc
      FcGpu() = default;
      ~FcGpu() = default;
       // - INITIALIZATION -
-     bool init(const VkInstance& instance, FcConfig& configOptions);
+     bool init(const VkInstance instance, FcConfig& configOptions);
 
       // TODO establish convention that all getter functions are capitalized (since they "are" a type)
       // - GETTER FUNCTIONS -
@@ -56,6 +56,6 @@ namespace fc
 
      inline const PerformanceProperties Properties() const { return mGpuPerformanceProperties; }
       // Cleanup
-     void release(VkInstance& instance);
+     void release(VkInstance instance);
   };
 } // namespace fc END

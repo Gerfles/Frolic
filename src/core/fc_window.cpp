@@ -9,7 +9,6 @@
 #include "SDL2/SDL_vulkan.h"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <string>
-#include <iostream>
 #include <sstream>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
@@ -99,14 +98,41 @@ namespace fc
   }
 
 
+  void FcWindow::handleResize()
+  {
+    // On some platforms, it is normal that maxImageExtent may become (0, 0), for example when the
+    // window is minimized. In such a case, it is not possible to create a swapchain due to the
+    // Valid Usage requirements, so wait until the window is not minimized, for example, before
+    // creating the new swapchain
+    int width = 0, height = 0;
+    // TODO uncomment
+    SDL_Vulkan_GetDrawableSize(mWindow, &width, &height);
+
+    // make sure to wait for finish resize
+    while (width == 0 || height == 0)
+    {
+      // TODO uncomment
+      /* SDL_Vulkan_GetDrawableSize(mWindow.SDLwindow(), &width, &height); */
+      SDL_WaitEvent(nullptr);
+    }
+
+    vkDeviceWaitIdle(FcLocator::Device());
+    VkExtent2D winExtent{static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
+
+    // TODO
+    /* mSwapchain.reCreateSwapChain(winExtent); */
+  }
+
+
+
   //
-  const VkExtent2D FcWindow::ScreenSize()
+  const VkExtent2D FcWindow::ScreenSize() const
   {
     int width, height;
 
     SDL_Vulkan_GetDrawableSize(mWindow, &width, &height);
 
-    VkExtent2D winExtent{static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
+    const VkExtent2D winExtent{static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
 
     return winExtent;
   }
@@ -129,7 +155,7 @@ namespace fc
 
 
   //
-  void FcWindow::close(VkInstance& instance)
+  void FcWindow::close(VkInstance instance)
   {
     vkDestroySurfaceKHR(instance, mSurface, nullptr);
     SDL_DestroyWindow(mWindow);
