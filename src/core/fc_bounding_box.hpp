@@ -6,15 +6,14 @@
 #include <glm/mat4x4.hpp>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <array>
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+namespace fc
+{ class FcDrawCollection; class FcDescriptorCollection; class FcSubmesh; class FcBuffer; }
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
 
 namespace fc
 {
-  class FcDrawCollection;
-  class FrameAssets;
-  class FcSubmesh;
-
   struct BoundingBoxPushes
   {
      glm::mat4 modelMatrix;
@@ -49,11 +48,12 @@ namespace fc
   {
    private:
      FcPipeline mBoundingBoxPipeline;
+     VkDescriptorSet mDescriptorSet;
    public:
-     void buildPipelines(VkDescriptorSetLayout sceneDescriptorLayout) noexcept;
+     void init(const FcBuffer& sceneDataBuffer) noexcept;
      // TODO make draw call draw only the isolated mesh whose bounding box we want
      void draw(VkCommandBuffer cmd, FcDrawCollection& drawCollection
-               ,FrameAssets& currentFrame, int boundingBoxID = -1) noexcept;
+               ,FcDescriptorCollection& currentFrame, int boundingBoxID = -1) noexcept;
      void drawSurface(VkCommandBuffer cmd, const FcSubmesh& subMesh) noexcept;
      void destroy() noexcept;
   };

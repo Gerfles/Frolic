@@ -167,7 +167,6 @@ namespace fc
 
 
   //
-  //
   VkDescriptorSetLayout FcPipelineConfig::addSingleImageDescriptorSetLayout()
   {
     FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
@@ -181,6 +180,96 @@ namespace fc
     descriptorlayouts.push_back(singleImageSetLayout);
 
     return singleImageSetLayout;
+  }
+
+
+  //
+  void FcPipelineConfig::growDescriptorsSizeIfNeeded(u32 requestedDescriptorSetNumber)
+  {
+    FC_ASSERT(requestedDescriptorSetNumber >= 0 && requestedDescriptorSetNumber < MAX_BINDLESS_RESOURCES);
+
+    while (mDescriptorSets.size() <= requestedDescriptorSetNumber)
+    {
+      mDescriptorSets.push_back(FcDescriptors{});
+    }
+  }
+
+
+  //
+  VkDescriptorSet FcPipelineConfig::createDescriptorSet(u32 descriptorSetNumber)
+  {
+    FC_ASSERT(descriptorSetNumber >= 0 && descriptorSetNumber < MAX_BINDLESS_RESOURCES);
+
+    // if (mDescriptorSets[descriptorSetNumber].VkDescriptorSet() == VK_NULL_HANDLE)
+    // {
+    //   return mDescriptorSets[descriptorSetNumber].createDescriptorSet();
+    // }
+    // else
+    // {
+    //   return mDescriptorSets[descriptorSetNumber].VkDescriptorSet();
+    // }
+
+    return mDescriptorSets[descriptorSetNumber].createDescriptorSet();
+  }
+
+
+  void FcPipelineConfig::configureDescriptorSets()
+  {
+    for (FcDescriptors& descriptor : mDescriptorSets)
+    {
+      VkDescriptorSetLayout layout = descriptor.VkDescriptorSetLayout();
+
+      if (layout == VK_NULL_HANDLE)
+      {
+        descriptor.createDescriptorSetLayout();
+      }
+
+      descriptorlayouts.push_back(layout);
+    }
+  }
+
+  //
+  void FcPipelineConfig::attachImage(u32 descSetNum, u32 bindSlot, const FcImage& image,VkSampler imageSampler,
+                                     VkShaderStageFlags shaderStages) noexcept
+  {
+    growDescriptorsSizeIfNeeded(descSetNum);
+    mDescriptorSets[descSetNum].attachImage(bindSlot, image, imageSampler, shaderStages);
+  }
+
+
+  //
+  void FcPipelineConfig::attachUniformBuffer(u32 descSetNum, uint32_t bindSlot, const FcBuffer& buffer,
+                                             VkDeviceSize size, VkDeviceSize offset,
+                                             VkShaderStageFlags shaderStages) noexcept
+  {
+    growDescriptorsSizeIfNeeded(descSetNum);
+    mDescriptorSets[descSetNum].attachUniformBuffer(bindSlot, buffer, size, offset, shaderStages);
+  }
+
+
+  //
+  void FcPipelineConfig::attachBuffer(u32 descSetNum, u32 bindSlot, VkDescriptorType type,
+                                      const FcBuffer& buffer, VkDeviceSize size,
+                                      VkDeviceSize offset, VkShaderStageFlags shaderStages) noexcept
+  {
+    growDescriptorsSizeIfNeeded(descSetNum);
+    mDescriptorSets[descSetNum].attachBuffer(bindSlot, type, buffer, size, offset, shaderStages);
+  }
+
+
+  //
+  void FcPipelineConfig::attachBindingOnly(u32 descSetNum, u32 bindSlot, VkDescriptorType type,
+                                           VkShaderStageFlags shaderStages) noexcept
+  {
+    growDescriptorsSizeIfNeeded(descSetNum);
+    mDescriptorSets[descSetNum].attachBindingOnly(bindSlot, type, shaderStages);
+  }
+
+
+  void FcPipelineConfig::attachBindlessDescriptors(u32 descSetNum)
+  {
+    growDescriptorsSizeIfNeeded(descSetNum);
+    mDescriptorSets[descSetNum].createBindlessDescriptorSet();
   }
 
 
@@ -416,11 +505,16 @@ namespace fc
 
 
 
+
+
+
   // }
 
   void FcPipeline::create(FcPipelineConfig& pipelineConfig)
   {
     /* fcPrintEndl("Creating Pipeline: %s", pipelineConfig.name); */
+
+    pipelineConfig.configureDescriptorSets();
 
     // -*-*-*-*-*-*-*-*-*-*-*-*-   CREATE PIPELINE LAYOUT   -*-*-*-*-*-*-*-*-*-*-*-*- //
     // save a pointer to the device instance
@@ -542,13 +636,12 @@ namespace fc
   }
 
 
-  // TODO rewrite to pass shader module in and maybe return a bool for sucess and delete runtime error
+  // TODO rewrite to pass reference to shader module in and maybe return a bool for sucess and delete runtime error
   VkShaderModule FcPipeline::createShaderModule(const std::vector<char>& code)
   {
     VkShaderModuleCreateInfo shaderInfo{};
     shaderInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-     // BUG note that in vkguide.dev, they multiply the following by * sizeof(uint32_t)
-     // I think this is wrong on their end but should find out for sure and notify if so.
+
     shaderInfo.codeSize = code.size();
      // might be better to see if there's a way to not use reinterpret -> check vkguide.dev
     shaderInfo.pCode = reinterpret_cast<const uint32_t* >(code.data());

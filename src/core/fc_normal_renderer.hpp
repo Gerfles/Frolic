@@ -3,7 +3,7 @@
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_pipeline.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'S   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-namespace fc { class FrameAssets; class FcDrawCollection;}
+namespace fc { class FcDescriptorCollection; class FcDrawCollection; class FcBuffer; }
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
@@ -13,12 +13,13 @@ namespace fc
   class FcNormalRenderer
   {
    private:
+     VkDescriptorSet mDescriptorSet;
      FcPipeline mNormalDrawPipeline;
    public:
-     void buildPipelines(VkDescriptorSetLayout sceneDescriptorLayout);
+     void init(const FcBuffer& sceneDataBuffer);
      void draw(VkCommandBuffer cmd,
                FcDrawCollection& drawCollection,
-               FrameAssets& currentFrame);
+               FcDescriptorCollection& currentFrame);
      void destroy();
   };
 } // --- namespace fc --- (END)

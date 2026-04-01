@@ -121,7 +121,7 @@ namespace fc
 
 
   //
-  struct SceneDataUbo
+  struct SceneData
   {
      glm::vec4 eye;
      glm::mat4 view;

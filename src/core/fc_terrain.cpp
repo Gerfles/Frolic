@@ -3,7 +3,6 @@
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_descriptors.hpp"
 #include "fc_frustum.hpp"
-#include "fc_locator.hpp"
 #include "fc_defaults.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <cstring>
@@ -30,31 +29,30 @@ namespace fc
   }
 
 
-
+  //
   void FcTerrain::initPipelines()
   {
-    FcPipelineConfig terrainPipeline;
-    terrainPipeline.name = "Terrain Pipeline";
-    terrainPipeline.addStage(VK_SHADER_STAGE_VERTEX_BIT, "terrain.vert.spv");
-    terrainPipeline.addStage(VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT, "terrain.tesc.spv");
-    terrainPipeline.addStage(VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT, "terrain.tese.spv");
-    terrainPipeline.addStage(VK_SHADER_STAGE_FRAGMENT_BIT, "terrain.frag.spv");
+    FcPipelineConfig pipelineConfig;
+    pipelineConfig.name = "Terrain Pipeline";
+    pipelineConfig.addStage(VK_SHADER_STAGE_VERTEX_BIT, "terrain.vert.spv");
+    pipelineConfig.addStage(VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT, "terrain.tesc.spv");
+    pipelineConfig.addStage(VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT, "terrain.tese.spv");
+    pipelineConfig.addStage(VK_SHADER_STAGE_FRAGMENT_BIT, "terrain.frag.spv");
 
     // Setup pipeline parameters
-    terrainPipeline.enableDepthtest(VK_TRUE, VK_COMPARE_OP_GREATER_OR_EQUAL);
-    terrainPipeline.setInputTopology(VK_PRIMITIVE_TOPOLOGY_PATCH_LIST);
-    terrainPipeline.setCullMode(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
-    terrainPipeline.disableBlending();
-    terrainPipeline.setTessellationControlPoints(4);
+    pipelineConfig.enableDepthtest(VK_TRUE, VK_COMPARE_OP_GREATER_OR_EQUAL);
+    pipelineConfig.setInputTopology(VK_PRIMITIVE_TOPOLOGY_PATCH_LIST);
+    pipelineConfig.setCullMode(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+    pipelineConfig.disableBlending();
+    pipelineConfig.setTessellationControlPoints(4);
 
-    // add Vertex shader push constants
+    // Add push constants into the vertex shader
     VkPushConstantRange vertexShaderPCs;
     vertexShaderPCs.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     vertexShaderPCs.offset = 0;
     // ?? BUG this may be minimum alignment needed DELETE if VERTEXBUFFERPCs is not needed
     vertexShaderPCs.size = sizeof(TerrainPushConstants);
-    //
-    terrainPipeline.addPushConstants(vertexShaderPCs);
+    pipelineConfig.addPushConstants(vertexShaderPCs);
 
     // TODO should no longer pass model matrix but could pass a different matrix perhaps
     // and cut down on ubo if that matters
@@ -62,57 +60,38 @@ namespace fc
     tessellationShaderPCs.stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
     tessellationShaderPCs.offset = sizeof(TerrainPushConstants);
     tessellationShaderPCs.size = sizeof(glm::mat4);
-    //
-    terrainPipeline.addPushConstants(tessellationShaderPCs);
-
-    // Setup descriptor sets
-    FcDescriptorBindInfo bindInfo{};
+    pipelineConfig.addPushConstants(tessellationShaderPCs);
 
     // set up buffer
     mUboBuffer.allocate(sizeof(UBO), FcBufferTypes::Uniform);
 
-    // TODO do in one functioncall overload if need be but first check to see if ever separate (i think it might be in materials but possibly can change)
-    bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                        VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT
-                        | VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
+    // Configure pipeline for UBO descriptor set
+    pipelineConfig.attachUniformBuffer(0, 0, mUboBuffer, sizeof(UBO), 0,
+                                       VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT
+                                       | VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
 
-    bindInfo.attachBuffer(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, mUboBuffer, sizeof(UBO), 0);
+    // Configure pipeline for the image we generate the terrrain from
+    pipelineConfig.attachImage(0, 1, mHeightMap, FcDefaults::Samplers.Terrain,
+                               VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT
+                               | VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
 
-    bindInfo.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                        VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT
-                        | VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
+    // Configure pipeline for the textures used to draw the terrain
+    pipelineConfig.attachImage(0, 2, mTerrainTexture, FcDefaults::Samplers.Terrain, // <-Note, we're using hMap sampler
+                               VK_SHADER_STAGE_FRAGMENT_BIT);
 
-    bindInfo.attachImage(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, mHeightMap,
-                         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                         FcDefaults::Samplers.Terrain);
-
-    bindInfo.addBinding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                        VK_SHADER_STAGE_FRAGMENT_BIT);
-
-    bindInfo.attachImage(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, mTerrainTexture
-                         , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-                         // FIXME note we're using the height map sampler here
-                         , FcDefaults::Samplers.Terrain);
-
-    FcDescriptorClerk& deskClerk = FcLocator::DescriptorClerk();
-    // TODO do in one function call overload
-    mHeightMapDescriptorLayout = deskClerk.createDescriptorSetLayout(bindInfo);
-    mHeightMapDescriptor = deskClerk.createDescriptorSet(mHeightMapDescriptorLayout
-                                                         , bindInfo);
-
-    terrainPipeline.addDescriptorSetLayout(mHeightMapDescriptorLayout);
+    mHeightMapDescriptor = pipelineConfig.createDescriptorSet(0);
 
     // Create the Mesh pipeline
-    mPipeline.create(terrainPipeline);
+    mPipeline.create(pipelineConfig);
 
     // -*-*-*-*-*-*-*-*-*-*-*-*-*-   WIREFRAME PIPELINE   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
     // TODO check for capability
     bool isWireframeAvailable = true;
     if (isWireframeAvailable)
     {
-      terrainPipeline.name = "Terrain Wireframe";
-      terrainPipeline.setPolygonMode(VK_POLYGON_MODE_LINE);
-      mWireframePipeline.create(terrainPipeline);
+      pipelineConfig.name = "Terrain Wireframe";
+      pipelineConfig.setPolygonMode(VK_POLYGON_MODE_LINE);
+      mWireframePipeline.create(pipelineConfig);
     }
 
   }
@@ -263,7 +242,7 @@ namespace fc
   }
 
 
-  void FcTerrain::draw(VkCommandBuffer cmd, SceneDataUbo& sceneData, bool drawWireframe)
+  void FcTerrain::draw(VkCommandBuffer cmd, SceneData& sceneData, bool drawWireframe)
   {
     ubo.modelView = sceneData.view * mModelTransform;
     ubo.projection = sceneData.projection;

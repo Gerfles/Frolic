@@ -8,15 +8,14 @@ layout(set = 0, binding = 0) uniform BillboardUbo
   mat4 projection;
 } ubo;
 
-
 // billboard specific parameters
-  layout(push_constant) uniform Push
-  {
-    vec3 position;
-    float width;
-    float height;
-    uint texIndex;
-  } push;
+layout(push_constant) uniform Push
+{
+  vec3 position;
+  float width;
+  float height;
+  uint texIndex;
+} push;
 
 layout (location = 0) out vec2 texCoords;
 
@@ -58,7 +57,7 @@ void main()
 
 
   // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   METHOD 2   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-   // first transform light position to camera space, then apply offset in camera space
+  // first transform light position to camera space, then apply offset in camera space
   // vec4 lightInCameraSpace = ubo.view * vec4(push.position.xyz, 1.0);
   // vec4 positionInCameraSpace = lightInCameraSpace + push.width * vec4(fragOffset, 0.0, 0.0);
 
@@ -77,7 +76,7 @@ void main()
 
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   IMPROVED METHOD   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
-   // first transform billboard position to camera space
+  // first transform billboard position to camera space
   vec4 billboardCenter = ubo.view * vec4(push.position, 1.0f);
 
   // now apply the offsets in camera space

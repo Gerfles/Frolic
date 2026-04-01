@@ -19,15 +19,6 @@
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
-// TODO (note may no longer be relevant) All of the helper functions that submit commands
-// so far have been set up to execute synchronously by waiting for the queue to become
-// idle. For practical applications it is recommended to combine these operations in a
-// single command buffer and execute them asynchronously for higher throughput, especially
-// the transitions and copy in the createTextureImage function. Try to experiment with
-// this by creating a setupCommandBuffer that the helper functions record commands into,
-// and add a flushSetupCommands to execute the commands that have been recorded so
-// far. It's best to do this after the texture mapping works to check if the texture
-// resources are still set up correctly.
 namespace fc
 {
   // FcRenderer::FcRenderer()
@@ -36,7 +27,7 @@ namespace fc
   //    // including a pointer to a VK_STRUCTURE type appinfo
   // }
 
-  int FcRenderer::init(FcConfig& config, SceneDataUbo** pSceneData)
+  int FcRenderer::init(FcConfig& config, SceneData** pSceneData)
   {
     // TODO make this (try) more robust and add try catch blocks to all non-rendering functions
     try
@@ -102,36 +93,6 @@ namespace fc
 
       //
       FcLocator::provide(&mJanitor);
-
-      // *-*-*-*-*-*-*-*-*-*-*-*-   FRAME DATA INITIALIZATION   *-*-*-*-*-*-*-*-*-*-*-*- //
-      mSceneDataBuffer.allocate(sizeof(SceneDataUbo), FcBufferTypes::Uniform);
-      // TODO create temporary storage for this in descClerk so we can just write the
-      // descriptorSet and layout on the fly and destroy layout if not needed
-      // TODO see if layout is not needed.
-      FcDescriptorBindInfo sceneDescriptorBinding{};
-      sceneDescriptorBinding.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
-                                        , VK_SHADER_STAGE_VERTEX_BIT
-                                        // TODO DELETE after separating model from scene
-                                        | VK_SHADER_STAGE_FRAGMENT_BIT
-                                        | VK_SHADER_STAGE_GEOMETRY_BIT);
-
-      // TODO find out if there is any cost associated with binding to multiple un-needed stages...
-      //, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-
-      sceneDescriptorBinding.attachBuffer(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
-                                          , mSceneDataBuffer, sizeof(SceneDataUbo), 0);
-
-      // TODO find out if we need to keep descriptorLayout
-      // create descriptorSet for sceneData
-      mSceneDataDescriptorLayout = descClerk->createDescriptorSetLayout(sceneDescriptorBinding);
-
-      // Allocate a descriptorSet to each frame buffer
-      for (FrameAssets& frame : mFrames)
-      {
-        frame.sceneDataDescriptorSet =
-          descClerk->createDescriptorSet(mSceneDataDescriptorLayout,
-                                         sceneDescriptorBinding);
-      }
 
       // Initialize all the default textures/samplers/etc. to use in places where they are not imported
       FcDefaults::init(pDevice);
@@ -200,11 +161,11 @@ namespace fc
     mDynamicScissors.extent.height = mDynamicViewport.height;
 
     //
-    mShadowMap.init(mFrames);
+    mShadowRenderer.init(mDescriptorCollection);
     mTerrain.init("..//maps/terrain_heightmap_r16.ktx2");
 
     // FIXME should be able to load any kind of terrain map
-    /* mTerrain.init("..//maps/iceland_heightmap.png"); */
+    /* mTerrain.init("..//maps/iceland_heightmap.png"); */;
 
     // TODO Organize initialization
 
@@ -220,24 +181,32 @@ namespace fc
     // TODO these should all be a part of frolic or game class, not the renderer
     mSkybox.loadTextures("..//models//skybox", ".jpg");
     // TODO should be more descriptive in name to show this has to happen after loadTextures
-    mSkybox.init(mSceneDataDescriptorLayout, mFrames);
+
+    // TODO get rid of scenedescriptorLayout (I believe)
+    mSceneRenderer.init(mSceneData.viewProj, mDescriptorCollection, mShadowRenderer.Image());
+
+    //
+    const FcBuffer& sceneDataBuffer = mSceneRenderer.getSceneDataBuffer();
+
+    mSkybox.init(sceneDataBuffer);
     //
 
     mSceneData.projection = pActiveCamera->Projection();
 
-    // TODO get rid of scenedescriptorLayout (I believe)
-    mSceneRenderer.init(mSceneDataDescriptorLayout, mSceneData.viewProj, mFrames);
+
     // TODO get rid of build pipeline calls and just do that within init
     // TODO see if we can decouple the scene descriptor layout
-    mBoundingBoxRenderer.buildPipelines(mSceneDataDescriptorLayout);
-    mNormalRenderer.buildPipelines(mSceneDataDescriptorLayout);
-    mBillboardRenderer.buildPipelines(mFrames);
+    mBoundingBoxRenderer.init(sceneDataBuffer);
+
+
+    mNormalRenderer.init(sceneDataBuffer);
+    mBillboardRenderer.init(mDescriptorCollection);
     // // TODO think about destroying layout here
 
     mSceneData.sunlightDirection = glm::vec4(43.1f, 25.f, 23.f, 1.f);
     glm::vec3 target{mSceneData.sunlightDirection.x, 0.0, mSceneData.sunlightDirection.z};
 
-    mShadowMap.updateLightSource(mSceneData.sunlightDirection, target);
+    mShadowRenderer.updateLightSource(mSceneData.sunlightDirection, target);
   }
 
 
@@ -371,8 +340,9 @@ namespace fc
                                      0.0f, 0.0f, 1.0f, 0.0f,
                                      0.5f, 0.5f, 0.0f, 1.0f);
 
-    mSceneData.lighSpaceTransform = clip * mShadowMap.LightSpaceMatrix();
-    mSceneDataBuffer.write(&mSceneData, sizeof(SceneDataUbo));
+    mSceneData.lighSpaceTransform = clip * mShadowRenderer.LightSpaceMatrix();
+
+    mSceneRenderer.updateSceneData(mSceneData);
 
     // // TODO could flag draw collection items with nodes that "know" they need to be updated
     // // then draw collection could do all the updating in one go.
@@ -396,62 +366,55 @@ namespace fc
     // TODO remove from drawframe and place in frolic
     updateScene();
 
-    mSwapchain.acquireCurrentFrame();
-
-    // TODO fix command buffer stuff (Icommand buffer etc...)
-    mCurrentCommandBuffer = CommandBuffer(this);
-
     // reset counters and frame clock
     mDrawCollection.stats.objectsRendered = 0;
     mDrawCollection.stats.triangleCount = 0;
     mTimer.start();
 
+    // TODO fix command buffer stuff (Icommand buffer etc...)
+    mCurrentCommandBuffer = CommandBuffer(this);
+    VkCommandBuffer cmd = mCurrentCommandBuffer.getVkCommandBuffer();
+
 
 
     // transition draw image from undefined layout to best format we can draw to
-    mDrawImage.transitionLayout(mCurrentCommandBuffer, VK_IMAGE_LAYOUT_UNDEFINED,
+    mDrawImage.transitionLayout(cmd, VK_IMAGE_LAYOUT_UNDEFINED,
                                 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
     //
-    mDepthImage.transitionLayout(mCurrentCommandBuffer, VK_IMAGE_LAYOUT_UNDEFINED,
+    mDepthImage.transitionLayout(cmd, VK_IMAGE_LAYOUT_UNDEFINED,
                                  VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
-    //
-    mShadowMap.generateMap(mCurrentCommandBuffer, mDrawCollection);
 
+    mSwapchain.acquireCurrentFrame();
 
-
-// load the color attachment and depth attachment to our draw image and depth image
+    // load the color attachment and depth attachment to our draw image and depth image
     mColorAttachment.imageView = mDrawImage.ImageView();
-
-
     // Attach depthImage to the previously null render info
     mRenderInfo.pDepthAttachment = &mDepthAttachment;
 
+    // TODO try to rellocate or do separately (need to address memory barrier issues first)
+    mShadowRenderer.generateMap(cmd, mDrawCollection);
 
+    vkCmdBeginRendering(cmd, &mRenderInfo);
 
-    vkCmdBeginRendering(mCurrentCommandBuffer, &mRenderInfo);
-
-    vkCmdSetViewport(mCurrentCommandBuffer, 0, 1, &mDynamicViewport);
-    vkCmdSetScissor(mCurrentCommandBuffer, 0, 1, &mDynamicScissors);
-
-
+    vkCmdSetViewport(cmd, 0, 1, &mDynamicViewport);
+    vkCmdSetScissor(cmd, 0, 1, &mDynamicScissors);
   }
-
 
 
   //
   void FcRenderer::drawFrame()
   {
-    FrameAssets& currentFrame = getCurrentFrame();
+    VkCommandBuffer cmd = mCurrentCommandBuffer.getVkCommandBuffer();
 
     // TODO implement without branches
     bool* shouldDrawShadowMap = CVarSystem::Get()->GetBoolCVar("shouldDrawShadowMap.bool");
     if (*shouldDrawShadowMap)
     {
-      mShadowMap.drawDebugMap(mCurrentCommandBuffer, currentFrame);
+      mShadowRenderer.drawDebugMap(cmd, mDescriptorCollection);
     }
     else
     {
-      mSceneRenderer.draw(mCurrentCommandBuffer, mDrawCollection, currentFrame, shouldDrawWireframe);
+      mSceneRenderer.draw(cmd, mDrawCollection, shouldDrawWireframe);
 
       // TODO condense this into an array of function pointers so that we can build
       // the specific 'pipeline' of function calls and avoid branches
@@ -459,12 +422,12 @@ namespace fc
       // Draw the bounding box around the object if enabled
       if (mDrawBoundingBoxes)
       {
-        mBoundingBoxRenderer.draw(mCurrentCommandBuffer, mDrawCollection, currentFrame, mBoundingBoxId);
+        mBoundingBoxRenderer.draw(cmd, mDrawCollection, mDescriptorCollection, mBoundingBoxId);
       }
 
       if(mDrawNormalVectors)
       {
-        mNormalRenderer.draw(mCurrentCommandBuffer, mDrawCollection, currentFrame);
+        mNormalRenderer.draw(cmd, mDrawCollection, mDescriptorCollection);
       }
 
       // TODO extrapolate functionality to frolic.cpp or cartridge
@@ -474,24 +437,24 @@ namespace fc
       // if (camera.isInside(building))...
       if (building.isInBounds(mSceneData.eye))
       {
-        mTerrain.draw(mCurrentCommandBuffer, mSceneData, shouldDrawWireframe);
+        mTerrain.draw(cmd, mSceneData, shouldDrawWireframe);
       }
 
       // Draw the skybox last so that we can skip pixels with ANY object in front of it
-      mSkybox.draw(mCurrentCommandBuffer, currentFrame);
+      mSkybox.draw(cmd, mDescriptorCollection);
 
 
-      mBillboardRenderer.draw(mCurrentCommandBuffer, mSceneData, currentFrame);
+      mBillboardRenderer.draw(cmd, mSceneData);
     }
 
-    vkCmdEndRendering(mCurrentCommandBuffer);
+    vkCmdEndRendering(cmd);
 
 
     // FIXME this should signal our timeline semaphore
     //const u64 signalValue = mCurrentFrame + imageCount();
 
     // now that we have finished drawing to our internal draw image, copy to swapchain and present
-    mSwapchain.present(mDrawImage, mCurrentCommandBuffer);
+    mSwapchain.present(mDrawImage, cmd);
 
     // Convert elapsed time to milliseconds
     mDrawCollection.stats.meshDrawTime = mTimer.elapsedTime() * 1000;
@@ -536,8 +499,8 @@ namespace fc
     // TODO eliminate mFrameNumber from renderer -> swapchain already contains this
     // get next frame (use % MAX_FRAME_DRAWS to keep value below the number of frames we have in flight
     // increase the number of frames drawn
-    mFrameNumber++;
-    mDrawCollection.stats.frame = mFrameNumber;
+    // mFrameNumber++;
+    // mDrawCollection.stats.frame = mFrameNumber;
   }
 
 
@@ -554,50 +517,46 @@ namespace fc
       {
         ResourceUpdate& textureToUpdate = mDrawCollection.bindlessTextureUpdates[i];
 
-        // Update the descriptor set of each frame, since each frame has a separate D.S.
-        for (FrameAssets& frame : mFrames)
+        // TRY only doing under the following circumstance
+        /* if (textureToUpdate.current_frame == current_frame) */
+        VkWriteDescriptorSet& descriptorWrite = bindlessDescriptorWrites[currentWriteIndex];
+        descriptorWrite = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+        descriptorWrite.descriptorCount = 1;
+        descriptorWrite.dstArrayElement = textureToUpdate.handle;
+        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrite.dstBinding = BINDLESS_DESCRIPTOR_SLOT;
+
+        FcImage* texture;
+        /* FCASSERT(textureToUpdate.handle == texture->Handle()); */
+
+        if (textureToUpdate.type == ResourceDeletionType::Texture)
         {
-          // TRY only doing under the following circumstance
-          /* if (textureToUpdate.current_frame == current_frame) */
-          VkWriteDescriptorSet& descriptorWrite = bindlessDescriptorWrites[currentWriteIndex];
-          descriptorWrite = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-          descriptorWrite.descriptorCount = 1;
-          descriptorWrite.dstArrayElement = textureToUpdate.handle;
-          descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-          descriptorWrite.dstBinding = BINDLESS_DESCRIPTOR_SLOT;
-
-          FcImage* texture;
-          /* FCASSERT(textureToUpdate.handle == texture->Handle()); */
-
-          if (textureToUpdate.type == ResourceDeletionType::Texture)
-          {
-            descriptorWrite.dstSet = frame.sceneBindlessTextureSet;
-            texture = mDrawCollection.mTextures.get(textureToUpdate.handle);
-          }
-          else if (textureToUpdate.type == ResourceDeletionType::Billboard)
-          {
-            descriptorWrite.dstSet = frame.billboardDescriptorSet;
-            texture = mDrawCollection.mBillboards.get(textureToUpdate.handle);
-          }
-          else
-          {
-            fcPrintEndl("Failed to Update Bindless Resource: ")
-              /* std::cout << " << textureToUpdate.handle << std::endl; */
-            descriptorWrite.dstSet = frame.billboardDescriptorSet;
-            texture = &FcDefaults::Textures.checkerboard;
-          }
-
-          VkDescriptorImageInfo& imageInfo = bindlessImageInfos[currentWriteIndex];
-          // TODO provide dummy image view
-          imageInfo.imageView = texture->ImageView();
-          imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-          imageInfo.sampler = texture->hasSampler() ?
-                              texture->Sampler() : FcDefaults::Samplers.Linear;
-
-          descriptorWrite.pImageInfo = &imageInfo;
-          //
-          ++currentWriteIndex;
+          descriptorWrite.dstSet = *mDescriptorCollection.sceneBindlessTextureSet;
+          texture = mDrawCollection.mTextures.get(textureToUpdate.handle);
         }
+        else if (textureToUpdate.type == ResourceDeletionType::Billboard)
+        {
+          descriptorWrite.dstSet = mDescriptorCollection.billboardDescriptorSet;
+          texture = mDrawCollection.mBillboards.get(textureToUpdate.handle);
+        }
+        else
+        {
+          fcPrintEndl("Failed to Update Bindless Resource: ")
+            /* std::cout << " << textureToUpdate.handle << std::endl; */
+            descriptorWrite.dstSet = mDescriptorCollection.billboardDescriptorSet;
+          texture = &FcDefaults::Textures.checkerboard;
+        }
+
+        VkDescriptorImageInfo& imageInfo = bindlessImageInfos[currentWriteIndex];
+        // TODO provide dummy image view
+        imageInfo.imageView = texture->ImageView();
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo.sampler = texture->hasSampler() ?
+                            texture->Sampler() : FcDefaults::Samplers.Linear;
+
+        descriptorWrite.pImageInfo = &imageInfo;
+        //
+        ++currentWriteIndex;
 
         textureToUpdate.currentFrame = U32_MAX;
         uint32_t size = mDrawCollection.bindlessTextureUpdates.size();
@@ -621,9 +580,6 @@ namespace fc
     vkDeviceWaitIdle(pDevice);
 
     mDrawCollection.destroy();
-
-    // Destroy data buffer with scene data
-    mSceneDataBuffer.destroy();
 
     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DEFAULTS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     FcDefaults::destroy();

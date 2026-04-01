@@ -71,7 +71,9 @@ namespace fc
 
      // TODO think about integrating into descriptorClerk
      VkDescriptorPool mImgGuiDescriptorPool;
-     std::vector<FrameAssets> mFrames {MAX_FRAME_DRAWS};
+     FcDescriptorCollection mDescriptorCollection;
+
+     VkDescriptorSet sceneBindlessTextureSet;
      FcFrustum mFrustum;
 
      // TODO create agile version of data structures e.g. FcArray
@@ -84,7 +86,9 @@ namespace fc
 
      void initImgui(VkFormat swapchainFormat, FcConfig& config);
 
-     // -*-*-*-*-*-*-*-*-*-   TODO REFACTOR, ENCAPSULATE, OR DELETE   -*-*-*-*-*-*-*-*-*- //
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DELETE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     VkDescriptorSetLayout mSceneDataDescriptorLayout;
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
      // TODO may want to add to sceneRenderer but need for shadow map
      // although shadow map may also be preferred to be added to scene renderer
@@ -95,9 +99,8 @@ namespace fc
      // // debugging effects
 
      FcCamera* pActiveCamera;
-     SceneDataUbo mSceneData;
-     FcBuffer mSceneDataBuffer;
-     VkDescriptorSetLayout mSceneDataDescriptorLayout;
+     SceneData mSceneData;
+
 
      // *-*-*-*-*-*-*-*-*-   CACHED TO PREVENT CREATION EACH FRAME   *-*-*-*-*-*-*-*-*- //
      VkRenderingAttachmentInfo mColorAttachment {};
@@ -120,9 +123,9 @@ namespace fc
      VulkanImmediateCommands mImmediateCommands;
 
      // TODO move to swapchain DELETE
-     u32 mFrameNumber {0};
+     /* u32 mFrameNumber {0}; */
      // BUG, im pretty sure this could fail if MAX_FRAME_DRAWS is not the actual number of buffers
-     inline u32 getCurrentFrameIndex() { return mFrameNumber % MAX_FRAME_DRAWS; }
+     /* inline u32 getCurrentFrameIndex() { return mFrameNumber % MAX_FRAME_DRAWS; } */
 
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END TEMP   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
@@ -134,7 +137,7 @@ namespace fc
      bool shouldDrawWireframe {false};
      int mBoundingBoxId {-1};
 
-     FcShadowMap mShadowMap;
+     FcShadowRenderer mShadowRenderer;
      /* void drawShadowMap(bool drawDebug); */
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   PROFILING   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      FcTimer mTimer;
@@ -159,13 +162,6 @@ namespace fc
      void setNormalMapUse(bool enable);
      void setEmissiveTextureUse(bool enable);
 
-     /* void initNormalDrawPipeline(FcBuffer& sceneDataBuffer); */
-     /* void initBoundingBoxPipeline(FcBuffer& sceneDataBuffer); */
-     /* void drawNormals(VkCommandBuffer cmd, const FcRenderObject& surface); */
-     /* void drawBoundingBox(VkCommandBuffer cmd, const FcRenderObject& surface); */
-     // DELETE
-     /* void drawSurface(VkCommandBuffer cmd, const FcRenderObject& surface); */
-
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
      // TODO add move ctors Constructors, etc. - Prevent copying or altering -
@@ -174,7 +170,7 @@ namespace fc
      FcRenderer& operator=(const FcRenderer&) = delete;
      FcRenderer(const FcRenderer&) = delete;
      //
-     int init(FcConfig& config, SceneDataUbo** pSceneData);
+     int init(FcConfig& config, SceneData** pSceneData);
      //
      void beginFrame();
      void drawFrame();
@@ -186,7 +182,7 @@ namespace fc
      inline void addBillboard(FcBillboard& billboard) { mBillboardRenderer.addBillboard(billboard); }
 
      // - GETTERS -
-     inline FrameAssets& getCurrentFrame() { return mFrames[mFrameNumber % MAX_FRAME_DRAWS]; }
+     /* inline FrameAssets& getCurrentFrame() { return mFrames[mFrameNumber % MAX_FRAME_DRAWS]; } */
 
      inline FcDrawCollection& DrawCollection() { return mDrawCollection; }
      // float aspectRatio() { return static_cast<float>(mWindow.ScreenSize().width)

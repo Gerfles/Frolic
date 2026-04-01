@@ -4,7 +4,7 @@
 #include "fc_image.hpp"
 #include "fc_pipeline.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'S   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-namespace fc { class FrameAssets; }
+namespace fc { class FcDescriptorCollection; }
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
@@ -16,7 +16,8 @@ namespace fc
    private:
      FcImage mCubeImage;
      FcPipeline mPipeline;
-     VkSampler mCubeMapSampler;
+     VkSampler mCubeMapSampler {VK_NULL_HANDLE};
+     VkDescriptorSet mDescriptorSet {VK_NULL_HANDLE};
      static constexpr int NUM_SIDES_CUBE = 6;
 
    public:
@@ -33,9 +34,9 @@ namespace fc
      void loadTextures(std::vector<std::string>& filenames);
      //
      // TODO Store scene data on GPU and ref with frame push constant
-     void init(VkDescriptorSetLayout sceneDescriptorLayout, std::vector<FrameAssets>& frames);
+     void init(const FcBuffer& sceneDataBuffer);
      //
-     void draw(VkCommandBuffer cmd, FrameAssets& currentFrame);
+     void draw(VkCommandBuffer cmd, FcDescriptorCollection& currentFrame);
 
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   GETTERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      inline const FcImage& Image() { return mCubeImage; }

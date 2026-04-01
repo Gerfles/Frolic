@@ -4,7 +4,7 @@
 #include "fc_pipeline.hpp"
 #include "fc_image.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'S   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-namespace fc { class FcDrawCollection; class FrameAssets; }
+namespace fc { class FcDrawCollection; class FcDescriptorCollection; }
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
@@ -39,7 +39,7 @@ namespace fc
   };
 
 
-  class FcShadowMap
+  class FcShadowRenderer
   {
    private:
 
@@ -50,18 +50,18 @@ namespace fc
      FcImage mShadowMapImage;
      FcPipeline mShadowPipeline;
      FcPipeline mShadowDebugPipeline;
-     /* VkDescriptorSet mShadowMapDescriptorSet; */
-     void initPipelines(std::vector<FrameAssets>& frames);
+     VkDescriptorSet mShadowMapDescriptor;
+     void initPipelines(FcDescriptorCollection& frames);
      Box mFrustum;
    public:
      Box& Frustum() { return mFrustum; }
      //void setLightSpaceMatrix(glm::mat4 matrix) { mLightSpaceTransform = matrix; }
-     void init(std::vector<FrameAssets>& frames);
+     void init(FcDescriptorCollection& frames);
      void generateMap(VkCommandBuffer cmd, FcDrawCollection& drawContext);
-     void drawDebugMap(VkCommandBuffer cmd, FrameAssets& currentFrame);
+     void drawDebugMap(VkCommandBuffer cmd, FcDescriptorCollection& currentFrame);
      glm::mat4 LightSpaceMatrix() { return mLightSpaceTransform; }
      /* VkDescriptorSet Descriptor() { return mShadowMapDescriptorSet; } */
-     VkImageView ImageView() { return mShadowMapImage.ImageView(); }
+     FcImage& Image() { return mShadowMapImage; }
      void updateLightSource(glm::vec3 lightPos, glm::vec3 target);
      void updateLightSpaceTransform();
   };// ---   class FcShadowMap --- (END)

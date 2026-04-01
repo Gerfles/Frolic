@@ -7,7 +7,8 @@
 
 namespace fc
 {
-  struct FrameAssets
+  // TODO could create full class with Register(VkDescriptorSet, enum::TYPE) for safety
+  struct FcDescriptorCollection
   {
      // TODO might be better to make this an entire class with all methods and static ints (numFrame)
      // VkCommandPool commandPool = VK_NULL_HANDLE;
@@ -16,10 +17,12 @@ namespace fc
      // VkSemaphore renderFinishedSemaphore;
      // VkFence renderFence;
      // TODO allocate all the descriptorSets for each frame (skybox, terrain, etc.)
+
+     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   KEEP   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      VkDescriptorSet sceneDataDescriptorSet;
-     VkDescriptorSet sceneBindlessTextureSet;
+     VkDescriptorSet* sceneBindlessTextureSet;
      VkDescriptorSet shadowMapDescriptorSet;
-     VkDescriptorSet skyBoxDescriptorSet;
+     /* VkDescriptorSet skyBoxDescriptorSet; */
      VkDescriptorSet billboardDescriptorSet;
   };
 }

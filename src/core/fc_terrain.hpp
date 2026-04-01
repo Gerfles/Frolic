@@ -3,7 +3,7 @@
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_mesh.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'S   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-namespace fc { class FcFrustum; class SceneDataUbo; }
+namespace fc { class FcFrustum; class SceneData; }
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
@@ -36,7 +36,7 @@ namespace fc
      glm::mat4 mModelTransform;
      // TODO DELETE after creating sampler atlas
      /* VkSampler mHeightMapSampler; */
-     VkDescriptorSetLayout mHeightMapDescriptorLayout;
+     /* VkDescriptorSetLayout mHeightMapDescriptorLayout; */
      VkDescriptorSet mHeightMapDescriptor;
      FcMesh mSurface;
      FcPipeline mPipeline;
@@ -51,6 +51,6 @@ namespace fc
      void update(FcFrustum& frustum);
      void loadHeightmap(std::filesystem::path filename, uint32_t numPatches);
      void generateTerrain();
-     void draw(VkCommandBuffer cmdBuffer, SceneDataUbo& sceneData, bool drawWireFrame);
+     void draw(VkCommandBuffer cmdBuffer, SceneData& sceneData, bool drawWireFrame);
   };
 }// --- namespace fc --- (END)

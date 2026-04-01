@@ -43,7 +43,7 @@ struct CommandBufferWrapper
      };
 
 
-  // TODO move
+
   class VulkanImmediateCommands final
   {
    private:
@@ -62,7 +62,9 @@ struct CommandBufferWrapper
      CommandBufferWrapper mCmdBuffers[kMaxCommandBuffers];
      //
      VkSemaphoreSubmitInfo mLastSubmitSemaphore {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO
+                                               , .semaphore = VK_NULL_HANDLE
                                                , .stageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT};
+
      VkSemaphoreSubmitInfo mWaitSemaphore {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO
                                          , .stageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT};
      // mSignalSemaphore is injected at the end of the frame (by calling signalSemaphore() ), before
@@ -91,24 +93,16 @@ struct CommandBufferWrapper
 
 
   //
-  class ICommandBuffer
-  {
-   public:
-     virtual ~ICommandBuffer() = default;
-
-  };
-
-
-  //
-  class CommandBuffer final : public ICommandBuffer
+  class CommandBuffer
   {
    public:
      CommandBuffer() = default;
      //
      explicit CommandBuffer(FcRenderer* renderer);
-     ~CommandBuffer() override { FC_ASSERT(!mIsRendering); };
+     ~CommandBuffer() { FC_ASSERT(!mIsRendering); };
      CommandBuffer& operator=(CommandBuffer&& other) = default;
-     operator VkCommandBuffer() const { return getVkCommandBuffer(); }
+     // TODO eliminate
+     /* operator VkCommandBuffer() const { return getVkCommandBuffer(); } */
      VkCommandBuffer getVkCommandBuffer() const {return mWrapper ? mWrapper->cmdBuffer : VK_NULL_HANDLE;}
 
    private:

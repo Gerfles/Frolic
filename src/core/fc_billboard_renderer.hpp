@@ -9,7 +9,7 @@
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <memory>
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECLS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-namespace fc { class SceneDataUbo; class FrameAssets; class FcBillboard; }
+namespace fc { class SceneData; class FcDescriptorCollection; class FcBillboard; }
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
 
@@ -20,6 +20,7 @@ namespace fc
   {
    private:
      FcPipeline mPipeline;
+     VkDescriptorSet mDescriptorSet {VK_NULL_HANDLE};
      //
      // TODO could make Ubos more modular, that way we could just
      // rebind them to other pipelines instead of resetting a lot of matrices and vectors etc...
@@ -48,11 +49,11 @@ namespace fc
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   MUTATORS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      void addBillboard(FcBillboard& billboard) noexcept;
      //
-     void draw(VkCommandBuffer cmd, SceneDataUbo& sceneData, FrameAssets& currentFrame) noexcept;
+     void draw(VkCommandBuffer cmd, SceneData& sceneData) noexcept;
      //
      void buildPipelines() noexcept;
      //
-     void buildPipelines(std::vector<FrameAssets>& frames) noexcept;
+     void init(FcDescriptorCollection& frame) noexcept;
      //
      void sortBillboardsByDistance(glm::vec4& cameraPosition) noexcept;
 

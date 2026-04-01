@@ -15,70 +15,50 @@
 namespace fc
 {
   //
-  //
   void FcBillboardRenderer::addBillboard(FcBillboard& billboard) noexcept
   {
     // TODO verify ownership and proper pointer selection
     mBillboards.emplace_back(std::shared_ptr<FcBillboard>(&billboard));
   }
 
+
   //
-  //
-  void FcBillboardRenderer::buildPipelines(std::vector<FrameAssets>& frames) noexcept
+  void FcBillboardRenderer::init(FcDescriptorCollection& descCollection) noexcept
   {
-    FcPipelineConfig billboardConfig;
-    billboardConfig.name = "Billboard";
-    billboardConfig.addStage(VK_SHADER_STAGE_VERTEX_BIT, "bindless_billboard.vert.spv");
-    billboardConfig.addStage(VK_SHADER_STAGE_FRAGMENT_BIT, "bindless_billboard.frag.spv");
+    FcPipelineConfig pipelineConfig;
+    pipelineConfig.name = "Billboard";
+    pipelineConfig.addStage(VK_SHADER_STAGE_VERTEX_BIT, "bindless_billboard.vert.spv");
+    pipelineConfig.addStage(VK_SHADER_STAGE_FRAGMENT_BIT, "bindless_billboard.frag.spv");
 
     // Setup pipeline parameters
-    billboardConfig.enableDepthtest(VK_TRUE, VK_COMPARE_OP_GREATER_OR_EQUAL);
-    billboardConfig.enableBlendingAlpha();
+    pipelineConfig.enableDepthtest(VK_TRUE, VK_COMPARE_OP_GREATER_OR_EQUAL);
+    pipelineConfig.enableBlendingAlpha();
     // MUST signal vulkan that we won't be reading any vertex data
-    billboardConfig.disableVertexReading();
+    pipelineConfig.disableVertexReading();
 
+    // Add push constants to pipeline
     VkPushConstantRange pushConstantRange{};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
     pushConstantRange.offset = 0;
     pushConstantRange.size = sizeof(BillboardPushConstants);
-    //
-    billboardConfig.addPushConstants(pushConstantRange);
+    pipelineConfig.addPushConstants(pushConstantRange);
 
     // Create the uniform buffer object
     mUboBuffer.allocate(sizeof(BillboardUbo), FcBufferTypes::Uniform);
 
-    // Create descriptor sets and layouts
-    FcDescriptorBindInfo bindInfo{};
-    bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                        VK_SHADER_STAGE_VERTEX_BIT);
-    bindInfo.attachBuffer(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
-                          , mUboBuffer, sizeof(BillboardUbo), 0);
-    bindInfo.enableBindlessTextures();
+    // Create the descriptor sets used to build pipeline
+    pipelineConfig.attachUniformBuffer(0, 0, mUboBuffer, sizeof(BillboardUbo), 0, VK_SHADER_STAGE_VERTEX_BIT);
+    pipelineConfig.attachBindlessDescriptors(0);
 
-    FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
+    // Create and register our billboard descriptor set with the passed in descriptor collection
+    mDescriptorSet = pipelineConfig.createDescriptorSet(0);
+    descCollection.billboardDescriptorSet = mDescriptorSet;
 
-    VkDescriptorSetLayout bindlessLayout = descClerk.createDescriptorSetLayout(bindInfo);
-
-    for (FrameAssets& frame : frames)
-    {
-      frame.billboardDescriptorSet = descClerk.createDescriptorSet(bindlessLayout, bindInfo);
-    }
-
-    // TODO provied alternate path
-    // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NON-BINDLESS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    // add descriptorset for the texture image
-    /* billboardConfig.addSingleImageDescriptorSetLayout(); */
-
-    // bindInfo.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-    //                     VK_SHADER_STAGE_FRAGMENT_BIT);
-    // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
-    billboardConfig.addDescriptorSetLayout(bindlessLayout);
-
-    mPipeline.create(billboardConfig);
+    //
+    mPipeline.create(pipelineConfig);
   }
 
-  //
+
   //
   void FcBillboardRenderer::sortBillboardsByDistance(glm::vec4& cameraPosition) noexcept
   {
@@ -96,12 +76,11 @@ namespace fc
                });
   }
 
+
   //
-  //
-  void FcBillboardRenderer::draw(VkCommandBuffer cmd,
-                                 SceneDataUbo& sceneData,
-                                 FrameAssets& currentFrame) noexcept
+  void FcBillboardRenderer::draw(VkCommandBuffer cmd, SceneData& sceneData) noexcept
   {
+    // ?? TEST would this be better to just send scenedata already packaged and just use what's necessary
     mBillboardUbo.view = sceneData.view;
     mBillboardUbo.projection = sceneData.projection;
     mUboBuffer.write(&mBillboardUbo, sizeof(BillboardUbo));
@@ -127,7 +106,7 @@ namespace fc
     mPipeline.bind(cmd);
 
     // bind the UBO and textures to pipeline
-    mPipeline.bindDescriptorSet(cmd, currentFrame.billboardDescriptorSet, 0);
+    mPipeline.bindDescriptorSet(cmd, mDescriptorSet, 0);
 
     // iterate through billboards to draw them back to front
     for (auto& billboard : mBillboards)
@@ -141,12 +120,11 @@ namespace fc
     }
   }
 
-  //
+
   //
   void FcBillboardRenderer::destroy() noexcept
   {
     mPipeline.destroy();
-
     mUboBuffer.destroy();
   }
 }// --- namespace fc --- (END)

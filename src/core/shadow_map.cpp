@@ -5,7 +5,6 @@
 #include "fc_math.hpp"
 #include "fc_mesh.hpp"
 #include "fc_descriptors.hpp"
-#include "fc_locator.hpp"
 #include "fc_defaults.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <glm/gtc/matrix_transform.hpp>
@@ -15,7 +14,7 @@
 namespace fc
 {
   //
-  void FcShadowMap::init(std::vector<FrameAssets>& frames)
+  void FcShadowRenderer::init(FcDescriptorCollection& frame)
   {
 
     // -*-*-*-*-*-*-*-*-*-*-*-*-   CREATE SHADOW MAP IMAGE   -*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -24,7 +23,7 @@ namespace fc
 
     mShadowMapImage.createImage(SHADOW_MAP_SIZE, SHADOW_MAP_SIZE, FcImageTypes::ShadowMap);
 
-    initPipelines(frames);
+    initPipelines(frame);
 
     // TODO allow debug mode to calculate the frustrum as close to the scene
     // as possible
@@ -40,7 +39,7 @@ namespace fc
   }
 
 
-  void FcShadowMap::initPipelines(std::vector<FrameAssets>& frames)
+  void FcShadowRenderer::initPipelines(FcDescriptorCollection& frames)
   {
     FcPipelineConfig pipelineConfig;
     pipelineConfig.name = "Shadow pipeline";
@@ -79,41 +78,20 @@ namespace fc
     pipelineConfig.disableDepthtest();
     pipelineConfig.disableBlending();
 
-    FcDescriptorBindInfo bindInfo{};
-    bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+    // Set up descriptor sets
+    pipelineConfig.attachImage(0, 0, mShadowMapImage, FcDefaults::Samplers.ShadowMap, VK_SHADER_STAGE_FRAGMENT_BIT);
+    mShadowMapDescriptor = pipelineConfig.createDescriptorSet(0);
 
-    // Now create the descriptor set layout used by opaque pipeline and draw debug
-    // TODO streamline this process:
-    // 1. try to reduce redundancy for addBinding and attachImage...
-    // 2. pass only the image -> the attachImage method should determine the rest...
-    // 3.
-
-    VkDescriptorSetLayout descriptorSetLayout;
-
-    // TODO make Layout a temp object instead of class object
-    FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
-    descriptorSetLayout = descClerk.createDescriptorSetLayout(bindInfo);
-
-    bindInfo.attachImage(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, mShadowMapImage
-                         , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-                         , FcDefaults::Samplers.ShadowMap);
-
-    pipelineConfig.addDescriptorSetLayout(descriptorSetLayout);
+    // DELETE
+    // TODO May be able to then remove descriptor set from shadowMap class
+    frames.shadowMapDescriptorSet = mShadowMapDescriptor;
 
     mShadowDebugPipeline.create(pipelineConfig);
-
-    // Allocate a descriptorSet to each frame buffer
-    for (FrameAssets& frame : frames)
-    {
-      // TODO May be able to then remove descriptor set from shadowMap class
-      frame.shadowMapDescriptorSet = descClerk.createDescriptorSet(descriptorSetLayout,
-                                                                   bindInfo);
-    }
   }
 
 
   // TODO eliminate confusion about which of the two following functions to call
-  void FcShadowMap::updateLightSource(glm::vec3 lightPos, glm::vec3 target)
+  void FcShadowRenderer::updateLightSource(glm::vec3 lightPos, glm::vec3 target)
   {
     // TODO find a strategy to account for the fact that the up vector may be pointing in the x dir, etc.
     /* lightPos = glm::normalize(lightPos); */
@@ -123,7 +101,7 @@ namespace fc
   }
 
 
-  void FcShadowMap::updateLightSpaceTransform()
+  void FcShadowRenderer::updateLightSpaceTransform()
   {
     mLightProjection = orthographic(mFrustum.left, mFrustum.right, mFrustum.bottom
                                     , mFrustum.top, mFrustum.far, mFrustum.near);
@@ -132,7 +110,7 @@ namespace fc
   }
 
 
-  void FcShadowMap::generateMap(VkCommandBuffer cmd, FcDrawCollection& drawContext)
+  void FcShadowRenderer::generateMap(VkCommandBuffer cmd, FcDrawCollection& drawContext)
   {
     mShadowMapImage.transitionLayout(cmd,
                                      VK_IMAGE_LAYOUT_UNDEFINED,
@@ -240,7 +218,7 @@ namespace fc
   }
 
 
-  void FcShadowMap::drawDebugMap(VkCommandBuffer cmd, FrameAssets& currentFrame)
+  void FcShadowRenderer::drawDebugMap(VkCommandBuffer cmd, FcDescriptorCollection& currentFrame)
   {
     // mShadowMapImage.transition(cmd, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL
     //                                 , VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR, VK_IMAGE_ASPECT_DEPTH_BIT);
@@ -266,8 +244,10 @@ namespace fc
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
                       mShadowDebugPipeline.getVkPipeline());
 
+    // vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mShadowDebugPipeline.Layout()
+    //                         , 0, 1, &currentFrame.shadowMapDescriptorSet, 0, nullptr);
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mShadowDebugPipeline.Layout()
-                            , 0, 1, &currentFrame.shadowMapDescriptorSet, 0, nullptr);
+                            , 0, 1, &mShadowMapDescriptor, 0, nullptr);
 
     ShadowPushConsts push;
     // TODO develop own push constants for shadow maps

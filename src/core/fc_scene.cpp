@@ -27,8 +27,6 @@ namespace fc
   {
     VkDevice device = FcLocator::Device();
 
-    FcDescriptorClerk mDescriptorClerk;
-    mDescriptorClerk.destroy();
     mMaterialDataBuffer.destroy();
 
     // TODO make sure all the bookkeeping is handled via smart ptrs

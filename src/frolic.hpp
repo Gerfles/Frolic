@@ -31,7 +31,7 @@ namespace fc
      FcWindow mWindow;
      // note: order of declaration matters (member variables are allocated top to bottom
      // and destroyed in the reverse order)
-     SceneDataUbo* pSceneData {nullptr};
+     SceneData* pSceneData {nullptr};
      //
      FcPlayer mPlayer;
      //

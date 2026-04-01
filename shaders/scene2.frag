@@ -21,10 +21,8 @@ layout(std140, set = 0, binding = 0) uniform SceneData
 } sceneData;
 
 //TODO DELETE?? may need for reflection as well as chrome and glass effects
-layout(set = 1, binding = 0) uniform samplerCube skybox;
-layout(set = 2, binding = 0) uniform sampler2DShadow shadowMap;
-
-layout(std140, set = 3, binding = 0) uniform MaterialConstants
+layout(set = 0, binding = 1) uniform sampler2DShadow shadowMap;
+layout(std140, set = 2, binding = 0) uniform MaterialConstants
 {
   vec4 colorFactors;
   vec4 MetalRoughFactors;

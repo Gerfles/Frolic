@@ -155,7 +155,7 @@ namespace fc
 
           // Update shadow map light source
           glm::vec3 lookDirection{sunlightPos.x, 0.f, sunlightPos.z};
-          fc->mRenderer.mShadowMap.updateLightSource(sunlightPos, lookDirection);
+          fc->mRenderer.mShadowRenderer.updateLightSource(sunlightPos, lookDirection);
         }
 
         // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   SHADOW MAP   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -166,30 +166,30 @@ namespace fc
 
         // TODO use frustum instead
 
-        Box& frustum = fc->mRenderer.mShadowMap.Frustum();
+        Box& frustum = fc->mRenderer.mShadowRenderer.Frustum();
         if(ImGui::SliderFloat("Left", &frustum.left, -20.f, 20.f))
         {
-          fc->mRenderer.mShadowMap.updateLightSpaceTransform();
+          fc->mRenderer.mShadowRenderer.updateLightSpaceTransform();
         }
         if(ImGui::SliderFloat("Right", &frustum.right, -20.f, 20.f))
         {
-          fc->mRenderer.mShadowMap.updateLightSpaceTransform();
+          fc->mRenderer.mShadowRenderer.updateLightSpaceTransform();
         }
         if(ImGui::SliderFloat("Top", &frustum.top, -20.f, 20.f))
         {
-          fc->mRenderer.mShadowMap.updateLightSpaceTransform();
+          fc->mRenderer.mShadowRenderer.updateLightSpaceTransform();
         }
         if(ImGui::SliderFloat("Bottom", &frustum.bottom, -20.f, 20.f))
         {
-          fc->mRenderer.mShadowMap.updateLightSpaceTransform();
+          fc->mRenderer.mShadowRenderer.updateLightSpaceTransform();
         }
         if(ImGui::SliderFloat("Near", &frustum.near, -.01f, 75.f))
         {
-          fc->mRenderer.mShadowMap.updateLightSpaceTransform();
+          fc->mRenderer.mShadowRenderer.updateLightSpaceTransform();
         }
         if(ImGui::SliderFloat("Far", &frustum.far, 1.f, 100.f))
         {
-          fc->mRenderer.mShadowMap.updateLightSpaceTransform();
+          fc->mRenderer.mShadowRenderer.updateLightSpaceTransform();
         }
       }
       ImGui::End();

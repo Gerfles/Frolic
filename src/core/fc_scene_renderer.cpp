@@ -5,52 +5,29 @@
 #include "fc_frame_assets.hpp"
 #include "fc_descriptors.hpp"
 #include "fc_locator.hpp"
+#include "fc_defaults.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
 
 namespace fc
 {
   //
-  void FcSceneRenderer::init(VkDescriptorSetLayout sceneDescriptorLayout,
-                             glm::mat4& viewProj,
-                             std::vector<FrameAssets>& frames)
+
+  void FcSceneRenderer::init(glm::mat4& viewProj, FcDescriptorCollection& descriptors, FcImage& shadowMap)
   {
+    // *-*-*-*-*-*-*-*-*-*-*-*-   FRAME DATA INITIALIZATION   *-*-*-*-*-*-*-*-*-*-*-*- //
+    mSceneDataBuffer.allocate(sizeof(SceneData), FcBufferTypes::Uniform);
+    // TODO why have view projection when we already have sceneData (it's only buffer though... maybe cast??)
     pViewProjection = &viewProj;
-    buildPipelines(sceneDescriptorLayout, frames);
 
-    // FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
-    // // *-*-*-*-*-*-*-*-*-*-*-*-   FRAME DATA INITIALIZATION   *-*-*-*-*-*-*-*-*-*-*-*- //
+    descriptors.sceneBindlessTextureSet = &mSceneDescriptorSet;
 
-    // // TODO create temporary storage for this in descClerk so we can just write the
-    // // descriptorSet and layout on the fly and destroy layout if not needed
-    // // TODO see if layout is not needed.
-    // FcDescriptorBindInfo sceneDescriptorBinding{};
-    // sceneDescriptorBinding.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
-    //                                   , VK_SHADER_STAGE_VERTEX_BIT
-    //                                   // TODO DELETE after separating model from scene
-    //                                   | VK_SHADER_STAGE_FRAGMENT_BIT
-    //                                   | VK_SHADER_STAGE_GEOMETRY_BIT);
-
-    // // TODO find out if there is any cost associated with binding to multiple un-needed stages...
-    // //, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-
-    // sceneDescriptorBinding.attachBuffer(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, mSceneDataBuffer
-    //                                     , sizeof(SceneDataUbo), 0);
-
-    // // create descriptorSet for sceneData
-    // mSceneDataDescriptorLayout = descClerk.createDescriptorSetLayout(sceneDescriptorBinding);
-
-    // // Allocate a descriptorSet to each frame buffer
-    // for (FrameAssets& frame : frames)
-    // {
-    //   frame.sceneDataDescriptorSet = descClerk.createDescriptorSet(
-    //     mSceneDataDescriptorLayout, sceneDescriptorBinding);
-    // }
+    buildPipelines(shadowMap);
   }
 
-  //
+  // TODO remove frame parameter
   // TODO remove dependency on FcRenderer pointer
-  void FcSceneRenderer::buildPipelines(VkDescriptorSetLayout sceneDescriptorLayout, std::vector<FrameAssets>& frames)
+  void FcSceneRenderer::buildPipelines(FcImage& shadowMap)
   {
     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   OPAQUE PIPELINE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     FcPipelineConfig pipelineConfig;
@@ -59,56 +36,41 @@ namespace fc
     pipelineConfig.addStage(VK_SHADER_STAGE_FRAGMENT_BIT, "scene3.frag.spv");
     pipelineConfig.addStage(VK_SHADER_STAGE_GEOMETRY_BIT, "explode.geom.spv");
 
+    // Configure Pipeline options
+    pipelineConfig.setCullMode(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+    pipelineConfig.enableDepthtest(VK_TRUE, VK_COMPARE_OP_GREATER_OR_EQUAL);
+
     // add push constants for the model & normal matrices and address of vertex buffer
     VkPushConstantRange matrixRange;
     matrixRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     matrixRange.offset = 0;
     matrixRange.size = sizeof(ScenePushConstants);
-    //
     pipelineConfig.addPushConstants(matrixRange);
 
     // Add push for the expansion effect -> amount to expand the polygons
-    VkPushConstantRange expansionFactorRange;
+    VkPushConstantRange expansionFactorRange;;
     expansionFactorRange.stageFlags = VK_SHADER_STAGE_GEOMETRY_BIT;
     expansionFactorRange.offset = sizeof(ScenePushConstants);
     expansionFactorRange.size = sizeof(float);
-    //
     pipelineConfig.addPushConstants(expansionFactorRange);
 
-    // place the scene descriptor layout in the first set (0), then cubemap, then material
-    pipelineConfig.addDescriptorSetLayout(sceneDescriptorLayout);
+    // TODO add set layout instead...
+    // TODO get rid of layout [contra above...]
+    // TODO find out if there is any cost associated with binding to multiple un-needed stages...
+    // TODO make bindless descriptor sets available globally
 
-    // Add single image descriptors for sky box image
-    pipelineConfig.addSingleImageDescriptorSetLayout();
+    // place the scene data buffer / shadow map / bindless textures within the first descriptor set
+    pipelineConfig.attachUniformBuffer(0, 0, mSceneDataBuffer, sizeof(SceneData), 0,
+                                       VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+    pipelineConfig.attachImage(0, 1, shadowMap, FcDefaults::Samplers.Linear, VK_SHADER_STAGE_FRAGMENT_BIT);
+    pipelineConfig.attachBindlessDescriptors(0);
 
-    // Add single image descriptors for shadow map image
-    pipelineConfig.addSingleImageDescriptorSetLayout();
+    // Build the scene descriptor set and attach to the descriptor collection
+    mSceneDescriptorSet = pipelineConfig.createDescriptorSet(0);
 
-    // *-*-*-*-*-*-*-*-*-*-*-   WITHOUT BINDLESS DESCRIPTORS   *-*-*-*-*-*-*-*-*-*-*- //
-    // create the descriptor set layout for the material
-    FcDescriptorBindInfo bindInfo{};
-    bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
-
-    FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
-    mMaterialDescriptorLayout = descClerk.createDescriptorSetLayout(bindInfo);
+    // Finally add the descriptor set layout for materials and create the pipeline
+    pipelineConfig.attachBindingOnly(1, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
-    // Finally add the descriptor set layout for materials
-    pipelineConfig.addDescriptorSetLayout(mMaterialDescriptorLayout);
-
-    FcDescriptorBindInfo bindlessBindInfo;
-    bindlessBindInfo.enableBindlessTextures();
-    VkDescriptorSetLayout bindlessLayout = descClerk.createDescriptorSetLayout(bindlessBindInfo);
-
-    for (FrameAssets& frame : frames)
-    {
-      frame.sceneBindlessTextureSet = descClerk.createDescriptorSet(bindlessLayout, bindlessBindInfo);
-    }
-
-    pipelineConfig.addDescriptorSetLayout(bindlessLayout);
-
-    pipelineConfig.setCullMode(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
-    pipelineConfig.enableDepthtest(VK_TRUE, VK_COMPARE_OP_GREATER_OR_EQUAL);
 
     mOpaquePipeline.create(pipelineConfig);
 
@@ -198,8 +160,7 @@ namespace fc
 
   //
   //
-  void FcSceneRenderer::draw(VkCommandBuffer cmd, FcDrawCollection& drawCollection,
-                             FrameAssets& currentFrame, bool shouldDrawWireFrame)
+  void FcSceneRenderer::draw(VkCommandBuffer cmd, FcDrawCollection& drawCollection, bool shouldDrawWireFrame) noexcept
   {
     // *-*-*-*-*-*-*-*-*-*-*-*-   ATTEMPTING DRAW INDIRECT   *-*-*-*-*-*-*-*-*-*-*-*- //
 
@@ -226,23 +187,15 @@ namespace fc
       pCurrentPipeline = &mOpaquePipeline;
     }
 
-
-    // TODO follow this protocol for each subRenderer,
-    // TODO group these together inside frameAssets for each renderer
-    // ?? for some reason the renderer still works somewhat well without binding skybox etc.??
-    mExternalDescriptors[0] = currentFrame.sceneDataDescriptorSet;
-    mExternalDescriptors[1] = currentFrame.skyBoxDescriptorSet;
-    mExternalDescriptors[2] = currentFrame.shadowMapDescriptorSet;
-
-    mOpaquePipeline.bindDescriptorSets(cmd, mExternalDescriptors, 0);
-
-    mOpaquePipeline.bindDescriptorSet(cmd, currentFrame.sceneBindlessTextureSet, 4);
+    // Bind all the descriptors for the shadow map / scene data buffer / bindless textures
+    mOpaquePipeline.bindDescriptorSet(cmd, mSceneDescriptorSet, 0);
 
     // First draw all the opaque meshNode objects in draw collection
     for (size_t i = 0; i < drawCollection.opaqueSurfaces.size(); ++i)
     {
+      // Bind the material descriptors specific to this draw surface
       mOpaquePipeline.bindDescriptorSet(cmd,
-                                        drawCollection.opaqueSurfaces[i].first->materialSet, 3);
+                                        drawCollection.opaqueSurfaces[i].first->materialSet, 1);
 
       for (size_t index : drawCollection.visibleSurfaceIndices[i])
       {
@@ -255,15 +208,14 @@ namespace fc
       }
     }
 
-
     // Next, we draw all the transparent MeshNodes in draw collection
     mTransparentPipeline.bind(cmd);
     pCurrentPipeline = &mTransparentPipeline;
 
     for (size_t i = 0; i < drawCollection.transparentSurfaces.size(); ++i)
     {
-      mOpaquePipeline.bindDescriptorSet(cmd,
-                                        drawCollection.transparentSurfaces[i].first->materialSet, 3);
+      mTransparentPipeline.bindDescriptorSet(cmd,
+                                        drawCollection.transparentSurfaces[i].first->materialSet, 1);
 
       for (size_t index : drawCollection.visibleSurfaceIndices[i])
       {
@@ -307,10 +259,15 @@ namespace fc
   }
 
 
+  //
   void FcSceneRenderer::destroy()
   {
     vkDestroyDescriptorSetLayout(FcLocator::Device(), mMaterialDescriptorLayout, nullptr);
     mOpaquePipeline.destroy();
     mTransparentPipeline.destroy();
+
+
+    // Destroy data buffer with scene data
+    mSceneDataBuffer.destroy();
   }
 }

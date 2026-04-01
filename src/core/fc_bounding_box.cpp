@@ -1,6 +1,7 @@
 //>--- fc_bounding_box.cpp ---<//
 #include "fc_bounding_box.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "fc_descriptors.hpp"
 #include "fc_mesh.hpp"
 #include "fc_frame_assets.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -8,6 +9,7 @@
 
 namespace fc
 {
+  //
   void FcBoundaryBox::init(const FcBounds &bounds) noexcept
   {
     mCorners[0] = glm::vec4{bounds.origin + glm::vec3{1.f, 1.f, 1.f} * bounds.extents, 1.f};
@@ -21,24 +23,14 @@ namespace fc
   }
 
 
-
-  void FcBoundingBoxRenderer::buildPipelines(VkDescriptorSetLayout sceneDescriptorLayout) noexcept
+  //
+  void FcBoundingBoxRenderer::init(const FcBuffer& sceneDataBuffer) noexcept
   {
     FcPipelineConfig pipelineConfig;
     pipelineConfig.name = "Bounding Box Draw";
     pipelineConfig.addStage(VK_SHADER_STAGE_VERTEX_BIT, "bounding_box.vert.spv");
-    pipelineConfig.addStage(VK_SHADER_STAGE_GEOMETRY_BIT, "bounding_box.geom.spv");
+   pipelineConfig.addStage(VK_SHADER_STAGE_GEOMETRY_BIT, "bounding_box.geom.spv");
     pipelineConfig.addStage(VK_SHADER_STAGE_FRAGMENT_BIT, "bounding_box.frag.spv");
-
-    // add push constants
-    VkPushConstantRange pushConstantRange;
-    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    pushConstantRange.offset = 0;
-    pushConstantRange.size = sizeof(BoundingBoxPushes);
-
-    pipelineConfig.addPushConstants(pushConstantRange);
-
-    pipelineConfig.addDescriptorSetLayout(sceneDescriptorLayout);
 
     // TODO Would be better to implement with line primitives but not sure if all implementations
     // can use lines... triangles are pretty much guaranteed
@@ -47,17 +39,29 @@ namespace fc
     pipelineConfig.enableDepthtest(VK_TRUE, VK_COMPARE_OP_GREATER_OR_EQUAL);
     pipelineConfig.disableBlending();
 
+    // add push constants
+    VkPushConstantRange pushConstantRange;
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    pushConstantRange.offset = 0;
+    pushConstantRange.size = sizeof(BoundingBoxPushes);
+    pipelineConfig.addPushConstants(pushConstantRange);
+
+    // add the scene descriptor set layout (eye, view, proj, etc.)
+    pipelineConfig.attachUniformBuffer(0, 0, sceneDataBuffer, sizeof(SceneData), 0, VK_SHADER_STAGE_VERTEX_BIT);
+
+    // Create the descriptorset we will bind when drawing
+    mDescriptorSet = pipelineConfig.createDescriptorSet(0);
+
     mBoundingBoxPipeline.create(pipelineConfig);
   }
 
 
   // TODO think about embedding command buffer within current frame
   void FcBoundingBoxRenderer::draw(VkCommandBuffer cmd, FcDrawCollection& drawCollection
-                                   ,FrameAssets& currentFrame, int boundingBoxID) noexcept
+                                   ,FcDescriptorCollection& currentFrame, int boundingBoxID) noexcept
   {
-    {
       mBoundingBoxPipeline.bind(cmd);
-      mBoundingBoxPipeline.bindDescriptorSet(cmd, currentFrame.sceneDataDescriptorSet, 0);
+      mBoundingBoxPipeline.bindDescriptorSet(cmd, mDescriptorSet, 0);
 
       // Draw all bounding boxes, if signaled by BoxId being == -1 (default value)
       // also make sure we don't try and draw a bounding box that doesn't exist
@@ -80,7 +84,6 @@ namespace fc
         const FcSubmesh& subMesh = drawCollection.getSurfaceAtIndex(boundingBoxID);
         drawSurface(cmd, subMesh);
       }
-    }
   }
 
   void  FcBoundingBoxRenderer::drawSurface(VkCommandBuffer cmd, const FcSubmesh& subMesh) noexcept

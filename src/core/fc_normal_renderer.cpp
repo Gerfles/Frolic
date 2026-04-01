@@ -1,6 +1,7 @@
 //> fc_normal_renderer.cpp <//
 #include "fc_normal_renderer.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "core/fc_descriptors.hpp"
 #include "fc_frame_assets.hpp"
 #include "fc_types.hpp"
 #include "fc_mesh.hpp"
@@ -9,7 +10,7 @@
 
 namespace fc
 {
-  void FcNormalRenderer::buildPipelines(VkDescriptorSetLayout sceneDescriptorLayout)
+  void FcNormalRenderer::init(const FcBuffer& sceneDataBuffer)
   {
     FcPipelineConfig pipelineConfig;
     pipelineConfig.name = "Normal Draw Pipeline";
@@ -17,14 +18,6 @@ namespace fc
     pipelineConfig.addStage(VK_SHADER_STAGE_GEOMETRY_BIT, "normal_display.geom.spv");
     pipelineConfig.addStage(VK_SHADER_STAGE_FRAGMENT_BIT, "normal_display.frag.spv");
 
-    // add push constants
-    VkPushConstantRange matrixRange;
-    matrixRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    matrixRange.offset = 0;
-    matrixRange.size = sizeof(ScenePushConstants);
-
-    pipelineConfig.addPushConstants(matrixRange);
-    pipelineConfig.addDescriptorSetLayout(sceneDescriptorLayout);
     /* pipelineConfig.setColorAttachment(VK_FORMAT_R16G16B16A16_SFLOAT); */
     /* pipelineConfig.setDepthFormat(VK_FORMAT_D32_SFLOAT); */
     /* pipelineConfig.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST); */
@@ -36,9 +29,20 @@ namespace fc
     // TODO prefer config via:
     //pipelineConfig.enableMultiSampling(VK_SAMPLE_COUNT_1_BIT);
     //pipelineConfig.disableMultiSampling();
-
     pipelineConfig.enableDepthtest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
     pipelineConfig.enableBlendingAlpha();
+
+    // add push constants
+    VkPushConstantRange matrixRange;
+    matrixRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    matrixRange.offset = 0;
+    matrixRange.size = sizeof(ScenePushConstants);
+    pipelineConfig.addPushConstants(matrixRange);
+
+    // Set up all descriptor sets for this pipeline
+    pipelineConfig.attachUniformBuffer(0, 0, sceneDataBuffer, sizeof(sceneDataBuffer), 0,
+                                       VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_GEOMETRY_BIT);
+    mDescriptorSet = pipelineConfig.createDescriptorSet(0);
 
     mNormalDrawPipeline.create(pipelineConfig);
   }
@@ -47,10 +51,10 @@ namespace fc
   // TODO need to implement a method that only draws the visible objects and
   void FcNormalRenderer::draw(VkCommandBuffer cmd,
                               FcDrawCollection& drawCollection,
-                              FrameAssets& currentFrame)
+                              FcDescriptorCollection& currentFrame)
   {
     mNormalDrawPipeline.bind(cmd);
-    mNormalDrawPipeline.bindDescriptorSet(cmd, currentFrame.sceneDataDescriptorSet, 0);
+    mNormalDrawPipeline.bindDescriptorSet(cmd, mDescriptorSet, 0);
 
     // TODO could also draw the vectors for transparent objects but bypassed here
     for (auto& materialCollection : drawCollection.opaqueSurfaces)

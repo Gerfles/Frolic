@@ -1,10 +1,14 @@
 //>--- fc_pipeline.hpp ---<//
 #pragma once
+
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vulkan/vulkan_core.h"
+#include "fc_descriptors.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <string>
 #include <vector>
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+namespace fc { class FcDescriptorBindInfo; }
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
@@ -22,12 +26,20 @@ namespace fc
 
 
   //
-  //
+  // TODO make class
   // Allow constructor with variable argument list (vk stage names)
   struct  FcPipelineConfig
   {
+   private:
+     void growDescriptorsSizeIfNeeded(u32 requestedDescriptorSetNumber);
+
+   public:
+     void configureDescriptorSets();
+     VkDescriptorSet createDescriptorSet(u32 descriptorSetNumber);
+
      std::vector<VkPushConstantRange> pushConstantsInfo;
      std::vector<VkDescriptorSetLayout> descriptorlayouts;
+     std::vector<FcDescriptors> mDescriptorSets;
      const char* name; // ?? might want to remove but then may serve as good identifier (hashmap)
 
      // Only used when binding vertex buffer not when using GPU vertex buffer via address
@@ -55,7 +67,26 @@ namespace fc
      void initDefaultPipelineParameters();
      void addStage(VkShaderStageFlagBits stageFlag, std::string filename);
      void addPushConstants(VkPushConstantRange& pushConstant);
-     void addDescriptorSetLayout(VkDescriptorSetLayout layout) { descriptorlayouts.push_back(layout);}
+
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DELETE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     void attachImage(u32 descSetNum, u32 bindSlot, const FcImage& image,VkSampler imageSampler,
+                      VkShaderStageFlags shaderStages) noexcept;
+     void attachUniformBuffer(u32 descSetNum, uint32_t bindSlot, const FcBuffer& buffer, VkDeviceSize size,
+                              VkDeviceSize offset, VkShaderStageFlags shaderStages) noexcept;
+
+     void attachBuffer(u32 descSetNum, u32 bindSlot, VkDescriptorType type ,const FcBuffer& buffer,
+                       VkDeviceSize size, VkDeviceSize offset, VkShaderStageFlags shaderStages) noexcept;
+     void attachBindingOnly(u32 descSetNum, u32 bindSlot, VkDescriptorType type
+                            , VkShaderStageFlags shaderStages) noexcept;
+     void attachBindlessDescriptors(u32 descSetNum);
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
+
+     inline void addDescriptorSetLayout(VkDescriptorSetLayout layout) { descriptorlayouts.push_back(layout);}
      VkDescriptorSetLayout addSingleImageDescriptorSetLayout();
      void setInputTopology(VkPrimitiveTopology topology);
      void setPolygonMode(VkPolygonMode mode);
@@ -112,7 +143,7 @@ namespace fc
       {
         // TODO make mBindPoint simpler if possible (separate compute pipeline)
         // TODO provided by vulkan 1_4: use this structure and keep a static version as a
-        // member of billboard renderer so we don't need to repopulate every frame...
+        // member of each renderer so we don't need to repopulate every frame...
         // VkBindDescriptorSetsInfo descSetsInfo{}; descSetsInfo.sType =
         // VK_STRUCTURE_TYPE_BIND_DESCRIPTOR_SETS_INFO; descSetsInfo.layout =
         // mPipeline.Layout(); /* descSetsInfo.firstSet = 0; */

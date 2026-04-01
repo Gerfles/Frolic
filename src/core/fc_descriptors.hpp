@@ -1,6 +1,7 @@
 //>--- fc_descriptors.hpp ---<//
 #pragma once
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "platform.hpp"
 #include "vulkan/vulkan_core.h"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <deque>
@@ -15,39 +16,72 @@ namespace fc
 {
 
 
-   // struct PointLight
-   // {
-   //    glm::vec4 position{}; // ignore w
-   //    glm::vec4 color{}; // w is intensity
-   // };
-
-   // struct GlobalUbo
-   // {
-   //    alignas(16) glm::mat4 projection {1.f};
-   //    alignas(16) glm::mat4 view {1.f};
-   //    alignas(16) glm::mat4 invView {1.f};
-   //    alignas(16) glm::vec4 ambientLightColor {1.f, 1.f, 1.f, 0.02f}; // w is light intensity
-   //    alignas(32) PointLight pointLights[10];
-   //    alignas(8) int numLights {5};
-   // };
-
-
-    struct FcDescriptorBindInfo
+  // TODO embedd or DELETE
+  struct FcDescriptorBindInfo
     {
        std::vector<VkWriteDescriptorSet> descriptorWrites;
        std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
        std::deque<VkDescriptorBufferInfo> bufferInfos;
        std::deque<VkDescriptorImageInfo> imageInfos;
        bool mIsBindlessIndexingUsed {false};
-       void attachBuffer(uint32_t bindSlot, VkDescriptorType type
+       void attachBuffer(u32 bindSlot, VkDescriptorType type
                          ,const FcBuffer& buffer, VkDeviceSize size, VkDeviceSize offset);
-       void attachImage(uint32_t bindSlot, VkDescriptorType type
+
+       // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DELETE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+       void attachImage(u32 bindSlot, VkDescriptorType type
                         ,const FcImage& image, VkImageLayout layout, VkSampler imageSampler);
-       // void attachImageBindless(uint32_t bindSlot, VkDescriptorType type
+
+       void attachImage2(u32 bindSlot, const FcImage& image, VkSampler imageSampler);
+       // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
+       // void attachImageBindless(u32 bindSlot, VkDescriptorType type
        //                  ,const FcImage& image, VkImageLayout layout, VkSampler imageSampler);
-       void addBinding(uint32_t bindSlot, VkDescriptorType type, VkShaderStageFlags shaderStages);
+       void addBinding(u32 bindSlot, VkDescriptorType type, VkShaderStageFlags shaderStages);
        void enableBindlessTextures();
     };
+
+
+
+  // TODO maybe rename [resourceDocks, resourceMaps, assetKeys, ...]
+  //
+  class FcDescriptors
+  {
+   private:
+     //
+     // TODO add pointer or static instance of descriptor clerk
+     // TODO delete all layouts and don't pass them around. then we can safely delete them...
+     // if that is not an option, we can create a wrapper class with a destructor
+     std::vector<VkWriteDescriptorSet> mDescriptorWrites;
+     std::vector<VkDescriptorSetLayoutBinding> mLayoutBindings;
+     std::deque<VkDescriptorBufferInfo> mBufferInfos;
+     std::deque<VkDescriptorImageInfo> mImageInfos;
+     VkDescriptorSet mDescriptorSet {VK_NULL_HANDLE};
+     std::vector<VkDescriptorSetLayout> mLayouts;
+     VkDescriptorSetLayout mLayout {VK_NULL_HANDLE};
+
+     // DELETE or make static
+     bool isBindlessSupported {true};
+
+     /* FcDescriptorBindInfo mBindInfo {}; */
+     friend class FcDescriptorClerk;
+   public:
+     ~FcDescriptors();
+     //
+     void attachImage(u32 bindSlot, const FcImage& image,VkSampler imageSampler,
+                      VkShaderStageFlags shaderStages) noexcept;
+     void attachUniformBuffer(uint32_t bindSlot, const FcBuffer& buffer, VkDeviceSize size,
+                              VkDeviceSize offset, VkShaderStageFlags shaderStages) noexcept;
+     void attachBuffer(u32 bindSlot, VkDescriptorType type ,const FcBuffer& buffer,
+                       VkDeviceSize size, VkDeviceSize offset, VkShaderStageFlags shaderStages) noexcept;
+     void attachBindingOnly(u32 bindSlot, VkDescriptorType type, VkShaderStageFlags shaderStages) noexcept;
+     //
+     VkDescriptorSetLayout createDescriptorSetLayout() noexcept;
+     VkDescriptorSet createDescriptorSet() noexcept;
+     VkDescriptorSet createBindlessDescriptorSet() noexcept;
+     inline VkDescriptorSet VkDescriptorSet() noexcept { return mDescriptorSet; }
+     inline VkDescriptorSetLayout VkDescriptorSetLayout() noexcept { return mLayout; }
+  };
+
 
   // TODO make this struct a public struct defined within FcDescriptorClerk so it would be
   // declared as FcDescriptorClerk::PoolSizeRatio
@@ -67,7 +101,7 @@ namespace fc
      std::vector<PoolSizeRatio> mPoolRatios;
      std::vector<VkDescriptorPool> mFullPools;
      std::vector<VkDescriptorPool> mReadyPools;
-     uint32_t mSetsPerPool;
+     u32 mSetsPerPool;
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-   BINDLESS RESOURCES   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
      // TODO default false and test to verify
      bool isBindlessSupported = true;
@@ -78,8 +112,9 @@ namespace fc
      /* VkDescriptorSetLayout mBindlessDescriptorLayout; */
      VkDescriptorPool getPool();
      void destroyPools();
-     VkDescriptorPool createPools(uint32_t setCount, std::span<PoolSizeRatio> poolRatios);
+     VkDescriptorPool createPools(u32 setCount, std::span<PoolSizeRatio> poolRatios);
      void clearPools();
+
    public:
 
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CTORS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -90,11 +125,15 @@ namespace fc
      FcDescriptorClerk& operator=(FcDescriptorClerk&&) = delete;
      //
      // TODO cleanup to reuse common code and eliminate duplicated methods
-     void initDescriptorPools(uint32_t maxSets, std::span<PoolSizeRatio> poolRatios);
+     void initDescriptorPools(u32 maxSets, std::span<PoolSizeRatio> poolRatios);
      //
      VkDescriptorSetLayout createDescriptorSetLayout(FcDescriptorBindInfo& bindingInfo);
      //
      VkDescriptorSet createDescriptorSet(VkDescriptorSetLayout layout, FcDescriptorBindInfo& bindInfo);
+     // Creates the descriptor set within FcDescriptors
+     void createDescriptorSet(FcDescriptors& descriptors) noexcept;
+     void createBindlessDescriptorSet(FcDescriptors* descriptors) noexcept;
+     VkDescriptorSet createBindlessDescriptorSet(VkDescriptorSetLayout layout, FcDescriptorBindInfo& bindingInfo);
 
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   POOL MANAGEMENT   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      void destroy();
