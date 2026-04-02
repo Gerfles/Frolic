@@ -25,7 +25,7 @@ namespace fc
      uint32_t mNumMaterials {0};
 
      // FIXME should we keep this and if so, is it deleted in dtor
-     VkDescriptorSetLayout mMaterialDescriptorLayout;
+     /* VkDescriptorSetLayout mMaterialDescriptorLayout; */
      // just the nodes that don't have a parent, for iterating through the file in tree order
      std::vector<std::shared_ptr<FcNode>> mTopNodes;
      //

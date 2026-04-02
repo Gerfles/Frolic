@@ -70,8 +70,8 @@ namespace fc
 
     // Finally add the descriptor set layout for materials and create the pipeline
     pipelineConfig.attachBindingOnly(1, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
-    // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
+    //
     mOpaquePipeline.create(pipelineConfig);
 
     // -*-*-*-*-*-*-*-*-*-*-*-*-*-   WIREFRAME PIPELINE   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -95,7 +95,6 @@ namespace fc
 
     mTransparentPipeline.create(pipelineConfig);
   }
-
 
   // BUG culling is not working properly as there are many triangles drawn
   // while no objects in view frustum even when rotating more towards the objects will

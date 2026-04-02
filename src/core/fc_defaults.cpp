@@ -173,16 +173,6 @@ namespace fc
       /* materials[i] = std::make_shared<FcMaterial>(); */
       blank.materialType = FcMaterial::Type::Opaque;
 
-      FcDescriptorBindInfo bindInfo{};
-
-      bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
-                          , VK_SHADER_STAGE_FRAGMENT_BIT);
-
-      // create the descriptor set Layout for the material
-      VkDescriptorSetLayout descriptorSetLayout =
-        FcLocator::DescriptorClerk().createDescriptorSetLayout(bindInfo);
-
-
       MaterialConstants constants;
       constants.colorFactors.x = 1.0f;
       constants.colorFactors.y = 1.0f;
@@ -204,21 +194,16 @@ namespace fc
       /* constants.colorIndex = drawCollection.mTextures.get(index)->Handle(); */
       constants.colorIndex = 0;
 
-      // *-*-*-*-*-*-*-*-*-*-*-*-*-   MATERIAL DATA BUFFER   *-*-*-*-*-*-*-*-*-*-*-*-*- //
-      bindInfo.attachBuffer(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, materialDataBuffer
-                            , sizeof(MaterialConstants), 0);
+      // Build descriptor sets for each material
+      FcDescriptors descriptors;
+      descriptors.attachUniformBuffer(0, materialDataBuffer, sizeof(MaterialConstants),
+                                      0, VK_SHADER_STAGE_FRAGMENT_BIT);
+      blank.materialSet = descriptors.createDescriptorSet();
 
       // Write material parameters to buffer.
       MaterialConstants* defaultMaterialConstants = static_cast<MaterialConstants*>
                                                     (materialDataBuffer.getAddress());
       *defaultMaterialConstants = constants;
-
-      // TODO make the ubo descriptor set the same for all materials:
-      // perhaps store an addressable buffer within the the GPU mem:
-
-      // Build descriptor sets for each material
-      blank.materialSet
-        = FcLocator::DescriptorClerk().createDescriptorSet(descriptorSetLayout, bindInfo);
 
       // FIXME
       /* FcLocator::DescriptorClerk().destroyDescriptorSetLayout(descriptorSetLayout); */

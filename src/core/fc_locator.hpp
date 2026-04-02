@@ -66,7 +66,7 @@ namespace fc
       // TODO think about making some of these const
      static FcRenderer& Renderer();
      static FcGpu& Gpu() { return *pGpu; }
-     static FcDescriptorClerk& DescriptorClerk() { return *pDescriptorClerk; }
+     static inline FcDescriptorClerk& DescriptorClerk() { return *pDescriptorClerk; }
      static FcJanitor& Janitor() { return *pJanitor; }
      // ?? figure out why this one is const static
      const static VkDevice& Device() { return pDevice; }

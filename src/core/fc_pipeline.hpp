@@ -5,6 +5,7 @@
 #include "vulkan/vulkan_core.h"
 #include "fc_descriptors.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include <list>
 #include <string>
 #include <vector>
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -34,12 +35,14 @@ namespace fc
      void growDescriptorsSizeIfNeeded(u32 requestedDescriptorSetNumber);
 
    public:
-     void configureDescriptorSets();
+     void finalizeDescriptorSets();
      VkDescriptorSet createDescriptorSet(u32 descriptorSetNumber);
 
      std::vector<VkPushConstantRange> pushConstantsInfo;
      std::vector<VkDescriptorSetLayout> descriptorlayouts;
-     std::vector<FcDescriptors> mDescriptorSets;
+     /* std::vector<FcDescriptors> mDescriptorSets; */
+     std::list<FcDescriptors> mDescriptorSets;
+
      const char* name; // ?? might want to remove but then may serve as good identifier (hashmap)
 
      // Only used when binding vertex buffer not when using GPU vertex buffer via address
@@ -87,7 +90,7 @@ namespace fc
 
 
      inline void addDescriptorSetLayout(VkDescriptorSetLayout layout) { descriptorlayouts.push_back(layout);}
-     VkDescriptorSetLayout addSingleImageDescriptorSetLayout();
+     /* VkDescriptorSetLayout addSingleImageDescriptorSetLayout(); */
      void setInputTopology(VkPrimitiveTopology topology);
      void setPolygonMode(VkPolygonMode mode);
      void setCullMode(VkCullModeFlags cullMode, VkFrontFace frontFace);
@@ -120,8 +123,8 @@ namespace fc
    private:
       //TODO see if this can be eliminated and passed as init instead()
       //TODO if this device is necessary, should make all ref pointers const
-     VkPipeline mPipeline{nullptr};
-     VkPipelineLayout mPipelineLayout{nullptr};
+     VkPipeline mPipeline{VK_NULL_HANDLE};
+     VkPipelineLayout mPipelineLayout{VK_NULL_HANDLE};
 
       // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      VkPipelineBindPoint mBindPoint{VK_PIPELINE_BIND_POINT_GRAPHICS};

@@ -17,6 +17,7 @@ namespace fc
     // clear all of the structs we need back to their default values and erase stages added
     initDefaultPipelineParameters();
     shaders.clear();
+    mDescriptorSets.clear();
   }
 
   void FcPipelineConfig::addStage(VkShaderStageFlagBits stageFlag, std::string filename)
@@ -35,25 +36,24 @@ namespace fc
   {
     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   VIEWPORT   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     // make viewport state from our stored viewport and scissors
-    // TODO add support for multiple viewports or scissors
     viewportInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
     viewportInfo.viewportCount = 1;
     viewportInfo.pViewports = nullptr;//&viewport;
     viewportInfo.scissorCount = 1;
     viewportInfo.pScissors = nullptr;//&scissor;
     // TODO create a non-dynamic viewport and scissors in the case that the window cannot be resized
-     // VkViewport viewport{};
-     // viewport.x = 0.0f;
-     // viewport.y = 0.0f;
-     // VkExtent2D surfaceExtent = swapchain.getSurfaceExtent();
-     // viewport.width = static_cast<float>(surfaceExtent.width);
-     // viewport.height = static_cast<float>(surfaceExtent.height);
-     // viewport.minDepth = 0.0f;
-     // viewport.maxDepth = 1.0f;
-     //  // create a scissor info struct
-     // VkRect2D scissor{};
-     // scissor.offset = {0,0};           // offset to use region from
-     // scissor.extent = surfaceExtent; // extent to describe region to use, starting at offset
+    // VkViewport viewport{};
+    // viewport.x = 0.0f;
+    // viewport.y = 0.0f;
+    // VkExtent2D surfaceExtent = swapchain.getSurfaceExtent();
+    // viewport.width = static_cast<float>(surfaceExtent.width);
+    // viewport.height = static_cast<float>(surfaceExtent.height);
+    // viewport.minDepth = 0.0f;
+    // viewport.maxDepth = 1.0f;
+    //  // create a scissor info struct
+    // VkRect2D scissor{};
+    // scissor.offset = {0,0};           // offset to use region from
+    // scissor.extent = surfaceExtent; // extent to describe region to use, starting at offset
 
     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   COLOR ATTACHMENT   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     colorAttachmentFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
@@ -149,37 +149,17 @@ namespace fc
 
 
   //
-  //
   void FcPipelineConfig::disableColorAttachment()
   {
     colorAttachmentFormat = VK_FORMAT_UNDEFINED;
     renderInfo.colorAttachmentCount = 0;
-
   }
 
 
-  //
   //
   void FcPipelineConfig::addPushConstants(VkPushConstantRange& pushConstant)
   {
     pushConstantsInfo.emplace_back(pushConstant);
-  }
-
-
-  //
-  VkDescriptorSetLayout FcPipelineConfig::addSingleImageDescriptorSetLayout()
-  {
-    FcDescriptorClerk& descClerk = FcLocator::DescriptorClerk();
-
-    FcDescriptorBindInfo singleImageBindInfo{};
-    VkDescriptorSetLayout singleImageSetLayout;
-    singleImageBindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-                              , VK_SHADER_STAGE_FRAGMENT_BIT);
-    singleImageSetLayout = descClerk.createDescriptorSetLayout(singleImageBindInfo);
-
-    descriptorlayouts.push_back(singleImageSetLayout);
-
-    return singleImageSetLayout;
   }
 
 
@@ -190,50 +170,50 @@ namespace fc
 
     while (mDescriptorSets.size() <= requestedDescriptorSetNumber)
     {
-      mDescriptorSets.push_back(FcDescriptors{});
+      // Place an empty FcDescriptorSet in linked list
+      mDescriptorSets.emplace_back();
     }
   }
 
 
   //
-  VkDescriptorSet FcPipelineConfig::createDescriptorSet(u32 descriptorSetNumber)
+  VkDescriptorSet FcPipelineConfig::createDescriptorSet(u32 descSetNum)
   {
-    FC_ASSERT(descriptorSetNumber >= 0 && descriptorSetNumber < MAX_BINDLESS_RESOURCES);
+    FC_ASSERT(descSetNum >= 0 && descSetNum < MAX_BINDLESS_RESOURCES);
 
-    // if (mDescriptorSets[descriptorSetNumber].VkDescriptorSet() == VK_NULL_HANDLE)
-    // {
-    //   return mDescriptorSets[descriptorSetNumber].createDescriptorSet();
-    // }
-    // else
-    // {
-    //   return mDescriptorSets[descriptorSetNumber].VkDescriptorSet();
-    // }
-
-    return mDescriptorSets[descriptorSetNumber].createDescriptorSet();
+    if (std::next(mDescriptorSets.begin(), descSetNum)->VkDescriptorSet() == VK_NULL_HANDLE)
+    {
+      return std::next(mDescriptorSets.begin(), descSetNum)->createDescriptorSet();
+    }
+    else
+    {
+      return std::next(mDescriptorSets.begin(), descSetNum)->VkDescriptorSet();
+    }
   }
 
 
-  void FcPipelineConfig::configureDescriptorSets()
+  //
+  void FcPipelineConfig::finalizeDescriptorSets()
   {
     for (FcDescriptors& descriptor : mDescriptorSets)
     {
-      VkDescriptorSetLayout layout = descriptor.VkDescriptorSetLayout();
-
-      if (layout == VK_NULL_HANDLE)
+      if (descriptor.VkDescriptorSetLayout() == VK_NULL_HANDLE)
       {
         descriptor.createDescriptorSetLayout();
       }
 
-      descriptorlayouts.push_back(layout);
+      descriptorlayouts.push_back(descriptor.VkDescriptorSetLayout());
     }
   }
+
 
   //
   void FcPipelineConfig::attachImage(u32 descSetNum, u32 bindSlot, const FcImage& image,VkSampler imageSampler,
                                      VkShaderStageFlags shaderStages) noexcept
   {
     growDescriptorsSizeIfNeeded(descSetNum);
-    mDescriptorSets[descSetNum].attachImage(bindSlot, image, imageSampler, shaderStages);
+
+    std::next(mDescriptorSets.begin(), descSetNum)->attachImage(bindSlot, image, imageSampler, shaderStages);
   }
 
 
@@ -243,7 +223,8 @@ namespace fc
                                              VkShaderStageFlags shaderStages) noexcept
   {
     growDescriptorsSizeIfNeeded(descSetNum);
-    mDescriptorSets[descSetNum].attachUniformBuffer(bindSlot, buffer, size, offset, shaderStages);
+
+    std::next(mDescriptorSets.begin(), descSetNum)->attachUniformBuffer(bindSlot, buffer, size, offset, shaderStages);
   }
 
 
@@ -253,7 +234,8 @@ namespace fc
                                       VkDeviceSize offset, VkShaderStageFlags shaderStages) noexcept
   {
     growDescriptorsSizeIfNeeded(descSetNum);
-    mDescriptorSets[descSetNum].attachBuffer(bindSlot, type, buffer, size, offset, shaderStages);
+
+    std::next(mDescriptorSets.begin(), descSetNum)->attachBuffer(bindSlot, type, buffer, size, offset, shaderStages);
   }
 
 
@@ -262,18 +244,20 @@ namespace fc
                                            VkShaderStageFlags shaderStages) noexcept
   {
     growDescriptorsSizeIfNeeded(descSetNum);
-    mDescriptorSets[descSetNum].attachBindingOnly(bindSlot, type, shaderStages);
-  }
 
-
-  void FcPipelineConfig::attachBindlessDescriptors(u32 descSetNum)
-  {
-    growDescriptorsSizeIfNeeded(descSetNum);
-    mDescriptorSets[descSetNum].createBindlessDescriptorSet();
+    std::next(mDescriptorSets.begin(), descSetNum)->attachBindingOnly(bindSlot, type, shaderStages);
   }
 
 
   //
+  void FcPipelineConfig::attachBindlessDescriptors(u32 descSetNum)
+  {
+    growDescriptorsSizeIfNeeded(descSetNum);
+
+    std::next(mDescriptorSets.begin(), descSetNum)->attachBindlessDescriptors();
+  }
+
+
   //
   void FcPipelineConfig::setTessellationControlPoints(uint32_t patchControlPoints)
   {
@@ -282,14 +266,12 @@ namespace fc
 
 
   //
-  //
   void FcPipelineConfig::setInputTopology(VkPrimitiveTopology topology)
   {
     inputAssemblyInfo.topology = topology;
   }
 
 
-  //
   //
   void FcPipelineConfig::setPolygonMode(VkPolygonMode mode)
   {
@@ -298,7 +280,6 @@ namespace fc
 
 
   //
-  //
   void FcPipelineConfig::setCullMode(VkCullModeFlags cullMode, VkFrontFace frontFace)
   {
     rasterizationInfo.cullMode = cullMode;
@@ -306,8 +287,6 @@ namespace fc
   }
 
 
-  //
-  //
   // TODO verify that sample_count_1_bit is enabled by default
   void FcPipelineConfig::enableMultiSampling(VkSampleCountFlagBits sampleCount)
   {
@@ -317,7 +296,6 @@ namespace fc
 
 
   //
-  //
   void FcPipelineConfig::disableMultiSampling()
   {
     multiSamplingInfo.sampleShadingEnable = VK_FALSE;
@@ -326,17 +304,13 @@ namespace fc
 
 
   //
-  //
   void FcPipelineConfig::setColorAttachment(VkFormat format)
   {
+    // connect the format to the renderInfo structure
     colorAttachmentFormat = format;
-     // connect the format to the renderInfo structure
-    /* renderInfo.colorAttachmentCount = 1; */
-    /* renderInfo.pColorAttachmentFormats = &colorAttachmentFormat; */
   }
 
 
-  //
   //
   void FcPipelineConfig::setDepthFormat(VkFormat format)
   {
@@ -345,7 +319,6 @@ namespace fc
   }
 
 
-  //
   //
   // TODO Should just make this the default
   void FcPipelineConfig::disableDepthtest()
@@ -361,7 +334,6 @@ namespace fc
 
 
   //
-  //
   void FcPipelineConfig::enableDepthtest(bool depthWriteEnable, VkCompareOp op)
   {
     depthStencilInfo.depthTestEnable = VK_TRUE;
@@ -370,11 +342,14 @@ namespace fc
   }
 
 
+  //
   void FcPipelineConfig::disableBlending()
   {
     colorBlendAttachment.blendEnable = VK_FALSE;
   }
 
+
+  //
   void FcPipelineConfig::enableBlendingAdditive()
   {
     colorBlendAttachment.blendEnable = VK_TRUE;
@@ -386,6 +361,8 @@ namespace fc
     colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
   }
 
+
+  //
   void FcPipelineConfig::enableBlendingAlpha()
   {
     colorBlendAttachment.blendEnable = VK_TRUE;
@@ -398,11 +375,8 @@ namespace fc
     colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
   }
 
-  // void FcPipelineConfig::setDefaultVertexInput()
-  // {
 
-  // }
-
+  //
   // TODO rename to fit extension buffer or no buffer scheme
   // how data for a single vertex (such as position, color, texture coords, normals, etc) is as a whole
   void FcPipelineConfig::setNonBufferVertexInputAttributes()
@@ -418,7 +392,6 @@ namespace fc
     bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
     // VK_VERTEX_INPUT_RATE_VERTEX : move on to the next vertex
     // VK_VERTEX_INPUT_RATE_INSTANCE : move to a vertex for the next instance
-
 
     // How the data for an attribute is defined within a vertex
     attributeDescriptions.resize(5);
@@ -459,13 +432,12 @@ namespace fc
   }
 
 
-
+  //
   void FcPipelineConfig::setVertexInputPositionOnly()
   {
     // can bind multiple streams of data, this defines which one
     bindingDescription.binding = 0;
     // size of a single vertex object
-    // TODO see if glm::vec3 works instead
     bindingDescription.stride = sizeof(glm::vec3);
     // how to move between data after each vertex
     bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
@@ -475,17 +447,15 @@ namespace fc
     // How the data for an attribute is defined within a vertex
     attributeDescriptions.resize(1);
 
-	// position attribute
-     // which binding the data is at (same as above unless there's multiple streams of data)
+    // position attribute
+    // which binding the data is at (same as above unless there's multiple streams of data)
     attributeDescriptions[0].binding = 0;
-     // location in shader where data will be read from
+    // location in shader where data will be read from
     attributeDescriptions[0].location = 0;
     // format the data will take (also helps define the size of the data)
     attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
     // where this attribute is defined in the data for a single vertex
     attributeDescriptions[0].offset = 0;
-    // DELETE
-    //offsetof(SimpleVertex, position);
 
     // make sure we update the vertext binding count from 0 to 1
     vertexInputInfo.vertexBindingDescriptionCount = 1;
@@ -494,6 +464,7 @@ namespace fc
   }
 
 
+  //
   void FcPipelineConfig::disableVertexReading()
   {
     // clear binding descriptions
@@ -504,17 +475,10 @@ namespace fc
   }
 
 
-
-
-
-
-  // }
-
+  //
   void FcPipeline::create(FcPipelineConfig& pipelineConfig)
   {
-    /* fcPrintEndl("Creating Pipeline: %s", pipelineConfig.name); */
-
-    pipelineConfig.configureDescriptorSets();
+    pipelineConfig.finalizeDescriptorSets();
 
     // -*-*-*-*-*-*-*-*-*-*-*-*-   CREATE PIPELINE LAYOUT   -*-*-*-*-*-*-*-*-*-*-*-*- //
     // save a pointer to the device instance
@@ -528,13 +492,12 @@ namespace fc
     layoutInfo.setLayoutCount = static_cast<uint32_t>(pipelineConfig.descriptorlayouts.size());
     layoutInfo.pSetLayouts = pipelineConfig.descriptorlayouts.data();
 
-    // check it was created properly
+    // check that it was created properly
     VK_ASSERT(vkCreatePipelineLayout(pDevice, &layoutInfo, nullptr, &mPipelineLayout));
 
     mName = pipelineConfig.name;
 
     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE SHADERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
     // read in SPIR-V code of shaders
     // TODO add ability to specify filename as relative path and load the absolute path or
     // perhaps a small loader program that finds file paths for everything
@@ -558,7 +521,8 @@ namespace fc
       shaderStages[i].pName = "main";
     }
 
-    // TODO check to see if this is necessary to accomplish that an empty binding/attribute vector uses null for vertexInputInfo
+    // TODO check to see if this is necessary to accomplish that an empty
+    // binding/attribute vector uses null for vertexInputInfo
     // auto& bindingDescriptions = pipelineConfig.bindingDescriptions;
     // auto& attributeDescriptions = pipelineConfig.attributeDescriptions;
 
@@ -576,8 +540,7 @@ namespace fc
 
       mBindPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
     }
-    // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   GRAPHICS PIPELINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    else
+    else // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   GRAPHICS PIPELINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     {
       //mBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 
@@ -624,18 +587,16 @@ namespace fc
         //       return  VK_NULL_HANDLE; or -1, etc.
         //throw std::runtime_error("Failed to create Vulkan Graphics Pipeline!");
       }
-
-
     }
     // Destroy shader modules, no longer needed after pipeline created
     for (uint32_t i = 0; i < shaderStages.size(); i++)
     {
       vkDestroyShaderModule(pDevice, shaderModules[i], nullptr);
     }
-
   }
 
 
+  //
   // TODO rewrite to pass reference to shader module in and maybe return a bool for sucess and delete runtime error
   VkShaderModule FcPipeline::createShaderModule(const std::vector<char>& code)
   {
@@ -654,7 +615,7 @@ namespace fc
   } // --- FcPipeline::createShaderModule (_) --- (END)
 
 
-
+  //
   void FcPipeline::destroy()
   {
     fcPrintEndl("calling: FcPipeline::destroy");

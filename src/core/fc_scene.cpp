@@ -10,10 +10,6 @@
 #include <assimp/scene.h>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
-// DELETE
-/* #include "taskflow/taskflow.hpp" */
-/* #include "taskflow/algorithm/for_each.hpp" */
-// GLTF loading
 #include <fastgltf/core.hpp>
 #include <fastgltf/glm_element_traits.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -493,9 +489,6 @@ namespace fc
     mMaterialDataBuffer.allocate(sizeof(MaterialConstants) * gltf.materials.size()
                                  , FcBufferTypes::Uniform);
 
-    // MaterialConstants* sceneMaterialConstants =
-    //   static_cast<MaterialConstants*>(mMaterialDataBuffer.getAddress());
-
     // -*-*-*-*-*-*-*-*-*-*-*-*-*-   LOAD ALL MATERIALS   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
     // Preallocate material vector
     // TODO ?? eliminate materials in favor of two separate but equally sized vectors (vkDescriptorSet / type)
@@ -515,16 +508,6 @@ namespace fc
       } else {
         materials[i]->materialType = FcMaterial::Type::Opaque;
       }
-
-      FcDescriptorBindInfo bindInfo{};
-
-      // TODO TEST to see if this part can be outside of the loop
-      bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
-                          , VK_SHADER_STAGE_FRAGMENT_BIT);
-
-      // create the descriptor set layout for the material
-      mMaterialDescriptorLayout =
-        FcLocator::DescriptorClerk().createDescriptorSetLayout(bindInfo);
 
       MaterialConstants constants{};
       constants.colorFactors.x = material.pbrData.baseColorFactor[0];
@@ -555,10 +538,14 @@ namespace fc
       // }
 
       // *-*-*-*-*-*-*-*-*-*-*-*-*-   MATERIAL DATA BUFFER   *-*-*-*-*-*-*-*-*-*-*-*-*- //
+
+      // TODO TEST to see if this part can be outside of the loop
       uint32_t dataBufferOffset = i * sizeof(MaterialConstants);
 
-      bindInfo.attachBuffer(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, mMaterialDataBuffer
-                            , sizeof(MaterialConstants), dataBufferOffset);
+      FcDescriptors descriptors;
+      /* descriptors.attachBindingOnly(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT); */
+      descriptors.attachUniformBuffer(0, mMaterialDataBuffer, sizeof(MaterialConstants),
+                                      dataBufferOffset, VK_SHADER_STAGE_FRAGMENT_BIT);
 
       // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   BINDLESS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
       size_t index;
@@ -649,14 +636,9 @@ namespace fc
 
       // TODO make the ubo descriptor set the same for all materials:
       // perhaps store an addressable buffer within the the GPU mem:
-
       // Build descriptor sets for each material
-      materials[i]->materialSet
-        = FcLocator::DescriptorClerk().createDescriptorSet(mMaterialDescriptorLayout, bindInfo);
+      materials[i]->materialSet = descriptors.createDescriptorSet();
     }
-
-    fcPrintEndl("All materials bindlessly loaded...");
-
   }
 
 
@@ -790,32 +772,6 @@ namespace fc
         materials[i]->materialType = FcMaterial::Type::Opaque;
       }
 
-      FcDescriptorBindInfo bindInfo{};
-
-      // TODO TEST to see if this part can be outside of the loop
-      bindInfo.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
-                          , VK_SHADER_STAGE_FRAGMENT_BIT);
-      // Color texture
-      bindInfo.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-                          , VK_SHADER_STAGE_FRAGMENT_BIT);
-      // Metal-Rough texture
-      bindInfo.addBinding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-                          , VK_SHADER_STAGE_FRAGMENT_BIT);
-      // Normal texture
-      bindInfo.addBinding(3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-                          , VK_SHADER_STAGE_FRAGMENT_BIT);
-      // Occlusion texture
-      bindInfo.addBinding(4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-                          , VK_SHADER_STAGE_FRAGMENT_BIT);
-      // Emissive texture
-      bindInfo.addBinding(5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-                          , VK_SHADER_STAGE_FRAGMENT_BIT);
-
-      // create the descriptor set layout for the material
-      mMaterialDescriptorLayout =
-        FcLocator::DescriptorClerk().createDescriptorSetLayout(bindInfo);
-
-
       MaterialConstants constants;
       constants.colorFactors.x = material.pbrData.baseColorFactor[0];
       constants.colorFactors.y = material.pbrData.baseColorFactor[1];
@@ -845,11 +801,10 @@ namespace fc
       //   fcLog("Has unused specular color texture!");
       // }
 
-      // *-*-*-*-*-*-*-*-*-*-*-*-*-   MATERIAL DATA BUFFER   *-*-*-*-*-*-*-*-*-*-*-*-*- //
       uint32_t dataBufferOffset = i * sizeof(MaterialConstants);
-
-      bindInfo.attachBuffer(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, mMaterialDataBuffer
-                            , sizeof(MaterialConstants), dataBufferOffset);
+      FcDescriptors descriptors;
+      descriptors.attachUniformBuffer(0, mMaterialDataBuffer, sizeof(MaterialConstants),
+                                      dataBufferOffset, VK_SHADER_STAGE_FRAGMENT_BIT);
 
       // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   BINDED APPROACH   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
@@ -862,17 +817,14 @@ namespace fc
         size_t index = material.pbrData.baseColorTexture.value().textureIndex;
         size_t imageIndex = gltf.textures[index].imageIndex.value();
         size_t samplerIndex = gltf.textures[index].samplerIndex.value();
-        //
-        bindInfo.attachImage(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-                             , *drawCollection.mTextures.get(textureOffset + imageIndex)
-                             , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-                             , samplers[samplerIndex]);
+
+        descriptors.attachImage(1, *drawCollection.mTextures.get(textureOffset + imageIndex),
+                                samplers[samplerIndex], VK_SHADER_STAGE_FRAGMENT_BIT);
       }
-      else {  // set to defualt texture/sampler/values if none exist in material
-        bindInfo.attachImage(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-                             , FcDefaults::Textures.checkerboard
-                             , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-                             , FcDefaults::Samplers.Linear);
+      else // set to defualt texture/sampler/values if none exist in material
+      {
+        descriptors.attachImage(1, FcDefaults::Textures.checkerboard,
+                                FcDefaults::Samplers.Linear, VK_SHADER_STAGE_FRAGMENT_BIT);
       }
 
       // *-*-*-*-*-*-*-*-*-*-*-*-   METALIC-ROUGHNESS TEXTURE   *-*-*-*-*-*-*-*-*-*-*-*- //
@@ -884,16 +836,13 @@ namespace fc
         size_t imageIndex = gltf.textures[index].imageIndex.value();
         size_t samplerIndex = gltf.textures[index].samplerIndex.value();
 
-        bindInfo.attachImage(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-                             , *drawCollection.mTextures.get(textureOffset + imageIndex)
-                             , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-                             , samplers[samplerIndex]);
+        descriptors.attachImage(2, *drawCollection.mTextures.get(textureOffset + imageIndex),
+                                samplers[samplerIndex], VK_SHADER_STAGE_FRAGMENT_BIT);
       }
-      else {  // set to defualt texture/sampler/values if none exist in material
-        bindInfo.attachImage(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-                             , FcDefaults::Textures.white
-                             , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-                             , FcDefaults::Samplers.Linear);
+      else // set to defualt texture/sampler/values if none exist in material
+      {
+        descriptors.attachImage(2, FcDefaults::Textures.white,
+                                FcDefaults::Samplers.Linear, VK_SHADER_STAGE_FRAGMENT_BIT);
       }
 
       // -*-*-*-*-*-*-*-*-*-*-*-*-*-   NORMAL MAP TEXTURE   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -905,16 +854,13 @@ namespace fc
         size_t imageIndex = gltf.textures[index].imageIndex.value();
         size_t samplerIndex = gltf.textures[index].samplerIndex.value();
         //
-        bindInfo.attachImage(3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-                             , *drawCollection.mTextures.get(textureOffset + imageIndex)
-                             , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-                             , samplers[samplerIndex]);
+        descriptors.attachImage(3, *drawCollection.mTextures.get(textureOffset + imageIndex),
+                                samplers[samplerIndex], VK_SHADER_STAGE_FRAGMENT_BIT);
       }
-      else {  // set to defualt texture/sampler/values if none exist in material
-        bindInfo.attachImage(3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-                             , FcDefaults::Textures.white
-                             , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-                             , FcDefaults::Samplers.Linear);
+      else  // set to defualt texture/sampler/values if none exist in material
+      {
+        descriptors.attachImage(3, FcDefaults::Textures.white,
+                                FcDefaults::Samplers.Linear, VK_SHADER_STAGE_FRAGMENT_BIT);
       }
 
       // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   OCCLUSION TEXTURE   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -926,23 +872,20 @@ namespace fc
         fcPrintEndl("Model has Occlusion Map Texture: (Scale = %f, Default = 1)",
                     material.occlusionTexture->strength);
 
-        //
         size_t index = material.occlusionTexture.value().textureIndex;
         size_t imageIndex = gltf.textures[index].imageIndex.value();
         size_t samplerIndex = gltf.textures[index].samplerIndex.value();
-        //
-        bindInfo.attachImage(4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-                             , *drawCollection.mTextures.get(textureOffset + imageIndex)
-                             , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-                             , samplers[samplerIndex]);
+
+        descriptors.attachImage(4, *drawCollection.mTextures.get(textureOffset + imageIndex),
+                                samplers[samplerIndex], VK_SHADER_STAGE_FRAGMENT_BIT);
+
         // Occlusion Factors
         constants.occlusionFactor = material.occlusionTexture.value().strength;
-      } else
-      {  // set to defualt texture/sampler/values if none exist in material
-        bindInfo.attachImage(4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-                             , FcDefaults::Textures.white
-                             , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-                             , FcDefaults::Samplers.Linear);
+      }
+      else // set to defualt texture/sampler/values if none exist in material
+      {
+        descriptors.attachImage(4, FcDefaults::Textures.white,
+                                FcDefaults::Samplers.Linear, VK_SHADER_STAGE_FRAGMENT_BIT);
 
         //TODO verify what to set default as
         constants.occlusionFactor = 1.0f;
@@ -958,16 +901,13 @@ namespace fc
         size_t imageIndex = gltf.textures[index].imageIndex.value();
         size_t samplerIndex = gltf.textures[index].samplerIndex.value();
 
-        bindInfo.attachImage(5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-                             , *drawCollection.mTextures.get(textureOffset + imageIndex)
-                             , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-                             , samplers[samplerIndex]);
-      } else
-      {  // set to defualt texture/sampler/values if none exist in material
-        bindInfo.attachImage(5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-                             , FcDefaults::Textures.black
-                             , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-                             , FcDefaults::Samplers.Linear);
+        descriptors.attachImage(5, *drawCollection.mTextures.get(textureOffset + imageIndex),
+                                samplers[samplerIndex], VK_SHADER_STAGE_FRAGMENT_BIT);
+      }
+      else // set to defualt texture/sampler/values if none exist in material
+      {
+	descriptors.attachImage(5, FcDefaults::Textures.black,
+                                FcDefaults::Samplers.Linear, VK_SHADER_STAGE_FRAGMENT_BIT);
       }
 
       // *-*-*-*-*-*-*-*-*-*-   UNIMPLEMENTED MATERIAL PROPERTIES   *-*-*-*-*-*-*-*-*-*- //
@@ -1024,8 +964,9 @@ namespace fc
       // perhaps store an addressable buffer within the the GPU mem:
 
       // Build descriptor sets for each material
-      materials[i]->materialSet
-        = FcLocator::DescriptorClerk().createDescriptorSet(mMaterialDescriptorLayout, bindInfo);
+      materials[i]->materialSet = descriptors.createDescriptorSet();
+      // materials[i]->materialSet
+      //   = FcLocator::DescriptorClerk().createDescriptorSet(mMaterialDescriptorLayout, bindInfo);
 
       /* newMaterial->data = renderer->mSceneRenderer.writeMaterial(pDevice, passType, materialResources); */
     }

@@ -14,36 +14,8 @@ namespace fc { class FcImage; class FcBuffer; }
 
 namespace fc
 {
-
-
-  // TODO embedd or DELETE
-  struct FcDescriptorBindInfo
-    {
-       std::vector<VkWriteDescriptorSet> descriptorWrites;
-       std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
-       std::deque<VkDescriptorBufferInfo> bufferInfos;
-       std::deque<VkDescriptorImageInfo> imageInfos;
-       bool mIsBindlessIndexingUsed {false};
-       void attachBuffer(u32 bindSlot, VkDescriptorType type
-                         ,const FcBuffer& buffer, VkDeviceSize size, VkDeviceSize offset);
-
-       // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DELETE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-       void attachImage(u32 bindSlot, VkDescriptorType type
-                        ,const FcImage& image, VkImageLayout layout, VkSampler imageSampler);
-
-       void attachImage2(u32 bindSlot, const FcImage& image, VkSampler imageSampler);
-       // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
-       // void attachImageBindless(u32 bindSlot, VkDescriptorType type
-       //                  ,const FcImage& image, VkImageLayout layout, VkSampler imageSampler);
-       void addBinding(u32 bindSlot, VkDescriptorType type, VkShaderStageFlags shaderStages);
-       void enableBindlessTextures();
-    };
-
-
-
   // TODO maybe rename [resourceDocks, resourceMaps, assetKeys, ...]
-  //
+  // TODO could combine with descriptorManager
   class FcDescriptors
   {
    private:
@@ -52,19 +24,21 @@ namespace fc
      // TODO delete all layouts and don't pass them around. then we can safely delete them...
      // if that is not an option, we can create a wrapper class with a destructor
      std::vector<VkWriteDescriptorSet> mDescriptorWrites;
-     std::vector<VkDescriptorSetLayoutBinding> mLayoutBindings;
+
      std::deque<VkDescriptorBufferInfo> mBufferInfos;
      std::deque<VkDescriptorImageInfo> mImageInfos;
      VkDescriptorSet mDescriptorSet {VK_NULL_HANDLE};
-     std::vector<VkDescriptorSetLayout> mLayouts;
      VkDescriptorSetLayout mLayout {VK_NULL_HANDLE};
-
+     std::vector<VkDescriptorSetLayoutBinding> mLayoutBindings;
      // DELETE or make static
      bool isBindlessSupported {true};
-
-     /* FcDescriptorBindInfo mBindInfo {}; */
+     //
      friend class FcDescriptorClerk;
+     //
    public:
+
+
+
      ~FcDescriptors();
      //
      void attachImage(u32 bindSlot, const FcImage& image,VkSampler imageSampler,
@@ -75,9 +49,16 @@ namespace fc
                        VkDeviceSize size, VkDeviceSize offset, VkShaderStageFlags shaderStages) noexcept;
      void attachBindingOnly(u32 bindSlot, VkDescriptorType type, VkShaderStageFlags shaderStages) noexcept;
      //
-     VkDescriptorSetLayout createDescriptorSetLayout() noexcept;
+     void createDescriptorSetLayout() noexcept;
      VkDescriptorSet createDescriptorSet() noexcept;
+
+     // TODO might need to delete
      VkDescriptorSet createBindlessDescriptorSet() noexcept;
+     // and use instead:
+     void attachBindlessDescriptors() noexcept;
+
+
+
      inline VkDescriptorSet VkDescriptorSet() noexcept { return mDescriptorSet; }
      inline VkDescriptorSetLayout VkDescriptorSetLayout() noexcept { return mLayout; }
   };
@@ -96,8 +77,6 @@ namespace fc
   {
    private:
      VkDevice pDevice;
-     // ?? Could use as an atlas if wanted/needed
-      //std::vector<VkDescriptorSetLayout> mLayouts;
      std::vector<PoolSizeRatio> mPoolRatios;
      std::vector<VkDescriptorPool> mFullPools;
      std::vector<VkDescriptorPool> mReadyPools;
@@ -107,34 +86,26 @@ namespace fc
      bool isBindlessSupported = true;
      // TODO Use mReadyPools instead of separate bindless
      VkDescriptorPool mBindlessDescriptorPool;
-     // DELETE mBindlessDescriptorSet and replace with a call to createBindless... for each frame!!
-     /* VkDescriptorSet mBindlessDescriptorSet; */
-     /* VkDescriptorSetLayout mBindlessDescriptorLayout; */
-     VkDescriptorPool getPool();
      void destroyPools();
      VkDescriptorPool createPools(u32 setCount, std::span<PoolSizeRatio> poolRatios);
      void clearPools();
-
+     //
    public:
-
+     //
+     VkDescriptorPool getPool();
+     // TRY to delete
+     inline void markPoolAsFull(VkDescriptorPool pool) { mFullPools.push_back(pool); }
+     inline void markPoolAsReady(VkDescriptorPool pool) { mReadyPools.push_back(pool); }
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CTORS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      FcDescriptorClerk() = default;
      FcDescriptorClerk(const FcDescriptorClerk&) = delete;
      FcDescriptorClerk(FcDescriptorClerk&&) = delete;
      FcDescriptorClerk& operator=(const FcBuffer&) = delete;
      FcDescriptorClerk& operator=(FcDescriptorClerk&&) = delete;
-     //
      // TODO cleanup to reuse common code and eliminate duplicated methods
      void initDescriptorPools(u32 maxSets, std::span<PoolSizeRatio> poolRatios);
-     //
-     VkDescriptorSetLayout createDescriptorSetLayout(FcDescriptorBindInfo& bindingInfo);
-     //
-     VkDescriptorSet createDescriptorSet(VkDescriptorSetLayout layout, FcDescriptorBindInfo& bindInfo);
-     // Creates the descriptor set within FcDescriptors
-     void createDescriptorSet(FcDescriptors& descriptors) noexcept;
+     /* void createDescriptorSet(FcDescriptors& descriptors) noexcept; */
      void createBindlessDescriptorSet(FcDescriptors* descriptors) noexcept;
-     VkDescriptorSet createBindlessDescriptorSet(VkDescriptorSetLayout layout, FcDescriptorBindInfo& bindingInfo);
-
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   POOL MANAGEMENT   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      void destroy();
   };
