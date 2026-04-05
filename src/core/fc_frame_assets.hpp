@@ -23,6 +23,6 @@ namespace fc
      VkDescriptorSet* sceneBindlessTextureSet;
      VkDescriptorSet shadowMapDescriptorSet;
      /* VkDescriptorSet skyBoxDescriptorSet; */
-     VkDescriptorSet billboardDescriptorSet;
+     VkDescriptorSet* billboardDescriptorSet;
   };
 }

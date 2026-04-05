@@ -52,7 +52,7 @@ namespace fc
 
     // Create and register our billboard descriptor set with the passed in descriptor collection
     mDescriptorSet = pipelineConfig.createDescriptorSet(0);
-    descCollection.billboardDescriptorSet = mDescriptorSet;
+    descCollection.billboardDescriptorSet = &mDescriptorSet;
 
     //
     mPipeline.create(pipelineConfig);

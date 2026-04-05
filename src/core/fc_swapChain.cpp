@@ -190,7 +190,7 @@ namespace fc
       //  TODO look into strlen instead of sizeof etc.
       // create the fence that makes sure the draw commands of a a given frame is finished
       snprintf(debugName, strlen(debugName), "Fence: mAcquireFence[%u]            ", i);
-      mAcquireFence[i] = createFence(pGpu->getVkDevice(), true, debugName);
+      mAcquireFences[i] = createFence(pGpu->getVkDevice(), true, debugName);
     }
 
     return surfaceFormat.format;
@@ -434,6 +434,17 @@ namespace fc
   }
 
 
+  const u64 FcSwapChain::syncTimelineSignalValue() noexcept
+  {
+    // TODO make sure mSwapchainImages.size() returns the actuall frame buffer count and not just preallocated...
+    const u64 signalValue = mCurrentFrame + mSwapchainImages.size();
+
+    mTimelineWaitValues[mCurrentBufferIndex] = signalValue;
+
+    return signalValue;
+  }
+
+
   //
   void FcSwapChain::present(FcImage& drawImage, VkCommandBuffer cmd)
   {
@@ -442,16 +453,29 @@ namespace fc
     drawImage.transitionLayout(cmd, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 
     // Next transiton the swapchain so it can best accept an image being copied to it
-    transitionImage(cmd, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    transitionSwapchainLayout(cmd, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
     // execute a copy from the draw image into the swapchain
     getFrameTexture().copyFromImage(cmd, &drawImage);
 
+    // TODO look into FcImage transitionLayout to see example of memImg barrier...
     // finally transition the swapchain image into presentable layout so we can present to surface
-    transitionImage(cmd, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+    transitionSwapchainLayout(cmd, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+
+    // BUG need to add a fence or barrier so our image layouts are correct first
+    // TODO should have the ability to submit currently registered cmdBuffer without having access to that buffer
+    if (mCurrentFrame <= 3)
+    {
+      const CommandBufferWrapper* currentCmd = FcLocator::Renderer().mCurrentCommandBuffer.getWrapper();
+      FcLocator::Renderer().mImmediateCommands.submit(*currentCmd);
+      FcLocator::Renderer().mCurrentCommandBuffer = CommandBuffer(&FcLocator::Renderer());
+    }
+
 
     // TODO decouple
-    VkSemaphore waitSemaphore = FcLocator::Renderer().mImmediateCommands.acquireLastSubmitSemaphore();
+    // BUG the first time through the draw-cycle, the last semaphore submit is not the one used in acquire
+    // but rather the semaphore used with image copying etc...
+    VkSemaphore waitSemaphore = FcLocator::Renderer().mImmediateCommands.acquireLastSemaphoreSubmit();
 
     // 3. present image to screen when it has signalled finished rendering
     presentInfo.pWaitSemaphores = &waitSemaphore; // semaphore to wait on
@@ -480,17 +504,14 @@ namespace fc
   //
   void FcSwapChain::acquireCurrentFrame()
   {
-    // TODO try to remove this check
-    if (mGetNextImage)
-    {
-      VkDevice pDevice = FcLocator::Device();
+    VkDevice pDevice = FcLocator::Device();
 
       const VkSemaphoreWaitInfo waitInfo = {
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO
       , .semaphoreCount = 1
       // TODO get uncouple
       , .pSemaphores = &FcLocator::Renderer().mTimelineSemaphore
-      , .pValues = &FcLocator::Renderer().mTimelineWaitValues[mCurrentBufferIndex]
+      , .pValues = &mTimelineWaitValues[mCurrentBufferIndex]
       };
 
       VK_ASSERT(vkWaitSemaphores(pDevice, &waitInfo, U64_MAX));
@@ -499,23 +520,27 @@ namespace fc
 
       // FIXME - try to use the other method from lvk
       // TODO add check here for maintenance_1_KHR see lvk and remove once maintenance1 becomes mandatory
-      // Without VK_KHR_swapchain_maintenance1, use aquireFences to synchronize semaphore reuse
-      VK_ASSERT(vkWaitForFences(pDevice, 1, &mAcquireFence[mCurrentBufferIndex], VK_TRUE, U64_MAX));
-      VK_ASSERT(vkResetFences(pDevice, 1, &mAcquireFence[mCurrentBufferIndex]));
 
-      acquireFence = mAcquireFence[mCurrentBufferIndex];
+
+      // Without VK_KHR_swapchain_maintenance1, use aquireFences to synchronize semaphore reuse
+      VK_ASSERT(vkWaitForFences(pDevice, 1, &mAcquireFences[mCurrentBufferIndex], VK_TRUE, U64_MAX));
+      VK_ASSERT(vkResetFences(pDevice, 1, &mAcquireFences[mCurrentBufferIndex]));
+
+      acquireFence = mAcquireFences[mCurrentBufferIndex];
 
       VkSemaphore acquireSemaphore = mAcquireSemaphore[mCurrentBufferIndex];
 
       // delete any per frame resources no longer needed now the that frame has finished rendering
       // ?? this seems to be the wrong location for this, just by observation: test
-      // getCurrentFrame().janitor.flush();
+      /* getCurrentFrame().janitor.flush(); */
 
       // 1. get the next available image to draw to and set to signal the semaphore when we're finished with it
       VkResult result = vkAcquireNextImageKHR(pDevice, mSwapchain, U64_MAX
                                               , acquireSemaphore
                                               , acquireFence
                                               , &mCurrentBufferIndex);
+
+
 
       if (result == VK_ERROR_OUT_OF_DATE_KHR)
       {
@@ -531,7 +556,7 @@ namespace fc
       }
 
       FcLocator::Renderer().mImmediateCommands.waitSemaphore(acquireSemaphore);
-    }
+
     // manully un-signal (close) the fence ONLY when we are sure we're submitting work (result == VK_SUCESS)
     /* vkResetFences(pDevice, 1, &getCurrentFrame().renderFence); */
   }

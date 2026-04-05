@@ -294,6 +294,10 @@ namespace fc
 
 
   //
+
+
+
+  //
   // TODO try to create multiple command buffers for specific tasks that we can reuse...
   const CommandBufferWrapper& FcRenderer::beginCommandBuffer()
   {
@@ -371,11 +375,9 @@ namespace fc
     mDrawCollection.stats.triangleCount = 0;
     mTimer.start();
 
-    // TODO fix command buffer stuff (Icommand buffer etc...)
+    // TODO fix command buffer stuff and remove this kind of initiallization
     mCurrentCommandBuffer = CommandBuffer(this);
     VkCommandBuffer cmd = mCurrentCommandBuffer.getVkCommandBuffer();
-
-
 
     // transition draw image from undefined layout to best format we can draw to
     mDrawImage.transitionLayout(cmd, VK_IMAGE_LAYOUT_UNDEFINED,
@@ -449,9 +451,18 @@ namespace fc
 
     vkCmdEndRendering(cmd);
 
+    // TODO this may be necessary for some synchronization to take place in the future (multi-threading) but
+    // for now is disabled because the framerate suffer pretty substantially while enabled.
+    // const bool shouldPresent = true;
+    // if (shouldPresent)
+    // {
+    //   // FIXME this should signal our timeline semaphore
+    //   const u64 signalValue = mSwapchain.syncTimelineSignalValue();
 
-    // FIXME this should signal our timeline semaphore
-    //const u64 signalValue = mCurrentFrame + imageCount();
+    //   // Tell swapchain to wait for this value next time we want to acquire the swapchain image
+    //   mImmediateCommands.signalSemaphore(mTimelineSemaphore, signalValue);
+    // }
+
 
     // now that we have finished drawing to our internal draw image, copy to swapchain and present
     mSwapchain.present(mDrawImage, cmd);
@@ -504,15 +515,20 @@ namespace fc
   }
 
 
-  //
+  // ?? would this be better placed in descriptor class
   void FcRenderer::updateBindlessDescriptors()
   {
     // Handle deferred writes to bindless textures
-      // TODO probably should define these as vectors of size bindlessTextureUpdates.size()
+    // TODO probably should cache these as vectors of size bindlessTextureUpdates.size()
+
+    // TODO find out how many/often we update DSs
+    if (mDrawCollection.bindlessTextureUpdates.size())
+    {
       VkWriteDescriptorSet bindlessDescriptorWrites[MAX_BINDLESS_RESOURCES];
       VkDescriptorImageInfo bindlessImageInfos[MAX_BINDLESS_RESOURCES];
 
       u32 currentWriteIndex = 0;
+
       for (i32 i = mDrawCollection.bindlessTextureUpdates.size() - 1; i >= 0; --i)
       {
         ResourceUpdate& textureToUpdate = mDrawCollection.bindlessTextureUpdates[i];
@@ -531,19 +547,21 @@ namespace fc
 
         if (textureToUpdate.type == ResourceDeletionType::Texture)
         {
-          descriptorWrite.dstSet = *mDescriptorCollection.sceneBindlessTextureSet;
+          /* descriptorWrite.dstSet = *mDescriptorCollection.sceneBindlessTextureSet; */
+          // DELETE in favor of above ??
+          descriptorWrite.dstSet = mSceneRenderer.getSceneDescSet();
           texture = mDrawCollection.mTextures.get(textureToUpdate.handle);
         }
         else if (textureToUpdate.type == ResourceDeletionType::Billboard)
         {
-          descriptorWrite.dstSet = mDescriptorCollection.billboardDescriptorSet;
+          descriptorWrite.dstSet = *mDescriptorCollection.billboardDescriptorSet;
           texture = mDrawCollection.mBillboards.get(textureToUpdate.handle);
         }
         else
         {
-          fcPrintEndl("Failed to Update Bindless Resource: ")
-            /* std::cout << " << textureToUpdate.handle << std::endl; */
-            descriptorWrite.dstSet = mDescriptorCollection.billboardDescriptorSet;
+          fcPrintEndl("Failed to Update Bindless Resource: ");
+          /* std::cout << " << textureToUpdate.handle << std::endl; */
+          descriptorWrite.dstSet = *mDescriptorCollection.billboardDescriptorSet;
           texture = &FcDefaults::Textures.checkerboard;
         }
 
@@ -564,10 +582,11 @@ namespace fc
         mDrawCollection.bindlessTextureUpdates.pop_back();
       }
 
-      if (currentWriteIndex)
-      {
-        vkUpdateDescriptorSets(pDevice, currentWriteIndex, bindlessDescriptorWrites, 0, nullptr);
-      }
+      // BUG tries to update destroyed descriptor sets
+      vkUpdateDescriptorSets(pDevice, currentWriteIndex, bindlessDescriptorWrites, 0, nullptr);
+    }
+
+    mJanitor.flushDescLayouts();
   }
 
 

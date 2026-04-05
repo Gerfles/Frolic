@@ -170,6 +170,9 @@ namespace fc
   }
 
 
+
+
+
   //
   SubmitHandle VulkanImmediateCommands::submit(const CommandBufferWrapper& wrapper)
   {
@@ -184,9 +187,9 @@ namespace fc
     {
       waitSemaphores[numWaitSemaphores++] = mWaitSemaphore;
     }
-    if (mLastSubmitSemaphore.semaphore)
+    if (mLastSemaphoreSubmit.semaphore)
     {
-      waitSemaphores[numWaitSemaphores++] = mLastSubmitSemaphore;
+      waitSemaphores[numWaitSemaphores++] = mLastSemaphoreSubmit;
     }
 
     // Prepare the 2 semaphores that are signaled after the command buffer finishes execution
@@ -224,7 +227,7 @@ namespace fc
 
     VK_ASSERT(vkQueueSubmit2(mQueue, 1u, &submitInfo, wrapper.fence));
 
-    mLastSubmitSemaphore.semaphore = wrapper.semaphore;
+    mLastSemaphoreSubmit.semaphore = wrapper.semaphore;
     mLastSubmitHandle = wrapper.handle;
     // Discard the wait and signal semaphores since they should only be used with one cmd buffer
     mWaitSemaphore.semaphore = VK_NULL_HANDLE;
@@ -345,13 +348,6 @@ namespace fc
 
     // Then destroy the issuing command pool
     vkDestroyCommandPool(mDevice, mCmdPool, nullptr);
-  }
-
-
-  //
-  VkSemaphore VulkanImmediateCommands::acquireLastSubmitSemaphore()
-  {
-    return std::exchange(mLastSubmitSemaphore.semaphore, VK_NULL_HANDLE);
   }
 
 

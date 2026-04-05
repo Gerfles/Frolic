@@ -12,7 +12,13 @@
 namespace fc
 {
   //
-  void FcJanitor::flush()
+  void FcJanitor::flushAll()
+  {
+    // TODO call all flush functions
+  }
+
+
+  void FcJanitor::flushViaFunctors()
   {
     // reverse iterate the deletion queue to execute all the functions
     for (auto it = deletors.rbegin(); it != deletors.rend(); it++)
@@ -39,5 +45,16 @@ namespace fc
   }
 
 
+  //
+  void FcJanitor::flushDescLayouts()
+  {
+    for (VkDescriptorSetLayout& layout : mDescLayouts)
+    {
+      vkDestroyDescriptorSetLayout(FcLocator::Device(), layout, nullptr);
+    }
+
+    //
+    mDescLayouts.erase(mDescLayouts.begin(), mDescLayouts.end());
+  }
 
 }// --- namespace fc --- (END)

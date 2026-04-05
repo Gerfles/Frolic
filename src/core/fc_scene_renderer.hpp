@@ -61,7 +61,9 @@ namespace fc
      void destroy();
      float& ExpansionFactor() { return expansionFactor; }
      inline const FcBuffer& getSceneDataBuffer() const { return mSceneDataBuffer; }
+
      //DELETE
+     inline VkDescriptorSet getSceneDescSet() { return mSceneDescriptorSet; }
      /* inline const VkDescriptorSetLayout getSceneDescriptorLayout() const { return mSceneDataDescriptorLayout; } */
 
   };

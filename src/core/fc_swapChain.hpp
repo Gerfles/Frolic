@@ -29,15 +29,21 @@ namespace fc
      VkPresentInfoKHR presentInfo = {};
 
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-     bool mGetNextImage {true};
+     /* bool mGetNextImage {true}; */
      // FIXME act on window resize
      bool mShouldResizeWindow {false};
      u32 mCurrentBufferIndex {0}; // [0...Number of Swapchain Images)
      // TODO change to u64
      u64  mCurrentFrame {0}; // [0...+inf)
-     VkFence mAcquireFence[MAX_FRAME_DRAWS] {};
+     VkFence mAcquireFences[MAX_FRAME_DRAWS] {};
      VkSemaphore mAcquireSemaphore[MAX_FRAME_DRAWS] {};
+     u64 mTimelineWaitValues[MAX_FRAME_DRAWS] {};
+     //
+
+
+
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
 
      //
      VkFormat createSwapChain(FcConfig& config, bool shouldReUseOldSwapchain = false);
@@ -64,6 +70,7 @@ namespace fc
      u32 getCurrentBufferIndex() {return mCurrentBufferIndex; }
 
 
+     const u64 syncTimelineSignalValue() noexcept;
 
 
 
@@ -80,10 +87,10 @@ namespace fc
      VkFormat init(FcGpu& gpu, FcConfig& config);
      // TODO see if we can just make this part of create swapChain??
      // *-*-*-*-*-*-   MAKE CURRENT SWAPCHAIN FRAME INTO WRITEABLE IMAGE   *-*-*-*-*-*- //
-     inline void transitionImage(VkCommandBuffer commandBuffer,
-                                 VkImageLayout currentLayout,
-                                 VkImageLayout newLayout) noexcept
-      { mSwapchainImages[mCurrentBufferIndex].transitionLayout(commandBuffer, currentLayout, newLayout, 1); }
+     inline void transitionSwapchainLayout(VkCommandBuffer commandBuffer,
+                                           VkImageLayout currentLayout,
+                                           VkImageLayout newLayout) noexcept
+      { mSwapchainImages[mCurrentBufferIndex].transitionLayout(commandBuffer, currentLayout, newLayout); }
      //
      void reCreateSwapChain(VkExtent2D windowSize);
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //

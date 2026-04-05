@@ -404,10 +404,10 @@ namespace fc
     }
     else
     {
-      // TODO
-      // This is how it's done in vulkan 1.3 with extension... but this implementation is inefficient. This will stall the GPU
-      // to wait for all stages and if we want post-processing, we should be more precise about when and which stages should be set
-      // great documentation: https://github.com/KhronosGroup/Vulkan-Docs/wiki/Synchronization-Examples
+      // TODO This is how it's done in vulkan 1.3 with extension... but this implementation is
+      // inefficient. This will stall the GPU to wait for all stages and if we want post-processing, we
+      // should be more precise about when and which stages should be set great documentation:
+      // https://github.com/KhronosGroup/Vulkan-Docs/wiki/Synchronization-Examples
       imageBarrier.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
       imageBarrier.srcAccessMask = VK_ACCESS_2_MEMORY_READ_BIT | VK_ACCESS_2_MEMORY_WRITE_BIT;
       imageBarrier.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;

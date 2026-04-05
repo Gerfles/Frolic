@@ -27,7 +27,8 @@ namespace fc
      };
      //
      std::vector<BufferCleanup> mBuffersToDelete;
-     std::deque< std::function<void()> > deletors;
+     std::deque<std::function<void()> > deletors;
+     std::vector<VkDescriptorSetLayout> mDescLayouts;
 
    public:
      FcJanitor() = default;
@@ -38,11 +39,16 @@ namespace fc
      //
      inline void deleteAfterDone(VkBuffer buffer, VmaAllocation allocation, SubmitHandle handle)
       				{mBuffersToDelete.emplace_back(BufferCleanup{buffer, allocation, handle}); }
+     inline void deleteAfterDone(VkDescriptorSetLayout descLayout) {mDescLayouts.emplace_back(descLayout); }
      //
      void push_function(std::function<void()>&& function) { deletors.push_back(function); }
      //
-     void flush();
+     void flushAll();
+     //
+     void flushViaFunctors();
      //
      void flushBuffers();
+     //
+     void flushDescLayouts();
   };
 }

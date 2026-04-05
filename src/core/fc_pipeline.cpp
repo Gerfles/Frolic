@@ -181,14 +181,16 @@ namespace fc
   {
     FC_ASSERT(descSetNum >= 0 && descSetNum < MAX_BINDLESS_RESOURCES);
 
-    if (std::next(mDescriptorSets.begin(), descSetNum)->VkDescriptorSet() == VK_NULL_HANDLE)
-    {
-      return std::next(mDescriptorSets.begin(), descSetNum)->createDescriptorSet();
-    }
-    else
-    {
-      return std::next(mDescriptorSets.begin(), descSetNum)->VkDescriptorSet();
-    }
+    // if (std::next(mDescriptorSets.begin(), descSetNum)->VkDescriptorSet() == VK_NULL_HANDLE)
+    // {
+    //   return std::next(mDescriptorSets.begin(), descSetNum)->createDescriptorSet();
+    // }
+    // else
+    // {
+    //   return std::next(mDescriptorSets.begin(), descSetNum)->VkDescriptorSet();
+    // }
+
+    return std::next(mDescriptorSets.begin(), descSetNum)->createDescriptorSet();
   }
 
 

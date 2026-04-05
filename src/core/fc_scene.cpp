@@ -64,7 +64,6 @@ namespace fc
     // tf::Executor executor;
     // executor.run(taskflow).wait();
 
-    // fcPrintEndl("TOTALLY FINISHED");
 
     // TODO delete renderer and pDevice dependencies
     VkDevice pDevice = FcLocator::Device();
@@ -72,8 +71,6 @@ namespace fc
 
     size_t filenamePos = filepath.find_last_of('/');
     mName = filepath.substr(filenamePos + 1);
-
-    fcPrintEndl("Loading GLTF file: %s", mName.c_str());
 
     constexpr fastgltf::Extensions extensions =
       fastgltf::Extensions::KHR_materials_clearcoat
@@ -121,11 +118,12 @@ namespace fc
     }
     else
     {
-      fcPrintEndl("Extensions Used in glTF file: ");
-      for (size_t i = 0; i < gltf.extensionsUsed.size(); i++)
-      {
-        fcPrintEndl("%s", gltf.extensionsUsed[i].c_str());
-      }
+      // TODO Log instead
+      // fcPrintEndl("Extensions Used in glTF file: ");
+      // for (size_t i = 0; i < gltf.extensionsUsed.size(); i++)
+      // {
+      //   fcPrintEndl("%s", gltf.extensionsUsed[i].c_str());
+      // }
 
       gltf = std::move(load.get());
     }
@@ -140,7 +138,7 @@ namespace fc
 
     // -*-*-*-*-*-*-*-*-*-*-   LOAD ALL TEXTURES AND MATERIALS   -*-*-*-*-*-*-*-*-*-*- //
     mNumMaterials = gltf.materials.size();
-    fcPrintEndl("Number of material in Scene: %u",mNumMaterials);
+
     std::vector<std::shared_ptr<FcMaterial>> materials(mNumMaterials);
 
     FcDrawCollection& drawCollection = renderer.DrawCollection();
@@ -204,9 +202,6 @@ namespace fc
         gltfNode.transform);
     }
 
-    fcPrintEndl("Total Mesh Nodes: %u", totalMeshNodes);
-    fcPrintEndl("\nTotal Loaded Meshes: %i", mMeshes.size());
-
     // Run another loop over the nodes to setup transform hierarchy
     for (int i = 0; i < gltf.nodes.size(); i++)
     {
@@ -233,10 +228,14 @@ namespace fc
     // Finally add the loaded scene into the draw collection structure
     addToDrawCollection(drawCollection);
 
-    drawSceneGraph();
-
     // workaround for printing a string_view (since it's not necessarily null terminated)
-    fcPrintEndl("Loaded glTF file: %.*s", int(filepath.size()), filepath.data());
+    /* fcPrintEndl("Loaded glTF file: %.*s", int(filepath.size()), filepath.data()); */
+
+    drawSceneGraph();
+    fcPrintEndl("Number of material in Scene: %u",mNumMaterials);
+    fcPrintEndl("");
+    // fcPrint("Number of Textures Loaded: %i\n",
+    //         drawCollection.mTextures.getFirstFreeIndex() - textureOffset);
   }
 
 
@@ -430,7 +429,6 @@ namespace fc
                                          std::vector<std::shared_ptr<FcMaterial>>& materials,
                                          std::filesystem::path& parentPath)
   {
-    fcPrintEndl("Bindlessly Loading all  materials...");
     u32 textureOffset = drawCollection.mTextures.getFirstFreeIndex();
 
     for (fastgltf::Texture& gltfTexture : gltf.textures)
@@ -482,8 +480,7 @@ namespace fc
       }
     } //(END) -- for (fastgltf::Texture& gltfTexture : gltf.textures)
 
-    fcPrint("Number of Textures Loaded: %i\n",
-            drawCollection.mTextures.getFirstFreeIndex() - textureOffset);
+
 
     // Create buffer to hold the material data
     mMaterialDataBuffer.allocate(sizeof(MaterialConstants) * gltf.materials.size()
@@ -742,7 +739,7 @@ namespace fc
     }
 
 
-    fcPrintEndl("Number of Textures Loaded: %i", size);
+
     /* throw std::runtime_error("STOPPING"); */
 
     // Create buffer to hold the material data
@@ -1056,7 +1053,6 @@ namespace fc
   void FcScene::addToDrawCollection(FcDrawCollection& collection)
   {
     // Only loop the topnodes which will recurse through their child nodes
-    fcPrintEndl("number of topnodes: %i", mTopNodes.size());
     for (auto& node : mTopNodes)
     {
       node->addToDrawCollection(collection);
@@ -1380,7 +1376,7 @@ namespace fc
   //
   void FcScene::drawSceneGraph()
   {
-    fcPrintEndl("\nScene: %s  -- (%i top nodes)", mName.c_str(), mTopNodes.size());
+    fcPrintEndl("Scene: %s  -- (%i top nodes)", mName.c_str(), mTopNodes.size());
 
     for (size_t i = 0; i < mTopNodes.size(); ++i)
     {
@@ -1389,7 +1385,6 @@ namespace fc
       fcPrint("Top Node #%i (%i children)\n", i+1, mTopNodes[i]->mChildren.size());
       printNode(mTopNodes[i], nodeID);
     }
-    fcPrintEndl("");
   }
 
   //

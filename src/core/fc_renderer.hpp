@@ -67,8 +67,6 @@ namespace fc
      VkDescriptorSet mDrawImageDescriptor;
      //Fc[...]renderSystem m[...]Renderer;
 
-
-
      // TODO think about integrating into descriptorClerk
      VkDescriptorPool mImgGuiDescriptorPool;
      FcDescriptorCollection mDescriptorCollection;
@@ -111,14 +109,14 @@ namespace fc
      // TODO use new operator for janitor and other fcLocator entities
      FcJanitor mJanitor;
 
-     CommandBuffer mCurrentCommandBuffer;
+
      // TODO change MAX_FRAME_DRAWS to MAX_SWAPCHAIN_BUFFERS
 
      // TODO rename semaphores to this
      // (vkCreateSemaphore(pDevice, &semaphoreInfo, nullptr, &frame.imageAvailableSemaphore));
      // (vkCreateSemaphore(pDevice, &semaphoreInfo, nullptr, &frame.renderFinishedSemaphore));
    public:
-     u64 mTimelineWaitValues[MAX_FRAME_DRAWS] {};
+     CommandBuffer mCurrentCommandBuffer;
      VkSemaphore mTimelineSemaphore {VK_NULL_HANDLE};
      VulkanImmediateCommands mImmediateCommands;
 

@@ -93,6 +93,7 @@ namespace fc
    public:
      //
      VkDescriptorPool getPool();
+     inline VkDescriptorPool getBindlessPool() { return mBindlessDescriptorPool; }
      // TRY to delete
      inline void markPoolAsFull(VkDescriptorPool pool) { mFullPools.push_back(pool); }
      inline void markPoolAsReady(VkDescriptorPool pool) { mReadyPools.push_back(pool); }
