@@ -21,7 +21,6 @@ namespace fc
      VkRenderPass mRenderPass {nullptr};
      // FRAMEBUFFER ATTACHMENTS
      std::vector<FcImage> mSwapchainImages;
-     /* std::vector<VkFramebuffer> mSwapChainFramebuffers; */
 
      // *-*-*-*-*-*-*-*-*-   CACHED TO AVOID RECREATION EACH FRAME   *-*-*-*-*-*-*-*-*- //
      VkRenderingAttachmentInfo mColorAttachment {};
@@ -39,15 +38,8 @@ namespace fc
      VkSemaphore mAcquireSemaphore[MAX_FRAME_DRAWS] {};
      u64 mTimelineWaitValues[MAX_FRAME_DRAWS] {};
      //
-
-
-
-     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
-
-     //
      VkFormat createSwapChain(FcConfig& config, bool shouldReUseOldSwapchain = false);
-
+     //
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   HELPER FUNCTIONS   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      VkSurfaceFormatKHR chooseSurfaceFormat(FcConfig& config);
      //
@@ -55,8 +47,8 @@ namespace fc
      //
      VkExtent2D chooseSwapExtent(VkSurfaceCapabilitiesKHR& surfaceCapabilities, FcConfig& config);
      //
-     VkFormat chooseSupportedFormat(const std::vector<VkFormat>& formats
-                                    , VkImageTiling tiling, VkFormatFeatureFlags featureFlags);
+     VkFormat chooseSupportedFormat(const std::vector<VkFormat>& formats,
+                                    VkImageTiling tiling, VkFormatFeatureFlags featureFlags);
      //
      VkImageUsageFlags chooseUsageFlags(VkSurfaceCapabilitiesKHR& surfaceCapabilities, VkFormat format);
      //
@@ -65,20 +57,17 @@ namespace fc
      void createDepthBufferImage();
      //
      void createFrameBuffers();
+     //
    public:
-     // DELETE
-     u32 getCurrentBufferIndex() {return mCurrentBufferIndex; }
-
-
+     //
      const u64 syncTimelineSignalValue() noexcept;
-
-
-
+     //
      // -*-*-*-*-*-*-*-*-*-*-   PREVENT MOVE, COPY, ASSIGNMENT   -*-*-*-*-*-*-*-*-*-*- //
      FcSwapChain(const FcSwapChain&) = delete;
      FcSwapChain(FcSwapChain&&) = delete;
      FcSwapChain& operator=(const FcSwapChain&) = delete;
      FcSwapChain& operator=(FcSwapChain&&) = delete;
+     //
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   INITIALIZATION   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      FcSwapChain() = default;
      //
@@ -87,8 +76,7 @@ namespace fc
      VkFormat init(FcGpu& gpu, FcConfig& config);
      // TODO see if we can just make this part of create swapChain??
      // *-*-*-*-*-*-   MAKE CURRENT SWAPCHAIN FRAME INTO WRITEABLE IMAGE   *-*-*-*-*-*- //
-     inline void transitionSwapchainLayout(VkCommandBuffer commandBuffer,
-                                           VkImageLayout currentLayout,
+     inline void transitionSwapchainLayout(VkCommandBuffer commandBuffer, VkImageLayout currentLayout,
                                            VkImageLayout newLayout) noexcept
       { mSwapchainImages[mCurrentBufferIndex].transitionLayout(commandBuffer, currentLayout, newLayout); }
      //

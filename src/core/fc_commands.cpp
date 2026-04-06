@@ -4,12 +4,10 @@
 #include "core/log.hpp"
 #include "fc_assert.hpp"
 #include "utilities.hpp"
-#include "fc_renderer.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <cstdio>
-#include <utility>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
@@ -19,7 +17,7 @@ namespace fc
   //   : mDevice(device), mQueueFamilyIdx(queueFamilyIdx), mDebugName(debugName)
   void VulkanImmediateCommands::init(VkDevice device, u32 queueFamilyIdx, const char* debugName)
   {
-    fcPrintEndl("Initializing Immediate Command Buffers...");
+    fcPrint("Initializing Immediate Command Buffers... ");
     mDevice = device;
     mQueueFamilyIdx = queueFamilyIdx;
     mDebugName = debugName;
@@ -45,7 +43,7 @@ namespace fc
 
     for (sizeT i = 0; i < kMaxCommandBuffers; ++i)
     {
-      CommandBufferWrapper& buffer = mCmdBuffers[i];
+      FcCommandBuffer& buffer = mCmdBuffers[i];
       char fenceName[256] = {0};
       char semaphoreName[256] = {0};
 
@@ -55,30 +53,32 @@ namespace fc
         std::snprintf(semaphoreName, sizeof(semaphoreName) - 1, "Semaphore: %s (commandBuffer %u)", debugName, i);
       }
 
-      buffer.semaphore = createSemaphore(device, semaphoreName);
-      buffer.fence = createFence(device, false, fenceName);
+      buffer.mSemaphore = createSemaphore(device, semaphoreName);
+      buffer.mFence = createFence(device, false, fenceName);
 
-      VK_ASSERT(vkAllocateCommandBuffers(mDevice, &allocInfo, &buffer.cmdBufferAllocated));
-      mCmdBuffers[i].handle.cmdBufferIndex = i;
+      VK_ASSERT(vkAllocateCommandBuffers(mDevice, &allocInfo, &buffer.mCmdBufferAllocated));
+      mCmdBuffers[i].mHandle.cmdBufferIndex = i;
      }
+
+    fcPrintEndl("DONE");
   }
 
 
   //
-  const CommandBufferWrapper& VulkanImmediateCommands::acquire()
+  FcCommandBuffer& VulkanImmediateCommands::acquire()
   {
-    while(!mNumAvailableCmdBuffers)
+    while(!mNumAvailableCmdBuffers)// == 0)
     {
       // This loop should not run very often
-      /* fcPrintEndl("Warning: not enough command buffers forcing stall"); */
+      fcPrintEndl("Warning: not enough command buffers forcing stall");
       purgeCmdBuffers();
     }
 
     // Find the first available command buffer
-    CommandBufferWrapper* current {nullptr};
-    for (CommandBufferWrapper& cmdBuffer : mCmdBuffers)
+    FcCommandBuffer* current {nullptr};
+    for (FcCommandBuffer& cmdBuffer : mCmdBuffers)
     {
-      if (cmdBuffer.cmdBuffer == VK_NULL_HANDLE)
+      if (cmdBuffer.mCmdBuffer == VK_NULL_HANDLE)
       {
         current = &cmdBuffer;
         break;
@@ -86,10 +86,10 @@ namespace fc
     }
 
     // TODO place  in if()
-    current->handle.submitId = mSubmitCounter;
+    current->mHandle.submitId = mSubmitCounter;
     --mNumAvailableCmdBuffers;
-    current->cmdBuffer = current->cmdBufferAllocated;
-    current->isEncoding = true;
+    current->mCmdBuffer = current->mCmdBufferAllocated;
+    current->mIsEncoding = true;
 
     // Start recording to the current command buffer
     const VkCommandBufferBeginInfo beginInfo = {
@@ -97,15 +97,16 @@ namespace fc
     , .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
     };
 
-    mNextSubmitHandle = current->handle;
+    // TODO this may be problematic if command buffers are being used asynchronously
+    mNextSubmitHandle = current->mHandle;
 
-    VK_ASSERT(vkBeginCommandBuffer(current->cmdBuffer, &beginInfo));
+    VK_ASSERT(vkBeginCommandBuffer(current->mCmdBuffer, &beginInfo));
 
     return *current;
   }
 
 
-  //
+  // TODO determine if there is a way to automatically purge cmd buffers a little more cleanly
   void VulkanImmediateCommands::purgeCmdBuffers()
   {
     // TODO probably better to use kMax... instead of ARRAY_SIZE
@@ -117,68 +118,126 @@ namespace fc
       const u32 index = i + mLastSubmitHandle.cmdBufferIndex + 1;
 
       // Since we start with the oldest buffer, we must wrap around after checking that one
-      CommandBufferWrapper& cmdBuffer = mCmdBuffers[index % numBuffers];
+      FcCommandBuffer& cmdBuffer = mCmdBuffers[index % numBuffers];
 
-      if (cmdBuffer.cmdBuffer == VK_NULL_HANDLE || cmdBuffer.isEncoding)
+      // Skip reseting this cmd buffer if it is already null or is currently being used
+      if (cmdBuffer.mCmdBuffer == VK_NULL_HANDLE || cmdBuffer.mIsEncoding)
         continue;
 
       // Use a fence timeout value of 0 signals vkWaitForFences to just return current status of fence
-      const VkResult result = vkWaitForFences(mDevice, 1, &cmdBuffer.fence, VK_TRUE, 0);
+      const VkResult result = vkWaitForFences(mDevice, 1, &cmdBuffer.mFence, VK_TRUE, 0);
 
-      // // vkWaitForFences will return VK_TIMEOUT if the fence is unsignaled
-      // if (result == VK_TIMEOUT)
-      //   continue;
+      // vkWaitForFences will return VK_TIMEOUT if the fence is unsignaled (cmdBuffer is still in use)
+      if (result == VK_TIMEOUT)
+        continue;
 
-      // // Check if the fence is signaled, is so we can reset the command buffer
-      // if (result == VK_SUCCESS)
-      // {
-      //   vkResetFences(mDevice, 1, &cmdBuffer.fence);
-
-      //   vkResetCommandBuffer(cmdBuffer.cmdBuffer, VkCommandBufferResetFlags{0});
-      //   cmdBuffer.cmdBuffer = VK_NULL_HANDLE;
-      //   ++mNumAvailableCmdBuffers;
-      // }
-      // else
-      // {
-      //   // Error if we got here since result was not either VK_SUCCESS or VK_TIMEOUT
-      //   fcPrintEndl("SHOULD NOT be here: VkResult = %u", result);
-      //   VK_ASSERT(result);
-      // }
-      // vkWaitForFences will return VK_TIMEOUT if the fence is unsignaled
-
-      // BOOK
-      // Check if the fence is signaled, is so we can reset the command buffer
+      // The fence is signaled, so we can reset the command buffer and fence
       if (result == VK_SUCCESS)
       {
-        vkResetFences(mDevice, 1, &cmdBuffer.fence);
+        vkResetFences(mDevice, 1, &cmdBuffer.mFence);
 
-        vkResetCommandBuffer(cmdBuffer.cmdBuffer, VkCommandBufferResetFlags{0});
-        cmdBuffer.cmdBuffer = VK_NULL_HANDLE;
+        vkResetCommandBuffer(cmdBuffer.mCmdBuffer, VkCommandBufferResetFlags{0});
+        cmdBuffer.mCmdBuffer = VK_NULL_HANDLE;
         ++mNumAvailableCmdBuffers;
       }
       else
       {
-        if (result != VK_TIMEOUT)
-        {
-          // Error if we got here since result was not either VK_SUCCESS or VK_TIMEOUT
-          fcPrintEndl("SHOULD NOT be here: VkResult = %u", result);
-          VK_ASSERT(result);
-        }
-
+        // Error if we got here since result was not either VK_SUCCESS or VK_TIMEOUT
+        VK_ASSERT(result);
       }
     }
   }
 
 
 
-
-
-  //
-  SubmitHandle VulkanImmediateCommands::submit(const CommandBufferWrapper& wrapper)
+  // begin single
+  FcCommandBuffer& VulkanImmediateCommands::submitSingleUseCmdBuffer(FcCommandBuffer& cmdBuffer)
   {
-    FC_ASSERT(wrapper.isEncoding);
+    // TODO copy of submit() for now but implement a better submit for single use cmd buffer
+    FC_ASSERT(cmdBuffer.IsEncoding());
     // stop recording to the command buffer
-    VK_ASSERT(vkEndCommandBuffer(wrapper.cmdBuffer));
+    VK_ASSERT(vkEndCommandBuffer(cmdBuffer.getVkCommandBuffer()));
+
+    // Prepare the 2 optional semaphores that we can set to be waited on before GPU processses cmdBuffer
+    VkSemaphoreSubmitInfo waitSemaphores[] = { {}, {} };
+    u32 numWaitSemaphores = 0;
+    if (mWaitSemaphore.semaphore)
+    {
+      waitSemaphores[numWaitSemaphores++] = mWaitSemaphore;
+    }
+
+    // ?? Related to rendering frames
+    if (mLastSemaphoreSubmit.semaphore)
+    {
+      waitSemaphores[numWaitSemaphores++] = mLastSemaphoreSubmit;
+    }
+
+    // Prepare the 2 semaphores that are signaled after the command buffer finishes execution
+    VkSemaphoreSubmitInfo signalSemaphores[] = {
+      VkSemaphoreSubmitInfo{.sType {VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO}
+                          , .stageMask {VK_PIPELINE_STAGE_ALL_COMMANDS_BIT}
+                          , .semaphore {cmdBuffer.getSemaphore()} }
+    , VkSemaphoreSubmitInfo {}
+    };
+
+    // TRY to get rid of num's
+    u32 numSignalSemaphores = 1;
+    // Check to see if the optional timeline semaphore has been activated (by signalSemaphore())
+    if (mSignalSemaphore.semaphore)
+    {
+      // TODO get rid of this num...++ and just put a 1 here
+      signalSemaphores[numSignalSemaphores++] = mSignalSemaphore;
+    }
+
+    //
+    const VkCommandBufferSubmitInfo cmdSubmitInfo = {
+      .sType {VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO}
+    , .commandBuffer {cmdBuffer.getVkCommandBuffer()}
+    };
+
+    const VkSubmitInfo2 submitInfo = {
+      .sType {VK_STRUCTURE_TYPE_SUBMIT_INFO_2}
+    , .waitSemaphoreInfoCount {numWaitSemaphores}
+    , .pWaitSemaphoreInfos {waitSemaphores}
+    , .commandBufferInfoCount {1u}
+    , .pCommandBufferInfos {&cmdSubmitInfo}
+    , .signalSemaphoreInfoCount {numSignalSemaphores}
+    , .pSignalSemaphoreInfos {signalSemaphores}
+    };
+
+    VK_ASSERT(vkQueueSubmit2(mQueue, 1u, &submitInfo, cmdBuffer.getFence()));
+
+    mLastSemaphoreSubmit.semaphore = cmdBuffer.getSemaphore();
+    mLastSubmitHandle = cmdBuffer.getHandle();
+    // Discard the wait and signal semaphores since they should only be used with one cmd buffer
+    mWaitSemaphore.semaphore = VK_NULL_HANDLE;
+    mSignalSemaphore.semaphore = VK_NULL_HANDLE;
+
+
+    /* const_cast<CommandBuffer&>(cmdBuffer).isEncoding = false; */
+    cmdBuffer.setIsEncoding(false);
+
+    ++mSubmitCounter;
+
+    // Since a SubmitHandle is considered empty when its command buffer and submitId are both zero,
+    // so just need to skip the zero value of submit coutnter
+    // TRY to accomplish this trick in a different way
+    if (mSubmitCounter == 0)
+      ++mSubmitCounter;
+
+    return mLastSubmitHandle;
+  }
+
+
+
+
+
+
+  SubmitHandle VulkanImmediateCommands::submit(FcCommandBuffer& cmdBuffer)
+  {
+    FC_ASSERT(cmdBuffer.IsEncoding());
+    // stop recording to the command buffer
+    VK_ASSERT(vkEndCommandBuffer(cmdBuffer.getVkCommandBuffer()));
 
     // Prepare the 2 optional semaphores that we can set to be waited on before GPU processses cmdBuffer
     VkSemaphoreSubmitInfo waitSemaphores[] = { {}, {} };
@@ -196,7 +255,7 @@ namespace fc
     VkSemaphoreSubmitInfo signalSemaphores[] = {
       VkSemaphoreSubmitInfo{ .sType 	{VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO}
                            , .stageMask {VK_PIPELINE_STAGE_ALL_COMMANDS_BIT}
-                           , .semaphore {wrapper.semaphore} }
+                           , .semaphore {cmdBuffer.getSemaphore()} }
     , VkSemaphoreSubmitInfo {}
     };
 
@@ -212,7 +271,7 @@ namespace fc
     //
     const VkCommandBufferSubmitInfo cmdSubmitInfo = {
       .sType {VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO}
-    , .commandBuffer {wrapper.cmdBuffer}
+    , .commandBuffer {cmdBuffer.getVkCommandBuffer()}
     };
 
     const VkSubmitInfo2 submitInfo = {
@@ -225,14 +284,17 @@ namespace fc
     , .pSignalSemaphoreInfos {signalSemaphores}
     };
 
-    VK_ASSERT(vkQueueSubmit2(mQueue, 1u, &submitInfo, wrapper.fence));
+    VK_ASSERT(vkQueueSubmit2(mQueue, 1u, &submitInfo, cmdBuffer.getFence()));
 
-    mLastSemaphoreSubmit.semaphore = wrapper.semaphore;
-    mLastSubmitHandle = wrapper.handle;
+    mLastSemaphoreSubmit.semaphore = cmdBuffer.getSemaphore();
+    mLastSubmitHandle = cmdBuffer.getHandle();
     // Discard the wait and signal semaphores since they should only be used with one cmd buffer
     mWaitSemaphore.semaphore = VK_NULL_HANDLE;
     mSignalSemaphore.semaphore = VK_NULL_HANDLE;
-    const_cast<CommandBufferWrapper&>(wrapper).isEncoding = false;
+
+
+    /* const_cast<CommandBuffer&>(cmdBuffer).isEncoding = false; */
+    cmdBuffer.setIsEncoding(false);
 
     ++mSubmitCounter;
 
@@ -244,6 +306,79 @@ namespace fc
 
     return mLastSubmitHandle;
   }
+
+
+  // DELETE
+  // SubmitHandle VulkanImmediateCommands::submit(const CommandBuffer& wrapper)
+  // {
+  //   FC_ASSERT(wrapper.isEncoding);
+  //   // stop recording to the command buffer
+  //   VK_ASSERT(vkEndCommandBuffer(wrapper.cmdBuffer));
+
+  //   // Prepare the 2 optional semaphores that we can set to be waited on before GPU processses cmdBuffer
+  //   VkSemaphoreSubmitInfo waitSemaphores[] = { {}, {} };
+  //   u32 numWaitSemaphores = 0;
+  //   if (mWaitSemaphore.semaphore)
+  //   {
+  //     waitSemaphores[numWaitSemaphores++] = mWaitSemaphore;
+  //   }
+  //   if (mLastSemaphoreSubmit.semaphore)
+  //   {
+  //     waitSemaphores[numWaitSemaphores++] = mLastSemaphoreSubmit;
+  //   }
+
+  //   // Prepare the 2 semaphores that are signaled after the command buffer finishes execution
+  //   VkSemaphoreSubmitInfo signalSemaphores[] = {
+  //     VkSemaphoreSubmitInfo{ .sType 	{VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO}
+  //                          , .stageMask {VK_PIPELINE_STAGE_ALL_COMMANDS_BIT}
+  //                          , .semaphore {wrapper.semaphore} }
+  //   , VkSemaphoreSubmitInfo {}
+  //   };
+
+  //   // TRY to get rid of num's
+  //   u32 numSignalSemaphores = 1;
+  //   // Check to see if the optional timeline semaphore has been activated (by signalSemaphore())
+  //   if (mSignalSemaphore.semaphore)
+  //   {
+  //     // TODO get rid of this num...++ and just put a 1 here
+  //     signalSemaphores[numSignalSemaphores++] = mSignalSemaphore;
+  //   }
+
+  //   //
+  //   const VkCommandBufferSubmitInfo cmdSubmitInfo = {
+  //     .sType {VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO}
+  //   , .commandBuffer {wrapper.cmdBuffer}
+  //   };
+
+  //   const VkSubmitInfo2 submitInfo = {
+  //     .sType {VK_STRUCTURE_TYPE_SUBMIT_INFO_2}
+  //   , .waitSemaphoreInfoCount {numWaitSemaphores}
+  //   , .pWaitSemaphoreInfos {waitSemaphores}
+  //   , .commandBufferInfoCount {1u}
+  //   , .pCommandBufferInfos {&cmdSubmitInfo}
+  //   , .signalSemaphoreInfoCount {numSignalSemaphores}
+  //   , .pSignalSemaphoreInfos {signalSemaphores}
+  //   };
+
+  //   VK_ASSERT(vkQueueSubmit2(mQueue, 1u, &submitInfo, wrapper.fence));
+
+  //   mLastSemaphoreSubmit.semaphore = wrapper.semaphore;
+  //   mLastSubmitHandle = wrapper.handle;
+  //   // Discard the wait and signal semaphores since they should only be used with one cmd buffer
+  //   mWaitSemaphore.semaphore = VK_NULL_HANDLE;
+  //   mSignalSemaphore.semaphore = VK_NULL_HANDLE;
+  //   const_cast<CommandBuffer&>(wrapper).isEncoding = false;
+
+  //   ++mSubmitCounter;
+
+  //   // Since a SubmitHandle is considered empty when its command buffer and submitId are both zero,
+  //   // so just need to skip the zero value of submit coutnter
+  //   // TRY to accomplish this trick in a different way
+  //   if (mSubmitCounter == 0)
+  //     ++mSubmitCounter;
+
+  //   return mLastSubmitHandle;
+  // }
 
 
   void VulkanImmediateCommands::waitSemaphore(VkSemaphore semaphore)
@@ -270,17 +405,17 @@ namespace fc
       return true;
 
     // Next check if the command buffer has already been recycled by purge()
-    const CommandBufferWrapper& cmdBuffer = mCmdBuffers[handle.cmdBufferIndex];
-    if (cmdBuffer.cmdBuffer == VK_NULL_HANDLE)
+    const FcCommandBuffer& cmdBuffer = mCmdBuffers[handle.cmdBufferIndex];
+    if (cmdBuffer.mCmdBuffer == VK_NULL_HANDLE)
       return true;
 
     // Lastly, check if the cmd buffer has been recycled and then reused, which can only happen
     // after the cmd buffer has finished execution so the submitId values will be different
-    if (cmdBuffer.handle.submitId != handle.submitId)
+    if (cmdBuffer.mHandle.submitId != handle.submitId)
       return true;
 
     // If all the above checks are false, then we can just return the status of the VkFence
-    return (vkWaitForFences(mDevice, 1, &cmdBuffer.fence, VK_TRUE, 0) == VK_SUCCESS);
+    return (vkWaitForFences(mDevice, 1, &cmdBuffer.mFence, VK_TRUE, 0) == VK_SUCCESS);
   }
 
 
@@ -298,12 +433,12 @@ namespace fc
 
     // FIXME BUG
     /* if (!FC_ASSERT(!mCmdBuffers[handle.bufferIndex].isEncoding)) */
-    if (!mCmdBuffers[handle.cmdBufferIndex].isEncoding)
+    if (!mCmdBuffers[handle.cmdBufferIndex].mIsEncoding)
     {
       return;
     }
 
-    VK_ASSERT(vkWaitForFences(mDevice, 1, &mCmdBuffers[handle.cmdBufferIndex].fence, VK_TRUE, U64_MAX));
+    VK_ASSERT(vkWaitForFences(mDevice, 1, &mCmdBuffers[handle.cmdBufferIndex].mFence, VK_TRUE, U64_MAX));
 
     // Since we are sure there is now at least one available command buffer we can reclaim,
     purgeCmdBuffers();
@@ -316,11 +451,11 @@ namespace fc
     VkFence fences[kMaxCommandBuffers];
     u32 fenceIndex = 0;
 
-    for (const CommandBufferWrapper& cmdBuffer : mCmdBuffers)
+    for (const FcCommandBuffer& cmdBuffer : mCmdBuffers)
     {
-      if (cmdBuffer.cmdBuffer != VK_NULL_HANDLE && !cmdBuffer.isEncoding)
+      if (cmdBuffer.mCmdBuffer != VK_NULL_HANDLE && !cmdBuffer.mIsEncoding)
       {
-        fences[fenceIndex++] = cmdBuffer.fence;
+        fences[fenceIndex++] = cmdBuffer.mFence;
       }
     }
 
@@ -339,11 +474,11 @@ namespace fc
   {
     waitAll();
 
-    for (CommandBufferWrapper& cmdBuffer : mCmdBuffers)
+    for (FcCommandBuffer& cmdBuffer : mCmdBuffers)
     {
-      vkDestroyFence(mDevice, cmdBuffer.fence, nullptr);
+      vkDestroyFence(mDevice, cmdBuffer.mFence, nullptr);
 
-      vkDestroySemaphore(mDevice, cmdBuffer.semaphore, nullptr);
+      vkDestroySemaphore(mDevice, cmdBuffer.mSemaphore, nullptr);
     }
 
     // Then destroy the issuing command pool
@@ -351,9 +486,10 @@ namespace fc
   }
 
 
-  CommandBuffer::CommandBuffer(FcRenderer* renderer) : mWrapper(&renderer->mImmediateCommands.acquire())
-  {
-  }
+  // CommandBuffer::CommandBuffer(FcRenderer* renderer) : mWrapper(&renderer->mImmediateCommands.acquire())
+  // {
+
+  // }
 
 
 } // --- namespace fc --- (END)

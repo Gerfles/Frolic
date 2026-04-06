@@ -1,5 +1,7 @@
 //>--- log.cpp ---<//
 #include "log.hpp"
+
+
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #if defined(_MSC_VER)
 #define WIN32_LEAN_AND_MEAN
@@ -7,6 +9,8 @@
 #endif
 #include <stdio.h>
 #include <stdarg.h>
+/* #include <ostream> */
+#include <iostream>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
@@ -45,6 +49,7 @@ inline void dprintf(const char* fmt, ...)
   static char log_buffer[k_string_buffer_size];
   static void output_console( char* log_buffer_ ) {
     printf( "%s", log_buffer_ );
+    std::flush(std::cout);
   }
 
 #if defined(_MSC_VER)

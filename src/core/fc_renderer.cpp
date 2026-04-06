@@ -29,6 +29,7 @@ namespace fc
 
   int FcRenderer::init(FcConfig& config, SceneData** pSceneData)
   {
+    fcPrintEndl("Initializing Main Renderer... ");
     // TODO make this (try) more robust and add try catch blocks to all non-rendering functions
     try
     {
@@ -95,7 +96,9 @@ namespace fc
       FcLocator::provide(&mJanitor);
 
       // Initialize all the default textures/samplers/etc. to use in places where they are not imported
+      fcPrint("Initializing default samplers/textures/etc... ");
       FcDefaults::init(pDevice);
+      fcPrintEndl("DONE");
 
       // *-*-*-*-*-*-*-*-*-*-*-*-*-   CREATE RESOURCE POOLS   *-*-*-*-*-*-*-*-*-*-*-*-*- //
       // TODO get rid of in favor of FcLocator pattern
@@ -108,7 +111,6 @@ namespace fc
       return EXIT_FAILURE;
     }
 
-
     *pSceneData = &mSceneData;
     return EXIT_SUCCESS;
   }
@@ -118,6 +120,7 @@ namespace fc
   // TODO could pass pScene data here but probably better to just include this in mRenderer.init()
   void FcRenderer::initDefaults()//FcBuffer& sceneDataBuffer, SceneDataUbo* sceneData)
   {
+    fcPrint("Initializing Main Renderer Defaults... ");
     // TODO place in function along with other init detailed stuff
     mColorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
     mColorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -207,12 +210,15 @@ namespace fc
     glm::vec3 target{mSceneData.sunlightDirection.x, 0.0, mSceneData.sunlightDirection.z};
 
     mShadowRenderer.updateLightSource(mSceneData.sunlightDirection, target);
+
+    fcPrintEndl("DONE");
   }
 
 
   //
   void FcRenderer::initImgui(VkFormat swapchainFormat, FcConfig& config)
   {
+
     // Create the descriptor pool for IMGUI
     // probably oversized, doesn't seem to be in any imgui demo that was mentioned
     // TODO /TRY try and follow this up by recreating the example from ImgGUI site
@@ -294,22 +300,29 @@ namespace fc
 
 
   //
+  // FcCommandBuffer& FcRenderer::beginSingleUseCmdBuffer()
+  // {
 
+  // }
 
 
   //
-  // TODO try to create multiple command buffers for specific tasks that we can reuse...
-  const CommandBufferWrapper& FcRenderer::beginCommandBuffer()
+  // TODO try to create multiple command buffers for specific tasks that we can reuse... perhaps
+  // putting some premade command buffer statically within the image class etc.
+  // TODO get rid of this functionality within renderer
+  FcCommandBuffer& FcRenderer::beginCommandBuffer()
   {
     /* fcPrintEndl("Acquiring command buffer"); */
     // begin recording transfer commands
-    const CommandBufferWrapper& cmdBuffer = mImmediateCommands.acquire();
-    return cmdBuffer;
+    // CommandBuffer& cmdBuffer = mImmediateCommands.acquire();
+    // return cmdBuffer;
+
+    return mImmediateCommands.acquire();
   }
 
 
   // FIXME
-  void FcRenderer::submitCommandBuffer(const CommandBufferWrapper& wrapper)
+  void FcRenderer::submitCommandBuffer(FcCommandBuffer& wrapper)
   {
     // const bool shouldPresent = hasSwapChain() && present;
 
@@ -376,8 +389,11 @@ namespace fc
     mTimer.start();
 
     // TODO fix command buffer stuff and remove this kind of initiallization
-    mCurrentCommandBuffer = CommandBuffer(this);
-    VkCommandBuffer cmd = mCurrentCommandBuffer.getVkCommandBuffer();
+    /* mCurrentCommandBuffer = CommandBuffer(this); */
+    mCurrentCommandBuffer = &mImmediateCommands.acquire();
+    /* mCurrentCommandBuffer = const_cast<CommandBuffer>(mImmediateCommands.acquire()); */
+
+    VkCommandBuffer cmd = mCurrentCommandBuffer->getVkCommandBuffer();
 
     // transition draw image from undefined layout to best format we can draw to
     mDrawImage.transitionLayout(cmd, VK_IMAGE_LAYOUT_UNDEFINED,
@@ -406,7 +422,7 @@ namespace fc
   //
   void FcRenderer::drawFrame()
   {
-    VkCommandBuffer cmd = mCurrentCommandBuffer.getVkCommandBuffer();
+    VkCommandBuffer cmd = mCurrentCommandBuffer->getVkCommandBuffer();
 
     // TODO implement without branches
     bool* shouldDrawShadowMap = CVarSystem::Get()->GetBoolCVar("shouldDrawShadowMap.bool");
@@ -480,7 +496,7 @@ namespace fc
     // Remove the previously connected depth attachment from the render info (since ImGui doesn't need it)
     mRenderInfo.pDepthAttachment = nullptr;
 
-    VkCommandBuffer cmd = mCurrentCommandBuffer.mWrapper->cmdBuffer;
+    VkCommandBuffer cmd = mCurrentCommandBuffer->getVkCommandBuffer();
 
     // Start rendering for GUI
     vkCmdBeginRendering(cmd, &mRenderInfo);
@@ -494,7 +510,9 @@ namespace fc
   //
   void FcRenderer::endFrame()
   {
-    mCurrentCommandBuffer.mLastSubmitHandle = mImmediateCommands.submit(*mCurrentCommandBuffer.mWrapper);
+
+    mImmediateCommands.submit(*mCurrentCommandBuffer);
+    /* mCurrentCommandBuffer.mLastSubmitHandle = mImmediateCommands.submit(*mCurrentCommandBuffer.mWrapper); */
 
     // Try and delete some of the buffers we created along the way (staging buffers, etc.)
     mJanitor.flushBuffers();
@@ -609,7 +627,7 @@ namespace fc
     mNormalRenderer.destroy();
     mBillboardRenderer.destroy();
 
-    vkDestroyDescriptorSetLayout(pDevice, mSceneDataDescriptorLayout, nullptr);
+    /* vkDestroyDescriptorSetLayout(pDevice, mSceneDataDescriptorLayout, nullptr); */
 
     // TODO should think about locating mImgGui into Descriptor Clerk
     FcLocator::DescriptorClerk().destroy();

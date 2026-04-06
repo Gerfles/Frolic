@@ -583,12 +583,12 @@ namespace fc
     localCopyAddress = localCopy->getAddress();
 
     /* VkCommandBuffer cmdBuffer = FcLocator::Renderer().beginCommandBuffer(); */
-    const CommandBufferWrapper& cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
+    FcCommandBuffer& cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
 
     // TODO handle the cases where transition of image is not known,
     // Probably need to store current layout in image
     // TODO might want to create a separate image memory barrier for this type of transition
-    transitionLayout(cmdBuffer.cmdBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+    transitionLayout(cmdBuffer.getVkCommandBuffer(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                     VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 
     // TODO handle the case where the buffer being passed is allready allocated
@@ -606,10 +606,10 @@ namespace fc
     imageCopyRegion.imageSubresource.layerCount = 1;
     imageCopyRegion.imageSubresource.baseArrayLayer = 0;
 
-    vkCmdCopyImageToBuffer(cmdBuffer.cmdBuffer, mImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
+    vkCmdCopyImageToBuffer(cmdBuffer.getVkCommandBuffer(), mImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
                            , localCopy->getVkBuffer(), 1, &imageCopyRegion);
 
-    transitionLayout(cmdBuffer.cmdBuffer, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
+    transitionLayout(cmdBuffer.getVkCommandBuffer(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
                     , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     FcLocator::Renderer().submitCommandBuffer(cmdBuffer);
@@ -732,9 +732,9 @@ namespace fc
 
     // transition the image buffer so that it is most efficient to be written to
     /* VkCommandBuffer cmdBuffer = FcLocator::Renderer().beginCommandBuffer(); */
-    const CommandBufferWrapper& cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
+    FcCommandBuffer& cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
 
-    transitionLayout(cmdBuffer.cmdBuffer, VK_IMAGE_LAYOUT_UNDEFINED
+    transitionLayout(cmdBuffer.getVkCommandBuffer(), VK_IMAGE_LAYOUT_UNDEFINED
                      , VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
     // TRY try not submitting until after we acquire the next cmd buffer...
     FcLocator::Renderer().submitCommandBuffer(cmdBuffer);
@@ -766,9 +766,9 @@ namespace fc
     // finally transition the image to GPU read
     /* cmdBuffer = FcLocator::Renderer().beginCommandBuffer(); */
     // FIXME
-    const CommandBufferWrapper& cmdBuffer2 = FcLocator::Renderer().beginCommandBuffer();
+    FcCommandBuffer& cmdBuffer2 = FcLocator::Renderer().beginCommandBuffer();
 
-    transitionLayout(cmdBuffer2.cmdBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+    transitionLayout(cmdBuffer2.getVkCommandBuffer(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
                      , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     FcLocator::Renderer().submitCommandBuffer(cmdBuffer2);
   }
@@ -917,7 +917,7 @@ namespace fc
     int32_t mipHeight = mHeight;
 
     /* VkCommandBuffer cmdBuffer = FcLocator::Renderer().beginCommandBuffer(); */
-    const CommandBufferWrapper& cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
+    FcCommandBuffer& cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
 
     // TODO think about changing to VkImageBlit2
     // These aspects of image blit never change depending on mip level
@@ -945,7 +945,7 @@ namespace fc
       barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
       barrier.subresourceRange.baseMipLevel = i;
       //
-      vkCmdPipelineBarrier(cmdBuffer.cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT
+      vkCmdPipelineBarrier(cmdBuffer.getVkCommandBuffer(), VK_PIPELINE_STAGE_TRANSFER_BIT
                            , VK_PIPELINE_STAGE_TRANSFER_BIT
                            , 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
@@ -958,7 +958,7 @@ namespace fc
       blit.srcSubresource.mipLevel = i;
       blit.dstSubresource.mipLevel = i + 1;
       //
-      vkCmdBlitImage(cmdBuffer.cmdBuffer, mImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, mImage
+      vkCmdBlitImage(cmdBuffer.getVkCommandBuffer(), mImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, mImage
                      , VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_LINEAR);
 
       // now transition image layout of previous mipLevel to shader read only format
@@ -968,7 +968,7 @@ namespace fc
       barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
       barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
       //
-      vkCmdPipelineBarrier(cmdBuffer.cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT
+      vkCmdPipelineBarrier(cmdBuffer.getVkCommandBuffer(), VK_PIPELINE_STAGE_TRANSFER_BIT
                            , VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
                            , 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
@@ -984,7 +984,7 @@ namespace fc
     barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
     barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
     //
-    vkCmdPipelineBarrier(cmdBuffer.cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT
+    vkCmdPipelineBarrier(cmdBuffer.getVkCommandBuffer(), VK_PIPELINE_STAGE_TRANSFER_BIT
                          , VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
                          , 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
@@ -1103,8 +1103,8 @@ namespace fc
 
     // create the command to copy a buffer to the image
     /* VkCommandBuffer cmdBuffer = FcLocator::Renderer().beginCommandBuffer(); */
-    const CommandBufferWrapper& cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
-    vkCmdCopyBufferToImage(cmdBuffer.cmdBuffer, srcBuffer.getVkBuffer(), mImage
+    FcCommandBuffer& cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
+    vkCmdCopyBufferToImage(cmdBuffer.getVkCommandBuffer(), srcBuffer.getVkBuffer(), mImage
                            , VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageCopyRegion);
 
     //  finally, submit the transfer command to the command buffer and submit
@@ -1180,9 +1180,11 @@ namespace fc
 
     // transition the image so that it's in the most efficient state to write to
     /* VkCommandBuffer cmdBuffer = FcLocator::Renderer().beginCommandBuffer(); */
-    const CommandBufferWrapper& cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
 
-    transitionLayout(cmdBuffer.cmdBuffer, VK_IMAGE_LAYOUT_UNDEFINED
+    FcCommandBuffer& cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
+
+
+    transitionLayout(cmdBuffer.getVkCommandBuffer(), VK_IMAGE_LAYOUT_UNDEFINED
                      , VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
                      , VK_IMAGE_ASPECT_COLOR_BIT,  mMipLevels);
 
@@ -1207,8 +1209,8 @@ namespace fc
     else
     {
       /* VkCommandBuffer cmdBuffer = FcLocator::Renderer().beginCommandBuffer(); */
-      const CommandBufferWrapper& cmdBuffer2 = FcLocator::Renderer().beginCommandBuffer();
-      transitionLayout(cmdBuffer2.cmdBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+      FcCommandBuffer& cmdBuffer2 = FcLocator::Renderer().beginCommandBuffer();
+      transitionLayout(cmdBuffer2.getVkCommandBuffer(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
                        , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
       FcLocator::Renderer().submitCommandBuffer(cmdBuffer2);
     }
@@ -1232,6 +1234,7 @@ namespace fc
 
     // TODO load VK_SAMPLE_COUNT from GPU.properties or pass in
     // create image and imageView to hold final texture
+
     if (generateMipmaps)
     {
       createImage(width, height, FcImageTypes::TextureGenerateMipmaps);

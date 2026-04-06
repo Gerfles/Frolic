@@ -85,7 +85,7 @@ namespace fc
      void initImgui(VkFormat swapchainFormat, FcConfig& config);
 
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DELETE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-     VkDescriptorSetLayout mSceneDataDescriptorLayout;
+     /* VkDescriptorSetLayout mSceneDataDescriptorLayout; */
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
      // TODO may want to add to sceneRenderer but need for shadow map
@@ -109,26 +109,19 @@ namespace fc
      // TODO use new operator for janitor and other fcLocator entities
      FcJanitor mJanitor;
 
-
      // TODO change MAX_FRAME_DRAWS to MAX_SWAPCHAIN_BUFFERS
 
      // TODO rename semaphores to this
      // (vkCreateSemaphore(pDevice, &semaphoreInfo, nullptr, &frame.imageAvailableSemaphore));
      // (vkCreateSemaphore(pDevice, &semaphoreInfo, nullptr, &frame.renderFinishedSemaphore));
    public:
-     CommandBuffer mCurrentCommandBuffer;
+     FcCommandBuffer* mCurrentCommandBuffer;
      VkSemaphore mTimelineSemaphore {VK_NULL_HANDLE};
      VulkanImmediateCommands mImmediateCommands;
-
-     // TODO move to swapchain DELETE
-     /* u32 mFrameNumber {0}; */
-     // BUG, im pretty sure this could fail if MAX_FRAME_DRAWS is not the actual number of buffers
-     /* inline u32 getCurrentFrameIndex() { return mFrameNumber % MAX_FRAME_DRAWS; } */
-
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   END TEMP   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
      // TODO try and eliminate
-     friend class CommandBuffer;
+     friend class FcCommandBuffer;
      // TODO Make these all private
      bool mDrawNormalVectors {false};
      bool mDrawBoundingBoxes {false};
@@ -149,8 +142,8 @@ namespace fc
      //void setResizeFlag(bool shouldWindowResizeFlag) { mWindowResizeFlag = shouldWindowResizeFlag; }
 
      // TODO probably best to issue multiple command buffers, one for each task
-     const CommandBufferWrapper& beginCommandBuffer();
-     void submitCommandBuffer(const CommandBufferWrapper& wrapper);
+     FcCommandBuffer& beginCommandBuffer();
+     void submitCommandBuffer(FcCommandBuffer& wrapper);
      SubmitHandle getCurrentCommandBuffer() { return mImmediateCommands.getNextSubmitHandle(); }
      void drawImGui();
      void initDefaults();//FcBuffer& sceneDataBuffer, SceneDataUbo* sceneData);

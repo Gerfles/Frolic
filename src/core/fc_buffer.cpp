@@ -267,7 +267,7 @@ namespace  fc
   {
     // allocate and begin the command buffer to transfer a buffer
     /* VkCommandBuffer cmd = FcLocator::Renderer().beginCommandBuffer(); */
-    const CommandBufferWrapper& cmd = FcLocator::Renderer().beginCommandBuffer();
+    FcCommandBuffer& cmd = FcLocator::Renderer().beginCommandBuffer();
 
      // region of data to copy from and to
     VkBufferCopy bufferCopyRegion{};
@@ -276,7 +276,7 @@ namespace  fc
     bufferCopyRegion.size = bufferSize;
 
      // command to copy src buffer to dst buffer
-    vkCmdCopyBuffer(cmd.cmdBuffer, srcBuffer.mBuffer, mBuffer, 1, &bufferCopyRegion);
+    vkCmdCopyBuffer(cmd.getVkCommandBuffer(), srcBuffer.mBuffer, mBuffer, 1, &bufferCopyRegion);
 
     FcLocator::Renderer().submitCommandBuffer(cmd);
   }

@@ -1,6 +1,7 @@
 //>--- frolic.cpp ---<//
 #include "frolic.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "core/fc_assert.hpp"
 #include "core/fc_cvar_system.hpp"
 #include "core/fc_light.hpp"
 #include "core/fc_locator.hpp"
@@ -136,7 +137,7 @@ namespace fc
     config.addInstanceExtension(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 
     if (config.isExtendedSwapchainColorSpaceEnabled())
-    config.addInstanceExtension(VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME);
+      config.addInstanceExtension(VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME);
 
     // TODO investigate why not available on linux
     /* config.addInstanceExtension(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME); */

@@ -466,9 +466,9 @@ namespace fc
     // TODO should have the ability to submit currently registered cmdBuffer without having access to that buffer
     if (mCurrentFrame <= 3)
     {
-      const CommandBufferWrapper* currentCmd = FcLocator::Renderer().mCurrentCommandBuffer.getWrapper();
+      FcCommandBuffer* currentCmd = FcLocator::Renderer().mCurrentCommandBuffer;
       FcLocator::Renderer().mImmediateCommands.submit(*currentCmd);
-      FcLocator::Renderer().mCurrentCommandBuffer = CommandBuffer(&FcLocator::Renderer());
+      FcLocator::Renderer().mCurrentCommandBuffer = &FcLocator::Renderer().mImmediateCommands.acquire();
     }
 
 

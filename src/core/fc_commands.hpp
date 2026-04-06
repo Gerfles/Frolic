@@ -1,54 +1,64 @@
 //>--- fc_commands.hpp ---<//
 #pragma once
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "core/fc_assert.hpp"
 #include "platform.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <utility>
 #include <vulkan/vulkan_core.h>
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'S   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
 namespace fc
 {
   //
-  class FcRenderer;
-
-    struct SubmitHandle
-    {
-       u32 cmdBufferIndex {0};
-       u32 submitId {0};
-       //
-       SubmitHandle() = default;
-       //
-       explicit SubmitHandle(u64 handle) : cmdBufferIndex(u32(handle & 0xffffffff)),
-                                           submitId(u32(handle >> 32)) {}
-       //
-       inline const bool isEmpty() const { return submitId == 0; }
-       //
-       inline u64 handle() const { return (u64(submitId) << 32) + cmdBufferIndex; }
-    };
+  struct SubmitHandle
+  {
+     u32 cmdBufferIndex {0};
+     u32 submitId {0};
+     //
+     SubmitHandle() = default;
+     //
+     explicit SubmitHandle(u64 handle) : cmdBufferIndex(u32(handle & 0xffffffff)),
+                                         submitId(u32(handle >> 32)) {}
+     //
+     inline const bool isEmpty() const { return submitId == 0; }
+     //
+     inline u64 handle() const { return (u64(submitId) << 32) + cmdBufferIndex; }
+  };
 
 
+  //
+  class FcCommandBuffer
+  {
+     friend class VulkanImmediateCommands;
 
-struct CommandBufferWrapper
-     {
-        VkCommandBuffer cmdBuffer {VK_NULL_HANDLE};
-        VkCommandBuffer cmdBufferAllocated {VK_NULL_HANDLE};
-        SubmitHandle handle {};
-        VkFence fence {VK_NULL_HANDLE};
-        VkSemaphore semaphore {VK_NULL_HANDLE};
-        bool isEncoding {false};
-     };
+   private:
+     VkCommandBuffer mCmdBuffer {VK_NULL_HANDLE};
+     VkCommandBuffer mCmdBufferAllocated {VK_NULL_HANDLE};
+     SubmitHandle mHandle {};
+     VkFence mFence {VK_NULL_HANDLE};
+     VkSemaphore mSemaphore {VK_NULL_HANDLE};
+     bool mIsEncoding {false};
+
+   public:
+     FcCommandBuffer() = default;
+     //
+     /* ~CommandBuffer() { FC_ASSERT(!mIsRendering); }; */
+     FcCommandBuffer& operator=(FcCommandBuffer&& other) = default;
+     inline const VkCommandBuffer getVkCommandBuffer() const noexcept {return mCmdBuffer; }
+     inline const VkFence getFence() const noexcept { return mFence; }
+     inline const SubmitHandle getHandle() const noexcept { return mHandle; }
+     inline const VkSemaphore getSemaphore() const noexcept { return mSemaphore; }
+     inline void setIsEncoding(bool setting) noexcept { mIsEncoding = setting; }
+     inline const bool IsEncoding() noexcept { return mIsEncoding; }
+  };
 
 
-
+  // TODO rename to something more intuitive
   class VulkanImmediateCommands
   {
    private:
-     static constexpr u32  kMaxCommandBuffers = 64;
+     static constexpr u32  kMaxCommandBuffers = 128;
      // TODO make static since unless we only have one instance
      VkDevice mDevice {VK_NULL_HANDLE};
      VkQueue mQueue {VK_NULL_HANDLE};
@@ -57,34 +67,32 @@ struct CommandBufferWrapper
      u32 mNumAvailableCmdBuffers {kMaxCommandBuffers};
      u32 mSubmitCounter {1};
      const char* mDebugName {""};
-     /* SubmitHandle mLastSubmitHandle {SubmitHandle()}; */
-     SubmitHandle mLastSubmitHandle {SubmitHandle()};
-     SubmitHandle mNextSubmitHandle {SubmitHandle()};
-     CommandBufferWrapper mCmdBuffers[kMaxCommandBuffers];
-     //
+     SubmitHandle mLastSubmitHandle;
+     SubmitHandle mNextSubmitHandle;
+     FcCommandBuffer mCmdBuffers[kMaxCommandBuffers];
      VkSemaphoreSubmitInfo mLastSemaphoreSubmit {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO
                                                , .semaphore = VK_NULL_HANDLE
                                                , .stageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT};
-
      VkSemaphoreSubmitInfo mWaitSemaphore {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO
                                          , .stageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT};
      // mSignalSemaphore is injected at the end of the frame (by calling signalSemaphore() ), before
      // presenting the final image to the screen and is used to orchestrate the swapchain presentation
      VkSemaphoreSubmitInfo mSignalSemaphore {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO
                                            , .stageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT};
+     //
      void purgeCmdBuffers();
-
+     //
    public:
 
      // TODO removed for now may add back in later
      /* VulkanImmediateCommands(VkDevice device, u32 queueFamilyIdx, const char* debugName); */
      ~VulkanImmediateCommands();
      //
-     const CommandBufferWrapper& acquire();
+     FcCommandBuffer& acquire();
      //
      void init(VkDevice device, u32 queueFamilyIdx, const char* debugName);
      //
-     SubmitHandle submit(const CommandBufferWrapper& wrapper);
+     SubmitHandle submit(FcCommandBuffer& wrapper);
      //
      void waitSemaphore(VkSemaphore semaphore);
      //
@@ -106,26 +114,7 @@ struct CommandBufferWrapper
   };
 
 
-  //
-  class CommandBuffer
-  {
-   public:
-     CommandBuffer() = default;
-     //
-     explicit CommandBuffer(FcRenderer* renderer);
-     ~CommandBuffer() { FC_ASSERT(!mIsRendering); };
-     CommandBuffer& operator=(CommandBuffer&& other) = default;
-     VkCommandBuffer getVkCommandBuffer() const {return mWrapper ? mWrapper->cmdBuffer : VK_NULL_HANDLE;}
-     inline const CommandBufferWrapper* getWrapper() {return mWrapper; };
-   private:
 
-     // DELETE
-     friend class FcRenderer;
-     const CommandBufferWrapper* mWrapper = nullptr;
-     SubmitHandle mLastSubmitHandle {};
-     // DELETE
-     bool mIsRendering = false;
-  };
 
 
 

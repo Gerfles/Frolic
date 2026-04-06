@@ -137,6 +137,7 @@ namespace fc
     // TODO make sure these are implemented within bindless paths
     // -*-*-*-*-   3 DEFAULT TEXTURES--WHITE, GREY, BLACK AND CHECKERBOARD   -*-*-*-*- //
     uint32_t whiteValue = glm::packUnorm4x8(glm::vec4(1.f, 1.f, 1.f, 1.f));
+
     white.createTexture(1, 1, static_cast<void*>(&whiteValue)
                         , sizeof(whiteValue));
 
