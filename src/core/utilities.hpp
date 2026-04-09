@@ -31,7 +31,7 @@ namespace fc
 
   };
   //
-  void buildImageMemoryBarrier(VkImageLayout oldLayout, VkImageLayout newLayout,
+  void populateImageMemoryBarrier(VkImageLayout oldLayout, VkImageLayout newLayout,
                                VkImage image, VkImageMemoryBarrier2& barrier);
   //
   void calcFPS(uint64_t latestTick);

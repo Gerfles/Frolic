@@ -67,8 +67,8 @@ namespace fc
     FcCommandBuffer& cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
 
     // submit all the image blits at the same time
-    vkCmdBlitImage(cmdBuffer.getVkCommandBuffer(), pFont->mRasterTexture.Image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
-                   , mTextImage.Image(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+    vkCmdBlitImage(cmdBuffer.getVkCommandBuffer(), pFont->mRasterTexture.getVkImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
+                   , mTextImage.getVkImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
                    , blitsList.size(), blitsList.data(), VK_FILTER_LINEAR);
 
     mTextImage.transitionLayout(cmdBuffer.getVkCommandBuffer(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1);
@@ -103,8 +103,8 @@ namespace fc
     mTextImage.clear(cmdBuffer.getVkCommandBuffer(), &clearColor);
 
     // submit all the image blits at the same time
-    vkCmdBlitImage(cmdBuffer.getVkCommandBuffer(), pFont->mRasterTexture.Image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
-                   , mTextImage.Image(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+    vkCmdBlitImage(cmdBuffer.getVkCommandBuffer(), pFont->mRasterTexture.getVkImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
+                   , mTextImage.getVkImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
                    , blitsList.size(), blitsList.data(), VK_FILTER_LINEAR);
 
 //    FcLocator::Gpu().submitCommandBuffer(blitCommandBuffer);

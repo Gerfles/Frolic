@@ -72,6 +72,10 @@ namespace fc
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      /* VkImageMemoryBarrier2 mImgMemBarrier; */
      bool shouldTrack {true};
+     VkDependencyInfo mDependencyInfo {
+       .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO
+     , .imageMemoryBarrierCount = 1
+     };
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      // TRY
      void init(u32 handle);
@@ -117,6 +121,9 @@ namespace fc
                            , VkImageLayout newLayout
                            , VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT
                            , uint32_t mipLevels = 1);
+     //
+     void transitionLayout(VkCommandBuffer cmd, VkImageMemoryBarrier2 barrier);
+     //
      void copyFromBuffer(FcBuffer& srcBuffer, VkDeviceSize offset = 0, uint32_t arrayLayer = 0);
      //
      void copyFromImage(VkCommandBuffer cmdBuffer, FcImage* source);
@@ -158,7 +165,7 @@ namespace fc
      //
      const VkSampler& Sampler() const { return mSampler; }
      //
-     VkImage Image() { return mImage; }
+     VkImage getVkImage() { return mImage; }
      VkExtent2D Extent() { return {mWidth, mHeight}; }
      uint32_t Width() { return mWidth; }
      uint32_t Height() { return mHeight; }

@@ -85,17 +85,12 @@ namespace fc
       mDrawImage.createImage(screenSize.width,
                              screenSize.height, FcImageTypes::ScreenBuffer);
 
-
-
-
       // Initialize our depth image (z buffer)
       mDepthImage.createImage(screenSize.width, screenSize.height
                               ,FcImageTypes::DepthBuffer);
 
-
       mDrawImage.shouldTrack = false;
       mDepthImage.shouldTrack = false;
-
 
       // create the graphics pipeline && create/attach descriptors create the uniform
       // buffers & initialize the descriptor sets that tell the pipeline about our uniform
@@ -225,6 +220,25 @@ namespace fc
     glm::vec3 target{mSceneData.sunlightDirection.x, 0.0, mSceneData.sunlightDirection.z};
 
     mShadowRenderer.updateLightSource(mSceneData.sunlightDirection, target);
+
+    // Build memory barrier to transition draw image to be written to
+    populateImageMemoryBarrier(VK_IMAGE_LAYOUT_UNDEFINED,
+                               VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                               mDrawImage.getVkImage(),
+                               mDrawImgColorAttachmentBarrier);
+
+    // Build memory barrier to transition depth buffer to be written to
+    populateImageMemoryBarrier(VK_IMAGE_LAYOUT_UNDEFINED,
+                               VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+                               mDepthImage.getVkImage(),
+                               mDepthImgAttachmentOptimalBarrier);
+
+    // Build memory barrier to transition draw image to copy itself into swapchain buffer
+    populateImageMemoryBarrier(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                               VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                               mDrawImage.getVkImage(),
+                               mDrawImgWriteAccessBarrier);
+
 
     fcPrintEndl("DONE");
   }
@@ -420,19 +434,14 @@ namespace fc
     mDrawCollection.stats.triangleCount = 0;
     mTimer.start();
 
-    // TODO fix command buffer stuff and remove this kind of initiallization
-    /* mCurrentCommandBuffer = CommandBuffer(this); */
     mCurrentCommandBuffer = &mImmediateCommands.acquire();
-    /* mCurrentCommandBuffer = const_cast<CommandBuffer>(mImmediateCommands.acquire()); */
-
     VkCommandBuffer cmd = mCurrentCommandBuffer->getVkCommandBuffer();
 
-    // transition draw image from undefined layout to best format we can draw to
-    mDrawImage.transitionLayout(cmd, VK_IMAGE_LAYOUT_UNDEFINED,
-                                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-    //
-    mDepthImage.transitionLayout(cmd, VK_IMAGE_LAYOUT_UNDEFINED,
-                                 VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
+    // transition draw image from undefined layout to the optimal format for drawing into
+    mDrawImage.transitionLayout(cmd, mDrawImgColorAttachmentBarrier);
+
+    // transition depth image into depth attachment for sampling
+    mDepthImage.transitionLayout(cmd, mDepthImgAttachmentOptimalBarrier);
 
     mSwapchain.acquireCurrentFrame();
 
@@ -499,8 +508,8 @@ namespace fc
 
     vkCmdEndRendering(cmd);
 
-    // TODO this may be necessary for some synchronization to take place in the future (multi-threading) but
-    // for now is disabled because the framerate suffer pretty substantially while enabled.
+    // // TODO this may be necessary for some synchronization to take place in the future (multi-threading) but
+    // // for now is disabled because the framerate suffer pretty substantially while enabled.
     // const bool shouldPresent = true;
     // if (shouldPresent)
     // {
@@ -511,6 +520,8 @@ namespace fc
     //   mImmediateCommands.signalSemaphore(mTimelineSemaphore, signalValue);
     // }
 
+    // First transition draw image into transfer source layout so we can copy to the swapchain image
+    mDrawImage.transitionLayout(cmd, mDrawImgWriteAccessBarrier);
 
     // now that we have finished drawing to our internal draw image, copy to swapchain and present
     mSwapchain.present(mDrawImage, cmd);

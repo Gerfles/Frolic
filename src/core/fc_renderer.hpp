@@ -136,6 +136,11 @@ namespace fc
      FcSkybox mSkybox;
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     VkImageMemoryBarrier2 mDrawImgColorAttachmentBarrier {};
+     VkImageMemoryBarrier2 mDepthImgAttachmentOptimalBarrier {};
+     VkImageMemoryBarrier2 mDrawImgWriteAccessBarrier {};
+
      FcSceneRenderer mSceneRenderer;
      void updateScene();
 

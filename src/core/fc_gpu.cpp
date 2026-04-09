@@ -159,7 +159,7 @@ namespace fc
     mGpuPerformanceProperties.maxMsaaSamples = VK_SAMPLE_COUNT_1_BIT;
 
     // TODO print more specs when in debug
-    fcPrintEndl("GPU: %s\n\tPush Constant max size:%u(Bytes)",
+    fcPrintEndl("GPU: %s\n     -Push Constant max size:%u(Bytes)",
                 deviceProperties.properties.deviceName,
                 deviceProperties.properties.limits.maxPushConstantsSize);
   }
@@ -300,7 +300,7 @@ namespace fc
 
     // TODO set configuration parameters based on whether queues are discreet or not
     // ?? See if there is a benefit to having graphics and present queue be different
-    fcPrint("\n Queue Layout:");
+    fcPrint("\n -Queue Layout-");
     fcPrint("\nCOMPUTE: index = %u", mQueues.computeFamily);
     fcPrint("\nTRANSFER: index = %u", mQueues.transferFamily);
     fcPrint("\nGRAPHICS: index = %u", mQueues.graphicsFamily);

@@ -29,6 +29,30 @@ namespace fc
     // createRenderPass();
     // createFrameBuffers();
 
+    // First transition each swap chain image into the present layout (so our transitioning logic works later)
+    FcCommandBuffer& cmd = FcLocator::Renderer().mImmediateCommands.acquire();
+    for (FcImage image : mSwapchainImages)
+    {
+    image.transitionLayout(cmd.getVkCommandBuffer(), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+    }
+    FcLocator::Renderer().submitNonRenderCmdBuffer(cmd);
+
+    // Build cached image memory barrier to transition a swap chain buffer to write into
+    populateImageMemoryBarrier(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                               VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                               nullptr,
+                               mWriteAccessMemBarrier);
+
+    // Build cached image memory barrier to transition a swap chain buffer to present
+    populateImageMemoryBarrier(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                               VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                               nullptr,
+                               mPresentAccessMemBarrier);
+
+    // Initialize dependency info to transfer destination state (since we will first copy to image before presenting)
+    mDependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+    mDependencyInfo.imageMemoryBarrierCount = 1;
+
     return swapchainImageFormat;
   }
 
@@ -170,7 +194,7 @@ namespace fc
     // Finally, create the actual Images that will be used in the swapchain
     for (VkImage image : swapchainImages)
     {
-      FcSwapChainImage swapChainImage{image};
+      FcImage swapChainImage{image};
 
       // Create image view
       swapChainImage.createImageView(surfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT);
@@ -450,19 +474,25 @@ namespace fc
   //
   void FcSwapChain::present(FcImage& drawImage, VkCommandBuffer cmd)
   {
-    // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   TRANSITION IMAGES   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-    // First transition draw image into transfer source layout so we can copy to the swapchain image
-    drawImage.transitionLayout(cmd, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-
-    // Next transiton the swapchain so it can best accept an image being copied to it
-    mSwapchainImages[mCurrentBufferIndex].transitionToWriteMode(cmd);
+    // Transiton the swapchain so it can best accept an image being copied to it
+    /* mSwapchainImages[mCurrentBufferIndex].transitionToWriteMode(cmd); */
+    mWriteAccessMemBarrier.image = mSwapchainImages[mCurrentBufferIndex].getVkImage();
+    mDependencyInfo.pImageMemoryBarriers = &mWriteAccessMemBarrier;
+    vkCmdPipelineBarrier2(cmd, &mDependencyInfo);
 
     // execute a copy from the draw image into the swapchain
     getFrameTexture().copyFromImage(cmd, &drawImage);
 
     // TODO look into FcImage transitionLayout to see example of memImg barrier...
     // finally transition the swapchain image into presentable layout so we can present to surface
-    mSwapchainImages[mCurrentBufferIndex].transitionToPresentMode(cmd);
+    /* mSwapchainImages[mCurrentBufferIndex].transitionToPresentMode(cmd); */
+    mPresentAccessMemBarrier.image = mSwapchainImages[mCurrentBufferIndex].getVkImage();
+    mDependencyInfo.pImageMemoryBarriers = &mPresentAccessMemBarrier;
+    vkCmdPipelineBarrier2(cmd, &mDependencyInfo);
+
+
+
+
 
     // BUG need to add a fence or barrier so our image layouts are correct first
     // TODO should have the ability to submit currently registered cmdBuffer without having access to that buffer

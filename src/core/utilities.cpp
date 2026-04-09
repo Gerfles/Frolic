@@ -101,7 +101,7 @@ namespace fc
 
 
   //
-  void buildImageMemoryBarrier(VkImageLayout oldLayout, VkImageLayout newLayout,
+  void populateImageMemoryBarrier(VkImageLayout oldLayout, VkImageLayout newLayout,
                                VkImage image, VkImageMemoryBarrier2& barrier)
   {
     // *-*-*-*-*-*-*-*-*-*-*-   TODO EXTRAPOLATE TO BUILD OP   *-*-*-*-*-*-*-*-*-*-*- //
@@ -111,8 +111,12 @@ namespace fc
     // Queue family to transition to/from - IGNORED means don't bother transferring to a different queue
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
     //
-    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    barrier.subresourceRange.aspectMask = (newLayout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL
+                                           || oldLayout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL)
+                                          ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+
     // TODO We are currently targeting all layers and mipmap levels and this could potentially be better
     // implemented by targeting less
     barrier.subresourceRange.baseMipLevel = 0;
@@ -128,6 +132,7 @@ namespace fc
     // Determine Proper access flags and pipeline stages for image layout transition
     // Documentation: https://github.com/KhronosGroup/Vulkan-Docs/wiki/Synchronization-Examples
     auto determineAccessFlags = [&] (VkImageLayout layout, VkPipelineStageFlags2& stage, VkAccessFlags2& access)
+    /* auto determineAccessFlags = [&] (VkImageLayout layout, VkImageMemoryBarrier2 arrier) */
      {
        switch (layout)
        {

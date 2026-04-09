@@ -199,7 +199,6 @@ namespace fc
           break;
         }
 
-
         // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CUBE MAP   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
         case FcImageTypes::Cubemap:
         {
@@ -438,7 +437,13 @@ namespace fc
   }
 
 
+  // Prefer this method for efficiency as it does not create a VkImageMemoryBarrier2 each time
+  void FcImage::transitionLayout(VkCommandBuffer cmd, VkImageMemoryBarrier2 barrier)
+  {
+    mDependencyInfo.pImageMemoryBarriers = &barrier;
 
+    vkCmdPipelineBarrier2(cmd, &mDependencyInfo);
+  }
 
 
 

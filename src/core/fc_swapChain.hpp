@@ -2,7 +2,8 @@
 #pragma once
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_types.hpp"
-#include "fc_swapChainImage.hpp"
+#include "fc_image.hpp"
+/* #include "fc_swapChainImage.hpp" */
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'S   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 namespace fc { class FcGpu; class FcConfig; }
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
@@ -20,14 +21,18 @@ namespace fc
      // TODO extrapolate into separate class
      VkRenderPass mRenderPass {nullptr};
      // FRAMEBUFFER ATTACHMENTS
-     std::vector<FcSwapChainImage> mSwapchainImages;
+     std::vector<FcImage> mSwapchainImages;
 
      // *-*-*-*-*-*-*-*-*-   CACHED TO AVOID RECREATION EACH FRAME   *-*-*-*-*-*-*-*-*- //
      VkRenderingAttachmentInfo mColorAttachment {};
      VkRenderingInfo mRenderInfo {};
      VkPresentInfoKHR presentInfo = {};
+     // *-*-*-*-*-*-*-*-   TRANSITIONING LAYOUTS OF SWAPCHAIN IMAGES   *-*-*-*-*-*-*-*- //
+     VkImageMemoryBarrier2 mWriteAccessMemBarrier {};
+     VkImageMemoryBarrier2 mPresentAccessMemBarrier {};
+     VkDependencyInfo mDependencyInfo {};
 
-     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
      /* bool mGetNextImage {true}; */
      // FIXME act on window resize
      bool mShouldResizeWindow {false};
@@ -51,6 +56,10 @@ namespace fc
                                     VkImageTiling tiling, VkFormatFeatureFlags featureFlags);
      //
      VkImageUsageFlags chooseUsageFlags(VkSurfaceCapabilitiesKHR& surfaceCapabilities, VkFormat format);
+     //
+     // void transitionToWriteMode();
+     // //
+     // void transitionToPresentMode();
      //
      void createRenderPass(FcConfig& config);
      //
@@ -99,7 +108,7 @@ namespace fc
      //
      const VkSwapchainKHR& vkSwapchain() const { return mSwapchain; }
      //
-     VkImage vkImage(uint32_t index)  { return mSwapchainImages.at(index).Image();  }
+     VkImage vkImage(uint32_t index)  { return mSwapchainImages.at(index).getVkImage();  }
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CLEANUP   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      //     ~FcSwapChain();
      //
