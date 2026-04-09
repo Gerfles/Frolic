@@ -83,6 +83,8 @@ namespace fc
     // ?? TEST would this be better to just send scenedata already packaged and just use what's necessary
     mBillboardUbo.view = sceneData.view;
     mBillboardUbo.projection = sceneData.projection;
+
+
     mUboBuffer.write(&mBillboardUbo, sizeof(BillboardUbo));
 
     // TODO This is a good candidate for a compute shader

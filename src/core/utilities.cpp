@@ -2,12 +2,8 @@
 #include "utilities.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "core/fc_assert.hpp"
-#include "fc_locator.hpp"
-#include "core/fc_debug.hpp"
 #include "platform.hpp"
-
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <cstring>
 #include <filesystem>
@@ -102,6 +98,89 @@ namespace fc
   //     func(instance, debugMessenger, pAllocator);
   //   }
   // }
+
+
+  //
+  void buildImageMemoryBarrier(VkImageLayout oldLayout, VkImageLayout newLayout,
+                               VkImage image, VkImageMemoryBarrier2& barrier)
+  {
+    // *-*-*-*-*-*-*-*-*-*-*-   TODO EXTRAPOLATE TO BUILD OP   *-*-*-*-*-*-*-*-*-*-*- //
+    // Cache the write Memory Barrier that will transition swapchain image to transfer destination
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+
+    // Queue family to transition to/from - IGNORED means don't bother transferring to a different queue
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    //
+    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    // TODO We are currently targeting all layers and mipmap levels and this could potentially be better
+    // implemented by targeting less
+    barrier.subresourceRange.baseMipLevel = 0;
+    barrier.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
+    barrier.subresourceRange.baseArrayLayer = 0;
+    barrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+    //
+    barrier.oldLayout = oldLayout;
+    barrier.newLayout = newLayout;
+    //
+    barrier.image = image;
+
+    // Determine Proper access flags and pipeline stages for image layout transition
+    // Documentation: https://github.com/KhronosGroup/Vulkan-Docs/wiki/Synchronization-Examples
+    auto determineAccessFlags = [&] (VkImageLayout layout, VkPipelineStageFlags2& stage, VkAccessFlags2& access)
+     {
+       switch (layout)
+       {
+           case VK_IMAGE_LAYOUT_UNDEFINED:
+             stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+             access = VK_ACCESS_NONE;
+             break;
+           case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+             stage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+             access = VK_ACCESS_NONE;
+             break;
+           case VK_IMAGE_LAYOUT_PREINITIALIZED:
+             stage = VK_PIPELINE_STAGE_HOST_BIT;
+             access = VK_ACCESS_HOST_WRITE_BIT;
+             break;
+           case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+             stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+             access = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+             break;
+           case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL:
+             stage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+             access = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;;
+             break;
+           case VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR:
+             stage = VK_PIPELINE_STAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR;
+             access = VK_ACCESS_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR;;
+             break;
+           case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+             stage = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+             access = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;;
+             break;
+           case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+             stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+             access = VK_ACCESS_TRANSFER_READ_BIT;
+             break;
+           case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+             stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+             access = VK_ACCESS_TRANSFER_WRITE_BIT;
+             break;
+           default:
+             FC_ASSERT(false && "Image layout Unknown or Improperly set");
+             stage = 0;
+             access = 0;
+             break;
+       };
+     };
+
+    // First set the flags for pipeline stage and access mode for the old layout (source)
+    determineAccessFlags(oldLayout, barrier.srcStageMask, barrier.srcAccessMask);
+
+    // Next set the flags for pipeline stage and access mode for the new layout (destination)
+    determineAccessFlags(newLayout, barrier.dstStageMask, barrier.dstAccessMask);
+  }
 
 
   //
@@ -214,7 +293,11 @@ namespace fc
   }
 
 
-  //
+  // TODO combine with below,
+  // TODO utilize sychronization2 extension to let us signal what state in the command buffer queue
+  // should be waited on before semaphore is signaled (i.e. COLOR_ATTACHMENT_OUTPUT) <- this should
+  // be the default and even having that set can optimize the result regardless of the fact that
+  // COLOR_.._OUTPUT is the final in a pipeline
   VkSemaphore createSemaphore(VkDevice device, const char* debugName)
   {
     const VkSemaphoreCreateInfo semaphoreInfo = {

@@ -280,7 +280,7 @@ namespace fc
     mQueues.transferFamily = findDedicatedQueueFamilyIndex(VK_QUEUE_TRANSFER_BIT, VK_QUEUE_GRAPHICS_BIT);
 
     // if we couldn't find a dedicated compute queue above, settle for any valid queue
-    if (mQueues.computeFamily == DeviceQueues::INVALID)
+    if (mQueues.transferFamily == DeviceQueues::INVALID)
     {
       mQueues.transferFamily = findDedicatedQueueFamilyIndex(VK_QUEUE_TRANSFER_BIT, 0);
     }
@@ -293,11 +293,18 @@ namespace fc
     vkGetPhysicalDeviceSurfaceSupportKHR(mPhysicalGPU, mQueues.graphicsFamily,
                                          config.getWindowPtr()->surface(),
                                          &presentationSupport);
-
     if (presentationSupport)
     {
       mQueues.presentationFamily = mQueues.graphicsFamily;
     }
+
+    // TODO set configuration parameters based on whether queues are discreet or not
+    // ?? See if there is a benefit to having graphics and present queue be different
+    fcPrint("\n Queue Layout:");
+    fcPrint("\nCOMPUTE: index = %u", mQueues.computeFamily);
+    fcPrint("\nTRANSFER: index = %u", mQueues.transferFamily);
+    fcPrint("\nGRAPHICS: index = %u", mQueues.graphicsFamily);
+    fcPrintEndl("\nPRESENTATION: index = %u", mQueues.presentationFamily);
   }
 
 

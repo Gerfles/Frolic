@@ -2,7 +2,7 @@
 #pragma once
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_types.hpp"
-#include "fc_image.hpp"
+#include "fc_swapChainImage.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'S   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 namespace fc { class FcGpu; class FcConfig; }
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
@@ -20,7 +20,7 @@ namespace fc
      // TODO extrapolate into separate class
      VkRenderPass mRenderPass {nullptr};
      // FRAMEBUFFER ATTACHMENTS
-     std::vector<FcImage> mSwapchainImages;
+     std::vector<FcSwapChainImage> mSwapchainImages;
 
      // *-*-*-*-*-*-*-*-*-   CACHED TO AVOID RECREATION EACH FRAME   *-*-*-*-*-*-*-*-*- //
      VkRenderingAttachmentInfo mColorAttachment {};
@@ -76,9 +76,9 @@ namespace fc
      VkFormat init(FcGpu& gpu, FcConfig& config);
      // TODO see if we can just make this part of create swapChain??
      // *-*-*-*-*-*-   MAKE CURRENT SWAPCHAIN FRAME INTO WRITEABLE IMAGE   *-*-*-*-*-*- //
-     inline void transitionSwapchainLayout(VkCommandBuffer commandBuffer, VkImageLayout currentLayout,
-                                           VkImageLayout newLayout) noexcept
-      { mSwapchainImages[mCurrentBufferIndex].transitionLayout(commandBuffer, currentLayout, newLayout); }
+     // inline void transitionSwapchainLayout(VkCommandBuffer commandBuffer, VkImageLayout currentLayout,
+     //                                       VkImageLayout newLayout) noexcept
+     //  { mSwapchainImages[mCurrentBufferIndex].transitionLayout(commandBuffer, currentLayout, newLayout); }
      //
      void reCreateSwapChain(VkExtent2D windowSize);
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //

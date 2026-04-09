@@ -20,15 +20,6 @@
 
 namespace fc
 {
-  // TRY could implement a static variable for keeping track of handles??
-  /* uint32_t FcImage::index = 0; */
-
-  FcImage::FcImage(VkImage image)
-  {
-    mImage = image;
-  }
-
-
   void FcImage::init(u32 handle)
   {
     localCopyAddress = nullptr;
@@ -368,13 +359,19 @@ namespace fc
 
   }
 
-// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW METHOD   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-  // TODO  may also want to create TEST using this method without first invoking a command buffer
-  // an immediate transition image function (transitionAndSubmit) to eliminate command buffer stuff
+
+  //
+  // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW METHOD   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+  // TODO create a parent image class and child depth image, staticImg, etc...
   void FcImage::transitionLayout(VkCommandBuffer commandBuffer, VkImageLayout currentLayout
-                                , VkImageLayout newLayout, VkImageAspectFlags aspectFlags
-                                ,  uint32_t mipLevels)
+                                 , VkImageLayout newLayout, VkImageAspectFlags aspectFlags
+                                 ,  uint32_t mipLevels)
   {
+    // if (shouldTrack)
+    // {
+    //   fcPrintEndl("transitioning Layout");
+    // }
+
     VkImageMemoryBarrier2 imageBarrier{};
     imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
     imageBarrier.oldLayout = currentLayout; // layout to transition from
@@ -388,13 +385,13 @@ namespace fc
     // TODO consider storing in image
     imageBarrier.subresourceRange.aspectMask = aspectFlags;
 
-    // if (newLayout == VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR)
-    // {
-    //   imageBarrier.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR;
-    //   imageBarrier.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR;
-    //   imageBarrier.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT_KHR;
-    // }
-    if (currentLayout == VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL && aspectFlags == VK_IMAGE_ASPECT_DEPTH_BIT)
+    if (newLayout == VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR)
+    {
+      imageBarrier.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR;
+      imageBarrier.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR;
+      imageBarrier.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT_KHR;
+    }
+    else if (currentLayout == VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL && aspectFlags == VK_IMAGE_ASPECT_DEPTH_BIT)
     {
       imageBarrier.srcStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT_KHR | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT_KHR;
       imageBarrier.srcAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT_KHR;
@@ -412,10 +409,8 @@ namespace fc
       imageBarrier.srcAccessMask = VK_ACCESS_2_MEMORY_READ_BIT | VK_ACCESS_2_MEMORY_WRITE_BIT;
       imageBarrier.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
       imageBarrier.dstAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_MEMORY_READ_BIT;
-
       // set aspect of image being altered to color image (default) unless new layout required is depth image
     }
-
 
     // (newLayout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL
     //                                           || currentLayout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL)
@@ -441,6 +436,13 @@ namespace fc
 
     vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
   }
+
+
+
+
+
+
+
 
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   OLD METHOD   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
   // void FcImage::transitionImageLayout(VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels)
@@ -573,6 +575,12 @@ namespace fc
   // ?? determine if copying to image would be preferable to buffer copy
   void FcImage::copyToCPUAddress()
   {
+    if (shouldTrack)
+    {
+      fcPrintEndl("copying Image to CPU address");
+    }
+
+
     // Must use shared pointer here since we have default copy/assignment operators
     // TODO could change if we implement our own
     // TODO imageMemSize should be determined programatically
@@ -582,14 +590,13 @@ namespace fc
     // store a copy of our buffer memory location in the class for quick access
     localCopyAddress = localCopy->getAddress();
 
-    /* VkCommandBuffer cmdBuffer = FcLocator::Renderer().beginCommandBuffer(); */
     FcCommandBuffer& cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
 
     // TODO handle the cases where transition of image is not known,
     // Probably need to store current layout in image
     // TODO might want to create a separate image memory barrier for this type of transition
     transitionLayout(cmdBuffer.getVkCommandBuffer(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+                     VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 
     // TODO handle the case where the buffer being passed is allready allocated
 
@@ -610,7 +617,7 @@ namespace fc
                            , localCopy->getVkBuffer(), 1, &imageCopyRegion);
 
     transitionLayout(cmdBuffer.getVkCommandBuffer(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
-                    , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+                     , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     FcLocator::Renderer().submitCommandBuffer(cmdBuffer);
   }
@@ -731,7 +738,6 @@ namespace fc
     FcBuffer stagingBuffer(imageSize, FcBufferTypes::Staging);
 
     // transition the image buffer so that it is most efficient to be written to
-    /* VkCommandBuffer cmdBuffer = FcLocator::Renderer().beginCommandBuffer(); */
     FcCommandBuffer& cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
 
     transitionLayout(cmdBuffer.getVkCommandBuffer(), VK_IMAGE_LAYOUT_UNDEFINED
@@ -1031,13 +1037,18 @@ namespace fc
 
 
   // TODO There are 2 basic methods to copy one image into another with Vulkan.  1. You
-  // can use VkCmdCopyImage - faster method but more restricted in the the sense that the
+  // can use VkCmdCopyImage - faster method but more restricted in the sense that the
   // resolutions sizes, formats, etc. must match.  2. You can use VkCmdBlitImage (which is
-  // what we'll use here) which gives more flexible but also slower In a more advanced
+  // what we'll use here). It gives more flexible but also slower In a more advanced
   // engine, we should write our own function that can do extra logic on a fullscreen
   // fragment shader.
   void FcImage::copyFromImage(VkCommandBuffer cmdBuffer, FcImage* source)
   {
+    // if (shouldTrack)
+    // {
+    //   fcPrintEndl("copying to Image from Image");
+    // }
+
     VkImageBlit2 blitRegion = {};
     blitRegion.sType = VK_STRUCTURE_TYPE_IMAGE_BLIT_2;
     blitRegion.srcOffsets[1].x = source->mWidth;
@@ -1068,11 +1079,44 @@ namespace fc
     vkCmdBlitImage2(cmdBuffer, &blitInfo);
   }
 
+  // TEST
+  // TODO implement properly but not that this will not work for all our image copying needs since we
+  // cannot copy an image with one format to an image with different format
+  void FcImage::directCopyFromImage(VkCommandBuffer cmdBuffer, FcImage* source)
+  {
+    // VkCopyImageInfo2 copyInfo {
+    //   .
+    // }
+
+    VkImageCopy copy {
+      .extent {source->mWidth, source->mHeight, 1}
+    // , .dstOffset {source->mWidth, source->mHeight, 1}
+    // , .srcOffset {source->mWidth, source->mHeight, 1}
+    , .dstOffset {0, 0, 0}
+    , .srcOffset {0, 0, 0}
+    , .srcSubresource.mipLevel {0}
+    , .srcSubresource.aspectMask {VK_IMAGE_ASPECT_COLOR_BIT}
+    , .srcSubresource.baseArrayLayer {0}
+    , .srcSubresource.layerCount {1}
+    , .dstSubresource.aspectMask {VK_IMAGE_ASPECT_COLOR_BIT}
+    , .dstSubresource.baseArrayLayer {0}
+    , .dstSubresource.layerCount {1}
+    , .dstSubresource.mipLevel {0}
+    };
+
+    vkCmdCopyImage(cmdBuffer, source->mImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, mImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
+  }
+
 
   // TODO should consider the use case for when we want to make this operation part of an existing cmdBuffer using nullptr default should make that pretty easy to implement
   // TODO TRY passing in a command buffer for this copy
   void FcImage::copyFromBuffer(FcBuffer& srcBuffer, VkDeviceSize offset, uint32_t arrayLayer)
   {
+    if (shouldTrack)
+    {
+      fcPrintEndl("Copying from buffer");
+    }
+
     // allocate and begin the command buffer to transfer an image
     FcGpu& gpu = FcLocator::Gpu();
 
@@ -1108,7 +1152,8 @@ namespace fc
                            , VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageCopyRegion);
 
     //  finally, submit the transfer command to the command buffer and submit
-    FcLocator::Renderer().submitCommandBuffer(cmdBuffer);
+    /* FcLocator::Renderer().submitCommandBuffer(cmdBuffer); */
+    FcLocator::Renderer().submitNonRenderCmdBuffer(cmdBuffer);
   }
 
 
@@ -1150,6 +1195,7 @@ namespace fc
 
   void FcImage::writeToImage(void* pixelData, VkDeviceSize dataLength, bool generateMipmaps)
   {
+
     // Create a staging buffer first in order to transition the image to the gpu-local later
     FcBuffer stagingBuffer(dataLength, FcBufferTypes::Staging);
     // copy the actual image data into the staging buffer.
@@ -1181,6 +1227,8 @@ namespace fc
     // transition the image so that it's in the most efficient state to write to
     /* VkCommandBuffer cmdBuffer = FcLocator::Renderer().beginCommandBuffer(); */
 
+    /* BUG FIXME this should not be one of 3 cmd buffers but should instead all
+       be the same buffer but with semaphores or fences. */
     FcCommandBuffer& cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
 
 
@@ -1188,7 +1236,7 @@ namespace fc
                      , VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
                      , VK_IMAGE_ASPECT_COLOR_BIT,  mMipLevels);
 
-    FcLocator::Renderer().submitCommandBuffer(cmdBuffer);
+    FcLocator::Renderer().submitNonRenderCmdBuffer(cmdBuffer);
 
     // copy data to image
     copyFromBuffer(stagingBuffer);
@@ -1212,7 +1260,8 @@ namespace fc
       FcCommandBuffer& cmdBuffer2 = FcLocator::Renderer().beginCommandBuffer();
       transitionLayout(cmdBuffer2.getVkCommandBuffer(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
                        , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-      FcLocator::Renderer().submitCommandBuffer(cmdBuffer2);
+      /* FcLocator::Renderer().submitCommandBuffer(cmdBuffer2); */
+      FcLocator::Renderer().submitNonRenderCmdBuffer(cmdBuffer2);
     }
   }
 

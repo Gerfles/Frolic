@@ -170,12 +170,14 @@ namespace fc
     // Finally, create the actual Images that will be used in the swapchain
     for (VkImage image : swapchainImages)
     {
-      FcImage swapChainImage{image};
+      FcSwapChainImage swapChainImage{image};
 
       // Create image view
       swapChainImage.createImageView(surfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT);
       //
       mSwapchainImages.emplace_back(std::move(swapChainImage));
+
+      swapChainImage.shouldTrack = false;
     }
 
 
@@ -453,14 +455,14 @@ namespace fc
     drawImage.transitionLayout(cmd, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 
     // Next transiton the swapchain so it can best accept an image being copied to it
-    transitionSwapchainLayout(cmd, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    mSwapchainImages[mCurrentBufferIndex].transitionToWriteMode(cmd);
 
     // execute a copy from the draw image into the swapchain
     getFrameTexture().copyFromImage(cmd, &drawImage);
 
     // TODO look into FcImage transitionLayout to see example of memImg barrier...
     // finally transition the swapchain image into presentable layout so we can present to surface
-    transitionSwapchainLayout(cmd, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+    mSwapchainImages[mCurrentBufferIndex].transitionToPresentMode(cmd);
 
     // BUG need to add a fence or barrier so our image layouts are correct first
     // TODO should have the ability to submit currently registered cmdBuffer without having access to that buffer

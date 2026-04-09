@@ -95,7 +95,6 @@ namespace fc
     /* VkCommandBuffer cmdBuffer = FcLocator::Renderer().beginCommandBuffer(); */
     FcCommandBuffer& cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
 
-    // BUG may have to transition image initially to something else to erase/write to it
     mTextImage.transitionLayout(cmdBuffer.getVkCommandBuffer(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
                                 , VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1);
 

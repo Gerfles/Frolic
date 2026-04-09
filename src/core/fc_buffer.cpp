@@ -142,7 +142,8 @@ namespace  fc
   }
 
 
-
+  // TODO TEST all uses of write() etc. to see if it would be more efficient to pass a
+  // cmd buffer and allow write to be one of the commands within that buffer (if it's part of the render cycle)
   void FcBuffer::write(void* sourceData, size_t dataSize, VkDeviceSize offset)
   {
     // if no dataSize passed in (default = 0), set copy length to whole buffer size
@@ -266,7 +267,6 @@ namespace  fc
   void FcBuffer::copyBuffer(const FcBuffer& srcBuffer, VkDeviceSize bufferSize)
   {
     // allocate and begin the command buffer to transfer a buffer
-    /* VkCommandBuffer cmd = FcLocator::Renderer().beginCommandBuffer(); */
     FcCommandBuffer& cmd = FcLocator::Renderer().beginCommandBuffer();
 
      // region of data to copy from and to
@@ -278,7 +278,9 @@ namespace  fc
      // command to copy src buffer to dst buffer
     vkCmdCopyBuffer(cmd.getVkCommandBuffer(), srcBuffer.mBuffer, mBuffer, 1, &bufferCopyRegion);
 
+    /* FcLocator::Renderer().submitNonRenderCmdBuffer(cmd); */
     FcLocator::Renderer().submitCommandBuffer(cmd);
+
   }
 
 

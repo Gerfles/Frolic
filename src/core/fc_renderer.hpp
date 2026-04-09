@@ -143,7 +143,8 @@ namespace fc
 
      // TODO probably best to issue multiple command buffers, one for each task
      FcCommandBuffer& beginCommandBuffer();
-     void submitCommandBuffer(FcCommandBuffer& wrapper);
+     void submitCommandBuffer(FcCommandBuffer& cmdBuffer);
+     void submitNonRenderCmdBuffer(FcCommandBuffer& cmdBuffer);
      SubmitHandle getCurrentCommandBuffer() { return mImmediateCommands.getNextSubmitHandle(); }
      void drawImGui();
      void initDefaults();//FcBuffer& sceneDataBuffer, SceneDataUbo* sceneData);

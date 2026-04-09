@@ -30,9 +30,10 @@ namespace fc
      void closeLogOutput();
 
   };
-
-
-
+  //
+  void buildImageMemoryBarrier(VkImageLayout oldLayout, VkImageLayout newLayout,
+                               VkImage image, VkImageMemoryBarrier2& barrier);
+  //
   void calcFPS(uint64_t latestTick);
   // TODO only the following printMat was updated, need to update the rest
   void printMat(const glm::mat4& mat, std::string_view name);

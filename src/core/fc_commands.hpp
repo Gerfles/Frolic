@@ -61,6 +61,7 @@ namespace fc
      static constexpr u32  kMaxCommandBuffers = 128;
      // TODO make static since unless we only have one instance
      VkDevice mDevice {VK_NULL_HANDLE};
+     // TODO have multiple queues that we are working with
      VkQueue mQueue {VK_NULL_HANDLE};
      VkCommandPool mCmdPool {VK_NULL_HANDLE};
      u32 mQueueFamilyIdx {0};
@@ -70,9 +71,14 @@ namespace fc
      SubmitHandle mLastSubmitHandle;
      SubmitHandle mNextSubmitHandle;
      FcCommandBuffer mCmdBuffers[kMaxCommandBuffers];
+
+
+     VkFence mImmediateFence;
+     //
      VkSemaphoreSubmitInfo mLastSemaphoreSubmit {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO
                                                , .semaphore = VK_NULL_HANDLE
                                                , .stageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT};
+     // TODO dedicate and rename to mImgAcquireSemaphore
      VkSemaphoreSubmitInfo mWaitSemaphore {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO
                                          , .stageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT};
      // mSignalSemaphore is injected at the end of the frame (by calling signalSemaphore() ), before
@@ -93,6 +99,8 @@ namespace fc
      void init(VkDevice device, u32 queueFamilyIdx, const char* debugName);
      //
      SubmitHandle submit(FcCommandBuffer& wrapper);
+     //
+     SubmitHandle submitSingleUseCmdBuffer(FcCommandBuffer& cmdBuffer);
      //
      void waitSemaphore(VkSemaphore semaphore);
      //

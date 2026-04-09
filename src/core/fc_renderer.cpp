@@ -44,8 +44,22 @@ namespace fc
 
       pDevice = FcLocator::Gpu().getVkDevice();
 
+
+
+
+      //
+      mImmediateCommands.init(pDevice, mGpu.getQueues().graphicsFamily, "SYNC");
+
+
+
       // create the swapchain & renderpass & frambuffers & depth buffer
       VkFormat swapchainImageFormat = mSwapchain.init(mGpu, config);
+
+
+      // create timeline semaphore
+      mTimelineSemaphore = createTimelineSemaphore(pDevice,
+                                                   mSwapchain.imageCount() - 1,
+                                                   "Semaphore: mTimelineSemaphore");
 
       // -*-*-*-*-*-*-*-*-*-*-*-*-   INITIALIZE DESCRIPTORS   -*-*-*-*-*-*-*-*-*-*-*-*- //
       FcDescriptorClerk* descClerk = new FcDescriptorClerk;
@@ -71,9 +85,17 @@ namespace fc
       mDrawImage.createImage(screenSize.width,
                              screenSize.height, FcImageTypes::ScreenBuffer);
 
+
+
+
       // Initialize our depth image (z buffer)
       mDepthImage.createImage(screenSize.width, screenSize.height
                               ,FcImageTypes::DepthBuffer);
+
+
+      mDrawImage.shouldTrack = false;
+      mDepthImage.shouldTrack = false;
+
 
       // create the graphics pipeline && create/attach descriptors create the uniform
       // buffers & initialize the descriptor sets that tell the pipeline about our uniform
@@ -84,13 +106,6 @@ namespace fc
       //
       initImgui(swapchainImageFormat, config);
 
-      // create timeline semaphore
-      mTimelineSemaphore = createTimelineSemaphore(pDevice,
-                                                   mSwapchain.imageCount() - 1,
-                                                   "Semaphore: mTimelineSemaphore");
-
-      //
-      mImmediateCommands.init(pDevice, mGpu.getQueues().graphicsFamily, "SYNC");
 
       //
       FcLocator::provide(&mJanitor);
@@ -322,7 +337,7 @@ namespace fc
 
 
   // FIXME
-  void FcRenderer::submitCommandBuffer(FcCommandBuffer& wrapper)
+  void FcRenderer::submitCommandBuffer(FcCommandBuffer& cmdBuffer)
   {
     // const bool shouldPresent = hasSwapChain() && present;
 
@@ -331,10 +346,27 @@ namespace fc
     //   const u64
     // }
     // End commands
-    mImmediateCommands.submit(wrapper);
+    mImmediateCommands.submit(cmdBuffer);
 
     /* vkWaitForFences(pDevice, 1, &mImmediateFence, true, U64_MAX); */
   }
+
+
+
+  void FcRenderer::submitNonRenderCmdBuffer(FcCommandBuffer& cmdBuffer)
+  {
+    // const bool shouldPresent = hasSwapChain() && present;
+
+    // if shouldPresent
+    // {
+    //   const u64
+    // }
+    // End commands
+    mImmediateCommands.submitSingleUseCmdBuffer(cmdBuffer);
+
+    /* vkWaitForFences(pDevice, 1, &mImmediateFence, true, U64_MAX); */
+  }
+
 
 
   // TODO should pass in variables from frolic.cpp here

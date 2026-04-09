@@ -39,7 +39,7 @@ namespace fc
   // TODO think about creating a separate class for texture
   class FcImage
   {
-   private:
+   protected:
      // -*-*-*-*-*-*-*-   USED WHEN MAPPING DATA TO READ PIXEL VALUES   -*-*-*-*-*-*-*- //
      // TODO get rid of local Copy since not always needed
      std::shared_ptr<FcBuffer> localCopy;
@@ -47,7 +47,6 @@ namespace fc
      /* static uint32_t index; */
      uint32_t mHandle;
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
      VkSampler mSampler {VK_NULL_HANDLE};
      VkImage mImage {VK_NULL_HANDLE};
      VkImageView mImageView {VK_NULL_HANDLE};
@@ -63,17 +62,21 @@ namespace fc
      uint16_t mHeight;
      uint8_t mLayerCount {1};
      uint8_t mMipLevels {1};
-     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      //
      void generateMipMaps();
      void setPixelFormat();
      void writeToImage(void* pData, VkDeviceSize dataLength, bool generateMipmaps);
+     //
    public:
-
+     //
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     /* VkImageMemoryBarrier2 mImgMemBarrier; */
+     bool shouldTrack {true};
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      // TRY
      void init(u32 handle);
 
-// TODO could we just do this for images that need this function aka FcMappableImage?
+     // TODO could we just do this for images that need this function aka FcMappableImage?
      // TODO implement for the non GPU images->anything that is vmaAllocate-able
      // TODO should be type agnostic or get that info from somewhere since this could
      // be RGBA_8 or R16 or D32 etc.
@@ -95,7 +98,7 @@ namespace fc
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CTORS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      // TODO implement or delete or default ALL constructors throughout the engine -> THEN DOCUMENT
      FcImage() = default;
-     FcImage(VkImage image);
+     FcImage(VkImage image) : mImage(image) {};
      ~FcImage() = default;
      FcImage& operator=(const FcImage&) = default;
      // ?? This must be included to allow vector.pushBack(Fcbuffer) ?? not sure if there's a better
@@ -117,6 +120,8 @@ namespace fc
      void copyFromBuffer(FcBuffer& srcBuffer, VkDeviceSize offset = 0, uint32_t arrayLayer = 0);
      //
      void copyFromImage(VkCommandBuffer cmdBuffer, FcImage* source);
+     //
+     void directCopyFromImage(VkCommandBuffer cmdBuffer, FcImage* source);
      //
      void clear(VkCommandBuffer cmdBuffer, VkClearColorValue* pColor);
      // *-*-*-*-*-*-*-*-*-*-*-*-   TEXTURE LOADING FUNCTIONS   *-*-*-*-*-*-*-*-*-*-*-*- //
