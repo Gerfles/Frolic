@@ -306,8 +306,11 @@ namespace fc
       // -*-*-*-*-*-*-*-*-*-*-*-*-*-   START THE NEW FRAME   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
       // mRenderer.generateShadowMap();
 
+      // call to update scene immediately (before waiting on fences)
+      mRenderer.updateScene();
+
       mRenderer.beginFrame();
-      // TODO updateScene();
+
       mRenderer.drawFrame();
 
       // TODO make sure we can comment out drawGUI without crashing

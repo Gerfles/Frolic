@@ -2,6 +2,8 @@
 #include "fc_mesh.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "fc_types.hpp"
+#include "fc_locator.hpp"
+#include "fc_renderer.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
@@ -30,7 +32,9 @@ namespace fc
     // map memory to vertex buffer (copy vertex data into buffer)
     // Now create the buffer in GPU memory so we can transfer our RAM data there
     mVertexBuffer.allocate(bufferSize, FcBufferTypes::Vertex);
-    mVertexBuffer.write(vertices.data(), bufferSize);
+
+    FcCommandBuffer& cmd = FcLocator::Renderer().beginCommandBuffer();
+    mVertexBuffer.write(true, cmd.getVkCmdBuffer(), vertices.data(), bufferSize);
 
     // find the address fo the vertex buffer (used for terrain & shadow renderers as well as comparisons)
     mVertexBufferAddress = mVertexBuffer.getVkDeviceAddress();
@@ -44,7 +48,10 @@ namespace fc
 
     // Now write the data to the buffer
     mIndexBuffer.allocate(bufferSize, FcBufferTypes::Index);
-    mIndexBuffer.write(indices.data(), bufferSize);
+
+    mIndexBuffer.write(true, cmd.getVkCmdBuffer(), indices.data(), bufferSize);
+
+    FcLocator::Renderer().submitCmdBuffer(cmd);
   }
 
 

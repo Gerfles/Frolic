@@ -49,6 +49,8 @@ namespace fc
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   MUTATORS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      void addBillboard(FcBillboard& billboard) noexcept;
      //
+     void update(VkCommandBuffer cmd, SceneData& sceneData) noexcept;
+     //
      void draw(VkCommandBuffer cmd, SceneData& sceneData) noexcept;
      //
      void buildPipelines() noexcept;

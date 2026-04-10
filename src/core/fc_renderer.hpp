@@ -42,9 +42,7 @@ namespace fc
      VkDebugUtilsMessengerEXT debugMessenger;
 
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   TODO   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-     // relocate window and GPU to frolic class
-     /* FcWindow mWindow; */
-     /* VkInstance mInstance = nullptr; */
+     // maybe move to frolic class
      FcGpu mGpu;
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
@@ -93,7 +91,7 @@ namespace fc
      FcDrawCollection mDrawCollection;
 
      FcBuffer materialConstants;
-     FcTerrain mTerrain;
+     FcTerrainRenderer mTerrainRenderer;
      // // debugging effects
 
      FcCamera* pActiveCamera;
@@ -148,7 +146,7 @@ namespace fc
 
      // TODO probably best to issue multiple command buffers, one for each task
      FcCommandBuffer& beginCommandBuffer();
-     void submitCommandBuffer(FcCommandBuffer& cmdBuffer);
+     void submitCmdBuffer(FcCommandBuffer& cmdBuffer);
      void submitNonRenderCmdBuffer(FcCommandBuffer& cmdBuffer);
      SubmitHandle getCurrentCommandBuffer() { return mImmediateCommands.getNextSubmitHandle(); }
      void drawImGui();

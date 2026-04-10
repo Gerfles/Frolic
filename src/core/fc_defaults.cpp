@@ -125,13 +125,13 @@ namespace fc
     // ORIGINAL VALUE
     samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_WHITE;
     /* samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK; */
-    /* samplerInfo.maxLod = 1.0f; */
+    samplerInfo.maxLod = 1.0f;
 
     VK_ASSERT(vkCreateSampler(device, &samplerInfo, nullptr, &Samplers.ShadowMap));
-
   }
 
 
+  //
   void FcDefaults::DefaultTextures::init()
   {
     // TODO make sure these are implemented within bindless paths

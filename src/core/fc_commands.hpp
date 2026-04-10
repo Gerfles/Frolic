@@ -45,7 +45,7 @@ namespace fc
      //
      /* ~CommandBuffer() { FC_ASSERT(!mIsRendering); }; */
      FcCommandBuffer& operator=(FcCommandBuffer&& other) = default;
-     inline const VkCommandBuffer getVkCommandBuffer() const noexcept {return mCmdBuffer; }
+     inline const VkCommandBuffer getVkCmdBuffer() const noexcept {return mCmdBuffer; }
      inline const VkFence getFence() const noexcept { return mFence; }
      inline const SubmitHandle getHandle() const noexcept { return mHandle; }
      inline const VkSemaphore getSemaphore() const noexcept { return mSemaphore; }

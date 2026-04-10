@@ -63,7 +63,8 @@ namespace fc
      uint8_t mLayerCount {1};
      uint8_t mMipLevels {1};
      //
-     void generateMipMaps();
+     void generateMipMaps(VkCommandBuffer cmd);
+     void generateMipMaps2(VkCommandBuffer cmd);
      void setPixelFormat();
      void writeToImage(void* pData, VkDeviceSize dataLength, bool generateMipmaps);
      //
@@ -114,17 +115,20 @@ namespace fc
       	{ loadStbi(filename, imageType); }
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-   IMAGE MANIPULATION   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
      void createImage(uint32_t width, uint32_t height, FcImageTypes imageType);
+     //
      void createImageView(VkFormat imageFormat, VkImageAspectFlags aspectFlags
                           , VkImageViewType imageViewType = VK_IMAGE_VIEW_TYPE_2D);
+     //
      void transitionLayout(VkCommandBuffer cmd
                            , VkImageLayout oldLayout
                            , VkImageLayout newLayout
                            , VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT
                            , uint32_t mipLevels = 1);
      //
-     void transitionLayout(VkCommandBuffer cmd, VkImageMemoryBarrier2 barrier);
+     void transitionLayoutCached(VkCommandBuffer cmd, VkImageMemoryBarrier2& barrier);
      //
-     void copyFromBuffer(FcBuffer& srcBuffer, VkDeviceSize offset = 0, uint32_t arrayLayer = 0);
+     void copyFromBuffer(VkCommandBuffer cmd, FcBuffer& srcBuffer,
+                         VkDeviceSize offset = 0, uint32_t arrayLayer = 0);
      //
      void copyFromImage(VkCommandBuffer cmdBuffer, FcImage* source);
      //

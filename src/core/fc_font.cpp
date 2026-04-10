@@ -147,11 +147,11 @@ namespace fc
      // after raster image is created, transition layout so it's in the best format for being blitted from
     FcCommandBuffer& cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
 
-    mRasterTexture.transitionLayout(cmdBuffer.getVkCommandBuffer(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+    mRasterTexture.transitionLayout(cmdBuffer.getVkCmdBuffer(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
                                    , VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 1);
 
 
-    FcLocator::Renderer().submitCommandBuffer(cmdBuffer);
+    FcLocator::Renderer().submitCmdBuffer(cmdBuffer);
     /* FcLocator::Renderer().submitNonRenderCmdBuffer(cmdBuffer); */
 
   }

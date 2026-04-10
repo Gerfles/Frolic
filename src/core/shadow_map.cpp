@@ -1,11 +1,14 @@
 //>--- shadow_map.cpp ---<//
 #include "shadow_map.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "core/utilities.hpp"
 #include "fc_frame_assets.hpp"
 #include "fc_math.hpp"
 #include "fc_mesh.hpp"
 #include "fc_descriptors.hpp"
 #include "fc_defaults.hpp"
+#include "fc_locator.hpp"
+#include "fc_renderer.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <glm/gtc/matrix_transform.hpp>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
@@ -16,12 +19,23 @@ namespace fc
   //
   void FcShadowRenderer::init(FcDescriptorCollection& frame)
   {
-
     // -*-*-*-*-*-*-*-*-*-*-*-*-   CREATE SHADOW MAP IMAGE   -*-*-*-*-*-*-*-*-*-*-*-*- //
     // TODO this image should be device local only since no need to map for CPU... check that's the case
     // on this and all other images created with vma allocation
-
     mShadowMapImage.createImage(SHADOW_MAP_SIZE, SHADOW_MAP_SIZE, FcImageTypes::ShadowMap);
+
+    populateImageMemoryBarrier(VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+                               VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                               mShadowMapImage.getVkImage(),
+                               mShadowMapShaderAccessBarrier);
+
+    populateImageMemoryBarrier(VK_IMAGE_LAYOUT_UNDEFINED,
+                               VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+                               mShadowMapImage.getVkImage(),
+                               mShadowMapWriteAccessBarrier);
+
+    mImgTranstionDependency.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+    mImgTranstionDependency.imageMemoryBarrierCount = 1;
 
     initPipelines(frame);
 
@@ -110,12 +124,14 @@ namespace fc
   }
 
 
-  void FcShadowRenderer::generateMap(VkCommandBuffer cmd, FcDrawCollection& drawContext)
+  // TODO add synchronization to be able to render map within current cmdBuffer
+  void FcShadowRenderer::generateMap(FcDrawCollection& drawContext)
   {
-    mShadowMapImage.transitionLayout(cmd,
-                                     VK_IMAGE_LAYOUT_UNDEFINED,
-                                     VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
-                                     VK_IMAGE_ASPECT_DEPTH_BIT);
+    FcCommandBuffer& cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
+    VkCommandBuffer cmd = cmdBuffer.getVkCmdBuffer();
+
+    mShadowMapImage.transitionLayoutCached(cmd, mShadowMapWriteAccessBarrier);
+
     // TODO extrapolate other
     VkRenderingAttachmentInfo shadowMapAttachment{};
     shadowMapAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -175,77 +191,34 @@ namespace fc
 
     vkCmdEndRendering(cmd);
 
-    mShadowMapImage.transitionLayout(cmd,
-                                     VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
-                                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                     VK_IMAGE_ASPECT_DEPTH_BIT);
+    mShadowMapImage.transitionLayoutCached(cmd, mShadowMapShaderAccessBarrier);
 
-    // colorImage.transitionImage(cmd, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-    //                            VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR, VK_IMAGE_ASPECT_COLOR_BIT);
-
-    // not necessary but should allow tile-based gpus a speed boost
-    // https://docs.vulkan.org/samples/latest/samples/extensions/dynamic_rendering_local_read/README.html
-    VkMemoryBarrier2 memoryBarrier = {};
-    memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
-    memoryBarrier.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-    memoryBarrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
-    memoryBarrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
-    memoryBarrier.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT;
-
-
-    VkDependencyInfo dependencyInfo{};
-    dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-    dependencyInfo.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-    dependencyInfo.memoryBarrierCount = 1;
-    dependencyInfo.pMemoryBarriers = &memoryBarrier;
-
-    vkCmdPipelineBarrier2(cmd, &dependencyInfo);
-
-
-
-    // NOTE: Here we are using the default VK_IMAGE_ASPECT_COLOR_BIT instead of passing VK_IMAGE_ASPECT_DEPTH_BIT
-    // mShadowMapImage.transitionImage(cmd, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL
-    //                                 , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
-    // mShadowMapImage.transitionImage(cmd, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL
-    //                                 , VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR, VK_IMAGE_ASPECT_DEPTH_BIT);
-
-    //pRenderer->submitCommandBuffer();
-
-    // VkCommandBuffer cmd2 = pRenderer->beginCommandBuffer();
-    // mShadowMapImage.transitionImage(cmd2, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL
-    //                                 , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-    // pRenderer->submitCommandBuffer();
+    FcLocator::Renderer().submitCmdBuffer(cmdBuffer);
   }
 
 
   void FcShadowRenderer::drawDebugMap(VkCommandBuffer cmd, FcDescriptorCollection& currentFrame)
   {
-    // mShadowMapImage.transition(cmd, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL
-    //                                 , VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR, VK_IMAGE_ASPECT_DEPTH_BIT);
-    // colorImage.transitionImage(cmd, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-    //                            VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR, VK_IMAGE_ASPECT_COLOR_BIT);
     // not necessary but should allow tile-based gpus a speed boost
     // https://docs.vulkan.org/samples/latest/samples/extensions/dynamic_rendering_local_read/README.html
-    VkMemoryBarrier2 memoryBarrier = {};
-    memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
-    memoryBarrier.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-    memoryBarrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
-    memoryBarrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
-    memoryBarrier.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT;
+    // VkMemoryBarrier2 memoryBarrier = {};
+    // memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
+    // memoryBarrier.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+    // memoryBarrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+    // memoryBarrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+    // memoryBarrier.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT;
 
-    VkDependencyInfo dependencyInfo{};
-    dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-    dependencyInfo.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-    dependencyInfo.memoryBarrierCount = 1;
-    dependencyInfo.pMemoryBarriers = &memoryBarrier;
+    // VkDependencyInfo dependencyInfo{};
+    // dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+    // /* dependencyInfo.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT; */
+    // dependencyInfo.memoryBarrierCount = 1;
+    // dependencyInfo.pMemoryBarriers = &memoryBarrier;
 
-    vkCmdPipelineBarrier2(cmd, &dependencyInfo);
+    // vkCmdPipelineBarrier2(cmd, &dependencyInfo);
 
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
                       mShadowDebugPipeline.getVkPipeline());
 
-    // vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mShadowDebugPipeline.Layout()
-    //                         , 0, 1, &currentFrame.shadowMapDescriptorSet, 0, nullptr);
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mShadowDebugPipeline.Layout()
                             , 0, 1, &mShadowMapDescriptor, 0, nullptr);
 

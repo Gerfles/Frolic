@@ -78,17 +78,35 @@ namespace fc
 
 
   //
-  void FcBillboardRenderer::draw(VkCommandBuffer cmd, SceneData& sceneData) noexcept
+  void FcBillboardRenderer::update(VkCommandBuffer cmd, SceneData& sceneData) noexcept
   {
-    // ?? TEST would this be better to just send scenedata already packaged and just use what's necessary
     mBillboardUbo.view = sceneData.view;
     mBillboardUbo.projection = sceneData.projection;
 
-
-    mUboBuffer.write(&mBillboardUbo, sizeof(BillboardUbo));
+    mUboBuffer.write(false, cmd, &mBillboardUbo, sizeof(BillboardUbo));
 
     // TODO This is a good candidate for a compute shader
     sortBillboardsByDistance(sceneData.eye);
+  }
+
+
+  //
+  void FcBillboardRenderer::draw(VkCommandBuffer cmd, SceneData& sceneData) noexcept
+  {
+    /* update(cmd, sceneData); */
+    // ?? TEST would this be better to just send scenedata already packaged and just use what's necessary
+    // mBillboardUbo.view = sceneData.view;
+    // mBillboardUbo.projection = sceneData.projection;
+
+    // mUboBuffer.write(true, cmd, &mBillboardUbo, sizeof(BillboardUbo));
+
+    // // TODO This is a good candidate for a compute shader
+    // sortBillboardsByDistance(sceneData.eye);
+
+
+
+
+
 
     // Alternate method
     // TODO profile to see which sorting method prevails (std::sort vs. indexed draws)

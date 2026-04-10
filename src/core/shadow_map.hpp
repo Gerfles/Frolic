@@ -51,13 +51,18 @@ namespace fc
      FcPipeline mShadowPipeline;
      FcPipeline mShadowDebugPipeline;
      VkDescriptorSet mShadowMapDescriptor;
+     // -*-*-*-*-*-*-*-*-*-*-   SHADOW MAP LAYOUT TRANSITIONING   -*-*-*-*-*-*-*-*-*-*- //
+     VkImageMemoryBarrier2 mShadowMapWriteAccessBarrier {};
+     VkImageMemoryBarrier2 mShadowMapShaderAccessBarrier {};
+     VkDependencyInfo mImgTranstionDependency {};
+
      void initPipelines(FcDescriptorCollection& frames);
      Box mFrustum;
    public:
      Box& Frustum() { return mFrustum; }
      //void setLightSpaceMatrix(glm::mat4 matrix) { mLightSpaceTransform = matrix; }
      void init(FcDescriptorCollection& frames);
-     void generateMap(VkCommandBuffer cmd, FcDrawCollection& drawContext);
+     void generateMap(FcDrawCollection& drawContext);
      void drawDebugMap(VkCommandBuffer cmd, FcDescriptorCollection& currentFrame);
      glm::mat4 LightSpaceMatrix() { return mLightSpaceTransform; }
      /* VkDescriptorSet Descriptor() { return mShadowMapDescriptorSet; } */

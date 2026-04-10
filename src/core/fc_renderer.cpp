@@ -175,10 +175,10 @@ namespace fc
 
     //
     mShadowRenderer.init(mDescriptorCollection);
-    mTerrain.init("..//maps/terrain_heightmap_r16.ktx2");
+    mTerrainRenderer.init("..//maps/terrain_heightmap_r16.ktx2");
 
     // FIXME should be able to load any kind of terrain map
-    /* mTerrain.init("..//maps/iceland_heightmap.png"); */;
+    /* mTerrainRenderer.init("..//maps/iceland_heightmap.png"); */;
 
     // TODO Organize initialization
 
@@ -238,7 +238,6 @@ namespace fc
                                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                                mDrawImage.getVkImage(),
                                mDrawImgWriteAccessBarrier);
-
 
     fcPrintEndl("DONE");
   }
@@ -327,14 +326,6 @@ namespace fc
     }
   }
 
-
-  //
-  // FcCommandBuffer& FcRenderer::beginSingleUseCmdBuffer()
-  // {
-
-  // }
-
-
   //
   // TODO try to create multiple command buffers for specific tasks that we can reuse... perhaps
   // putting some premade command buffer statically within the image class etc.
@@ -351,7 +342,7 @@ namespace fc
 
 
   // FIXME
-  void FcRenderer::submitCommandBuffer(FcCommandBuffer& cmdBuffer)
+  void FcRenderer::submitCmdBuffer(FcCommandBuffer& cmdBuffer)
   {
     // const bool shouldPresent = hasSwapChain() && present;
 
@@ -382,14 +373,18 @@ namespace fc
   }
 
 
-
+  //
   // TODO should pass in variables from frolic.cpp here
   void FcRenderer::updateScene()
   {
     mTimer.start();
 
+    mCurrentCommandBuffer = &mImmediateCommands.acquire();
+    VkCommandBuffer cmd = mCurrentCommandBuffer->getVkCmdBuffer();
+
     // TODO not robust as getview must happen before inverseView
     //camera.setViewTarget(glm::vec3{0,0,4.0}, glm::vec3{0,0,-1});
+
     // TODO store/return position as a vec4
     mSceneData.eye = glm::vec4(pActiveCamera->Position(), 1.0f);
     mSceneData.view = pActiveCamera->getViewMatrix();
@@ -405,7 +400,7 @@ namespace fc
 
     mSceneData.lighSpaceTransform = clip * mShadowRenderer.LightSpaceMatrix();
 
-    mSceneRenderer.updateSceneData(mSceneData);
+    mSceneRenderer.updateSceneData(cmd, mSceneData);
 
     // // TODO could flag draw collection items with nodes that "know" they need to be updated
     // // then draw collection could do all the updating in one go.
@@ -415,7 +410,9 @@ namespace fc
     // various rendering methods
     mFrustum.update(mSceneData.viewProj);
     mFrustum.normalize();
-    mTerrain.update(mFrustum);
+
+    mTerrainRenderer.update(cmd, mFrustum);
+    mBillboardRenderer.update(cmd, mSceneData);
 
     // Update sceneUpdate time in ms
     mDrawCollection.stats.sceneUpdateTime = mTimer.elapsedTime() * 1000;
@@ -425,23 +422,18 @@ namespace fc
   //
   void FcRenderer::beginFrame()
   {
-    // call to update scene immediately (before waiting on fences)
-    // TODO remove from drawframe and place in frolic
-    updateScene();
-
     // reset counters and frame clock
+    mTimer.start();
     mDrawCollection.stats.objectsRendered = 0;
     mDrawCollection.stats.triangleCount = 0;
-    mTimer.start();
 
-    mCurrentCommandBuffer = &mImmediateCommands.acquire();
-    VkCommandBuffer cmd = mCurrentCommandBuffer->getVkCommandBuffer();
+    VkCommandBuffer cmd = mCurrentCommandBuffer->getVkCmdBuffer();
 
     // transition draw image from undefined layout to the optimal format for drawing into
-    mDrawImage.transitionLayout(cmd, mDrawImgColorAttachmentBarrier);
+    mDrawImage.transitionLayoutCached(cmd, mDrawImgColorAttachmentBarrier);
 
     // transition depth image into depth attachment for sampling
-    mDepthImage.transitionLayout(cmd, mDepthImgAttachmentOptimalBarrier);
+    mDepthImage.transitionLayoutCached(cmd, mDepthImgAttachmentOptimalBarrier);
 
     mSwapchain.acquireCurrentFrame();
 
@@ -451,7 +443,7 @@ namespace fc
     mRenderInfo.pDepthAttachment = &mDepthAttachment;
 
     // TODO try to rellocate or do separately (need to address memory barrier issues first)
-    mShadowRenderer.generateMap(cmd, mDrawCollection);
+    mShadowRenderer.generateMap(mDrawCollection);
 
     vkCmdBeginRendering(cmd, &mRenderInfo);
 
@@ -463,7 +455,7 @@ namespace fc
   //
   void FcRenderer::drawFrame()
   {
-    VkCommandBuffer cmd = mCurrentCommandBuffer->getVkCommandBuffer();
+    VkCommandBuffer cmd = mCurrentCommandBuffer->getVkCmdBuffer();
 
     // TODO implement without branches
     bool* shouldDrawShadowMap = CVarSystem::Get()->GetBoolCVar("shouldDrawShadowMap.bool");
@@ -496,7 +488,7 @@ namespace fc
       // if (camera.isInside(building))...
       if (building.isInBounds(mSceneData.eye))
       {
-        mTerrain.draw(cmd, mSceneData, shouldDrawWireframe);
+        mTerrainRenderer.draw(cmd, mSceneData, shouldDrawWireframe);
       }
 
       // Draw the skybox last so that we can skip pixels with ANY object in front of it
@@ -521,7 +513,7 @@ namespace fc
     // }
 
     // First transition draw image into transfer source layout so we can copy to the swapchain image
-    mDrawImage.transitionLayout(cmd, mDrawImgWriteAccessBarrier);
+    mDrawImage.transitionLayoutCached(cmd, mDrawImgWriteAccessBarrier);
 
     // now that we have finished drawing to our internal draw image, copy to swapchain and present
     mSwapchain.present(mDrawImage, cmd);
@@ -539,7 +531,7 @@ namespace fc
     // Remove the previously connected depth attachment from the render info (since ImGui doesn't need it)
     mRenderInfo.pDepthAttachment = nullptr;
 
-    VkCommandBuffer cmd = mCurrentCommandBuffer->getVkCommandBuffer();
+    VkCommandBuffer cmd = mCurrentCommandBuffer->getVkCmdBuffer();
 
     // Start rendering for GUI
     vkCmdBeginRendering(cmd, &mRenderInfo);

@@ -165,7 +165,7 @@ namespace fc
     FC_ASSERT(cmdBuffer.IsEncoding());
 
     // stop recording to the command buffer
-    VK_ASSERT(vkEndCommandBuffer(cmdBuffer.getVkCommandBuffer()));
+    VK_ASSERT(vkEndCommandBuffer(cmdBuffer.getVkCmdBuffer()));
 
     // Prepare the 2 optional semaphores that we can set to be waited on before GPU processses cmdBuffer
     // VkSemaphoreSubmitInfo waitSemaphores[] = { {}, {} };
@@ -201,7 +201,7 @@ namespace fc
     //
     const VkCommandBufferSubmitInfo cmdSubmitInfo = {
       .sType {VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO}
-    , .commandBuffer {cmdBuffer.getVkCommandBuffer()}
+    , .commandBuffer {cmdBuffer.getVkCmdBuffer()}
     };
 
     // const VkSubmitInfo2 submitInfo = {
@@ -258,7 +258,7 @@ namespace fc
   {
     FC_ASSERT(cmdBuffer.IsEncoding());
     // stop recording to the command buffer
-    VK_ASSERT(vkEndCommandBuffer(cmdBuffer.getVkCommandBuffer()));
+    VK_ASSERT(vkEndCommandBuffer(cmdBuffer.getVkCmdBuffer()));
 
     // Prepare the 2 optional semaphores that we can set to be waited on before GPU processses cmdBuffer
     VkSemaphoreSubmitInfo waitSemaphores[] = { {}, {} };
@@ -292,7 +292,7 @@ namespace fc
     //
     const VkCommandBufferSubmitInfo cmdSubmitInfo = {
       .sType {VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO}
-    , .commandBuffer {cmdBuffer.getVkCommandBuffer()}
+    , .commandBuffer {cmdBuffer.getVkCmdBuffer()}
     };
 
     const VkSubmitInfo2 submitInfo = {

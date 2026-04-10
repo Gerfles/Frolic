@@ -4,6 +4,8 @@
 #include "fc_descriptors.hpp"
 #include "fc_frustum.hpp"
 #include "fc_defaults.hpp"
+#include "fc_locator.hpp"
+#include "fc_renderer.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <cstring>
 #include <algorithm>
@@ -13,7 +15,7 @@
 namespace fc
 {
   //
-  void FcTerrain::init(std::filesystem::path filename)
+  void FcTerrainRenderer::init(std::filesystem::path filename)
   {
     loadHeightmap(filename, 64);
     // TEST Must reinitialize pipelines if new heightmap is loaded??
@@ -30,7 +32,7 @@ namespace fc
 
 
   //
-  void FcTerrain::initPipelines()
+  void FcTerrainRenderer::initPipelines()
   {
     FcPipelineConfig pipelineConfig;
     pipelineConfig.name = "Terrain Pipeline";
@@ -97,7 +99,7 @@ namespace fc
   }
 
   // TODO place check or automatically delete previously loaded heightmap
-  void FcTerrain::loadHeightmap(std::filesystem::path filename, uint32_t numPatches)
+  void FcTerrainRenderer::loadHeightmap(std::filesystem::path filename, uint32_t numPatches)
   {
     mNumPatches = numPatches;
 
@@ -112,7 +114,7 @@ namespace fc
   }
 
   // TODO document lots / full class
-  void FcTerrain::generateTerrain()
+  void FcTerrainRenderer::generateTerrain()
   {
     // // TODO allow to pass in the values for scale and shift during initialization
     // // Height in texel will be in range [0,255], yScale will convert that range to [0.0f,64.0f]
@@ -234,25 +236,23 @@ namespace fc
   }
 
 
-  void FcTerrain::update(FcFrustum& frustum)
+  void FcTerrainRenderer::update(VkCommandBuffer cmd, FcFrustum& frustum)
   {
     // update the frustum after view has potentially changed
     // TODO make sure we aren't duplicating operations anywhere with m, mv, mvp, vp, etc.
     memcpy(ubo.frustumPlanes, frustum.Planes().data(), sizeof(glm::vec4) * 6);
+
+    mUboBuffer.write(true, cmd, &ubo, sizeof(UBO));
   }
 
 
-  void FcTerrain::draw(VkCommandBuffer cmd, SceneData& sceneData, bool drawWireframe)
+  void FcTerrainRenderer::draw(VkCommandBuffer cmd, SceneData& sceneData, bool drawWireframe)
   {
     ubo.modelView = sceneData.view * mModelTransform;
     ubo.projection = sceneData.projection;
     ubo.modelViewProj = ubo.projection * ubo.modelView;
     ubo.lightPos = sceneData.sunlightDirection;
     ubo.eye = sceneData.eye;
-    // TODO might prefer to update the frustum here instead
-
-    //printMat(ubo.modelViewProj);
-    mUboBuffer.write(&ubo, sizeof(UBO));
 
     if (drawWireframe) {
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mWireframePipeline.getVkPipeline());

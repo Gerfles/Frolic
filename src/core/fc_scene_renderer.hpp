@@ -52,8 +52,8 @@ namespace fc
      //
      FcPipeline* OpaquePipeline() { return &mOpaquePipeline; }
      //
-     inline void updateSceneData(SceneData& sceneData) noexcept
-      { mSceneDataBuffer.write(&sceneData, sizeof(SceneData)); }
+     inline void updateSceneData(VkCommandBuffer cmd, SceneData& sceneData) noexcept
+      { mSceneDataBuffer.write(true, cmd, &sceneData, sizeof(SceneData)); }
      void updateBindlessDescriptors();
      //
      void draw(VkCommandBuffer cmd, FcDrawCollection& drawCollection, bool shouldDrawWireFrame) noexcept;

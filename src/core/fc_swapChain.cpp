@@ -33,7 +33,7 @@ namespace fc
     FcCommandBuffer& cmd = FcLocator::Renderer().mImmediateCommands.acquire();
     for (FcImage image : mSwapchainImages)
     {
-    image.transitionLayout(cmd.getVkCommandBuffer(), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+    image.transitionLayout(cmd.getVkCmdBuffer(), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
     }
     FcLocator::Renderer().submitNonRenderCmdBuffer(cmd);
 
@@ -474,39 +474,22 @@ namespace fc
   //
   void FcSwapChain::present(FcImage& drawImage, VkCommandBuffer cmd)
   {
+    // Get the current frame buffer and set the transition layout barriers to that image
+    FcImage& swapChainBuffer = mSwapchainImages[mCurrentBufferIndex];
+    mWriteAccessMemBarrier.image = swapChainBuffer.getVkImage();
+    mPresentAccessMemBarrier.image = swapChainBuffer.getVkImage();
+
     // Transiton the swapchain so it can best accept an image being copied to it
-    /* mSwapchainImages[mCurrentBufferIndex].transitionToWriteMode(cmd); */
-    mWriteAccessMemBarrier.image = mSwapchainImages[mCurrentBufferIndex].getVkImage();
-    mDependencyInfo.pImageMemoryBarriers = &mWriteAccessMemBarrier;
-    vkCmdPipelineBarrier2(cmd, &mDependencyInfo);
+    swapChainBuffer.transitionLayoutCached(cmd, mWriteAccessMemBarrier);
 
     // execute a copy from the draw image into the swapchain
     getFrameTexture().copyFromImage(cmd, &drawImage);
 
-    // TODO look into FcImage transitionLayout to see example of memImg barrier...
     // finally transition the swapchain image into presentable layout so we can present to surface
-    /* mSwapchainImages[mCurrentBufferIndex].transitionToPresentMode(cmd); */
-    mPresentAccessMemBarrier.image = mSwapchainImages[mCurrentBufferIndex].getVkImage();
-    mDependencyInfo.pImageMemoryBarriers = &mPresentAccessMemBarrier;
-    vkCmdPipelineBarrier2(cmd, &mDependencyInfo);
+    swapChainBuffer.transitionLayoutCached(cmd, mPresentAccessMemBarrier);
 
-
-
-
-
-    // BUG need to add a fence or barrier so our image layouts are correct first
     // TODO should have the ability to submit currently registered cmdBuffer without having access to that buffer
-    if (mCurrentFrame <= 3)
-    {
-      FcCommandBuffer* currentCmd = FcLocator::Renderer().mCurrentCommandBuffer;
-      FcLocator::Renderer().mImmediateCommands.submit(*currentCmd);
-      FcLocator::Renderer().mCurrentCommandBuffer = &FcLocator::Renderer().mImmediateCommands.acquire();
-    }
-
-
-    // TODO decouple
-    // BUG the first time through the draw-cycle, the last semaphore submit is not the one used in acquire
-    // but rather the semaphore used with image copying etc...
+    // TODO decouple renderer from immediate commands
     VkSemaphore waitSemaphore = FcLocator::Renderer().mImmediateCommands.acquireLastSemaphoreSubmit();
 
     // 3. present image to screen when it has signalled finished rendering
@@ -553,7 +536,6 @@ namespace fc
       // FIXME - try to use the other method from lvk
       // TODO add check here for maintenance_1_KHR see lvk and remove once maintenance1 becomes mandatory
 
-
       // Without VK_KHR_swapchain_maintenance1, use aquireFences to synchronize semaphore reuse
       VK_ASSERT(vkWaitForFences(pDevice, 1, &mAcquireFences[mCurrentBufferIndex], VK_TRUE, U64_MAX));
       VK_ASSERT(vkResetFences(pDevice, 1, &mAcquireFences[mCurrentBufferIndex]));
@@ -572,8 +554,6 @@ namespace fc
                                               , acquireFence
                                               , &mCurrentBufferIndex);
 
-
-
       if (result == VK_ERROR_OUT_OF_DATE_KHR)
       {
         fcPrintEndl("ERROR out of date submit1");
@@ -590,7 +570,7 @@ namespace fc
       FcLocator::Renderer().mImmediateCommands.waitSemaphore(acquireSemaphore);
 
     // manully un-signal (close) the fence ONLY when we are sure we're submitting work (result == VK_SUCESS)
-    /* vkResetFences(pDevice, 1, &getCurrentFrame().renderFence); */
+      /* vkResetFences(pDevice, 1, &getCurrentFrame().renderFence); */
   }
 
 

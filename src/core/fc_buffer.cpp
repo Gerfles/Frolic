@@ -144,7 +144,7 @@ namespace  fc
 
   // TODO TEST all uses of write() etc. to see if it would be more efficient to pass a
   // cmd buffer and allow write to be one of the commands within that buffer (if it's part of the render cycle)
-  void FcBuffer::write(void* sourceData, size_t dataSize, VkDeviceSize offset)
+  void FcBuffer::write(bool isTesting, VkCommandBuffer cmd, void* sourceData, size_t dataSize, VkDeviceSize offset)
   {
     // if no dataSize passed in (default = 0), set copy length to whole buffer size
     if (dataSize == 0)
@@ -158,14 +158,14 @@ namespace  fc
       // Appears to be a simple buffer request so just create buffer and store data
       overwriteData(sourceData, dataSize, offset);
     }
-    else
+    else // TODO consider taking this one branch out to reduce logic for updating UBOs and just renaming updateUBO()
     {
       // *-*-*-*-*-   MORE COMPLICATED BUFFER REQUIRING TRANSFER TO GPU MEM   *-*-*-*-*- //
       // First create separate staging buffer and store sourceData in RAM
       FcBuffer stagingBuffer(dataSize, FcBufferTypes::Staging);
       stagingBuffer.overwriteData(sourceData, dataSize, offset);
       //
-      copyBuffer(stagingBuffer, dataSize);
+      copyBuffer(cmd, stagingBuffer, dataSize, isTesting);
       //
       stagingBuffer.destroy();
     }
@@ -264,23 +264,36 @@ namespace  fc
 
 
   //
-  void FcBuffer::copyBuffer(const FcBuffer& srcBuffer, VkDeviceSize bufferSize)
+  void FcBuffer::copyBuffer(VkCommandBuffer cmd, const FcBuffer& srcBuffer, VkDeviceSize bufferSize, bool isTesting)
   {
     // allocate and begin the command buffer to transfer a buffer
-    FcCommandBuffer& cmd = FcLocator::Renderer().beginCommandBuffer();
+    if (isTesting)
+    {
+      // region of data to copy from and to
+      VkBufferCopy bufferCopyRegion{};
+      bufferCopyRegion.srcOffset = 0;
+      bufferCopyRegion.dstOffset = 0;
+      bufferCopyRegion.size = bufferSize;
 
-     // region of data to copy from and to
-    VkBufferCopy bufferCopyRegion{};
-    bufferCopyRegion.srcOffset = 0;
-    bufferCopyRegion.dstOffset = 0;
-    bufferCopyRegion.size = bufferSize;
+      // command to copy src buffer to dst buffer
+      vkCmdCopyBuffer(cmd, srcBuffer.mBuffer, mBuffer, 1, &bufferCopyRegion);
+    }
+    else
+    {
+      FcCommandBuffer& cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
 
-     // command to copy src buffer to dst buffer
-    vkCmdCopyBuffer(cmd.getVkCommandBuffer(), srcBuffer.mBuffer, mBuffer, 1, &bufferCopyRegion);
+      // region of data to copy from and to
+      VkBufferCopy bufferCopyRegion{};
+      bufferCopyRegion.srcOffset = 0;
+      bufferCopyRegion.dstOffset = 0;
+      bufferCopyRegion.size = bufferSize;
 
-    /* FcLocator::Renderer().submitNonRenderCmdBuffer(cmd); */
-    FcLocator::Renderer().submitCommandBuffer(cmd);
+      // command to copy src buffer to dst buffer
+      vkCmdCopyBuffer(cmdBuffer.getVkCmdBuffer(), srcBuffer.mBuffer, mBuffer, 1, &bufferCopyRegion);
 
+      /* FcLocator::Renderer().submitNonRenderCmdBuffer(cmdBuffer); */
+      FcLocator::Renderer().submitCmdBuffer(cmdBuffer);
+    }
   }
 
 

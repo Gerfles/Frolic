@@ -10,7 +10,7 @@ namespace fc { class FcFrustum; class SceneData; }
 namespace fc
 {
   //
-  class FcTerrain
+  class FcTerrainRenderer
   {
    private:
      // TODO enum with control points
@@ -48,7 +48,7 @@ namespace fc
      void initPipelines();
    public:
      void init(std::filesystem::path filename);
-     void update(FcFrustum& frustum);
+     void update(VkCommandBuffer cmd, FcFrustum& frustum);
      void loadHeightmap(std::filesystem::path filename, uint32_t numPatches);
      void generateTerrain();
      void draw(VkCommandBuffer cmdBuffer, SceneData& sceneData, bool drawWireFrame);

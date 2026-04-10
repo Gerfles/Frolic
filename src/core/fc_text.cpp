@@ -67,18 +67,18 @@ namespace fc
     FcCommandBuffer& cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
 
     // submit all the image blits at the same time
-    vkCmdBlitImage(cmdBuffer.getVkCommandBuffer(), pFont->mRasterTexture.getVkImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
+    vkCmdBlitImage(cmdBuffer.getVkCmdBuffer(), pFont->mRasterTexture.getVkImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
                    , mTextImage.getVkImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
                    , blitsList.size(), blitsList.data(), VK_FILTER_LINEAR);
 
-    mTextImage.transitionLayout(cmdBuffer.getVkCommandBuffer(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1);
+    mTextImage.transitionLayout(cmdBuffer.getVkCmdBuffer(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1);
 
     // TODO - could later add mipmaps if being used a texture far away potentially (allow parameter option at least)
     // mOutputTexture.createImageView(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 
     // mOutputTexture.createTextureSampler();
 
-    FcLocator::Renderer().submitCommandBuffer(cmdBuffer);
+    FcLocator::Renderer().submitCmdBuffer(cmdBuffer);
   }
 
   // editText is a faster operation than createTex as it overwrites the pixels in the already allocated image
@@ -95,24 +95,24 @@ namespace fc
     /* VkCommandBuffer cmdBuffer = FcLocator::Renderer().beginCommandBuffer(); */
     FcCommandBuffer& cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
 
-    mTextImage.transitionLayout(cmdBuffer.getVkCommandBuffer(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+    mTextImage.transitionLayout(cmdBuffer.getVkCmdBuffer(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
                                 , VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1);
 
     // first clear out the old texture
     VkClearColorValue clearColor{0, 0, 0, 0};
-    mTextImage.clear(cmdBuffer.getVkCommandBuffer(), &clearColor);
+    mTextImage.clear(cmdBuffer.getVkCmdBuffer(), &clearColor);
 
     // submit all the image blits at the same time
-    vkCmdBlitImage(cmdBuffer.getVkCommandBuffer(), pFont->mRasterTexture.getVkImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
+    vkCmdBlitImage(cmdBuffer.getVkCmdBuffer(), pFont->mRasterTexture.getVkImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
                    , mTextImage.getVkImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
                    , blitsList.size(), blitsList.data(), VK_FILTER_LINEAR);
 
 //    FcLocator::Gpu().submitCommandBuffer(blitCommandBuffer);
 
-    mTextImage.transitionLayout(cmdBuffer.getVkCommandBuffer(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+    mTextImage.transitionLayout(cmdBuffer.getVkCmdBuffer(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1);
 
-    FcLocator::Renderer().submitCommandBuffer(cmdBuffer);
+    FcLocator::Renderer().submitCmdBuffer(cmdBuffer);
   }
 
 
