@@ -105,6 +105,7 @@ namespace fc
   //
   void FcBoundingBoxRenderer::destroy() noexcept
   {
+    FC_DEBUG_LOG("Destroying bounding box renderer...");
     mBoundingBoxPipeline.destroy();
   }
 

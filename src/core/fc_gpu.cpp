@@ -311,6 +311,8 @@ namespace fc
   //
   void FcGpu::release()
   {
+    FC_DEBUG_LOG("Destroying VMA allocator and Vulkan Device");
+
     vmaDestroyAllocator(mAllocator);
 
     if (mLogicalDevice != VK_NULL_HANDLE)

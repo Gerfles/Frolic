@@ -174,8 +174,9 @@ namespace fc
      void updateBindlessDescriptors();
      //
      inline void setActiveCamera(FcCamera* camera) { pActiveCamera = camera; }
-     inline void addBillboard(FcBillboard& billboard) { mBillboardRenderer.addBillboard(billboard); }
-
+     inline void addBillboard(std::shared_ptr<FcBillboard>& billboard)
+        { mBillboardRenderer.addBillboard(billboard); }
+     //
      // - GETTERS -
      /* inline FrameAssets& getCurrentFrame() { return mFrames[mFrameNumber % MAX_FRAME_DRAWS]; } */
 

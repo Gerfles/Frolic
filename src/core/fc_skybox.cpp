@@ -1,6 +1,7 @@
 //>--- fc_skybox.cpp ---<//
 #include "fc_skybox.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "core/log.hpp"
 #include "fc_frame_assets.hpp"
 #include "fc_descriptors.hpp"
 #include "fc_locator.hpp"
@@ -84,6 +85,7 @@ namespace fc
   //
   void FcSkybox::destroy()
   {
+    FC_DEBUG_LOG("Destroying skybox renderer...");
     mCubeImage.destroy();
     mPipeline.destroy();
     vkDestroySampler(FcLocator::Device(), mCubeMapSampler, nullptr);

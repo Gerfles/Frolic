@@ -37,8 +37,6 @@ namespace fc
      //
      FcScene helmet;
      FcScene sponza;
-     //
-     FcBillboard mSunBillboard;
      // UI
      FcGUI gui;
      //
@@ -56,6 +54,7 @@ namespace fc
 
    public:
      Frolic() = default;
+     ~Frolic() = default;
      void init(FcConfig& config);
      void createInstance(VkApplicationInfo& appInfo, FcConfig& config);
      void run();

@@ -71,14 +71,12 @@ namespace fc
      SubmitHandle mLastSubmitHandle;
      SubmitHandle mNextSubmitHandle;
      FcCommandBuffer mCmdBuffers[kMaxCommandBuffers];
-
-
      VkFence mImmediateFence;
      //
      VkSemaphoreSubmitInfo mLastSemaphoreSubmit {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO
                                                , .semaphore = VK_NULL_HANDLE
                                                , .stageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT};
-     // TODO dedicate and rename to mImgAcquireSemaphore
+     // TODO dedicate and rename to mImgAcquireSemaphoreInfo as well as below
      VkSemaphoreSubmitInfo mWaitSemaphore {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO
                                          , .stageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT};
      // mSignalSemaphore is injected at the end of the frame (by calling signalSemaphore() ), before
@@ -119,6 +117,8 @@ namespace fc
      void wait(const SubmitHandle handle);
      //
      void waitAll();
+     //
+     void destroy();
   };
 
 

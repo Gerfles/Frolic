@@ -593,7 +593,17 @@ namespace fc
   // full destruction of swapchain, note: includes call to partial destruction of swapchain
   void FcSwapChain::destroy()
   {
+    //
+    FC_DEBUG_LOG("Destroying swap chain...");
+
     clearSwapChain();
+
+    // destroy Vulkan resources
+    for (size_t i = 0; i < MAX_FRAME_DRAWS; ++i)
+    {
+      vkDestroySemaphore(pGpu->getVkDevice(), mAcquireSemaphore[i], nullptr);
+      vkDestroyFence(pGpu->getVkDevice(), mAcquireFences[i], nullptr);
+    }
 
     // finally destroy the swapchain itself
     vkDestroySwapchainKHR(pGpu->getVkDevice(), mSwapchain, nullptr);

@@ -49,6 +49,7 @@ int main(int argc, char* argv[])
     frolic.init(config);
   }
 
+
   try
   {
    frolic.run();
@@ -62,6 +63,8 @@ int main(int argc, char* argv[])
 
    frolic.close();
 
+
+   FC_DEBUG_LOG("Exiting Game");
    return EXIT_SUCCESS;
 }
 

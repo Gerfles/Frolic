@@ -510,12 +510,12 @@ namespace fc
   //
   void FcDescriptorClerk::destroyPools()
   {
-    for (VkDescriptorPool pool : mReadyPools)
+    for (VkDescriptorPool& pool : mReadyPools)
     {
       vkDestroyDescriptorPool(pDevice, pool, nullptr);
     }
 
-    for (VkDescriptorPool pool : mFullPools)
+    for (VkDescriptorPool& pool : mFullPools)
     {
       vkDestroyDescriptorPool(pDevice, pool, nullptr);
       // make sure we place the now empty pool into ready pools list
@@ -539,7 +539,7 @@ namespace fc
     //   vkDestroyDescriptorSetLayout(pDevice, mBindlessDescriptorLayout, nullptr);
     // }
 
-    // vkDestroyDescriptorPool(pDevice, mBindlessDescriptorPool, nullptr);
+    vkDestroyDescriptorPool(pDevice, mBindlessDescriptorPool, nullptr);
 
     destroyPools();
   }

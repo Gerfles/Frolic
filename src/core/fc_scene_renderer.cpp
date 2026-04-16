@@ -264,15 +264,13 @@ namespace fc
   //
   void FcSceneRenderer::destroy()
   {
+    FC_DEBUG_LOG("Destroying scene renderer...");
     /* vkDestroyDescriptorSetLayout(FcLocator::Device(), mMaterialDescriptorLayout, nullptr); */
     mOpaquePipeline.destroy();
     mTransparentPipeline.destroy();
+    mWireframePipeline.destroy();
 
     // Destroy data buffer with scene data
     mSceneDataBuffer.deferredDestroy();
-
-    mWireframePipeline.destroy();
-    mTransparentPipeline.destroy();
-    mOpaquePipeline.destroy();
   }
 }

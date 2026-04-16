@@ -1,6 +1,7 @@
 //>--- fc_billboard_renderer.cpp ---<//
 #include "fc_billboard_renderer.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "core/log.hpp"
 #include "fc_types.hpp"
 #include "fc_billboard.hpp"
 #include "fc_descriptors.hpp"
@@ -14,14 +15,6 @@
 
 namespace fc
 {
-  //
-  void FcBillboardRenderer::addBillboard(FcBillboard& billboard) noexcept
-  {
-    // TODO verify ownership and proper pointer selection
-    mBillboards.emplace_back(std::shared_ptr<FcBillboard>(&billboard));
-  }
-
-
   //
   void FcBillboardRenderer::init(FcDescriptorCollection& descCollection) noexcept
   {
@@ -141,6 +134,8 @@ namespace fc
   //
   void FcBillboardRenderer::destroy() noexcept
   {
+    FC_DEBUG_LOG("Destroying billboard renderer...");
+
     mPipeline.destroy();
     mUboBuffer.immediateDestroy();
   }

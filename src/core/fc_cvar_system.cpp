@@ -41,7 +41,7 @@ namespace fc
   };
 
 
-// TODO add additional function from the tutorial source code
+  // TODO add additional function from the tutorial source code
   template<typename T>
   struct CVarArray
   {
@@ -55,7 +55,7 @@ namespace fc
 
      ~CVarArray()
       {
-        delete cvars;
+        delete[] cvars;
       }
 
 

@@ -674,6 +674,12 @@ namespace fc
     mSwapchain.destroy();
     mDrawImage.destroy();
     mDepthImage.destroy();
+
+
+    vkDestroySemaphore(pDevice, mTimelineSemaphore, nullptr);
+
+    //
+    mImmediateCommands.destroy();
     //
     mGpu.release();
 

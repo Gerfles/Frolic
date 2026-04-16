@@ -620,8 +620,6 @@ namespace fc
   //
   void FcPipeline::destroy()
   {
-    fcPrintEndl("calling: FcPipeline::destroy");
-
     if (mPipelineLayout != nullptr)
     {
       vkDestroyPipelineLayout(FcLocator::Device(), mPipelineLayout, nullptr);

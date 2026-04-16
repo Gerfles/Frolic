@@ -239,6 +239,7 @@ namespace fc
 
   void FcShadowRenderer::destroy()
   {
+    FC_DEBUG_LOG("Destroying shadow renderer...");
     mShadowMapImage.destroy();
     mShadowDebugPipeline.destroy();
     mShadowPipeline.destroy();

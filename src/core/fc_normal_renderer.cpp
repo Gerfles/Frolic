@@ -74,6 +74,7 @@ namespace fc
 
   void FcNormalRenderer::destroy()
   {
+    FC_DEBUG_LOG("Destroying normal vector renderer...");
     mNormalDrawPipeline.destroy();
   }
 

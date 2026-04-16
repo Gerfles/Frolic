@@ -58,7 +58,7 @@ namespace fc
     pAllocator->deallocate(mMemory);
   }
 
-  //
+
   //
   void ResourcePool::freeAll()
   {
@@ -71,7 +71,7 @@ namespace fc
     }
   }
 
-  //
+
   //
   u32 ResourcePool::getNextResourceIndex()
   {
@@ -90,10 +90,6 @@ namespace fc
   }
 
 
-
-
-
-  //
   //
   void ResourcePool::release(u32 handle)
   {
@@ -103,7 +99,7 @@ namespace fc
     --mUsedIndices;
   }
 
-  //
+
   //
   void* ResourcePool::get(u32 handle)
   {
@@ -115,7 +111,7 @@ namespace fc
     return nullptr;
   }
 
-  //
+
   //
   const void* ResourcePool::get(u32 handle) const
   {

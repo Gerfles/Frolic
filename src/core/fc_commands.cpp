@@ -421,6 +421,23 @@ namespace fc
   //
   VulkanImmediateCommands::~VulkanImmediateCommands()
   {
+    // waitAll();
+
+    // for (FcCommandBuffer& cmdBuffer : mCmdBuffers)
+    // {
+    //   vkDestroyFence(mDevice, cmdBuffer.mFence, nullptr);
+
+    //   vkDestroySemaphore(mDevice, cmdBuffer.mSemaphore, nullptr);
+    // }
+
+    // // Then destroy the issuing command pool
+    // vkDestroyCommandPool(mDevice, mCmdPool, nullptr);
+  }
+
+  void VulkanImmediateCommands::destroy()
+  {
+    FC_DEBUG_LOG("Destroying: Immediate conmmands");
+
     waitAll();
 
     for (FcCommandBuffer& cmdBuffer : mCmdBuffers)
@@ -429,6 +446,8 @@ namespace fc
 
       vkDestroySemaphore(mDevice, cmdBuffer.mSemaphore, nullptr);
     }
+
+    vkDestroyFence(mDevice, mImmediateFence, nullptr);
 
     // Then destroy the issuing command pool
     vkDestroyCommandPool(mDevice, mCmdPool, nullptr);

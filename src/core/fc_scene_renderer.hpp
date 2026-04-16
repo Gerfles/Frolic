@@ -2,6 +2,7 @@
 #pragma once
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "core/fc_types.hpp"
+#include "core/log.hpp"
 #include "fc_pipeline.hpp"
 #include "core/fc_buffer.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -45,6 +46,7 @@ namespace fc
      void drawSurface(VkCommandBuffer cmd, const FcSubmesh& surface) noexcept;
      void buildPipelines(FcImage& shadowMap);
    public:
+     ~FcSceneRenderer() { fcPrintEndl("Calling Scene renderer dtor"); }
      // TODO think about including a local descriptorClerk
      void init(glm::mat4& viewProj, FcDescriptorCollection& frame, FcImage& shadowMap);
      //

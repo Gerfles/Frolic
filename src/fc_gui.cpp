@@ -149,8 +149,9 @@ namespace fc
             || ImGui::SliderFloat("Sun Y", &sunlightPos.y, 5.f, 100.f)
             || ImGui::SliderFloat("Sun Z", &sunlightPos.z, -100.f, 100.f))
         {
+          // FIXME
           // Update sun's location
-          fc->mSunBillboard.setPosition(sunlightPos);
+          /* fc->mSunBillboard.setPosition(sunlightPos); */
           fc->pSceneData->sunlightDirection = sunlightPos;
 
           // Update shadow map light source

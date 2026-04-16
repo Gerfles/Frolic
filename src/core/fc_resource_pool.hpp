@@ -14,7 +14,7 @@ namespace fc
   // start here: https://gameprogrammingpatterns.com/object-pool.html
   class ResourcePool
   {
-   private:
+   protected:
      FcAllocator* pAllocator = nullptr;
      //
      uint8_t* mMemory = nullptr;
@@ -50,11 +50,34 @@ namespace fc
      const T* get(uint32_t index) const;
      // cleanup
      void release(T* resource);
+     void freeAll();
      void shutdown();
   };
 
 
   // -*-*-*-*-*-*-*-*-*-*-*-*-   TEMPLATE INSTANTIATIONS   -*-*-*-*-*-*-*-*-*-*-*-*- //
+
+  // FIXME eliminate this resource pooling method
+  template<typename T>
+  void ResourcePoolTyped<T>::freeAll()
+  {
+    fcPrintEndl("Calling: resource pool typed<T> freeAll()");
+
+    /* u32 index = 0; */
+    for (u32 totalFreed = 0, index = 0; totalFreed < mUsedIndices; ++index)
+    {
+      if (get(index) != nullptr)
+      {
+        get(index)->destroy();
+        ++totalFreed;
+      }
+    }
+
+
+    ResourcePool::freeAll();
+  }
+
+
 
   // <T> instantiation of in resource pool init
   template<typename T>
@@ -103,6 +126,7 @@ namespace fc
   template <typename T>
   inline void ResourcePoolTyped<T>::release(T *resource)
   {
+    resource->destroy();
     ResourcePool::release(resource->poolIndex);
   }
 

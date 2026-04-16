@@ -46,7 +46,9 @@ namespace fc
      FcBillboardRenderer& operator=(FcBillboardRenderer&&) = delete;
 
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   MUTATORS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-     void addBillboard(FcBillboard& billboard) noexcept;
+     /* void addBillboard(FcBillboard& billboard) noexcept; */
+     inline void addBillboard(std::shared_ptr<FcBillboard>& billboard) noexcept
+        { mBillboards.emplace_back(billboard); }
      //
      void update(VkCommandBuffer cmd, SceneData& sceneData) noexcept;
      //

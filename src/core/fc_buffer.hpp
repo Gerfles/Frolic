@@ -51,6 +51,7 @@ namespace fc
        void setMemAddress(void* val) { mMemoryAddress = val; }
        // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CTORS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
        FcBuffer() = default;
+       ~FcBuffer() = default;
        FcBuffer(VkDeviceSize bufferSize, FcBufferTypes bufferType)
 	        { allocate(bufferSize, bufferType); }
        // Dis-Allow copy and assignment constructors
@@ -59,7 +60,6 @@ namespace fc
        // Only allow Move constructors
        FcBuffer& operator=(FcBuffer&& other) = default;
        FcBuffer(FcBuffer&& other) = default;
-       ~FcBuffer();
        // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
        //
        inline const bool operator==(const FcBuffer& other) { return mBuffer == other.mBuffer; }
@@ -85,6 +85,7 @@ namespace fc
        VkDeviceSize size() { return mSize; }
        void* getAddress();
        VkDeviceAddress getVkDeviceAddress() const;
+       // TODO could enforce a naming convention of release vs destroy...
        void deferredDestroy();
        void immediateDestroy();
     };

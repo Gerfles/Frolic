@@ -173,12 +173,14 @@ namespace fc
     // TODO draw collection should be part of frolic or cartridge since
     // we may want multiple drawcollections to add to but may want to implement
     // system in which we can swap out draw collections...
-    mSunBillboard.loadTexture(mRenderer, 1., 1., "..//textures//sun.png");
 
+    std::shared_ptr<FcBillboard> sunBillboard = std::make_shared<FcBillboard>();
+    sunBillboard->loadTexture(mRenderer, 1., 1., "..//textures//sun.png");
+
+    // TODO add logic that trims the sunlight position to near the objects needing shadows
     // TODO set sun position as absolute -> not direction;
-    mSunBillboard.setPosition(pSceneData->sunlightDirection);
-
-    mRenderer.addBillboard(mSunBillboard);
+    sunBillboard->setPosition(pSceneData->sunlightDirection);
+    mRenderer.addBillboard(sunBillboard);
 
     // TODO implement with std::optional
     helmet.loadGltf(mRenderer, "..//models//helmet//DamagedHelmet.gltf");
@@ -391,7 +393,6 @@ namespace fc
     sponza.destroy();
 
     //
-
     mInput.kill();
 
     FcLight::destroyDefaultTexture();
@@ -408,6 +409,8 @@ namespace fc
     {
       vkDestroyInstance(mInstance, nullptr);
     }
+
+    FC_DEBUG_LOG("Frolic Engine: shut down");
   }
 
 }// --- namespace fc --- (END)

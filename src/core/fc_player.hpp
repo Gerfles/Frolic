@@ -53,7 +53,8 @@ namespace fc
 
 public:
      FcPlayer(FcInput* input) : pInput{input} {}
-     FcPlayer() {};// = default;
+     /* FcPlayer() {};// = default; */
+     FcPlayer() = default;
      void init(FcInput* input) { pInput = input; }
      //
      void move(float dt);

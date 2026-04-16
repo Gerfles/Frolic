@@ -395,6 +395,7 @@ namespace  fc
   //
   void FcBuffer::immediateDestroy()
   {
+    isDestroyed = true;
     // Make sure we don't try and delete a non-allocated buffer
     if (mBuffer == VK_NULL_HANDLE)
       return;
@@ -412,13 +413,13 @@ namespace  fc
 
 
   // DELETE after test
-  FcBuffer::~FcBuffer()
-  {
-    if (!isDestroyed)
-    {
-      fcPrintEndl("Buffer Destructor Called without being destroyed");
-      printBufferStats();
-    }
-  }
+  // FcBuffer::~FcBuffer()
+  // {
+  //   if (!isDestroyed)
+  //   {
+  //     fcPrintEndl("Buffer Destructor Called without being destroyed");
+  //     printBufferStats();
+  //   }
+  // }
 
 } // namespace  fc _END_

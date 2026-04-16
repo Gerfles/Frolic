@@ -99,6 +99,11 @@ namespace fc
   void FcDrawCollection::destroy()
   {
     // TODO check that this works appropriately for FcImage type
+    // for (FcImage& image : mTextures)
+    // {
+
+    // }
+
     mTextures.freeAll();
     mTextures.shutdown();
 

@@ -160,7 +160,6 @@ namespace fc
           mFormat = VK_FORMAT_D32_SFLOAT;
           imageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
           imageViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-          allocInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
           allocInfo.priority = 1.0f;
           break;
 
@@ -200,7 +199,6 @@ namespace fc
                             | VK_IMAGE_USAGE_SAMPLED_BIT;
           imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
           imageInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
-          allocInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
           mMipLevels = 1;
           break;
 
