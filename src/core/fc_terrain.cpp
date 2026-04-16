@@ -4,8 +4,6 @@
 #include "fc_descriptors.hpp"
 #include "fc_frustum.hpp"
 #include "fc_defaults.hpp"
-#include "fc_locator.hpp"
-#include "fc_renderer.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <cstring>
 #include <algorithm>
@@ -66,6 +64,7 @@ namespace fc
 
     // set up buffer
     mUboBuffer.allocate(sizeof(UBO), FcBufferTypes::Uniform);
+    mUboBuffer.setName("Terrain Uniform Buffer");
 
     // Configure pipeline for UBO descriptor set
     pipelineConfig.attachUniformBuffer(0, 0, mUboBuffer, sizeof(UBO), 0,
@@ -277,5 +276,28 @@ namespace fc
     vkCmdDrawIndexed(cmd, mNumIndices, 1, 0, 0, 0);
 
   }// --- FcTerrain::draw (_) --- (END)
+
+
+  // //
+  // FcTerrainRenderer::~FcTerrainRenderer()
+  // {
+
+  //   mUboBuffer.immediateDestroy();
+  // }
+
+  void FcTerrainRenderer::destroy()
+  {
+    mHeightMap.destroy();
+    mTerrainTexture.destroy();
+
+    mSurface.destroy();
+    // TODO make automatic w/ isDestroyed bool
+    mUboBuffer.immediateDestroy();
+
+    mPipeline.destroy();
+    mWireframePipeline.destroy();
+  }
+
+
 
 }// --- namespace fc --- (END)

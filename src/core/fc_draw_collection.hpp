@@ -11,14 +11,14 @@ namespace fc { class FcMaterial; class FcSubmesh; class FcMeshNode; }
 
 namespace fc
 {
-  using FcHandle = u32;
+  using Handle = u32;
 
   //
   // TODO either eliminate or expand usefulness
   struct ResourceUpdate
   {
      ResourceDeletionType type;
-     FcHandle handle;
+     Handle handle;
      u32 currentFrame;
   };
 

@@ -56,6 +56,6 @@ namespace fc
 
      inline const PerformanceProperties Properties() const { return mGpuPerformanceProperties; }
       // Cleanup
-     void release(VkInstance instance);
+     void release();
   };
 } // namespace fc END

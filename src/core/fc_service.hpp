@@ -10,6 +10,7 @@ namespace fc
   {
      virtual void init(void* configuration) {}
      virtual void shutdown() {}
+     // ?? shouldn't there be an instance() function
   };
 
   // ?? Is this a singleton pattern and if so is this the best instantiation scheme

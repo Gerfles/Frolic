@@ -10,6 +10,8 @@
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
+// TODO add std::exchange utility to utilities
+
 namespace fc
 {
   // TODO relocate all log/print utilities to a full class

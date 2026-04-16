@@ -79,4 +79,13 @@ namespace fc
     //
     vkCmdDraw(cmd, 36, 1, 0, 0);
   }
+
+
+  //
+  void FcSkybox::destroy()
+  {
+    mCubeImage.destroy();
+    mPipeline.destroy();
+    vkDestroySampler(FcLocator::Device(), mCubeMapSampler, nullptr);
+  }
 }

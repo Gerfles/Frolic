@@ -1,8 +1,9 @@
 //>--- fc_memory.hpp ---<//
 #pragma once
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "core/log.hpp"
 #include "platform.hpp"
-#include "service.hpp"
+#include "fc_service.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #define FC_IMGUI
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
@@ -53,7 +54,7 @@ namespace fc
   //
     struct FcAllocator
     {
-       virtual ~FcAllocator() {}
+       virtual ~FcAllocator() { fcPrintEndl("FcAllocator: destroyed"); }
        virtual void* allocate(sizeT size, sizeT alignment) = 0;
        virtual void* allocate(sizeT size, sizeT alignment, cstring file, i32 line) = 0;
        //

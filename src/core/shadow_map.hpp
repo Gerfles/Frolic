@@ -69,6 +69,8 @@ namespace fc
      FcImage& Image() { return mShadowMapImage; }
      void updateLightSource(glm::vec3 lightPos, glm::vec3 target);
      void updateLightSpaceTransform();
+     //
+     void destroy();
   };// ---   class FcShadowMap --- (END)
 
 

@@ -3078,23 +3078,35 @@ static void vma_aligned_free(void* VMA_NULLABLE ptr)
    #define VMA_SORT(beg, end, cmp)  std::sort(beg, end, cmp)
 #endif
 
-#ifndef VMA_DEBUG_LOG_FORMAT
-   #define VMA_DEBUG_LOG_FORMAT(format, ...)
-   /*
-   #define VMA_DEBUG_LOG_FORMAT(format, ...) do { \
-       printf((format), __VA_ARGS__); \
-       printf("\n"); \
-   } while(false)
-   */
+ #ifndef VMA_DEBUG_LOG_FORMAT
+#define VMA_DEBUG_LOG_FORMAT(format, ...)
+
+   //   #define VMA_DEBUG_LOG_FORMAT(format, ...) do {     \
+   //     printf((format), __VA_ARGS__); \
+   //     printf("\n"); \
+   // } while(false)
 #endif
 
 #ifndef VMA_DEBUG_LOG
     #define VMA_DEBUG_LOG(str)   VMA_DEBUG_LOG_FORMAT("%s", (str))
 #endif
 
+
 #ifndef VMA_LEAK_LOG_FORMAT
-    #define VMA_LEAK_LOG_FORMAT(format, ...)   VMA_DEBUG_LOG_FORMAT(format, __VA_ARGS__)
+#define VMA_LEAK_LOG_FORMAT(format, ...)   VMA_DEBUG_LOG_FORMAT(format, __VA_ARGS__)
+// #define VMA_LEAK_LOG_FORMAT(format, ...) do {   \
+//         printf((format), __VA_ARGS__); \
+//         printf("\n"); \
+//     } while(false)
+
+
 #endif
+
+
+
+
+
+
 
 #ifndef VMA_CLASS_NO_COPY
     #define VMA_CLASS_NO_COPY(className) \

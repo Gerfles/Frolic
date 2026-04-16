@@ -236,4 +236,11 @@ namespace fc
     vkCmdDraw(cmd, 3, 1, 0, 0);
   }
 
+
+  void FcShadowRenderer::destroy()
+  {
+    mShadowMapImage.destroy();
+    mShadowDebugPipeline.destroy();
+    mShadowPipeline.destroy();
+  }
 }

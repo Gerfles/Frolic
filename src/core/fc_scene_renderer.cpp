@@ -17,6 +17,9 @@ namespace fc
   {
     // *-*-*-*-*-*-*-*-*-*-*-*-   FRAME DATA INITIALIZATION   *-*-*-*-*-*-*-*-*-*-*-*- //
     mSceneDataBuffer.allocate(sizeof(SceneData), FcBufferTypes::Uniform);
+
+    mSceneDataBuffer.setName("Scene data buffer");
+
     // TODO why have view projection when we already have sceneData (it's only buffer though... maybe cast??)
     pViewProjection = &viewProj;
 
@@ -261,12 +264,15 @@ namespace fc
   //
   void FcSceneRenderer::destroy()
   {
-    vkDestroyDescriptorSetLayout(FcLocator::Device(), mMaterialDescriptorLayout, nullptr);
+    /* vkDestroyDescriptorSetLayout(FcLocator::Device(), mMaterialDescriptorLayout, nullptr); */
     mOpaquePipeline.destroy();
     mTransparentPipeline.destroy();
 
-
     // Destroy data buffer with scene data
-    mSceneDataBuffer.destroy();
+    mSceneDataBuffer.deferredDestroy();
+
+    mWireframePipeline.destroy();
+    mTransparentPipeline.destroy();
+    mOpaquePipeline.destroy();
   }
 }

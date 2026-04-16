@@ -35,9 +35,23 @@ namespace fc
     // TODO make branchless by having 3 separate vectors and referencing the frame we're on
     while (it != mBuffersToDelete.end() && FcLocator::Renderer().mImmediateCommands.isReady(it->handle))
     {
+      // VmaAllocationInfo2 info;
+      // VmaAllocator allocator = FcLocator::Gpu().getAllocator();
+      // vmaGetAllocationInfo2(allocator, it->allocation, &info);
+      // if (info.allocationInfo.pMappedData != nullptr)
+      // {
+      //   /* vmaUnmapMemory(allocator, it->allocation); */
+      //   /* fcPrintEndl("WTF: mapped"); */
+      // }
+
+      // if (info.allocationInfo.pName != nullptr)
+      // {
+      //   fcPrintEndl("Buffer: %s", info.allocationInfo.pName);
+      // }
+
       // Destroy the VMA buffer allocation which will in turn call vkDestroyBuffer and vkFreeMemory
-        vmaDestroyBuffer(FcLocator::Gpu().getAllocator(), it->buffer, it->allocation);
-        ++it;
+      vmaDestroyBuffer(FcLocator::Gpu().getAllocator(), it->buffer, it->allocation);
+      ++it;
     }
 
     // Since we exited the while loop at point where commands were not ready, delete up until that point

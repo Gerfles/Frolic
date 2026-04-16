@@ -5,6 +5,7 @@
 #include "core/fc_cvar_system.hpp"
 #include "core/fc_light.hpp"
 #include "core/fc_locator.hpp"
+#include "core/fc_pool.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "imgui_impl_sdl2.h"
 #include <SDL_log.h>
@@ -66,12 +67,16 @@ namespace fc
 
     // Initialize the custom memory allocator
     // TODO make this part of our FcLocator scheme instead of the singleton it is
+    // TODO investigate whether we want this implemented the way it currently is
     MemoryService::instance()->init(nullptr);
+
+
 
     pAllocator = &MemoryService::instance()->systemAllocator;
 
     // TODO Make sure this deallocates properly
     mStackAllocator.init( megabytes(8) );
+
 
 
     // TODO pull some stuff out of render initialize and have init VK systems?
@@ -108,7 +113,7 @@ namespace fc
   }// --- Frolic::Frolic (_) --- (END)
 
 
-
+  //
   void Frolic::createInstance(VkApplicationInfo& appInfo, FcConfig& config)
   {
     // Include debug utilities only when required
@@ -385,6 +390,8 @@ namespace fc
     helmet.destroy();
     sponza.destroy();
 
+    //
+
     mInput.kill();
 
     FcLight::destroyDefaultTexture();
@@ -392,6 +399,8 @@ namespace fc
     mRenderer.shutDown();
 
     mWindow.close(FcLocator::vkInstance());
+
+    mStackAllocator.shutdown();
 
     MemoryService::instance()->shutdown();
 

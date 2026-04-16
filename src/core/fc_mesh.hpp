@@ -33,18 +33,15 @@ namespace fc
 
      // -*-*-*-*-*-*-*-*-*-*-*-*-   CONSTRUCTORS / CLEANUP   -*-*-*-*-*-*-*-*-*-*-*-*- //
      FcMesh() = default;
+     /* ~FcMesh() { destroy(); } */
      void destroy();
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      //
      inline bool operator==(const FcMesh& other) const
-      {
-        return (mVertexBufferAddress == other.mVertexBufferAddress);
-      };
+      { return (mVertexBufferAddress == other.mVertexBufferAddress); }
      //
      inline const void bindIndexBuffer(VkCommandBuffer cmd) const
-      {
-        vkCmdBindIndexBuffer(cmd, mIndexBuffer.getVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
-      }
+      { vkCmdBindIndexBuffer(cmd, mIndexBuffer.getVkBuffer(), 0, VK_INDEX_TYPE_UINT32); }
      //
      const bool isInBounds(const glm::vec4& position) const;
      //

@@ -170,6 +170,7 @@ namespace fc
   {
     // Create buffer to hold the material data
       materialDataBuffer.allocate(sizeof(MaterialConstants), FcBufferTypes::Uniform);
+      materialDataBuffer.setName("Material Data Buffer");
 
       /* materials[i] = std::make_shared<FcMaterial>(); */
       blank.materialType = FcMaterial::Type::Opaque;
@@ -211,7 +212,7 @@ namespace fc
   }
 
 
-
+  //
   void FcDefaults::destroy()
   {
     Materials.destroy();
@@ -221,30 +222,31 @@ namespace fc
 
 
   //
-  //
   void FcDefaults::DefaultMaterials::destroy()
   {
-    // TODO implement
-    materialDataBuffer.destroy();
+    materialDataBuffer.deferredDestroy();
   }
 
 
+  //
   void FcDefaults::DefaultTextures::destroy()
   {
     white.destroy();
-    grey.destroy();
     black.destroy();
+    grey.destroy();
     checkerboard.destroy();
   }
 
+
+  //
   void FcDefaults::DefaultSamplers::destroy()
   {
     vkDestroySampler(FcLocator::Device(), Terrain, nullptr);
     vkDestroySampler(FcLocator::Device(), Nearest, nullptr);
+    vkDestroySampler(FcLocator::Device(), Linear, nullptr);
+    vkDestroySampler(FcLocator::Device(), Bilinear, nullptr);
+    vkDestroySampler(FcLocator::Device(), Trilinear, nullptr);
+    vkDestroySampler(FcLocator::Device(), ShadowMap, nullptr);
   }
-
-
-
-
 
 }// --- namespace fc --- (END)

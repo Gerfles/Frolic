@@ -23,6 +23,7 @@ namespace fc
 {
   void FcImage::init(u32 handle)
   {
+
     localCopyAddress = nullptr;
     mImage = VK_NULL_HANDLE;
     mImageView = VK_NULL_HANDLE;
@@ -117,43 +118,35 @@ namespace fc
     // *-*-*-*-*-*-*-*-   POPULATE IMAGE, VIEW, AND ALLOCATION INFO   *-*-*-*-*-*-*-*- //
     switch (imageType)
     {
-      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   BASIC TEXTURE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+      	// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   BASIC TEXTURES   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
         case FcImageTypes::Texture:
-        {
           imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT
                             | VK_IMAGE_USAGE_SAMPLED_BIT;
           break;
-        }
+
         case FcImageTypes::TextureWithMipmaps:
-        {
           // TODO implement
           break;
-        }
 
-        // -*-*-*-*-*-*-*-*-*-*-*-*-   TEXTURE NEEDING MIPMAPS   -*-*-*-*-*-*-*-*-*-*-*-*- //
+	// -*-*-*-*-*-*-*-*-*-*-*-*-   TEXTURE NEEDING MIPMAPS   -*-*-*-*-*-*-*-*-*-*-*-*- //
         case FcImageTypes::TextureGenerateMipmaps:
-        {
           // transfer src only needs to be set when generating mipmaps from original image
           imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT
                             | VK_IMAGE_USAGE_SAMPLED_BIT
                             | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
           generateMipmaps = true;
           break;
-        }
-        case FcImageTypes::ScreenBuffer:
-        {
-          mFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
 
+	// *-*-*-*-*-*-*-*-*-*-*-*-   DRAW IMAGE FOR RENDERING   *-*-*-*-*-*-*-*-*-*-*-*- //
+        case FcImageTypes::ScreenBuffer:
+          mFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
           // We plan on copying into but also from the image
           imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
           imageInfo.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-          // Storage bit allows computer shader to write to image
+          // Storage bit allows compute shader to write to image
           imageInfo.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
-          // Color attachment allows graphics pipelines to draw geometry into it
+          // Color attachment allows graphics pipelines to draw into it
           imageInfo.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-          // TODO this should be a default setting and changed when necessary
-          allocInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
           // Prefer to create such resources first and all other GPU resources (like
           //textures and vertex buffers) later. When VK_EXT_memory_priority extension is
           //enabled, it is also worth setting high priority to such allocation to decrease
@@ -161,20 +154,18 @@ namespace fc
           allocInfo.priority = 1.0f;
           mLayerCount = 1;
           break;
-        }
+
         // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DEPTH BUFFER   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
         case FcImageTypes::DepthBuffer:
-        {
           mFormat = VK_FORMAT_D32_SFLOAT;
           imageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
           imageViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
           allocInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
           allocInfo.priority = 1.0f;
           break;
-        }
-        // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   TEXTURE ARRAY   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
+	// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   TEXTURE ARRAY   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
         case FcImageTypes::TextureArray:
-        {
           // NOTE: unfortunately named, but we do not have a 3D image so this flag must
           // not be set, it's intended to allow a 3D image to be used as multi-array
           // sampled imageInfo.flags |= VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT;
@@ -185,11 +176,9 @@ namespace fc
           imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
           imageViewInfo.subresourceRange.layerCount = mLayerCount;
           break;
-        }
-        // -*-*-*-*-*-*-*-*-*-*-*-   TEXTURE ARRAY WITH MIPMAPS   -*-*-*-*-*-*-*-*-*-*-*- //
 
+	// -*-*-*-*-*-*-*-*-*-*-*-   TEXTURE ARRAY WITH MIPMAPS   -*-*-*-*-*-*-*-*-*-*-*- //
         case FcImageTypes::TextureArrayGenerateMipmaps:
-        {
           imageInfo.arrayLayers = mLayerCount;
           // transfer src only needs to be set when generating mipmaps from original image
           imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT
@@ -199,11 +188,9 @@ namespace fc
           imageViewInfo.subresourceRange.layerCount = mLayerCount;
           generateMipmaps = true;
           break;
-        }
 
         // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CUBE MAP   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
         case FcImageTypes::Cubemap:
-        {
           mLayerCount = 6;
           imageInfo.arrayLayers = mLayerCount;
           imageViewInfo.subresourceRange.layerCount = mLayerCount;
@@ -216,9 +203,9 @@ namespace fc
           allocInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
           mMipLevels = 1;
           break;
-        }
+
+	// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   HEIGHT MAP   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
         case FcImageTypes::HeightMap:
-        {
           imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT
                             | VK_IMAGE_USAGE_SAMPLED_BIT
                             | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
@@ -226,10 +213,9 @@ namespace fc
           imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
           mMipLevels = 1;
           break;
-        }
-        // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   SHADOW MAP   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
+	// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   SHADOW MAP   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
         case FcImageTypes::ShadowMap:
-        {
           // TODO allow alternative (smaller) formats to be used
           mFormat = VK_FORMAT_D32_SFLOAT;
           imageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
@@ -238,12 +224,12 @@ namespace fc
           imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
           mMipLevels = 1;
           break;
-        }
-        // TODO Custom can be utilized if needed for finer grain detail
+
+	// TODO Custom can be utilized if needed for finer grain detail
         case FcImageTypes::Custom:
-        {
+          // TODO implement
           break;
-        }
+
         default:
           break;
     }
@@ -270,14 +256,15 @@ namespace fc
 
     VK_ASSERT(vkCreateImageView(FcLocator::Device(), &imageViewInfo, nullptr, &mImageView));
 
+    // TODO add only to specific image types
     // Add image to the bindless array for deferred updating
     if (gpu.Properties().isBindlessSupported)
     {
 
     }
+  }
 
-
-
+    // TODO implement within a custom branch
     // *-*-*-*-*-*-*-   CUSTOM MEMORY ALLOCATION SAVED FOR REFERENCE   *-*-*-*-*-*-*- //
     // VK_ASSERT(vkCreateImage(device, &imageInfo, nullptr, &mImage));
     // {
@@ -332,7 +319,7 @@ namespace fc
     // vkBindImageMemory(device, mImage, mImageMemory, 0);
 
     // now create an Image view so we can interface with it
-  }
+
 
 
 
@@ -357,7 +344,6 @@ namespace fc
     imageViewInfo.subresourceRange.layerCount = 1;
 
     VK_ASSERT(vkCreateImageView(FcLocator::Device(), &imageViewInfo, nullptr, &mImageView));
-
   }
 
 
@@ -373,12 +359,12 @@ namespace fc
 
     populateImageMemoryBarrier(currentLayout, newLayout, mImage, imageBarrier);
 
-    VkDependencyInfo dependencyInfo = {};
-    dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-    dependencyInfo.imageMemoryBarrierCount = 1;
-    dependencyInfo.pImageMemoryBarriers = &imageBarrier;
-
-    vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
+    // BUG somehow this is getting reset -> track state with debug
+    /* FC_ASSERT(mDependencyInfo.imageMemoryBarrierCount > 0); */
+    mDependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+    mDependencyInfo.imageMemoryBarrierCount = 1;
+    mDependencyInfo.pImageMemoryBarriers = &imageBarrier;
+    vkCmdPipelineBarrier2(commandBuffer, &mDependencyInfo);
   }
 
 
@@ -386,7 +372,6 @@ namespace fc
   void FcImage::transitionLayoutCached(VkCommandBuffer cmd, VkImageMemoryBarrier2& barrier)
   {
     mDependencyInfo.pImageMemoryBarriers = &barrier;
-
     vkCmdPipelineBarrier2(cmd, &mDependencyInfo);
   }
 
@@ -520,7 +505,7 @@ namespace fc
 
   void FcImage::destroyCpuCopy()
   {
-    localCopy->destroy();
+    localCopy->deferredDestroy();
     localCopy.reset();
     localCopyAddress = nullptr;
   }
@@ -602,7 +587,7 @@ namespace fc
     }
 
     // TODO separate generating mipmaps into a utility function since it would
-    // not likely be part of a main game engine
+    // not likely be part of a game engine other than as a utility
     bool generateMipmaps = (imageType == FcImageTypes::TextureGenerateMipmaps)? true : false;
 
     // create the hardware texture used by the GPU
@@ -661,7 +646,7 @@ namespace fc
     copyFromBuffer(cmdBuffer.getVkCmdBuffer(), stagingBuffer, 0, 0);
 
     // no longer need staging buffer so get rid of
-    stagingBuffer.destroy();
+    stagingBuffer.deferredDestroy();
 
     // finally transition the image to GPU read
     transitionLayout(cmdBuffer.getVkCmdBuffer(),
@@ -1087,7 +1072,7 @@ namespace fc
     FcLocator::Renderer().submitNonRenderCmdBuffer(cmdBuffer);
 
     // no longer need staging buffer so get rid of
-    stagingBuffer.destroy();
+    stagingBuffer.deferredDestroy();
   }
 
 

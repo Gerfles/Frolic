@@ -96,7 +96,6 @@ namespace fc
 
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CLEANUP   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      void destroy();
-     void clearAll();
      ~FcScene() = default;
   };
 

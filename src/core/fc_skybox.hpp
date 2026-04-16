@@ -37,6 +37,8 @@ namespace fc
      void init(const FcBuffer& sceneDataBuffer);
      //
      void draw(VkCommandBuffer cmd, FcDescriptorCollection& currentFrame);
+     //
+     void destroy();
 
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   GETTERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      inline const FcImage& Image() { return mCubeImage; }

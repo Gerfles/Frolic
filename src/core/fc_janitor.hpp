@@ -38,7 +38,7 @@ namespace fc
      FcJanitor& operator=(FcJanitor&&) = delete;
      //
      inline void deleteAfterDone(VkBuffer buffer, VmaAllocation allocation, SubmitHandle handle)
-      				{mBuffersToDelete.emplace_back(BufferCleanup{buffer, allocation, handle}); }
+      				{ mBuffersToDelete.emplace_back(BufferCleanup{buffer, allocation, handle}); }
      inline void deleteAfterDone(VkDescriptorSetLayout descLayout) {mDescLayouts.emplace_back(descLayout); }
      //
      void push_function(std::function<void()>&& function) { deletors.push_back(function); }

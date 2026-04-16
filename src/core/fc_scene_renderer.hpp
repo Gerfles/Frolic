@@ -22,7 +22,7 @@ namespace fc
      FcPipeline mTransparentPipeline;
      FcPipeline mWireframePipeline;
      std::vector<uint32_t> mSortedObjectIndices;
-     VkDescriptorSetLayout mMaterialDescriptorLayout;
+     /* VkDescriptorSetLayout mMaterialDescriptorLayout; */
      FcPipeline* pCurrentPipeline;
      glm::mat4* pViewProjection;
      VkBuffer mPreviousIndexBuffer;
@@ -36,9 +36,9 @@ namespace fc
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      VkDescriptorSet mSceneDescriptorSet;
 
-
-
      std::vector<VkDescriptorSet> mExternalDescriptors {2};
+     //
+     //
      void sortByVisibility(FcDrawCollection& drawCollection);
      uint32_t drawMeshNode(VkCommandBuffer cmd, const FcMeshNode& surface) noexcept;
 
@@ -58,14 +58,15 @@ namespace fc
      //
      void draw(VkCommandBuffer cmd, FcDrawCollection& drawCollection, bool shouldDrawWireFrame) noexcept;
      //
-     void destroy();
+
      float& ExpansionFactor() { return expansionFactor; }
      inline const FcBuffer& getSceneDataBuffer() const { return mSceneDataBuffer; }
 
      //DELETE
      inline VkDescriptorSet getSceneDescSet() { return mSceneDescriptorSet; }
      /* inline const VkDescriptorSetLayout getSceneDescriptorLayout() const { return mSceneDataDescriptorLayout; } */
-
+     //
+     void destroy();
   };
 
 

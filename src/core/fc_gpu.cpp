@@ -309,7 +309,7 @@ namespace fc
 
 
   //
-  void FcGpu::release(VkInstance instance)
+  void FcGpu::release()
   {
     vmaDestroyAllocator(mAllocator);
 

@@ -72,11 +72,11 @@ namespace fc
      //
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NEW   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      /* VkImageMemoryBarrier2 mImgMemBarrier; */
-     bool shouldTrack {true};
      VkDependencyInfo mDependencyInfo {
        .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO
      , .imageMemoryBarrierCount = 1
      };
+     /* VkDependencyInfo mDependencyInfo {}; */
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      // TRY
      void init(u32 handle);

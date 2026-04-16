@@ -200,8 +200,6 @@ namespace fc
       swapChainImage.createImageView(surfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT);
       //
       mSwapchainImages.emplace_back(std::move(swapChainImage));
-
-      swapChainImage.shouldTrack = false;
     }
 
 
@@ -578,14 +576,15 @@ namespace fc
   // Partially free of swapchain resources -- used when resizing the window and recreating swapchain
   void FcSwapChain::clearSwapChain()
   {
-    // destroy all the image views in our swapchain--the actual images and memory are freed by actual swapchain
-    // FIXME
+    // destroy all the image views in our swapchain--the actual images and memory are
+    // freed by actual swapchain
     for (auto& image : mSwapchainImages)
     {
       image.destroyImageView();
     }
 
-    // make sure to shrink the swapchain images container in case we just need to recreateswapchain for window resize
+    // make sure to shrink the swapchain images container in case we just need to
+    // recreateswapchain for window resize
     mSwapchainImages.clear();
   }
 
@@ -594,8 +593,6 @@ namespace fc
   // full destruction of swapchain, note: includes call to partial destruction of swapchain
   void FcSwapChain::destroy()
   {
-    fcPrintEndl("calling: FcSwapChain::destroy");
-
     clearSwapChain();
 
     // finally destroy the swapchain itself

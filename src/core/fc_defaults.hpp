@@ -34,7 +34,7 @@ namespace fc
         static FcImage checkerboard;
         static void init();
         static void destroy();
-     };// ---      struct DefaultTextures --- (END)
+     };// --- struct DefaultTextures --- (END)
 
      //
      struct DefaultMaterials

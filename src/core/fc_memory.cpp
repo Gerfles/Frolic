@@ -23,9 +23,9 @@ namespace fc
   // #define FROLIC_MEMORY_DEBUG
   // BUG I think that mem_assert should be switched to something else... I think it's undefined??
 #if defined (FROLIC_MEMORY_DEBUG)
-	#define hy_mem_assert(cond) hy_assert(cond)
+	#define fc_mem_assert(cond) fc_assert(cond)
 #else
-	#define hy_mem_assert(cond)
+	#define fc_mem_assert(cond)
 #endif
 
 
@@ -214,7 +214,7 @@ namespace fc
 
     if (newAllocatedSize > totalSize)
     {
-      hy_mem_assert(false && "Linear Memory Overflow");
+      fc_mem_assert(false && "Linear Memory Overflow");
       return nullptr;
     }
 
@@ -310,7 +310,7 @@ namespace fc
 
     if (newAllocatedSize > totalSize)
     {
-      hy_mem_assert(false && "Linear Memory Overflow");
+      fc_mem_assert(false && "Linear Memory Overflow");
       return nullptr;
     }
 
@@ -410,7 +410,7 @@ namespace fc
     const sizeT newStart = memoryAlign(top - size, alignment);
     if (newStart <= bottom)
     {
-      hy_mem_assert(false && "Memory Overflow Crossing Top of Double Stack");
+      fc_mem_assert(false && "Memory Overflow Crossing Top of Double Stack");
       return nullptr;
     }
 
@@ -429,7 +429,7 @@ namespace fc
 
     if (newAllocatedSize >= top)
     {
-      hy_mem_assert(false && "Memory Overflow Crossing Bottom of Double Stack");
+      fc_mem_assert(false && "Memory Overflow Crossing Bottom of Double Stack");
       return nullptr;
     }
 

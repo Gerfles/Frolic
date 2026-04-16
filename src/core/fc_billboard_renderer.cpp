@@ -45,6 +45,8 @@ namespace fc
 
     // Create the uniform buffer object
     mUboBuffer.allocate(sizeof(BillboardUbo), FcBufferTypes::Uniform);
+    mUboBuffer.setName("Billboard Uniform buffer");
+
 
     // Create the descriptor sets used to build pipeline
     pipelineConfig.attachUniformBuffer(0, 0, mUboBuffer, sizeof(BillboardUbo), 0, VK_SHADER_STAGE_VERTEX_BIT);
@@ -103,11 +105,6 @@ namespace fc
     // // TODO This is a good candidate for a compute shader
     // sortBillboardsByDistance(sceneData.eye);
 
-
-
-
-
-
     // Alternate method
     // TODO profile to see which sorting method prevails (std::sort vs. indexed draws)
 
@@ -145,6 +142,6 @@ namespace fc
   void FcBillboardRenderer::destroy() noexcept
   {
     mPipeline.destroy();
-    mUboBuffer.destroy();
+    mUboBuffer.immediateDestroy();
   }
 }// --- namespace fc --- (END)

@@ -16,7 +16,7 @@
 //allocation among many different objects by using the offset parameters that we've seen in many
 //functions.  You can either implement such an allocator yourself, or use the VulkanMemoryAllocator
 //library provided by the GPUOpen initiative.
-
+// TODO have a persistent staging buffer
 // TODO restructure with using mBufferSize instead of passing in for each
 // function
 // TODO should all FcBuffers contain binding information? or maybe create a
@@ -44,21 +44,32 @@ namespace fc
        void* mMemoryAddress {nullptr};
 
        // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DELETE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-       bool isDestroyed {true};
+       bool isDestroyed {false};
      public:
-
        // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-
+       VmaAllocation& getAllocation() { return mAllocation; }
+       void setMemAddress(void* val) { mMemoryAddress = val; }
+       // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CTORS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
        FcBuffer() = default;
-       ~FcBuffer();
        FcBuffer(VkDeviceSize bufferSize, FcBufferTypes bufferType)
 	        { allocate(bufferSize, bufferType); }
-       FcBuffer& operator=(const FcBuffer&) = delete;
-       // ?? This must be included to allow vector.pushBack(Fcbuffer) ?? not sure if there's a better way... maybe unique_ptr
-       // FcBuffer(const FcBuffer&) = delete;
+       // Dis-Allow copy and assignment constructors
+       FcBuffer(const FcBuffer& other) = delete;
+       FcBuffer& operator=(FcBuffer& other) = delete;
+       // Only allow Move constructors
+       FcBuffer& operator=(FcBuffer&& other) = default;
+       FcBuffer(FcBuffer&& other) = default;
+       ~FcBuffer();
+       // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+       //
+       inline const bool operator==(const FcBuffer& other) { return mBuffer == other.mBuffer; }
+       //
        void allocate(VkDeviceSize bufferSize, FcBufferTypes bufferType);
        // if dataSize == 0 -> write the full size of the buffer
        void write(bool isTesting, VkCommandBuffer cmd, void* sourceData, size_t dataSize = 0, VkDeviceSize offset = 0);
+       //
+       void setName(const char* name);
+       //
        void allocate(VkDeviceSize bufferSize, VkBufferUsageFlags useFlags,
                      VmaAllocationCreateFlags vmaFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT
                      | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
@@ -67,13 +78,15 @@ namespace fc
        void fetchData(uint32_t location, size_t dataSize);
        const VkBuffer& getVkBuffer() const { return mBuffer; }
        void printBufferStats() const;
+
        // TODO remove
        inline void setVkBuffer(VkBuffer buffer) { mBuffer = buffer; }
 
        VkDeviceSize size() { return mSize; }
        void* getAddress();
        VkDeviceAddress getVkDeviceAddress() const;
-       void destroy();
+       void deferredDestroy();
+       void immediateDestroy();
     };
 
 } // namespace fc _END_

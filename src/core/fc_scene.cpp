@@ -18,26 +18,6 @@
 
 namespace fc
 {
-  // FIXME test and finallize
-  void FcScene::clearAll()
-  {
-    VkDevice device = FcLocator::Device();
-
-    mMaterialDataBuffer.destroy();
-
-    // TODO make sure all the bookkeeping is handled via smart ptrs
-    // for (std::shared_ptr<FcNode>& node : mTopNodes)
-    // {
-    //   // destroy all nodes
-    // }
-
-    // for (std::shared_ptr<FcSurface>& mesh : mMeshes)
-    // {
-    //   // destroy all meshes
-    // }
-  }
-
-  //
   //
   void FcScene::loadGltf(FcRenderer& renderer, std::string_view filepath)
   {
@@ -480,11 +460,10 @@ namespace fc
       }
     } //(END) -- for (fastgltf::Texture& gltfTexture : gltf.textures)
 
-
-
     // Create buffer to hold the material data
     mMaterialDataBuffer.allocate(sizeof(MaterialConstants) * gltf.materials.size()
                                  , FcBufferTypes::Uniform);
+    mMaterialDataBuffer.setName("Material Data Buffer");
 
     // -*-*-*-*-*-*-*-*-*-*-*-*-*-   LOAD ALL MATERIALS   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
     // Preallocate material vector
@@ -535,12 +514,10 @@ namespace fc
       // }
 
       // *-*-*-*-*-*-*-*-*-*-*-*-*-   MATERIAL DATA BUFFER   *-*-*-*-*-*-*-*-*-*-*-*-*- //
-
       // TODO TEST to see if this part can be outside of the loop
       uint32_t dataBufferOffset = i * sizeof(MaterialConstants);
 
       FcDescriptors descriptors;
-      /* descriptors.attachBindingOnly(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT); */
       descriptors.attachUniformBuffer(0, mMaterialDataBuffer, sizeof(MaterialConstants),
                                       dataBufferOffset, VK_SHADER_STAGE_FRAGMENT_BIT);
 
@@ -745,6 +722,7 @@ namespace fc
     // Create buffer to hold the material data
     mMaterialDataBuffer.allocate(sizeof(MaterialConstants) * gltf.materials.size()
                                  , FcBufferTypes::Uniform);
+    mMaterialDataBuffer.setName("Material Data Buffer");
 
     // MaterialConstants* sceneMaterialConstants =
     //   static_cast<MaterialConstants*>(mMaterialDataBuffer.getAddress());
@@ -1417,7 +1395,24 @@ namespace fc
   //
   void FcScene::destroy()
   {
-    clearAll();
+    mMaterialDataBuffer.deferredDestroy();
+
+    for (std::shared_ptr<FcMesh>& mesh : mMeshes)
+    {
+      mesh.get()->destroy();
+    }
+
+
+    // TODO make sure all the bookkeeping is handled via smart ptrs
+    // for (std::shared_ptr<FcNode>& node : mTopNodes)
+    // {
+    //   // destroy all nodes
+    // }
+
+    // for (std::shared_ptr<FcSurface>& mesh : mMeshes)
+    // {
+    //   // destroy all meshes
+    // }
     // TODO additional housekeeping destroy all nodes and meshes etc.
   }
 

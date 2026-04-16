@@ -27,11 +27,11 @@ namespace fc
      VkRenderingAttachmentInfo mColorAttachment {};
      VkRenderingInfo mRenderInfo {};
      VkPresentInfoKHR presentInfo = {};
-     // *-*-*-*-*-*-*-*-   TRANSITIONING LAYOUTS OF SWAPCHAIN IMAGES   *-*-*-*-*-*-*-*- //
+     // Transitioning layouts of swapchain images
      VkImageMemoryBarrier2 mWriteAccessMemBarrier {};
      VkImageMemoryBarrier2 mPresentAccessMemBarrier {};
      VkDependencyInfo mDependencyInfo {};
-
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
      /* bool mGetNextImage {true}; */
      // FIXME act on window resize

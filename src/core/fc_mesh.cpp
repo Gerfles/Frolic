@@ -32,6 +32,7 @@ namespace fc
     // map memory to vertex buffer (copy vertex data into buffer)
     // Now create the buffer in GPU memory so we can transfer our RAM data there
     mVertexBuffer.allocate(bufferSize, FcBufferTypes::Vertex);
+    mVertexBuffer.setName("Vertex Buffer");
 
     FcCommandBuffer& cmd = FcLocator::Renderer().beginCommandBuffer();
     mVertexBuffer.write(true, cmd.getVkCmdBuffer(), vertices.data(), bufferSize);
@@ -48,6 +49,7 @@ namespace fc
 
     // Now write the data to the buffer
     mIndexBuffer.allocate(bufferSize, FcBufferTypes::Index);
+    mIndexBuffer.setName("Index Buffer");
 
     mIndexBuffer.write(true, cmd.getVkCmdBuffer(), indices.data(), bufferSize);
 
@@ -69,7 +71,11 @@ namespace fc
   //  frustum culling
   const bool FcSubmesh::isVisible(const glm::mat4& viewProjection) const
   {
-    /* return true; */
+    //
+    return true;
+
+
+
     glm::mat4 mvp = viewProjection * node->worldTransform;
 
     glm::vec3 min = {1.5f, 1.5f, 1.5f};
@@ -129,12 +135,10 @@ namespace fc
 
 
   //
-  //
   void FcMesh::destroy()
   {
-    mVertexBuffer.destroy();
-    mIndexBuffer.destroy();
+    mVertexBuffer.immediateDestroy();
+    mIndexBuffer.immediateDestroy();
   }
-
 
 }// --- namespace fc --- (END)

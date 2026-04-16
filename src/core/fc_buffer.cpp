@@ -119,9 +119,11 @@ namespace  fc
       return nullptr;
     }
     /* void* memAddress; */
-    VmaAllocator allocator = FcLocator::Gpu().getAllocator();
-
-    VK_ASSERT(vmaMapMemory(allocator, mAllocation, &mMemoryAddress));
+    if (mMemoryAddress == nullptr)
+    {
+      VmaAllocator allocator = FcLocator::Gpu().getAllocator();
+      VK_ASSERT(vmaMapMemory(allocator, mAllocation, &mMemoryAddress));
+    }
 
     return mMemoryAddress;
     // ?? The following method may also work with some research...
@@ -133,7 +135,7 @@ namespace  fc
   //
   VkDeviceAddress FcBuffer::getVkDeviceAddress() const
   {
-    // find the address fo the vertex buffer
+    // find the address for the vertex buffer
     VkBufferDeviceAddressInfo deviceAddressInfo{};
     deviceAddressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
     deviceAddressInfo.buffer = mBuffer;
@@ -167,7 +169,7 @@ namespace  fc
       //
       copyBuffer(cmd, stagingBuffer, dataSize, isTesting);
       //
-      stagingBuffer.destroy();
+      stagingBuffer.deferredDestroy();
     }
   }
 
@@ -227,22 +229,52 @@ namespace  fc
   // TODO
   void FcBuffer::overwriteData(void* sourceData, size_t dataSize, VkDeviceSize offset)
   {
-    void* memAddress;
-    VmaAllocator allocator = FcLocator::Gpu().getAllocator();
+    /* void* memAddress; */
 
-    VK_ASSERT(vmaMapMemory(allocator, mAllocation, &memAddress));
+    VmaAllocator allocator = FcLocator::Gpu().getAllocator();
+    // VK_ASSERT(vmaMapMemory(allocator, mAllocation, &mMemoryAddress));
+    // mMemoryAddress = (char*)mMemoryAddress + offset;
+
+    // memcpy(mMemoryAddress, sourceData, dataSize);
+
+    // vmaUnmapMemory(allocator, mAllocation);
+
 
     // ?? Note that the following function will also accomplish the same thing but
     // in a more robust manner -- though it may be a bit slower, this also flushes
     // memory when needed so should really look into.
-    //vmaCopyMemoryToAllocation(allocator, sourceData, mAllocation, offset, dataSize);
+    vmaCopyMemoryToAllocation(allocator, sourceData, mAllocation, offset, dataSize);
 
     // TODO also, SHould we just use this ??
     //mAllocation->GetMappedData();
-    memAddress = (char*)memAddress + offset;
+    // mMemoryAddress = (char*)mMemoryAddress + offset;
 
-    memcpy(memAddress, sourceData, dataSize);
-    vmaUnmapMemory(FcLocator::Gpu().getAllocator(), mAllocation);
+    // memcpy(mMemoryAddress, sourceData, dataSize);
+
+    //
+    /* fcPrintEndl("unmapping:"); */
+    //vmaUnmapMemory(allocator, mAllocation);
+    /* fcPrintEndl("unmaped:"); */
+// -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+
+    // void* memAddress;
+
+    // VmaAllocator allocator = FcLocator::Gpu().getAllocator();
+
+    // VK_ASSERT(vmaMapMemory(allocator, mAllocation, &memAddress));
+
+    // // ?? Note that the following function will also accomplish the same thing but
+    // // in a more robust manner -- though it may be a bit slower, this also flushes
+    // // memory when needed so should really look into.
+    // //vmaCopyMemoryToAllocation(allocator, sourceData, mAllocation, offset, dataSize);
+
+    // // TODO also, SHould we just use this ??
+    // //mAllocation->GetMappedData();
+    // memAddress = (char*)memAddress + offset;
+
+    // memcpy(memAddress, sourceData, dataSize);
+
+    // vmaUnmapMemory(allocator, mAllocation);
   } // --- FcBuffer::writeData (_) --- (END)
 
 
@@ -334,26 +366,49 @@ namespace  fc
 
 
   //
-  void FcBuffer::destroy()
+  void FcBuffer::setName(const char* name)
+  {
+    vmaSetAllocationName(FcLocator::Gpu().getAllocator(), mAllocation, name);
+  }
+
+
+  // TODO note how often this function gets called due to staging buffer and copy to swapchain etc...
+  // We should create a semi-permanent buffer specifically for swapchain copies...
+  void FcBuffer::deferredDestroy()
+  {
+    isDestroyed = true;
+    // Make sure we don't try and delete a non-allocated buffer
+    if (mBuffer == VK_NULL_HANDLE)
+      return;
+
+    if(mMemoryAddress != nullptr)
+    {
+      VmaAllocator allocator = FcLocator::Gpu().getAllocator();
+      vmaUnmapMemory(allocator, mAllocation);
+      mMemoryAddress = nullptr;
+    }
+
+    FcLocator::Janitor().deleteAfterDone(mBuffer, mAllocation, FcLocator::Renderer().getCurrentCommandBuffer());
+  }
+
+
+  //
+  void FcBuffer::immediateDestroy()
   {
     // Make sure we don't try and delete a non-allocated buffer
     if (mBuffer == VK_NULL_HANDLE)
       return;
 
-    // unmap any memory that is currently being addressed in VMA
     if(mMemoryAddress != nullptr)
     {
       VmaAllocator allocator = FcLocator::Gpu().getAllocator();
       vmaUnmapMemory(allocator, mAllocation);
+      mMemoryAddress = nullptr;
     }
 
-    // ?? also works!! I think the previous just defers the delete a little longer
-    /* submitHandle = mImmediateCommands.getLastSubmitHandle(); */
-    /* submitHandle = mImmediateCommands.getNextSubmitHandle(); */
-    FcLocator::Janitor().deleteAfterDone(mBuffer, mAllocation, FcLocator::Renderer().getCurrentCommandBuffer());
-
-    isDestroyed = true;
+    vmaDestroyBuffer(FcLocator::Gpu().getAllocator(), mBuffer, mAllocation);
   }
+
 
 
   // DELETE after test

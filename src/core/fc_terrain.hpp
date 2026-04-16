@@ -47,6 +47,8 @@ namespace fc
      uint32_t mNumPatches;
      void initPipelines();
    public:
+     /* ~FcTerrainRenderer(); */
+     void destroy();
      void init(std::filesystem::path filename);
      void update(VkCommandBuffer cmd, FcFrustum& frustum);
      void loadHeightmap(std::filesystem::path filename, uint32_t numPatches);

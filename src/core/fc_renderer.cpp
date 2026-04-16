@@ -89,9 +89,6 @@ namespace fc
       mDepthImage.createImage(screenSize.width, screenSize.height
                               ,FcImageTypes::DepthBuffer);
 
-      mDrawImage.shouldTrack = false;
-      mDepthImage.shouldTrack = false;
-
       // create the graphics pipeline && create/attach descriptors create the uniform
       // buffers & initialize the descriptor sets that tell the pipeline about our uniform
       // buffers here we want to create a descriptor set for each swapchain image we have
@@ -184,6 +181,7 @@ namespace fc
 
     // set the uniform buffer for the material data
     materialConstants.allocate(sizeof(MaterialConstants), FcBufferTypes::Uniform);
+    materialConstants.setName("Material Constants");
 
     // write the buffer
     MaterialConstants* materialUniformData =
@@ -647,24 +645,24 @@ namespace fc
   void FcRenderer::shutDown()
   {
     // wait until no actions being run on device before destroying
-    mJanitor.flushBuffers();
-
-    vkDeviceWaitIdle(pDevice);
-
+    materialConstants.immediateDestroy();
     mDrawCollection.destroy();
 
     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DEFAULTS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     FcDefaults::destroy();
 
-    // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   SCENE DATA   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+    // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   SUB-RENDERERS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
     mSceneRenderer.destroy();
+    mShadowRenderer.destroy();
     mBoundingBoxRenderer.destroy();
     mNormalRenderer.destroy();
     mBillboardRenderer.destroy();
+    mTerrainRenderer.destroy();
+    mSkybox.destroy();
 
-    /* vkDestroyDescriptorSetLayout(pDevice, mSceneDataDescriptorLayout, nullptr); */
+    // TODO may need placed elsewhere
+    mJanitor.flushBuffers();
 
-    // TODO should think about locating mImgGui into Descriptor Clerk
     FcLocator::DescriptorClerk().destroy();
 
     // close imGui
@@ -677,7 +675,7 @@ namespace fc
     mDrawImage.destroy();
     mDepthImage.destroy();
     //
-    mGpu.release(FcLocator::vkInstance());
+    mGpu.release();
 
     // if (enableValidationLayers)
     // {
