@@ -1,6 +1,7 @@
 //>--- fc_scene.cpp ---<//
 #include "fc_scene.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "core/fc_assert.hpp"
 #include "fc_renderer.hpp"
 #include "fc_locator.hpp"
 #include "fc_descriptors.hpp"
@@ -401,7 +402,6 @@ namespace fc
 
 
   //
-  //
   // TODO further extrapolate functions to reduce redundancies
   // Load all the textures and materials for a scene using descriptor indexing (bindless resources)
   void FcScene::bindlessLoadAllMaterials(FcDrawCollection& drawCollection,
@@ -409,53 +409,47 @@ namespace fc
                                          std::vector<std::shared_ptr<FcMaterial>>& materials,
                                          std::filesystem::path& parentPath)
   {
-    u32 textureOffset = drawCollection.mTextures.getFirstFreeIndex();
+    u32 numExistingTextures = drawCollection.mTextures.size();
 
     for (fastgltf::Texture& gltfTexture : gltf.textures)
     {
-      // ?? Doesn't seem very efficient to do it this way with the pool of memory set
-      // to all zeros when we have to initialize some members of the class, which we
-      // do within the getNextFree() function
-      FcImage* newTexture = drawCollection.mTextures.getNextFree();
-
-      if (newTexture == nullptr)
-      {
-        // TODO handle grow etc.
-        /* return textureIndex; */
-        throw std::runtime_error("invalid texture index");
-      }
+      FcImage newTexture;
 
       // Load the Texture image
-      newTexture->loadFromGltf(parentPath, gltf, gltf.images[gltfTexture.imageIndex.value()]);
+      newTexture.loadFromGltf(parentPath, gltf, gltf.images[gltfTexture.imageIndex.value()]);
 
       // Check that the glTF has a filter and if not, set a default
       if (gltfTexture.samplerIndex.has_value())
       {
-        newTexture->setSampler(gltf.samplers[gltfTexture.samplerIndex.value()]);
-      }
-      else
-      {
+        newTexture.setSampler(gltf.samplers[gltfTexture.samplerIndex.value()]);
+      } else {
         fastgltf::Sampler dummySampler;
         dummySampler.minFilter = fastgltf::Filter::Nearest;
         dummySampler.magFilter = fastgltf::Filter::Nearest;
-        newTexture->setSampler(dummySampler);
+        newTexture.setSampler(dummySampler);
       }
 
       // If image failed to load, assign default image so we can continue loading scene
-      if (!newTexture->isValid())
+      if (!newTexture.isValid())
       {
         // TEST by deleting some textures from a gltf
-        *newTexture = FcDefaults::Textures.checkerboard;
+        newTexture = FcDefaults::Textures.checkerboard;
         fcPrint("Failed to load texture: %s\n", gltfTexture.name.data());
       }
+
+      // TODO override -> operator so we can use like a pointer
+      FcHandle<FcImage> texHandle = drawCollection.mTextures.createElement(std::move(newTexture));
+      //
+      FC_ASSERT(texHandle.isValid());
 
       // TODO defer adding textures until we know we are not in the middle of a frame
       bool isBindlessSupported = true;
       if (isBindlessSupported)
       {
         ResourceUpdate resourceUpdate{ResourceDeletionType::Texture
-                                    , newTexture->Handle()
-                                    , drawCollection.stats.frame};
+                                    , drawCollection.stats.frame
+                                    , texHandle};
+
         drawCollection.bindlessTextureUpdates.push_back(resourceUpdate);
       }
     } //(END) -- for (fastgltf::Texture& gltfTexture : gltf.textures)
@@ -522,42 +516,37 @@ namespace fc
                                       dataBufferOffset, VK_SHADER_STAGE_FRAGMENT_BIT);
 
       // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   BINDLESS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-      size_t index;
-
       if (material.pbrData.baseColorTexture.has_value())
       {
-        index = material.pbrData.baseColorTexture.value().textureIndex + textureOffset;
-        constants.colorIndex = drawCollection.mTextures.get(index)->Handle();
+        constants.colorIndex = material.pbrData.baseColorTexture.value().textureIndex
+                               + numExistingTextures;
       }
 
       // *-*-*-*-*-*-*-*-*-*-*-*-   METALIC-ROUGHNESS TEXTURE   *-*-*-*-*-*-*-*-*-*-*-*- //
       if (material.pbrData.metallicRoughnessTexture.has_value())
       {
-        index = material.pbrData.metallicRoughnessTexture.value().textureIndex + textureOffset;
-        constants.metalRoughIndex = drawCollection.mTextures.get(index)->Handle();
+        constants.metalRoughIndex = material.pbrData.metallicRoughnessTexture.value().textureIndex
+                                    + numExistingTextures;
       }
 
       // -*-*-*-*-*-*-*-*-*-*-*-*-*-   NORMAL MAP TEXTURE   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
       if (material.normalTexture.has_value())
       {
-        index = material.normalTexture.value().textureIndex + textureOffset;
-        constants.normalIndex = drawCollection.mTextures.get(index)->Handle();
+        constants.normalIndex = material.normalTexture.value().textureIndex + numExistingTextures;
       }
 
       // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   OCCLUSION TEXTURE   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
       if (material.occlusionTexture.has_value())
       {
         // TODO show what materials a texture has within imGUI
-        index = material.occlusionTexture.value().textureIndex + textureOffset;
-        constants.occlusionIndex = drawCollection.mTextures.get(index)->Handle();
+        constants.occlusionIndex = material.occlusionTexture.value().textureIndex + numExistingTextures;
         constants.occlusionFactor = material.occlusionTexture.value().strength;
       }
 
       // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   EMMISSION TEXTURE   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
       if (material.emissiveTexture.has_value())
       {
-        index = material.emissiveTexture.value().textureIndex + textureOffset;
-        constants.emissiveIndex = drawCollection.mTextures.get(index)->Handle();
+        constants.emissiveIndex = material.emissiveTexture.value().textureIndex + numExistingTextures;
       }
 
       // *-*-*-*-*-*-*-*-*-*-   UNIMPLEMENTED MATERIAL PROPERTIES   *-*-*-*-*-*-*-*-*-*- //
@@ -626,325 +615,325 @@ namespace fc
                              std::vector<std::shared_ptr<FcMaterial>>& materials,
                              std::filesystem::path& parentPath)
   {
-    uint32_t size = 0;
+//     uint32_t size = 0;
 
-    u32 textureOffset = drawCollection.mTextures.getFirstFreeIndex();
+//     u32 textureOffset = drawCollection.mTextures.getFirstFreeIndex();
 
-    for (fastgltf::Image& gltfImage : gltf.images)
-    {
-      // ?? Doesn't seem very efficient to do it this way with the pool of memory set
-      // to all zeros when we have to initialize some members of the class
-      FcImage* newTexture = drawCollection.mTextures.getNextFree();
+//     for (fastgltf::Image& gltfImage : gltf.images)
+//     {
+//       // ?? Doesn't seem very efficient to do it this way with the pool of memory set
+//       // to all zeros when we have to initialize some members of the class
+//       FcImage* newTexture = drawCollection.mTextures.getNextFree();
 
-      if (newTexture == nullptr)
-      {
-        // TODO handle grow etc.
-        /* return textureIndex; */
-        throw std::runtime_error("invalid texture index");
-      }
+//       if (newTexture == nullptr)
+//       {
+//         // TODO handle grow etc.
+//         /* return textureIndex;
+//         throw std::runtime_error("invalid texture index");
+//       }
 
-      newTexture->loadFromGltf(parentPath, gltf, gltfImage);
+//       newTexture->loadFromGltf(parentPath, gltf, gltfImage);
 
-      if (!newTexture->isValid())
-      { // failed to load image so assign default image so we can continue loading scene
-        // TODO check that this is working properly by deleting some textures from a gltf
-        newTexture = &FcDefaults::Textures.checkerboard;
-        /* mTextures.push_back(FcDefaults::Textures.checkerboard); */
-        fcPrintEndl("Failed to load texture: %s", gltfImage.name.c_str());
-      }
+//       if (!newTexture->isValid())
+//       { // failed to load image so assign default image so we can continue loading scene
+//         // TODO check that this is working properly by deleting some textures from a gltf
+//         newTexture = &FcDefaults::Textures.checkerboard;
+//         /* mTextures.push_back(FcDefaults::Textures.checkerboard); */
+//         fcPrintEndl("Failed to load texture: %s", gltfImage.name.c_str());
+//       }
 
-      // // Add textures to draw collection to defer upload to GPU until we are no
-      // // longer drawing a frame.
-      // bool isBindlessSupported = true;
-      // if (isBindlessSupported)
-      // {
-      //   ResourceUpdate resourceUpdate{ResourceDeletionType::Texture
-      //                               , newTexture->Handle()
-      //                               , drawCollection.stats.frame};
-      //   drawCollection.bindlessTextureUpdates.push_back(resourceUpdate);
-      // }
+//       // // Add textures to draw collection to defer upload to GPU until we are no
+//       // // longer drawing a frame.
+//       // bool isBindlessSupported = true;
+//       // if (isBindlessSupported)
+//       // {
+//       //   ResourceUpdate resourceUpdate{ResourceDeletionType::Texture
+//       //                               , newTexture->Handle()
+//       //                               , drawCollection.stats.frame};
+//       //   drawCollection.bindlessTextureUpdates.push_back(resourceUpdate);
+//       // }
 
-      size++;
-    }
-
-
-    // Load samplers using helper functions that translate from OpenGL to vulkan specs
-    std::vector<VkSampler> samplers;
-
-    for (fastgltf::Sampler& sampler : gltf.samplers)
-    {
-      if (sampler.minFilter.has_value() && sampler.magFilter.has_value())
-      {
-        VkSamplerMipmapMode mipMode;
-        mipMode = extractMipmapMode(sampler.minFilter.value_or(fastgltf::Filter::Linear));
-
-        if (sampler.minFilter.value() == fastgltf::Filter::Nearest
-            && sampler.magFilter.value() == fastgltf::Filter::Nearest)
-        {
-          fcPrintEndl("USING NEAREST VKSAMPLER");
-          // Get a pointer to default nearest sampler
-          samplers.push_back(FcDefaults::Samplers.Nearest);
-        }
-        else
-        {
-          if (mipMode == VK_SAMPLER_MIPMAP_MODE_NEAREST)
-          {
-            fcPrintEndl("USING BILINEAR VKSAMPLER");
-            // Get a pointer to default linear sampler
-            samplers.push_back(FcDefaults::Samplers.Bilinear);
-          }
-          else if (mipMode == VK_SAMPLER_MIPMAP_MODE_LINEAR)
-          {
-            fcPrintEndl("USING TRILINEAR VKSAMPLER");
-            // Get a pointer to default linear sampler
-            samplers.push_back(FcDefaults::Samplers.Trilinear);
-          }
-          else
-          {
-            fcPrintEndl("USING LINEAR VKSAMPLER");
-            // Get a pointer to default linear sampler
-            samplers.push_back(FcDefaults::Samplers.Linear);
-          }
-        }
-      }
-      else
-      {
-        fcPrintEndl("USING DEFAULT VKSAMPLER");
-        // Get a pointer to default linear sampler
-        samplers.push_back(FcDefaults::Samplers.Trilinear);
-      }
-    }
+//       size++;
+//     }
 
 
+//     // Load samplers using helper functions that translate from OpenGL to vulkan specs
+//     std::vector<VkSampler> samplers;
 
-    /* throw std::runtime_error("STOPPING"); */
+//     for (fastgltf::Sampler& sampler : gltf.samplers)
+//     {
+//       if (sampler.minFilter.has_value() && sampler.magFilter.has_value())
+//       {
+//         VkSamplerMipmapMode mipMode;
+//         mipMode = extractMipmapMode(sampler.minFilter.value_or(fastgltf::Filter::Linear));
 
-    // Create buffer to hold the material data
-    mMaterialDataBuffer.allocate(sizeof(MaterialConstants) * gltf.materials.size()
-                                 , FcBufferTypes::Uniform);
-    mMaterialDataBuffer.setName("Material Data Buffer");
-
-    // MaterialConstants* sceneMaterialConstants =
-    //   static_cast<MaterialConstants*>(mMaterialDataBuffer.getAddress());
-
-    // -*-*-*-*-*-*-*-*-*-*-*-*-*-   LOAD ALL MATERIALS   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
-// Preallocate material vector
-    // TODO ?? eliminate materials in favor of two separate but equally sized vectors (vkDescriptorSet / type)
-
-    for (size_t i = 0; i < materials.size(); ++i)
-    {
-      materials[i] = std::make_shared<FcMaterial>();
-
-      // TODO could sort here by material (pipeline) and also perhaps alphaMode/alphaCutoff
-      fastgltf::Material& material = gltf.materials[i];
-
-      // Save the type of material so we can determine which pipeline to use later
-      if (material.alphaMode == fastgltf::AlphaMode::Blend)
-      {
-        //fcPrintEndl("Adding transparent material");
-        materials[i]->materialType = FcMaterial::Type::Transparent;
-      } else {
-        materials[i]->materialType = FcMaterial::Type::Opaque;
-      }
-
-      MaterialConstants constants;
-      constants.colorFactors.x = material.pbrData.baseColorFactor[0];
-      constants.colorFactors.y = material.pbrData.baseColorFactor[1];
-      constants.colorFactors.z = material.pbrData.baseColorFactor[2];
-      constants.colorFactors.w = material.pbrData.baseColorFactor[3];
-      // Metal Rough
-      constants.metalRoughFactors.x = material.pbrData.metallicFactor;
-      constants.metalRoughFactors.y = material.pbrData.roughnessFactor;
-      // Index of Refraction
-      constants.iorF0 = pow((1 - material.ior) / (1 + material.ior), 2);
-
-      // emmisive factors
-      constants.emmisiveFactors = glm::vec4(material.emissiveFactor.x()
-                                            , material.emissiveFactor.y()
-                                            , material.emissiveFactor.z()
-                                            , material.emissiveStrength);
+//         if (sampler.minFilter.value() == fastgltf::Filter::Nearest
+//             && sampler.magFilter.value() == fastgltf::Filter::Nearest)
+//         {
+//           fcPrintEndl("USING NEAREST VKSAMPLER");
+//           // Get a pointer to default nearest sampler
+//           samplers.push_back(FcDefaults::Samplers.Nearest);
+//         }
+//         else
+//         {
+//           if (mipMode == VK_SAMPLER_MIPMAP_MODE_NEAREST)
+//           {
+//             fcPrintEndl("USING BILINEAR VKSAMPLER");
+//             // Get a pointer to default linear sampler
+//             samplers.push_back(FcDefaults::Samplers.Bilinear);
+//           }
+//           else if (mipMode == VK_SAMPLER_MIPMAP_MODE_LINEAR)
+//           {
+//             fcPrintEndl("USING TRILINEAR VKSAMPLER");
+//             // Get a pointer to default linear sampler
+//             samplers.push_back(FcDefaults::Samplers.Trilinear);
+//           }
+//           else
+//           {
+//             fcPrintEndl("USING LINEAR VKSAMPLER");
+//             // Get a pointer to default linear sampler
+//             samplers.push_back(FcDefaults::Samplers.Linear);
+//           }
+//         }
+//       }
+//       else
+//       {
+//         fcPrintEndl("USING DEFAULT VKSAMPLER");
+//         // Get a pointer to default linear sampler
+//         samplers.push_back(FcDefaults::Samplers.Trilinear);
+//       }
+//     }
 
 
-      // TODO look into specular colors... These checks fail w/ seg fault on material.specular
-      // if (material.specular->specularTexture.has_value())
-      // {
-      //   fcLog("Has unused specular texture!");
-      // }
 
-      // if (material.specular->specularColorTexture.has_value())
-      // {
-      //   fcLog("Has unused specular color texture!");
-      // }
+//     /* throw std::runtime_error("STOPPING"); */
 
-      uint32_t dataBufferOffset = i * sizeof(MaterialConstants);
-      FcDescriptors descriptors;
-      descriptors.attachUniformBuffer(0, mMaterialDataBuffer, sizeof(MaterialConstants),
-                                      dataBufferOffset, VK_SHADER_STAGE_FRAGMENT_BIT);
+//     // Create buffer to hold the material data
+//     mMaterialDataBuffer.allocate(sizeof(MaterialConstants) * gltf.materials.size()
+//                                  , FcBufferTypes::Uniform);
+//     mMaterialDataBuffer.setName("Material Data Buffer");
 
-      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   BINDED APPROACH   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+//     // MaterialConstants* sceneMaterialConstants =
+//     //   static_cast<MaterialConstants*>(mMaterialDataBuffer.getAddress());
 
-      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   COLOR TEXTURE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-      if (material.pbrData.baseColorTexture.has_value())
-      {
-        // Indicate that our material has a color texture available
-        constants.flags |= MaterialFeatures::HasColorTexture;
-        //
-        size_t index = material.pbrData.baseColorTexture.value().textureIndex;
-        size_t imageIndex = gltf.textures[index].imageIndex.value();
-        size_t samplerIndex = gltf.textures[index].samplerIndex.value();
+//     // -*-*-*-*-*-*-*-*-*-*-*-*-*-   LOAD ALL MATERIALS   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// // Preallocate material vector
+//     // TODO ?? eliminate materials in favor of two separate but equally sized vectors (vkDescriptorSet / type)
 
-        descriptors.attachImage(1, *drawCollection.mTextures.get(textureOffset + imageIndex),
-                                samplers[samplerIndex], VK_SHADER_STAGE_FRAGMENT_BIT);
-      }
-      else // set to defualt texture/sampler/values if none exist in material
-      {
-        descriptors.attachImage(1, FcDefaults::Textures.checkerboard,
-                                FcDefaults::Samplers.Linear, VK_SHADER_STAGE_FRAGMENT_BIT);
-      }
+//     for (size_t i = 0; i < materials.size(); ++i)
+//     {
+//       materials[i] = std::make_shared<FcMaterial>();
 
-      // *-*-*-*-*-*-*-*-*-*-*-*-   METALIC-ROUGHNESS TEXTURE   *-*-*-*-*-*-*-*-*-*-*-*- //
-      if (material.pbrData.metallicRoughnessTexture.has_value())
-      {
-        constants.flags |= MaterialFeatures::HasRoughMetalTexture;
+//       // TODO could sort here by material (pipeline) and also perhaps alphaMode/alphaCutoff
+//       fastgltf::Material& material = gltf.materials[i];
 
-        size_t index = material.pbrData.metallicRoughnessTexture.value().textureIndex;
-        size_t imageIndex = gltf.textures[index].imageIndex.value();
-        size_t samplerIndex = gltf.textures[index].samplerIndex.value();
+//       // Save the type of material so we can determine which pipeline to use later
+//       if (material.alphaMode == fastgltf::AlphaMode::Blend)
+//       {
+//         //fcPrintEndl("Adding transparent material");
+//         materials[i]->materialType = FcMaterial::Type::Transparent;
+//       } else {
+//         materials[i]->materialType = FcMaterial::Type::Opaque;
+//       }
 
-        descriptors.attachImage(2, *drawCollection.mTextures.get(textureOffset + imageIndex),
-                                samplers[samplerIndex], VK_SHADER_STAGE_FRAGMENT_BIT);
-      }
-      else // set to defualt texture/sampler/values if none exist in material
-      {
-        descriptors.attachImage(2, FcDefaults::Textures.white,
-                                FcDefaults::Samplers.Linear, VK_SHADER_STAGE_FRAGMENT_BIT);
-      }
+//       MaterialConstants constants;
+//       constants.colorFactors.x = material.pbrData.baseColorFactor[0];
+//       constants.colorFactors.y = material.pbrData.baseColorFactor[1];
+//       constants.colorFactors.z = material.pbrData.baseColorFactor[2];
+//       constants.colorFactors.w = material.pbrData.baseColorFactor[3];
+//       // Metal Rough
+//       constants.metalRoughFactors.x = material.pbrData.metallicFactor;
+//       constants.metalRoughFactors.y = material.pbrData.roughnessFactor;
+//       // Index of Refraction
+//       constants.iorF0 = pow((1 - material.ior) / (1 + material.ior), 2);
 
-      // -*-*-*-*-*-*-*-*-*-*-*-*-*-   NORMAL MAP TEXTURE   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
-      if (material.normalTexture.has_value())
-      {
-        constants.flags |= MaterialFeatures::HasNormalTexture;
+//       // emmisive factors
+//       constants.emmisiveFactors = glm::vec4(material.emissiveFactor.x()
+//                                             , material.emissiveFactor.y()
+//                                             , material.emissiveFactor.z()
+//                                             , material.emissiveStrength);
 
-        size_t index = material.normalTexture.value().textureIndex;
-        size_t imageIndex = gltf.textures[index].imageIndex.value();
-        size_t samplerIndex = gltf.textures[index].samplerIndex.value();
-        //
-        descriptors.attachImage(3, *drawCollection.mTextures.get(textureOffset + imageIndex),
-                                samplers[samplerIndex], VK_SHADER_STAGE_FRAGMENT_BIT);
-      }
-      else  // set to defualt texture/sampler/values if none exist in material
-      {
-        descriptors.attachImage(3, FcDefaults::Textures.white,
-                                FcDefaults::Samplers.Linear, VK_SHADER_STAGE_FRAGMENT_BIT);
-      }
 
-      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   OCCLUSION TEXTURE   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-      if (material.occlusionTexture.has_value())
-      {
-        constants.flags |= MaterialFeatures::HasOcclusionTexture;
+//       // TODO look into specular colors... These checks fail w/ seg fault on material.specular
+//       // if (material.specular->specularTexture.has_value())
+//       // {
+//       //   fcLog("Has unused specular texture!");
+//       // }
 
-        // TODO show what materials a texture has within imGUI
-        fcPrintEndl("Model has Occlusion Map Texture: (Scale = %f, Default = 1)",
-                    material.occlusionTexture->strength);
+//       // if (material.specular->specularColorTexture.has_value())
+//       // {
+//       //   fcLog("Has unused specular color texture!");
+//       // }
 
-        size_t index = material.occlusionTexture.value().textureIndex;
-        size_t imageIndex = gltf.textures[index].imageIndex.value();
-        size_t samplerIndex = gltf.textures[index].samplerIndex.value();
+//       uint32_t dataBufferOffset = i * sizeof(MaterialConstants);
+//       FcDescriptors descriptors;
+//       descriptors.attachUniformBuffer(0, mMaterialDataBuffer, sizeof(MaterialConstants),
+//                                       dataBufferOffset, VK_SHADER_STAGE_FRAGMENT_BIT);
 
-        descriptors.attachImage(4, *drawCollection.mTextures.get(textureOffset + imageIndex),
-                                samplers[samplerIndex], VK_SHADER_STAGE_FRAGMENT_BIT);
+//       // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-   BINDED APPROACH   -*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
-        // Occlusion Factors
-        constants.occlusionFactor = material.occlusionTexture.value().strength;
-      }
-      else // set to defualt texture/sampler/values if none exist in material
-      {
-        descriptors.attachImage(4, FcDefaults::Textures.white,
-                                FcDefaults::Samplers.Linear, VK_SHADER_STAGE_FRAGMENT_BIT);
+//       // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   COLOR TEXTURE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+//       if (material.pbrData.baseColorTexture.has_value())
+//       {
+//         // Indicate that our material has a color texture available
+//         constants.flags |= MaterialFeatures::HasColorTexture;
+//         //
+//         size_t index = material.pbrData.baseColorTexture.value().textureIndex;
+//         size_t imageIndex = gltf.textures[index].imageIndex.value();
+//         size_t samplerIndex = gltf.textures[index].samplerIndex.value();
 
-        //TODO verify what to set default as
-        constants.occlusionFactor = 1.0f;
-      }
+//         descriptors.attachImage(1, *drawCollection.mTextures.get(textureOffset + imageIndex),
+//                                 samplers[samplerIndex], VK_SHADER_STAGE_FRAGMENT_BIT);
+//       }
+//       else // set to defualt texture/sampler/values if none exist in material
+//       {
+//         descriptors.attachImage(1, FcDefaults::Textures.checkerboard,
+//                                 FcDefaults::Samplers.Linear, VK_SHADER_STAGE_FRAGMENT_BIT);
+//       }
 
-      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   EMMISSION TEXTURE   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-      if (material.emissiveTexture.has_value())
-      {
-        constants.flags |= MaterialFeatures::HasEmissiveTexture;
+//       // *-*-*-*-*-*-*-*-*-*-*-*-   METALIC-ROUGHNESS TEXTURE   *-*-*-*-*-*-*-*-*-*-*-*- //
+//       if (material.pbrData.metallicRoughnessTexture.has_value())
+//       {
+//         constants.flags |= MaterialFeatures::HasRoughMetalTexture;
 
-        fcPrintEndl("Model has Emmision Map Texture...");
-        size_t index = material.emissiveTexture.value().textureIndex;
-        size_t imageIndex = gltf.textures[index].imageIndex.value();
-        size_t samplerIndex = gltf.textures[index].samplerIndex.value();
+//         size_t index = material.pbrData.metallicRoughnessTexture.value().textureIndex;
+//         size_t imageIndex = gltf.textures[index].imageIndex.value();
+//         size_t samplerIndex = gltf.textures[index].samplerIndex.value();
 
-        descriptors.attachImage(5, *drawCollection.mTextures.get(textureOffset + imageIndex),
-                                samplers[samplerIndex], VK_SHADER_STAGE_FRAGMENT_BIT);
-      }
-      else // set to defualt texture/sampler/values if none exist in material
-      {
-	descriptors.attachImage(5, FcDefaults::Textures.black,
-                                FcDefaults::Samplers.Linear, VK_SHADER_STAGE_FRAGMENT_BIT);
-      }
+//         descriptors.attachImage(2, *drawCollection.mTextures.get(textureOffset + imageIndex),
+//                                 samplers[samplerIndex], VK_SHADER_STAGE_FRAGMENT_BIT);
+//       }
+//       else // set to defualt texture/sampler/values if none exist in material
+//       {
+//         descriptors.attachImage(2, FcDefaults::Textures.white,
+//                                 FcDefaults::Samplers.Linear, VK_SHADER_STAGE_FRAGMENT_BIT);
+//       }
 
-      // *-*-*-*-*-*-*-*-*-*-   UNIMPLEMENTED MATERIAL PROPERTIES   *-*-*-*-*-*-*-*-*-*- //
-      // fcPrintEndl("--------------------------------------------------------------\n";
-      // fcPrintEndl("Unimplemented properties for material - " << material.name << " :\n";
-      if (material.alphaMode == fastgltf::AlphaMode::Mask)
-      {
-        // TODO implement alpha flag for material and within pipeline (see below)
-        if (material.alphaCutoff != 0.0)
-        {
-          // TODO implement alpha flag for material and within pipeline
-          // TODO check and make sure that this property is always within alphaMode
-        }
-      }
-      if (material.sheen != nullptr)
-      {
-        fcPrintEndl("Unimplemented Sheen Data");
-        if (material.sheen->sheenColorTexture.has_value())
-        {
-          fcPrintEndl("Unimplemented Sheen Color Texture");
-        }
-      }
+//       // -*-*-*-*-*-*-*-*-*-*-*-*-*-   NORMAL MAP TEXTURE   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
+//       if (material.normalTexture.has_value())
+//       {
+//         constants.flags |= MaterialFeatures::HasNormalTexture;
 
-      if (material.transmission != nullptr)
-      {
-        if (material.transmission->transmissionTexture.has_value())
-        {
-          fcPrintEndl("Unimplemented Transmission Data");
-        }
+//         size_t index = material.normalTexture.value().textureIndex;
+//         size_t imageIndex = gltf.textures[index].imageIndex.value();
+//         size_t samplerIndex = gltf.textures[index].samplerIndex.value();
+//         //
+//         descriptors.attachImage(3, *drawCollection.mTextures.get(textureOffset + imageIndex),
+//                                 samplers[samplerIndex], VK_SHADER_STAGE_FRAGMENT_BIT);
+//       }
+//       else  // set to defualt texture/sampler/values if none exist in material
+//       {
+//         descriptors.attachImage(3, FcDefaults::Textures.white,
+//                                 FcDefaults::Samplers.Linear, VK_SHADER_STAGE_FRAGMENT_BIT);
+//       }
 
-        float transmission = material.transmission->transmissionFactor;
-        fcPrintEndl("Unimplemented transmission factor: %f", transmission);
-      }
-      if (material.clearcoat != nullptr)
-      {
-        fcPrintEndl("Unimplemented Clearcoat Data");
-      }
-      if (material.anisotropy != nullptr)
-      {
-        fcPrintEndl("Unimplemented Anisotropy Data");
-      }
-      if (material.iridescence != nullptr)
-      {
-        fcPrintEndl("Unimplemented Iridescence Data");
-      }
+//       // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   OCCLUSION TEXTURE   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+//       if (material.occlusionTexture.has_value())
+//       {
+//         constants.flags |= MaterialFeatures::HasOcclusionTexture;
 
-      // Write material parameters to buffer.
-      // TODO rename to newMaterialConstants
-      MaterialConstants* sceneMaterialConstants =
-      static_cast<MaterialConstants*>(mMaterialDataBuffer.getAddress());
-      sceneMaterialConstants[i] = constants;
+//         // TODO show what materials a texture has within imGUI
+//         fcPrintEndl("Model has Occlusion Map Texture: (Scale = %f, Default = 1)",
+//                     material.occlusionTexture->strength);
 
-      // TODO make the ubo descriptor set the same for all materials:
-      // perhaps store an addressable buffer within the the GPU mem:
+//         size_t index = material.occlusionTexture.value().textureIndex;
+//         size_t imageIndex = gltf.textures[index].imageIndex.value();
+//         size_t samplerIndex = gltf.textures[index].samplerIndex.value();
 
-      // Build descriptor sets for each material
-      materials[i]->materialSet = descriptors.createDescriptorSet();
-      // materials[i]->materialSet
-      //   = FcLocator::DescriptorClerk().createDescriptorSet(mMaterialDescriptorLayout, bindInfo);
+//         descriptors.attachImage(4, *drawCollection.mTextures.get(textureOffset + imageIndex),
+//                                 samplers[samplerIndex], VK_SHADER_STAGE_FRAGMENT_BIT);
 
-      /* newMaterial->data = renderer->mSceneRenderer.writeMaterial(pDevice, passType, materialResources); */
-    }
+//         // Occlusion Factors
+//         constants.occlusionFactor = material.occlusionTexture.value().strength;
+//       }
+//       else // set to defualt texture/sampler/values if none exist in material
+//       {
+//         descriptors.attachImage(4, FcDefaults::Textures.white,
+//                                 FcDefaults::Samplers.Linear, VK_SHADER_STAGE_FRAGMENT_BIT);
+
+//         //TODO verify what to set default as
+//         constants.occlusionFactor = 1.0f;
+//       }
+
+//       // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   EMMISSION TEXTURE   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+//       if (material.emissiveTexture.has_value())
+//       {
+//         constants.flags |= MaterialFeatures::HasEmissiveTexture;
+
+//         fcPrintEndl("Model has Emmision Map Texture...");
+//         size_t index = material.emissiveTexture.value().textureIndex;
+//         size_t imageIndex = gltf.textures[index].imageIndex.value();
+//         size_t samplerIndex = gltf.textures[index].samplerIndex.value();
+
+//         descriptors.attachImage(5, *drawCollection.mTextures.get(textureOffset + imageIndex),
+//                                 samplers[samplerIndex], VK_SHADER_STAGE_FRAGMENT_BIT);
+//       }
+//       else // set to defualt texture/sampler/values if none exist in material
+//       {
+// 	descriptors.attachImage(5, FcDefaults::Textures.black,
+//                                 FcDefaults::Samplers.Linear, VK_SHADER_STAGE_FRAGMENT_BIT);
+//       }
+
+//       // *-*-*-*-*-*-*-*-*-*-   UNIMPLEMENTED MATERIAL PROPERTIES   *-*-*-*-*-*-*-*-*-*- //
+//       // fcPrintEndl("--------------------------------------------------------------\n";
+//       // fcPrintEndl("Unimplemented properties for material - " << material.name << " :\n";
+//       if (material.alphaMode == fastgltf::AlphaMode::Mask)
+//       {
+//         // TODO implement alpha flag for material and within pipeline (see below)
+//         if (material.alphaCutoff != 0.0)
+//         {
+//           // TODO implement alpha flag for material and within pipeline
+//           // TODO check and make sure that this property is always within alphaMode
+//         }
+//       }
+//       if (material.sheen != nullptr)
+//       {
+//         fcPrintEndl("Unimplemented Sheen Data");
+//         if (material.sheen->sheenColorTexture.has_value())
+//         {
+//           fcPrintEndl("Unimplemented Sheen Color Texture");
+//         }
+//       }
+
+//       if (material.transmission != nullptr)
+//       {
+//         if (material.transmission->transmissionTexture.has_value())
+//         {
+//           fcPrintEndl("Unimplemented Transmission Data");
+//         }
+
+//         float transmission = material.transmission->transmissionFactor;
+//         fcPrintEndl("Unimplemented transmission factor: %f", transmission);
+//       }
+//       if (material.clearcoat != nullptr)
+//       {
+//         fcPrintEndl("Unimplemented Clearcoat Data");
+//       }
+//       if (material.anisotropy != nullptr)
+//       {
+//         fcPrintEndl("Unimplemented Anisotropy Data");
+//       }
+//       if (material.iridescence != nullptr)
+//       {
+//         fcPrintEndl("Unimplemented Iridescence Data");
+//       }
+
+//       // Write material parameters to buffer.
+//       // TODO rename to newMaterialConstants
+//       MaterialConstants* sceneMaterialConstants =
+//       static_cast<MaterialConstants*>(mMaterialDataBuffer.getAddress());
+//       sceneMaterialConstants[i] = constants;
+
+//       // TODO make the ubo descriptor set the same for all materials:
+//       // perhaps store an addressable buffer within the the GPU mem:
+
+//       // Build descriptor sets for each material
+//       materials[i]->materialSet = descriptors.createDescriptorSet();
+//       // materials[i]->materialSet
+//       //   = FcLocator::DescriptorClerk().createDescriptorSet(mMaterialDescriptorLayout, bindInfo);
+
+//       /* newMaterial->data = renderer->mSceneRenderer.writeMaterial(pDevice, passType, materialResources); */
+//     }
   }
 
   //

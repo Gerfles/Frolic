@@ -5,7 +5,6 @@
 #include "core/fc_cvar_system.hpp"
 #include "core/fc_light.hpp"
 #include "core/fc_locator.hpp"
-#include "core/fc_pool.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "imgui_impl_sdl2.h"
 #include <SDL_log.h>
@@ -175,7 +174,8 @@ namespace fc
     // system in which we can swap out draw collections...
 
     std::shared_ptr<FcBillboard> sunBillboard = std::make_shared<FcBillboard>();
-    sunBillboard->loadTexture(mRenderer, 1., 1., "..//textures//sun.png");
+    sunBillboard->loadTexture(mRenderer.DrawCollection(), 1., 1., "..//textures//sun.png");
+    /* sunBillboard->loadTexture(mRenderer, 1., 1., "..//textures//sun.png"); */
 
     // TODO add logic that trims the sunlight position to near the objects needing shadows
     // TODO set sun position as absolute -> not direction;

@@ -1,6 +1,7 @@
 //>--- fc_renderer.cpp ---<//
 #include "fc_renderer.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "core/log.hpp"
 #include "fc_locator.hpp"
 #include "fc_assert.hpp"
 #include "fc_descriptors.hpp"
@@ -16,6 +17,7 @@
 #include <SDL_version.h>
 #include <imgui_impl_sdl2.h>
 #include <imgui_impl_vulkan.h>
+#include<cmath>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* //
 
 
@@ -565,7 +567,6 @@ namespace fc
     // mDrawCollection.stats.frame = mFrameNumber;
   }
 
-
   // ?? would this be better placed in descriptor class
   void FcRenderer::updateBindlessDescriptors()
   {
@@ -575,68 +576,70 @@ namespace fc
     // TODO find out how many/often we update DSs
     if (mDrawCollection.bindlessTextureUpdates.size())
     {
+      // TODO utilize pre-allocated vectors instead
       VkWriteDescriptorSet bindlessDescriptorWrites[MAX_BINDLESS_RESOURCES];
       VkDescriptorImageInfo bindlessImageInfos[MAX_BINDLESS_RESOURCES];
 
       u32 currentWriteIndex = 0;
 
-      for (i32 i = mDrawCollection.bindlessTextureUpdates.size() - 1; i >= 0; --i)
+      // using signed integer here so
+      for (size_t i = mDrawCollection.bindlessTextureUpdates.size(); i > 0; --i)
       {
-        ResourceUpdate& textureToUpdate = mDrawCollection.bindlessTextureUpdates[i];
+        ResourceUpdate& update = mDrawCollection.bindlessTextureUpdates[i - 1];
 
         // TRY only doing under the following circumstance
         /* if (textureToUpdate.current_frame == current_frame) */
         VkWriteDescriptorSet& descriptorWrite = bindlessDescriptorWrites[currentWriteIndex];
         descriptorWrite = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-        descriptorWrite.descriptorCount = 1;
-        descriptorWrite.dstArrayElement = textureToUpdate.handle;
         descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         descriptorWrite.dstBinding = BINDLESS_DESCRIPTOR_SLOT;
+        descriptorWrite.descriptorCount = 1;
+        descriptorWrite.dstArrayElement = update.textureHandle.index();
 
         FcImage* texture;
-        /* FCASSERT(textureToUpdate.handle == texture->Handle()); */
+        texture = mDrawCollection.mTextures.getElement(update.textureHandle);
 
-        if (textureToUpdate.type == ResourceDeletionType::Texture)
+        if (update.type == ResourceDeletionType::Texture)
         {
+          // DELETE in favor of commented out one ??
           /* descriptorWrite.dstSet = *mDescriptorCollection.sceneBindlessTextureSet; */
-          // DELETE in favor of above ??
           descriptorWrite.dstSet = mSceneRenderer.getSceneDescSet();
-          texture = mDrawCollection.mTextures.get(textureToUpdate.handle);
         }
-        else if (textureToUpdate.type == ResourceDeletionType::Billboard)
+        else if (update.type == ResourceDeletionType::Billboard)
         {
           descriptorWrite.dstSet = *mDescriptorCollection.billboardDescriptorSet;
-          texture = mDrawCollection.mBillboards.get(textureToUpdate.handle);
         }
         else
         {
-          fcPrintEndl("Failed to Update Bindless Resource: ");
-          /* std::cout << " << textureToUpdate.handle << std::endl; */
+          FC_DEBUG_LOG_FORMAT("FAILED: to update bindless resource: %u", update.textureHandle);
           descriptorWrite.dstSet = *mDescriptorCollection.billboardDescriptorSet;
           texture = &FcDefaults::Textures.checkerboard;
         }
 
         VkDescriptorImageInfo& imageInfo = bindlessImageInfos[currentWriteIndex];
-        // TODO provide dummy image view
         imageInfo.imageView = texture->ImageView();
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.sampler = texture->hasSampler() ?
-                            texture->Sampler() : FcDefaults::Samplers.Linear;
+        imageInfo.sampler = texture->hasSampler() ? texture->Sampler() : FcDefaults::Samplers.Linear;
 
         descriptorWrite.pImageInfo = &imageInfo;
-        //
+
         ++currentWriteIndex;
 
-        textureToUpdate.currentFrame = U32_MAX;
-        uint32_t size = mDrawCollection.bindlessTextureUpdates.size();
-        mDrawCollection.bindlessTextureUpdates[i] = mDrawCollection.bindlessTextureUpdates[size - 1];
+        update.currentFrame = U32_MAX;
+
+        // ?? not sure what this is trying to accomplish
+        /* uint32_t size = mDrawCollection.bindlessTextureUpdates.size(); */
+        /* mDrawCollection.bindlessTextureUpdates[i - 1] = mDrawCollection.bindlessTextureUpdates[size - 1]; */
+
         mDrawCollection.bindlessTextureUpdates.pop_back();
       }
 
-      // BUG tries to update destroyed descriptor sets
       vkUpdateDescriptorSets(pDevice, currentWriteIndex, bindlessDescriptorWrites, 0, nullptr);
     }
 
+    // Finally get rid of any descriptor set layouts we've had laying around waiting for descriptor sets
+    // to update. NOTE: even though it seems that the descriptor set layouts are no longer needed once
+    // the descriptor sets are created, vulkan has chosen to tightly couple the two and lacking good documentation
     mJanitor.flushDescLayouts();
   }
 

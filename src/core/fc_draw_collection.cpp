@@ -11,8 +11,10 @@ namespace fc
   void FcDrawCollection::init(FcAllocator* allocator)
   {
     // TODO more flexible initialization of draw collection
-    mTextures.init(allocator, 512);
-    mBillboards.init(allocator, 512);
+    /* mTextures.init(allocator, 512); */
+    mTextures.init(512);
+    // FIXME restore this optional functionality...
+    /* mBillboards.init(allocator, 512); */
   }
 
   // TODO update to work on all surfaces (opaque or transparent)
@@ -104,11 +106,16 @@ namespace fc
 
     // }
 
-    mTextures.freeAll();
-    mTextures.shutdown();
+    // mTextures.freeAll();
+    // mTextures.shutdown();
+    // mBillboards.freeAll();
+    // mBillboards.shutdown();
 
-    mBillboards.freeAll();
-    mBillboards.shutdown();
+    // BUG make sure the clear function destroys the image or place that functionality within DTOR
+    /* mBillboards.clear(); */
+    mTextures.clear();
+
+
   }
 
 

@@ -1,57 +1,53 @@
 //>_ fc_billboard.cpp _<//
 #include "fc_billboard.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "fc_renderer.hpp"
+#include "fc_assert.hpp"
+#include "fc_handle.hpp"
+#include "fc_draw_collection.hpp"
 #include "fc_defaults.hpp"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
 
-
 namespace fc
 {
-  //
-  //
-  void FcBillboard::loadTexture(FcRenderer& renderer, float width,
-                                float height, std::string_view filename)
+void FcBillboard::loadTexture(FcDrawCollection& drawCollection, float width,
+                                   float height, std::string_view filename) noexcept
   {
     mWidth = width;
     mHeight = height;
 
-    FcDrawCollection& drawCollection = renderer.DrawCollection();
-    FcImage* newTexture = drawCollection.mBillboards.getNextFree();
-
-    // TODO check that we only need to throw error in one place and the other make noexcept
-    if (newTexture == nullptr)
-    {
-      throw std::runtime_error("Invalid texture index!");
-    }
-
     std::filesystem::path file{filename};
-    newTexture->loadStbi(file, FcImageTypes::Texture);
 
-    if ( ! newTexture->isValid())
+    FcImage billboardTexture;
+    billboardTexture.loadStbi(file, FcImageTypes::Texture);
+
+    if (! billboardTexture.isValid())
     {
       // failed to load image so assign default image so we can continue loading scene
-      *newTexture = FcDefaults::Textures.checkerboard;
-      fcPrintEndl("Failed to load texture: %s", filename);
+      billboardTexture = FcDefaults::Textures.checkerboard;
+      FC_DEBUG_LOG_FORMAT("Failed to load texture: %s", filename);
     }
 
-    // TODO provide non-bindless alternate path
+    // Get the handle assigned via resource pool
+    /* FcHandle<FcImage> imgHandle = drawCollection.mBillboards.createElement(std::move(billboardTexture)); */
+    FcHandle<FcImage> imgHandle = drawCollection.mTextures.createElement(std::move(billboardTexture));
+    FC_ASSERT(imgHandle.isValid());
+
+    // TODO check via configurations
     bool isBindlessSupported = true;
     if (isBindlessSupported)
     {
-      uint32_t handle = newTexture->Handle();
-      mTextureIndex = handle;
       ResourceUpdate resourceUpdate{ResourceDeletionType::Billboard
-                                  , handle
-                                  , drawCollection.stats.frame};
+                                  , drawCollection.stats.frame
+                                  , imgHandle};
 
       drawCollection.bindlessTextureUpdates.push_back(resourceUpdate);
     }
     else
     {
+      // TODO Implement
       // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   NON-BINDLESS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-      // newTexture->loadStbi(filename, FcImageTypes::Texture);
+      // newTexture->loadStbi(filename, FcImageTypes::imgHandle);
       // FcDescriptorBindInfo descriptorInfo;
       // descriptorInfo.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
       //                           VK_SHADER_STAGE_FRAGMENT_BIT);

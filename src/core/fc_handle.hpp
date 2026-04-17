@@ -26,7 +26,6 @@ namespace fc
      /* template<typename mObjectType, typename ImplObjectType> friend class pool; */
      template<typename ObjectT> friend class FcPool;
 
-
    public:
      FcHandle() = default;
      //
@@ -48,6 +47,8 @@ namespace fc
      inline bool operator!=(const FcHandle<ObjectType>& other) const noexcept
       { return mIndex != other.mIndex || mGeneration != other.mGeneration; }
      //
+     // TODO
+     /* inline ObjectType* operator->() { return *} */
      // explicit conversion to bool so we can use in cond. statements as "if(handle)..."
      inline explicit operator bool() const noexcept { return mGeneration != 0; }
   };
@@ -58,6 +59,7 @@ namespace fc
   // Ensure type safety
   /* using FcSamplerHandle = FcHandle<struct Sampler>; */
   using FcBufferHandle = FcHandle<struct FcBuffer>;
+  using FcImageHandle = FcHandle<struct FcImage>;
   /* using FcTextureHandle = FcHandle<struct Texture>; */
 
 

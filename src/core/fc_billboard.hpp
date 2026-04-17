@@ -1,13 +1,11 @@
 //>--- fc_billboard.hpp ---<//
 #pragma once
-// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-#include "platform.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <glm/vec3.hpp>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <string_view>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FWD DECL'S   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-namespace fc { class FcRenderer; }
+namespace fc { class FcDrawCollection; class FcRenderer; }
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
 
@@ -20,20 +18,19 @@ namespace fc
      glm::vec3 mPosition;
      float mWidth;
      float mHeight;
-     u32 mTextureIndex;
 
    public:
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CTORS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     // Make sure we have to supply the width and height for the newly constructed billboard
      FcBillboard& operator=(const FcBillboard&) = delete;
      FcBillboard(const FcBillboard&) = delete;
      FcBillboard(FcBillboard&&) = delete;
      FcBillboard& operator=(FcBillboard&&) = delete;
-     //
-     inline FcBillboard(float width = 1.0f, float height = 1.0f) noexcept
+     FcBillboard(float width = 1.0f, float height = 1.0f)
        : mWidth{width} , mHeight{height} {}
-
+     //
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   MUTATORS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-     void loadTexture(FcRenderer& renderer, float width,float height, std::string_view filename);
+     void loadTexture(FcDrawCollection& drawCollection, float width,float height, std::string_view filename) noexcept;
      //
      inline void setPosition(const glm::vec3& position) noexcept { mPosition = position; }
      //

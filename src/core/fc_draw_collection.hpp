@@ -1,6 +1,7 @@
 //>---  fc_draw_collection.hpp  ---<//
 #pragma once
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "core/fc_pool.hpp"
 #include "fc_resource_pool.hpp"
 #include "fc_resources.hpp"
 #include "fc_image.hpp"
@@ -18,8 +19,8 @@ namespace fc
   struct ResourceUpdate
   {
      ResourceDeletionType type;
-     Handle handle;
      u32 currentFrame;
+     FcHandle<FcImage> textureHandle;
   };
 
 
@@ -50,8 +51,7 @@ namespace fc
      std::vector<RenderObject> opaqueSurfaces;
      std::vector<RenderObject> transparentSurfaces;
      std::vector<std::vector<size_t>> visibleSurfaceIndices;
-     ResourcePoolTyped<FcImage> mTextures;
-     ResourcePoolTyped<FcImage> mBillboards;
+     FcPool<FcImage> mTextures;
      FcStats stats;
      u32 numSurfaces{0};
 

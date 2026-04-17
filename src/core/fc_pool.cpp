@@ -1,6 +1,7 @@
 //>--- fc_pool.cpp ---<//
 #include "fc_pool.hpp"
 #include "core/fc_assert.hpp"
+#include "fc_image.hpp"
 #include "fc_buffer.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -32,7 +33,6 @@ namespace fc
 
     return FcHandle<ElementT>(index, mElements[index].generation_);
   }
-
 
   //
   template <typename PoolT>
@@ -150,6 +150,15 @@ namespace fc
   template const FcBuffer* FcPool<FcBuffer>::getElement(FcHandle<FcBuffer> handle) const;
   template FcHandle<FcBuffer> FcPool<FcBuffer>::findObject(FcBuffer* element);
   template FcHandle<FcBuffer> FcPool<FcBuffer>::getHandle(u32 index) const;
+  template void FcPool<FcBuffer>::clear();
+  // - FcImage -
+  template FcHandle<FcImage> FcPool<FcImage>::createElement(FcImage&& buffer);
+  template void FcPool<FcImage>::destroyElement(FcHandle<FcImage> handle);
+  template FcImage* FcPool<FcImage>::getElement(FcHandle<FcImage> handle);
+  template const FcImage* FcPool<FcImage>::getElement(FcHandle<FcImage> handle) const;
+  template FcHandle<FcImage> FcPool<FcImage>::findObject(FcImage* element);
+  template FcHandle<FcImage> FcPool<FcImage>::getHandle(u32 index) const;
+  template void FcPool<FcImage>::clear();
   // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 
 } // --- namespace fc --- (END)

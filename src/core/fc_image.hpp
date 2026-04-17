@@ -113,6 +113,9 @@ namespace fc
      FcImage(FcImage&&) = default;
      FcImage(std::filesystem::path& filename, FcImageTypes imageType)
       	{ loadStbi(filename, imageType); }
+     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   OPERATORS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     //
+     inline const bool operator==(const FcImage& other) { return mImage == other.mImage; }
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-   IMAGE MANIPULATION   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
      void createImage(uint32_t width, uint32_t height, FcImageTypes imageType);
      //

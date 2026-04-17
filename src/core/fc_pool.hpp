@@ -46,6 +46,11 @@ namespace fc
      std::vector<PoolElement> mElements;
      //
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     //
+     void init(u32 initialFreeSlots) { mElements.reserve(initialFreeSlots); };
+     //
+     inline u32 size() const noexcept { return mNumObjects; }
+     //
      template <typename Element> FcHandle<Element> createElement(Element&& obj);
      //
      template <typename Element> void destroyElement(FcHandle<Element> handle);
