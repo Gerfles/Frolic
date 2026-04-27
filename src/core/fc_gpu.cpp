@@ -111,6 +111,7 @@ namespace fc
       // Get the properties of the potential device to check to prefer GPU and set properties
       vkGetPhysicalDeviceProperties2(potentialDevice, &deviceProperties);
 
+
       // TEST (alternate OSs)
       // Prefer a dedicated grapchics card ( TODO use a priority queue with score for GPU, etc.)
       if (deviceProperties.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)

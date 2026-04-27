@@ -471,12 +471,12 @@ namespace fc
       // the specific 'pipeline' of function calls and avoid branches
 
       // Draw the bounding box around the object if enabled
-      if (mDrawBoundingBoxes)
+      if (mShouldDrawBoundingBoxes)
       {
         mBoundingBoxRenderer.draw(cmd, mDrawCollection, mDescriptorCollection, mBoundingBoxId);
       }
 
-      if(mDrawNormalVectors)
+      if(mShouldDrawNormalVectors)
       {
         mNormalRenderer.draw(cmd, mDrawCollection, mDescriptorCollection);
       }
@@ -491,11 +491,10 @@ namespace fc
         mTerrainRenderer.draw(cmd, mSceneData, shouldDrawWireframe);
       }
 
-      // Draw the skybox last so that we can skip pixels with ANY object in front of it
-      mSkybox.draw(cmd, mDescriptorCollection);
-
-
       mBillboardRenderer.draw(cmd, mSceneData);
+
+      // Draw the skybox nearly last so that we can skip pixels with ANY object in front of it
+      mSkybox.draw(cmd, mDescriptorCollection);
     }
 
     vkCmdEndRendering(cmd);
@@ -601,18 +600,18 @@ namespace fc
 
         if (update.type == ResourceDeletionType::Texture)
         {
-          // DELETE in favor of commented out one ??
-          /* descriptorWrite.dstSet = *mDescriptorCollection.sceneBindlessTextureSet; */
           descriptorWrite.dstSet = mSceneRenderer.getSceneDescSet();
         }
         else if (update.type == ResourceDeletionType::Billboard)
         {
-          descriptorWrite.dstSet = *mDescriptorCollection.billboardDescriptorSet;
+          /* descriptorWrite.dstSet = *mDescriptorCollection.billboardDescriptorSet; */
+          descriptorWrite.dstSet = mBillboardRenderer.getBillboardDescSet();
         }
         else
         {
           FC_DEBUG_LOG_FORMAT("FAILED: to update bindless resource: %u", update.textureHandle);
-          descriptorWrite.dstSet = *mDescriptorCollection.billboardDescriptorSet;
+          /* descriptorWrite.dstSet = *mDescriptorCollection.billboardDescriptorSet; */
+          descriptorWrite.dstSet = mBillboardRenderer.getBillboardDescSet();
           texture = &FcDefaults::Textures.checkerboard;
         }
 

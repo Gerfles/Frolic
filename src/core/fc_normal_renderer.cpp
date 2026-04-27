@@ -18,17 +18,8 @@ namespace fc
     pipelineConfig.addStage(VK_SHADER_STAGE_GEOMETRY_BIT, "normal_display.geom.spv");
     pipelineConfig.addStage(VK_SHADER_STAGE_FRAGMENT_BIT, "normal_display.frag.spv");
 
-    /* pipelineConfig.setColorAttachment(VK_FORMAT_R16G16B16A16_SFLOAT); */
-    /* pipelineConfig.setDepthFormat(VK_FORMAT_D32_SFLOAT); */
-    /* pipelineConfig.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST); */
-    /* pipelineConfig.setPolygonMode(VK_POLYGON_MODE_FILL); */
-    // TODO front face
     pipelineConfig.setCullMode(VK_CULL_MODE_FRONT_AND_BACK, VK_FRONT_FACE_CLOCKWISE);
-    /* pipelineConfig.enableMultiSampling(VK_SAMPLE_COUNT_1_BIT); */
     pipelineConfig.disableMultiSampling();
-    // TODO prefer config via:
-    //pipelineConfig.enableMultiSampling(VK_SAMPLE_COUNT_1_BIT);
-    //pipelineConfig.disableMultiSampling();
     pipelineConfig.enableDepthtest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
     pipelineConfig.enableBlendingAlpha();
 
@@ -39,15 +30,18 @@ namespace fc
     matrixRange.size = sizeof(ScenePushConstants);
     pipelineConfig.addPushConstants(matrixRange);
 
-    // Set up all descriptor sets for this pipeline
-    pipelineConfig.attachUniformBuffer(0, 0, sceneDataBuffer, sizeof(sceneDataBuffer), 0,
+    // Add the scene descriptor set layout (eye, view, proj, etc.)
+    pipelineConfig.attachUniformBuffer(0, 0, sceneDataBuffer, sizeof(SceneData), 0,
                                        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_GEOMETRY_BIT);
+
+    // Create the descriptorset we will bind when drawing
     mDescriptorSet = pipelineConfig.createDescriptorSet(0);
 
     mNormalDrawPipeline.create(pipelineConfig);
   }
 
 
+  //
   // TODO need to implement a method that only draws the visible objects and
   void FcNormalRenderer::draw(VkCommandBuffer cmd,
                               FcDrawCollection& drawCollection,
@@ -56,7 +50,7 @@ namespace fc
     mNormalDrawPipeline.bind(cmd);
     mNormalDrawPipeline.bindDescriptorSet(cmd, mDescriptorSet, 0);
 
-    // TODO could also draw the vectors for transparent objects but bypassed here
+    // TODO should also draw the vectors for transparent objects but bypassed here
     for (auto& materialCollection : drawCollection.opaqueSurfaces)
     {
       for (const FcSubmesh& subMesh : materialCollection.second)
@@ -72,6 +66,7 @@ namespace fc
   }
 
 
+  //
   void FcNormalRenderer::destroy()
   {
     FC_DEBUG_LOG("Destroying normal vector renderer...");

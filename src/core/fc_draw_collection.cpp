@@ -11,10 +11,8 @@ namespace fc
   void FcDrawCollection::init(FcAllocator* allocator)
   {
     // TODO more flexible initialization of draw collection
-    /* mTextures.init(allocator, 512); */
+    // TODO implement with actual data pool (as opposed to object pool)
     mTextures.init(512);
-    // FIXME restore this optional functionality...
-    /* mBillboards.init(allocator, 512); */
   }
 
   // TODO update to work on all surfaces (opaque or transparent)
@@ -100,22 +98,11 @@ namespace fc
   //
   void FcDrawCollection::destroy()
   {
-    // TODO check that this works appropriately for FcImage type
-    // for (FcImage& image : mTextures)
-    // {
+    FC_DEBUG_LOG("Destroying FcDrawCollection...");
 
-    // }
-
-    // mTextures.freeAll();
-    // mTextures.shutdown();
-    // mBillboards.freeAll();
-    // mBillboards.shutdown();
-
-    // BUG make sure the clear function destroys the image or place that functionality within DTOR
-    /* mBillboards.clear(); */
     mTextures.clear();
 
-
+    FC_DEBUG_LOG("...DONE");
   }
 
 

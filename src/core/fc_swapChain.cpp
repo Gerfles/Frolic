@@ -20,6 +20,7 @@ namespace fc
   //
   VkFormat FcSwapChain::init(FcGpu& gpu, FcConfig& config)
   {
+    FC_DEBUG_LOG("Creating swapchain...");
     pGpu = &gpu;
 
     VkFormat swapchainImageFormat = createSwapChain(config);
@@ -31,9 +32,9 @@ namespace fc
 
     // First transition each swap chain image into the present layout (so our transitioning logic works later)
     FcCommandBuffer& cmd = FcLocator::Renderer().mImmediateCommands.acquire();
-    for (FcImage image : mSwapchainImages)
+    for (FcImage& image : mSwapchainImages)
     {
-    image.transitionLayout(cmd.getVkCmdBuffer(), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+      image.transitionLayout(cmd.getVkCmdBuffer(), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
     }
     FcLocator::Renderer().submitNonRenderCmdBuffer(cmd);
 
@@ -54,6 +55,8 @@ namespace fc
     mDependencyInfo.imageMemoryBarrierCount = 1;
 
     return swapchainImageFormat;
+
+    FC_DEBUG_LOG("...DONE\n");
   }
 
 
@@ -95,6 +98,10 @@ namespace fc
     {
       desiredImageCount = surfaceCapabilities.maxImageCount;
     }
+
+    // TODO for better printing
+    // Creating swapchain... DONE
+    //     /t INFO: blah blah...
     fcPrintEndl("Swapchain: %u buffers (image buffer count)", desiredImageCount);
 
     // creation information for swap chain
@@ -191,30 +198,23 @@ namespace fc
       fcPrintEndl("%u(actual) vs. %u(desired)", swapchainImageCount);
     }
 
-    // Finally, create the actual Images that will be used in the swapchain
-    for (VkImage image : swapchainImages)
+    // Finally, create the FcImages as a wrapper for the swapchain
+    mSwapchainImages.resize(swapchainImages.size());
+
+    for (sizeT index = 0; index < swapchainImages.size(); ++index)
     {
-      FcImage swapChainImage{image};
+      // Create the FcImage as a wrapper around the swapchain (VkImage)
+      mSwapchainImages[index].setVkImage(swapchainImages[index]);
+      mSwapchainImages[index].createImageView(surfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT);
 
-      // Create image view
-      swapChainImage.createImageView(surfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT);
-      //
-      mSwapchainImages.emplace_back(std::move(swapChainImage));
-    }
-
-
-    //
-    // Create aquire semaphores and fences
-    for (sizeT i = 0; i < mSwapchainImages.size(); ++i)
-    {
+      // Create aquire semaphores for each frame buffer in swapchain
       char debugName[256];
-      snprintf(debugName, strlen(debugName), "Semaphore: mAcquireSemaphore[%u]", i);
-      mAcquireSemaphore[i] = createSemaphore(pGpu->getVkDevice(), debugName);
+      snprintf(debugName, strlen(debugName), "Semaphore: mAcquireSemaphore[%u]", index);
+      mAcquireSemaphore[index] = createSemaphore(pGpu->getVkDevice(), debugName);
 
-      //  TODO look into strlen instead of sizeof etc.
       // create the fence that makes sure the draw commands of a a given frame is finished
-      snprintf(debugName, strlen(debugName), "Fence: mAcquireFence[%u]            ", i);
-      mAcquireFences[i] = createFence(pGpu->getVkDevice(), true, debugName);
+      snprintf(debugName, strlen(debugName), "Fence: mAcquireFence[%u]            ", index);
+      mAcquireFences[index] = createFence(pGpu->getVkDevice(), true, debugName);
     }
 
     return surfaceFormat.format;
@@ -576,15 +576,16 @@ namespace fc
   // Partially free of swapchain resources -- used when resizing the window and recreating swapchain
   void FcSwapChain::clearSwapChain()
   {
-    // destroy all the image views in our swapchain--the actual images and memory are
-    // freed by actual swapchain
+    // destroy all imageViews in our swapchain--the actual images and memory are freed by VkSwapchain
     for (auto& image : mSwapchainImages)
     {
       image.destroyImageView();
+      // Set the FcImage.mImage to NULL so destructor doesn't try to destroy images owned by VkSwapchain
+      image.setVkImage(VK_NULL_HANDLE);
     }
 
-    // make sure to shrink the swapchain images container in case we just need to
-    // recreateswapchain for window resize
+    // make sure to shrink the swapchain images container in case we just need to recreateswapchain for
+    // window resize
     mSwapchainImages.clear();
   }
 
@@ -593,7 +594,6 @@ namespace fc
   // full destruction of swapchain, note: includes call to partial destruction of swapchain
   void FcSwapChain::destroy()
   {
-    //
     FC_DEBUG_LOG("Destroying swap chain...");
 
     clearSwapChain();
@@ -608,7 +608,5 @@ namespace fc
     // finally destroy the swapchain itself
     vkDestroySwapchainKHR(pGpu->getVkDevice(), mSwapchain, nullptr);
   }
-
-
 
 } //END - namespace fc - END

@@ -241,7 +241,7 @@ namespace fc
     // TODO make sure we aren't duplicating operations anywhere with m, mv, mvp, vp, etc.
     memcpy(ubo.frustumPlanes, frustum.Planes().data(), sizeof(glm::vec4) * 6);
 
-    mUboBuffer.write(true, cmd, &ubo, sizeof(UBO));
+    mUboBuffer.write(cmd, &ubo, sizeof(UBO));
   }
 
 

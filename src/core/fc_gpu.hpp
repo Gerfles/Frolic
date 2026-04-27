@@ -17,6 +17,7 @@ namespace fc
      float maxSamplerAnisotropy;
      VkSampleCountFlagBits maxMsaaSamples;
      bool isBindlessSupported;
+     VkDeviceSize maxMemoryAllocationSize;
   };
 
    // TODO seems carying around a screenSize would be ideal->instead of calling functions in window

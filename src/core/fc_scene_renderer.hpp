@@ -46,7 +46,8 @@ namespace fc
      void drawSurface(VkCommandBuffer cmd, const FcSubmesh& surface) noexcept;
      void buildPipelines(FcImage& shadowMap);
    public:
-     ~FcSceneRenderer() { fcPrintEndl("Calling Scene renderer dtor"); }
+     ~FcSceneRenderer() = default;
+
      // TODO think about including a local descriptorClerk
      void init(glm::mat4& viewProj, FcDescriptorCollection& frame, FcImage& shadowMap);
      //
@@ -55,7 +56,7 @@ namespace fc
      FcPipeline* OpaquePipeline() { return &mOpaquePipeline; }
      //
      inline void updateSceneData(VkCommandBuffer cmd, SceneData& sceneData) noexcept
-      { mSceneDataBuffer.write(true, cmd, &sceneData, sizeof(SceneData)); }
+      { mSceneDataBuffer.write(cmd, &sceneData, sizeof(SceneData)); }
      void updateBindlessDescriptors();
      //
      void draw(VkCommandBuffer cmd, FcDrawCollection& drawCollection, bool shouldDrawWireFrame) noexcept;

@@ -19,10 +19,10 @@ namespace fc
      // TODO allocate all the descriptorSets for each frame (skybox, terrain, etc.)
 
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   KEEP   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-     VkDescriptorSet sceneDataDescriptorSet;
-     VkDescriptorSet* sceneBindlessTextureSet;
-     VkDescriptorSet shadowMapDescriptorSet;
+     /* VkDescriptorSet sceneDataDescriptorSet; */
+     /* VkDescriptorSet* sceneBindlessTextureSet; */
+     /* VkDescriptorSet shadowMapDescriptorSet; */
      /* VkDescriptorSet skyBoxDescriptorSet; */
-     VkDescriptorSet* billboardDescriptorSet;
+     /* VkDescriptorSet* billboardDescriptorSet; */
   };
 }

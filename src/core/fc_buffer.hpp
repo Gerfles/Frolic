@@ -44,7 +44,6 @@ namespace fc
        void* mMemoryAddress {nullptr};
 
        // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   DELETE   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-       bool isDestroyed {false};
      public:
        // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
        VmaAllocation& getAllocation() { return mAllocation; }
@@ -66,7 +65,7 @@ namespace fc
        //
        void allocate(VkDeviceSize bufferSize, FcBufferTypes bufferType);
        // if dataSize == 0 -> write the full size of the buffer
-       void write(bool isTesting, VkCommandBuffer cmd, void* sourceData, size_t dataSize = 0, VkDeviceSize offset = 0);
+       void write(VkCommandBuffer cmd, void* sourceData, size_t dataSize = 0, VkDeviceSize offset = 0);
        //
        void setName(const char* name);
        //
@@ -74,7 +73,7 @@ namespace fc
                      VmaAllocationCreateFlags vmaFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT
                      | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
        void overwriteData(void* sourceData, size_t dataSize, VkDeviceSize offset = 0);
-       void copyBuffer(VkCommandBuffer cmd, const FcBuffer& srcBuffer, VkDeviceSize bufferSize, bool isTesting = false);
+       void copyBuffer(VkCommandBuffer cmd, const FcBuffer& srcBuffer, VkDeviceSize bufferSize);
        void fetchData(uint32_t location, size_t dataSize);
        const VkBuffer& getVkBuffer() const { return mBuffer; }
        void printBufferStats() const;

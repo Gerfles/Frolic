@@ -98,7 +98,7 @@ namespace fc
 
     // DELETE
     // TODO May be able to then remove descriptor set from shadowMap class
-    frames.shadowMapDescriptorSet = mShadowMapDescriptor;
+    /* frames.shadowMapDescriptorSet = mShadowMapDescriptor; */
 
     mShadowDebugPipeline.create(pipelineConfig);
   }

@@ -42,7 +42,7 @@ namespace fc
   // way the draw collection doesn't need updating each time a surface is transformed
   struct FcDrawCollection
   {
-     // This structure is structured in a way that allows a given material to keep track
+     // RenderObject is structured in a way that allows a given material to keep track
      // of all of the surfaces that require it to draw. That way we can simply bind a
      // material and then draw all of the surfaces associated with that material before
      // moving the the next material...

@@ -1,3 +1,8 @@
+// *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   TODO   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+// -  implement or delete or default ALL constructors throughout the engine -> THEN DOCUMENT
+
+
+
 //>--- frolic.hpp ---<//
 #pragma once
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   FROLIC ENGINE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -47,7 +52,8 @@ namespace fc
      bool mShouldClose {false};
      SDL_Event mEvent;
      FcStats* stats;
-
+     // *-*-*-*-*-*-*-*-*-*-*-*-*-*-   POOLED RESOURCES   *-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     FcPool<FcImage> mTexturePool;
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   TEMP   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      float angle {0.f};
      int rotationSpeed {0};

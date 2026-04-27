@@ -14,7 +14,6 @@ namespace  fc
   //
   void FcBuffer::allocate(VkDeviceSize bufferSize, FcBufferTypes bufferType)
   {
-    isDestroyed = false;
     mSize = bufferSize;
     mBufferType = bufferType;
 
@@ -146,7 +145,7 @@ namespace  fc
 
   // TODO TEST all uses of write() etc. to see if it would be more efficient to pass a
   // cmd buffer and allow write to be one of the commands within that buffer (if it's part of the render cycle)
-  void FcBuffer::write(bool isTesting, VkCommandBuffer cmd, void* sourceData, size_t dataSize, VkDeviceSize offset)
+  void FcBuffer::write(VkCommandBuffer cmd, void* sourceData, size_t dataSize, VkDeviceSize offset)
   {
     // if no dataSize passed in (default = 0), set copy length to whole buffer size
     if (dataSize == 0)
@@ -167,7 +166,7 @@ namespace  fc
       FcBuffer stagingBuffer(dataSize, FcBufferTypes::Staging);
       stagingBuffer.overwriteData(sourceData, dataSize, offset);
       //
-      copyBuffer(cmd, stagingBuffer, dataSize, isTesting);
+      copyBuffer(cmd, stagingBuffer, dataSize);
       //
       stagingBuffer.deferredDestroy();
     }
@@ -296,36 +295,20 @@ namespace  fc
 
 
   //
-  void FcBuffer::copyBuffer(VkCommandBuffer cmd, const FcBuffer& srcBuffer, VkDeviceSize bufferSize, bool isTesting)
+  void FcBuffer::copyBuffer(VkCommandBuffer cmd, const FcBuffer& srcBuffer, VkDeviceSize bufferSize)
   {
-    // allocate and begin the command buffer to transfer a buffer
-    if (isTesting)
-    {
-      // region of data to copy from and to
-      VkBufferCopy bufferCopyRegion{};
-      bufferCopyRegion.srcOffset = 0;
-      bufferCopyRegion.dstOffset = 0;
-      bufferCopyRegion.size = bufferSize;
+    /* FcCommandBuffer& cmdBuffer = FcLocator::Renderer().beginCommandBuffer(); */
 
-      // command to copy src buffer to dst buffer
-      vkCmdCopyBuffer(cmd, srcBuffer.mBuffer, mBuffer, 1, &bufferCopyRegion);
-    }
-    else
-    {
-      FcCommandBuffer& cmdBuffer = FcLocator::Renderer().beginCommandBuffer();
+    // region of data to copy from and to
+    VkBufferCopy bufferCopyRegion{};
+    bufferCopyRegion.srcOffset = 0;
+    bufferCopyRegion.dstOffset = 0;
+    bufferCopyRegion.size = bufferSize;
 
-      // region of data to copy from and to
-      VkBufferCopy bufferCopyRegion{};
-      bufferCopyRegion.srcOffset = 0;
-      bufferCopyRegion.dstOffset = 0;
-      bufferCopyRegion.size = bufferSize;
+    // command to copy src buffer to dst buffer
+    vkCmdCopyBuffer(cmd, srcBuffer.mBuffer, mBuffer, 1, &bufferCopyRegion);
 
-      // command to copy src buffer to dst buffer
-      vkCmdCopyBuffer(cmdBuffer.getVkCmdBuffer(), srcBuffer.mBuffer, mBuffer, 1, &bufferCopyRegion);
-
-      /* FcLocator::Renderer().submitNonRenderCmdBuffer(cmdBuffer); */
-      FcLocator::Renderer().submitCmdBuffer(cmdBuffer);
-    }
+    /* FcLocator::Renderer().submitCmdBuffer(cmdBuffer); */
   }
 
 
@@ -376,7 +359,6 @@ namespace  fc
   // We should create a semi-permanent buffer specifically for swapchain copies...
   void FcBuffer::deferredDestroy()
   {
-    isDestroyed = true;
     // Make sure we don't try and delete a non-allocated buffer
     if (mBuffer == VK_NULL_HANDLE)
       return;
@@ -395,7 +377,6 @@ namespace  fc
   //
   void FcBuffer::immediateDestroy()
   {
-    isDestroyed = true;
     // Make sure we don't try and delete a non-allocated buffer
     if (mBuffer == VK_NULL_HANDLE)
       return;

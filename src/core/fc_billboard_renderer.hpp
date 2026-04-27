@@ -60,6 +60,9 @@ namespace fc
      //
      void sortBillboardsByDistance(glm::vec4& cameraPosition) noexcept;
 
+     // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   GETTERS   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+     inline VkDescriptorSet getBillboardDescSet() noexcept { return mDescriptorSet; }
+
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CLEANUP   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      void destroy() noexcept;
   }; // ---   class FcBillboardRenderer --- (END);

@@ -23,8 +23,6 @@ namespace fc
     // TODO why have view projection when we already have sceneData (it's only buffer though... maybe cast??)
     pViewProjection = &viewProj;
 
-    descriptors.sceneBindlessTextureSet = &mSceneDescriptorSet;
-
     buildPipelines(shadowMap);
   }
 

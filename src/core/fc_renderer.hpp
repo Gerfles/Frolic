@@ -121,8 +121,8 @@ namespace fc
      // TODO try and eliminate
      friend class FcCommandBuffer;
      // TODO Make these all private
-     bool mDrawNormalVectors {false};
-     bool mDrawBoundingBoxes {false};
+     bool mShouldDrawNormalVectors {false};
+     bool mShouldDrawBoundingBoxes {false};
      bool shouldDrawWireframe {false};
      int mBoundingBoxId {-1};
 

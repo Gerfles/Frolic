@@ -35,7 +35,7 @@ namespace fc
     mVertexBuffer.setName("Vertex Buffer");
 
     FcCommandBuffer& cmd = FcLocator::Renderer().beginCommandBuffer();
-    mVertexBuffer.write(true, cmd.getVkCmdBuffer(), vertices.data(), bufferSize);
+    mVertexBuffer.write(cmd.getVkCmdBuffer(), vertices.data(), bufferSize);
 
     // find the address fo the vertex buffer (used for terrain & shadow renderers as well as comparisons)
     mVertexBufferAddress = mVertexBuffer.getVkDeviceAddress();
@@ -51,7 +51,7 @@ namespace fc
     mIndexBuffer.allocate(bufferSize, FcBufferTypes::Index);
     mIndexBuffer.setName("Index Buffer");
 
-    mIndexBuffer.write(true, cmd.getVkCmdBuffer(), indices.data(), bufferSize);
+    mIndexBuffer.write(cmd.getVkCmdBuffer(), indices.data(), bufferSize);
 
     FcLocator::Renderer().submitCmdBuffer(cmd);
   }

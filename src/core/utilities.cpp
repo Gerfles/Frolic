@@ -58,6 +58,18 @@ namespace fc
   }
 
 
+  // Returns a size that is memory aligned or padded to fit within alignment
+  // ie getAlignedSize(56, 16) => (1000111) & ~(1111) => 1000000 = 64
+  VkDeviceSize getAlignedSize(u64 initialSize, u64 alignment)
+  {
+    // (initialSize + alignment - 1) pads the initial size by the max alignment bits
+    // ~(alignment - 1) places 0s in the last N bits (where alignment is 2^N) and 1s otherwise
+    // statement1 & statement2 will zero out the last N digits of the of the first expression
+    return (initialSize + alignment - 1) & ~(alignment - 1);
+  }
+
+
+
 // static VKAPI_ATTR VkBool32 VKAPI_CALL
   // debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
   //               VkDebugUtilsMessageTypeFlagsEXT messageType,

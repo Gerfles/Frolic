@@ -56,14 +56,14 @@ namespace fc
   // data sent. Then FcSurface must have the first members exactly match this structure. This will
   // save us from having to create a ScenePushConstant to
   // This structure should not be used directly but instead serves as a size indicator
-    struct ScenePushConstants
-    {
-       glm::mat4 worldMatrix;
-       glm::mat4 normalTransform;
-       VkDeviceAddress vertexBuffer;
+  struct ScenePushConstants
+  {
+     glm::mat4 worldMatrix;
+     glm::mat4 normalTransform;
+     VkDeviceAddress vertexBuffer;
 
-       ScenePushConstants() = delete;
-    };
+     ScenePushConstants() = delete;
+  };
 
 
 
@@ -184,12 +184,11 @@ namespace fc
 
 
   //
-  //
-    struct TerrainPushConstants
-    {
-       VkDeviceAddress address;
-       float time;
-    };
+  struct TerrainPushConstants
+  {
+     VkDeviceAddress address;
+     float time;
+  };
 
   //
   struct BillboardPushConstants

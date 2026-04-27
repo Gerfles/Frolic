@@ -8,7 +8,10 @@
 
 namespace fc
 {
-   // Pointer-to-function type for Additional callback to print
+
+
+  // Pointer-to-function type for Additional callback to print
+  // TODO change to using
   typedef void (*PrintCallback)(const char*);
 
   struct LogService : public Service

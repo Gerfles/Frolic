@@ -2,6 +2,7 @@
 #pragma once
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CORE   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "platform.hpp"
+#include "fc_locator.hpp"
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include "vk_mem_alloc.h"
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
@@ -39,13 +40,14 @@ namespace fc
   // TODO think about creating a separate class for texture
   class FcImage
   {
+     // TODO make private
    protected:
      // -*-*-*-*-*-*-*-   USED WHEN MAPPING DATA TO READ PIXEL VALUES   -*-*-*-*-*-*-*- //
      // TODO get rid of local Copy since not always needed
      std::shared_ptr<FcBuffer> localCopy;
      void* localCopyAddress {nullptr};
      /* static uint32_t index; */
-     uint32_t mHandle;
+
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      VkSampler mSampler {VK_NULL_HANDLE};
      VkImage mImage {VK_NULL_HANDLE};
@@ -101,20 +103,20 @@ namespace fc
       }
 
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CTORS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-     // TODO implement or delete or default ALL constructors throughout the engine -> THEN DOCUMENT
      FcImage() = default;
-     FcImage(VkImage image) : mImage(image) {};
-     ~FcImage() = default;
+     ~FcImage();
+     FcImage(const FcImage&) = delete;
      FcImage& operator=(const FcImage&) = default;
-     // ?? This must be included to allow vector.pushBack(Fcbuffer) ?? not sure if there's a better
-     // way... maybe unique_ptr
-     FcImage(const FcImage&) = default;
-     FcImage& operator=(FcImage&&) = default;
-     FcImage(FcImage&&) = default;
+     FcImage& operator=(FcImage&&) noexcept = default;
+     FcImage(FcImage&& other) noexcept;
+
+     //
      FcImage(std::filesystem::path& filename, FcImageTypes imageType)
       	{ loadStbi(filename, imageType); }
+
+     inline void setVkImage(VkImage image) noexcept { mImage = image; }
+
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   OPERATORS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
-     //
      inline const bool operator==(const FcImage& other) { return mImage == other.mImage; }
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-   IMAGE MANIPULATION   -*-*-*-*-*-*-*-*-*-*-*-*-*- //
      void createImage(uint32_t width, uint32_t height, FcImageTypes imageType);
@@ -176,16 +178,13 @@ namespace fc
      VkExtent2D Extent() { return {mWidth, mHeight}; }
      uint32_t Width() { return mWidth; }
      uint32_t Height() { return mHeight; }
-     uint32_t Handle() { return mHandle; }
+
      uint8_t LayerCount() { return mLayerCount; }
      uint8_t MipMapCount() { return mMipLevels; }
      int byteDepth() { return mBytesPerPixel; }
      // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CLEANUP   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      void destroyImageView();
      void destroy();
-     // DELETE eventually
-     void loadTestImage(uint32_t width, uint32_t height);
-     void deleteTestImage();
   };
 
 } // namespace fc _END_

@@ -102,9 +102,9 @@ namespace fc
           fc->sponza.toggleTextureUse(MaterialFeatures::HasEmissiveTexture, sponzaTexIndices);
         }
 
-        ImGui::Checkbox("Draw Normals", &fc->mRenderer.mDrawNormalVectors);
+        ImGui::Checkbox("Draw Normals", &fc->mRenderer.mShouldDrawNormalVectors);
 
-        ImGui::Checkbox("Box Bounds", &fc->mRenderer.mDrawBoundingBoxes);
+        ImGui::Checkbox("Box Bounds", &fc->mRenderer.mShouldDrawBoundingBoxes);
         ImGui::SameLine();
         ImGui::SetNextItemWidth(80);
 

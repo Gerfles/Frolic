@@ -55,6 +55,10 @@ namespace fc
   // TODO could default is Signaled to false
   VkFence createFence(VkDevice device, bool isSignaled, const char* debugName);
   //
+  VkDeviceSize getAlignedSize(u64 initialSize, u64 alignment);
+
+
+
   template <typename TP>
   // std::time_t to_time_t(TP tp);
   time_t to_time_t(TP tp);

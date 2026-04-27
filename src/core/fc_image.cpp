@@ -21,16 +21,29 @@
 
 namespace fc
 {
+  FcImage::FcImage(FcImage&& other) noexcept
+    : mImage(other.mImage), mWidth(other.mWidth), mHeight(other.mHeight), mAllocation(other.mAllocation),
+      mFormat(other.mFormat), mSampler(other.mSampler), mBytesPerPixel(other.mBytesPerPixel),
+      mLayerCount(other.mLayerCount), mMipLevels(other.mMipLevels),
+      localCopyAddress(std::move(other.localCopyAddress)), localCopy(other.localCopy), mImageView(other.mImageView)
+  {
+    // if (this != &other)
+    // {
+      other.mImage = nullptr;
+      other.mImageView = nullptr;
+    //}
+  }
+
+
+  // DELETE
   void FcImage::init(u32 handle)
   {
-
     localCopyAddress = nullptr;
     mImage = VK_NULL_HANDLE;
     mImageView = VK_NULL_HANDLE;
     mAllocation = nullptr;
     mLayerCount = 1;
     mMipLevels = 1;
-    mHandle = handle;
   }
 
   //
@@ -536,36 +549,7 @@ namespace fc
   }
 
 
-  // DELETE eventually
-  void FcImage::loadTestImage(uint32_t width, uint32_t height)
-  {
-    mWidth = width;
-    mHeight = height;
-    int testImageArea = width * height;
-    localCopyAddress = new uint32_t[testImageArea];
-    std::memset(localCopyAddress, 0, testImageArea * sizeof(uint32_t));
-
-    std::vector<uint32_t> testImage(testImageArea);
-    //
-    for(uint32_t x = 0; x < width; ++x)
-    {
-      for(uint32_t y = 0; y < height; ++y)
-      {
-        uint32_t val = (x << 15) + y;
-        testImage[x + y * width] = val;
-      }
-    }
-    std::memcpy(localCopyAddress, testImage.data(), testImage.size() * sizeof(testImage[0]));
-  }
-
-
-  void FcImage::deleteTestImage()
-  {
-    delete[] static_cast<uint32_t*>(localCopyAddress);
-  }
-
-
-
+  //
   void FcImage::loadStbi(std::filesystem::path& filename, FcImageTypes imageType)
   {
     // First find out image specs and then create a suitable image
@@ -634,7 +618,7 @@ namespace fc
       }
 
       // copy the actual image data into the staging buffer.
-      stagingBuffer.write(true, cmdBuffer.getVkCmdBuffer(), pixels, layerSize, layerSize * i);
+      stagingBuffer.write(cmdBuffer.getVkCmdBuffer(), pixels, layerSize, layerSize * i);
 
       // free original image data
       stbi_image_free(pixels);
@@ -1022,18 +1006,27 @@ namespace fc
     //}
   }
 
-  void FcImage::destroy()
-  {
-    destroyImageView();
 
-    // ?? I think the vk destroy already checks for NULL
-    //    if (mImage != nullptr)
-    //    {
-    vmaDestroyImage(FcLocator::Gpu().getAllocator(), mImage, mAllocation);
-    //    }
+  // TODO implement along with move constructors
+  FcImage::~FcImage()
+  {
+    destroy();
   }
 
 
+  //
+  void FcImage::destroy()
+  {
+    if (mImage != VK_NULL_HANDLE)
+    {
+      destroyImageView();
+      vmaDestroyImage(FcLocator::Gpu().getAllocator(), mImage, mAllocation);
+      mImage = VK_NULL_HANDLE;
+    }
+  }
+
+
+  //
   void FcImage::writeToImage(void* pixelData, VkDeviceSize dataLength, bool generateMipmaps)
   {
     // Create a staging buffer first in order to transition the image to the gpu-local later
@@ -1045,7 +1038,7 @@ namespace fc
     // using memcpy. It's unlikely that it would matter for a smaller image, but I think
     // that's the correct approach in general.
     // copy the actual image data into the staging buffer.
-    stagingBuffer.write(true, cmdBuffer.getVkCmdBuffer(), pixelData, dataLength);
+    stagingBuffer.write(cmdBuffer.getVkCmdBuffer(), pixelData, dataLength);
 
     // Change layouts so we  can write into image from staging buffer
     transitionLayout(cmdBuffer.getVkCmdBuffer(),
