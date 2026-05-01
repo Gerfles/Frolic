@@ -1,6 +1,7 @@
 //>--- fc_billboard.hpp ---<//
 #pragma once
 // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   EXTERNAL   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
+#include "core/platform.hpp"
 #include <glm/vec3.hpp>
 // -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   STL   -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
 #include <string_view>
@@ -18,7 +19,7 @@ namespace fc
      glm::vec3 mPosition;
      float mWidth;
      float mHeight;
-
+     u32 mTextureIndex;
    public:
      // *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-   CTORS   *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- //
      // Make sure we have to supply the width and height for the newly constructed billboard

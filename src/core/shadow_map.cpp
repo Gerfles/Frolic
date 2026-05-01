@@ -213,7 +213,6 @@ namespace fc
     // /* dependencyInfo.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT; */
     // dependencyInfo.memoryBarrierCount = 1;
     // dependencyInfo.pMemoryBarriers = &memoryBarrier;
-
     // vkCmdPipelineBarrier2(cmd, &dependencyInfo);
 
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,

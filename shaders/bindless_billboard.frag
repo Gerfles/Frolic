@@ -28,12 +28,12 @@ void main()
 {
   outColor = texture(globalTextures[nonuniformEXT(push.texIndex)], texCoords);
 
-  // if (outColor.a < 0.5)
-  // {
-  //   discard;
-  // }
+  if (outColor.a < 0.5)
+  {
+    discard;
+  }
 
-  outColor = vec4(0.40, 1.0, 0.20, 1.0);
+  // outColor = vec4(0.40, 1.0, 0.20, 1.0);
   //outColor = fragColor;
   //outColor = vec4(push.color.xyz, 1.0);
 }

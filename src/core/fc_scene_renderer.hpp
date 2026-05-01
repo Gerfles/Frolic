@@ -66,9 +66,9 @@ namespace fc
      inline const FcBuffer& getSceneDataBuffer() const { return mSceneDataBuffer; }
 
      //DELETE
-     inline VkDescriptorSet getSceneDescSet() { return mSceneDescriptorSet; }
+     inline VkDescriptorSet getSceneDescSet() noexcept { return mSceneDescriptorSet; }
      /* inline const VkDescriptorSetLayout getSceneDescriptorLayout() const { return mSceneDataDescriptorLayout; } */
-     //
+
      void destroy();
   };
 

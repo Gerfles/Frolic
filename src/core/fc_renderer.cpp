@@ -581,9 +581,11 @@ namespace fc
 
       u32 currentWriteIndex = 0;
 
+      // BUG??
       // using signed integer here so
       for (size_t i = mDrawCollection.bindlessTextureUpdates.size(); i > 0; --i)
       {
+        // update the bindless descriptor sets in reverse order
         ResourceUpdate& update = mDrawCollection.bindlessTextureUpdates[i - 1];
 
         // TRY only doing under the following circumstance
@@ -604,8 +606,10 @@ namespace fc
         }
         else if (update.type == ResourceDeletionType::Billboard)
         {
-          /* descriptorWrite.dstSet = *mDescriptorCollection.billboardDescriptorSet; */
           descriptorWrite.dstSet = mBillboardRenderer.getBillboardDescSet();
+          // FcHandle<FcImage> tempHandle = mDrawCollection.mTextures.getHandle<FcImage>(71);
+          // texture = mDrawCollection.mTextures.getElement(tempHandle);
+          /* descriptorWrite.dstSet = mSceneRenderer.getSceneDescSet(); */
         }
         else
         {

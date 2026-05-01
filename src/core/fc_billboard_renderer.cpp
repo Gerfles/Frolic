@@ -40,14 +40,13 @@ namespace fc
     mUboBuffer.allocate(sizeof(BillboardUbo), FcBufferTypes::Uniform);
     mUboBuffer.setName("Billboard Uniform buffer");
 
-
     // Create the descriptor sets used to build pipeline
-    pipelineConfig.attachUniformBuffer(0, 0, mUboBuffer, sizeof(BillboardUbo), 0, VK_SHADER_STAGE_VERTEX_BIT);
+    pipelineConfig.attachUniformBuffer(0, 0, mUboBuffer, sizeof(BillboardUbo),
+                                       0, VK_SHADER_STAGE_VERTEX_BIT);
     pipelineConfig.attachBindlessDescriptors(0);
 
     // Create and register our billboard descriptor set with the passed in descriptor collection
     mDescriptorSet = pipelineConfig.createDescriptorSet(0);
-    /* descCollection.billboardDescriptorSet = &mDescriptorSet; */
 
     //
     mPipeline.create(pipelineConfig);

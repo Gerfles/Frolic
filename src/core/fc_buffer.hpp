@@ -77,6 +77,8 @@ namespace fc
        void fetchData(uint32_t location, size_t dataSize);
        const VkBuffer& getVkBuffer() const { return mBuffer; }
        void printBufferStats() const;
+       //
+       [[nodiscard]] inline bool isMapped() const { return mMemoryAddress != nullptr; }
 
        // TODO remove
        inline void setVkBuffer(VkBuffer buffer) { mBuffer = buffer; }

@@ -33,6 +33,8 @@ void FcBillboard::loadTexture(FcDrawCollection& drawCollection, float width,
     FcHandle<FcImage> imgHandle = drawCollection.mTextures.createElement(std::move(billboardTexture));
     FC_ASSERT(imgHandle.isValid());
 
+    mTextureIndex = imgHandle.index();
+
     // TODO check via configurations
     bool isBindlessSupported = true;
     if (isBindlessSupported)

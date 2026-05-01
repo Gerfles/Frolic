@@ -113,4 +113,14 @@ namespace fc
     mMemoryRegions.push_back({mStagingBufferSize, 0, SubmitHandle()});
   }
 
+
+  //
+  void FcStagingSystem::bufferSubData(FcBuffer& buffer, sizeT size, sizeT dstOffset, const void* data)
+  {
+    if (buffer.isMapped())
+    {
+
+    }
+  }
+
 } // --- namespace fc --- (END)
